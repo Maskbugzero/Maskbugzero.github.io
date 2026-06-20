@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.5772447.xyz","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="使用AutoHotkey v2.0结合DD驱动实现的按键连发工具，支持录制按键、多键复选、间隔可调，带GUI界面，适配反作弊检测场景。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AHK实现DD驱动按键连发（v2.0 GUI版）">
+<meta property="og:url" content="https://blog.5772447.xyz/posts/973246e2/index.html">
+<meta property="og:site_name" content="MReloaded">
+<meta property="og:description" content="使用AutoHotkey v2.0结合DD驱动实现的按键连发工具，支持录制按键、多键复选、间隔可调，带GUI界面，适配反作弊检测场景。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-08-27T00:13:21.000Z">
+<meta property="article:modified_time" content="2026-06-20T06:40:00.000Z">
+<meta property="article:author" content="Maskbugzero">
+<meta property="article:tag" content="AHK">
+<meta property="article:tag" content="DD">
+<meta property="article:tag" content="按键连发">
+<meta property="article:tag" content="游戏工具">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/973246e2/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.5772447.xyz/posts/973246e2/","path":"posts/973246e2/","title":"AHK实现DD驱动按键连发（v2.0 GUI版）"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>AHK实现DD驱动按键连发（v2.0 GUI版） | MReloaded</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VGE8FYNHE7"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-VGE8FYNHE7","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MReloaded</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Life Oriented Programming</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8A%9F%E8%83%BD%E6%A6%82%E8%A7%88"><span class="nav-number">2.</span> <span class="nav-text">功能概览</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82"><span class="nav-number">3.</span> <span class="nav-text">实现细节</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E7%AE%A1%E7%90%86%E5%91%98%E6%9D%83%E9%99%90%E6%A3%80%E6%9F%A5"><span class="nav-number">3.1.</span> <span class="nav-text">1. 管理员权限检查</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E5%AE%8C%E6%95%B4%E7%9A%84-DD-%E9%94%AE%E7%A0%81%E6%98%A0%E5%B0%84%E8%A1%A8"><span class="nav-number">3.2.</span> <span class="nav-text">2. 完整的 DD 键码映射表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E7%9B%B4%E6%8E%A5%E5%8A%A0%E8%BD%BD-DD-dll"><span class="nav-number">3.3.</span> <span class="nav-text">3. 直接加载 DD.dll</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-GUI-%E7%95%8C%E9%9D%A2%E8%AE%BE%E8%AE%A1"><span class="nav-number">3.4.</span> <span class="nav-text">4. GUI 界面设计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E6%8C%89%E9%94%AE%E5%BD%95%E5%88%B6%E5%8A%9F%E8%83%BD"><span class="nav-number">3.5.</span> <span class="nav-text">5. 按键录制功能</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-%E5%8F%8D%E4%BD%9C%E5%BC%8A%E6%A3%80%E6%B5%8B%E5%AF%B9%E7%AD%96%E2%80%94%E2%80%94%E9%9A%8F%E6%9C%BA%E6%8A%96%E5%8A%A8"><span class="nav-number">3.6.</span> <span class="nav-text">6. 反作弊检测对策——随机抖动</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-%E9%BC%A0%E6%A0%87%E6%8C%89%E9%94%AE%E6%94%AF%E6%8C%81"><span class="nav-number">3.7.</span> <span class="nav-text">7. 鼠标按键支持</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-%E9%85%8D%E7%BD%AE%E6%8C%81%E4%B9%85%E5%8C%96"><span class="nav-number">3.8.</span> <span class="nav-text">8. 配置持久化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-%E7%83%AD%E9%94%AE"><span class="nav-number">3.9.</span> <span class="nav-text">9. 热键</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E6%BA%90%E7%A0%81"><span class="nav-number">4.</span> <span class="nav-text">完整源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%B0%E6%97%A7%E7%89%88%E6%9C%AC%E5%AF%B9%E6%AF%94"><span class="nav-number">5.</span> <span class="nav-text">新旧版本对比</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95"><span class="nav-number">6.</span> <span class="nav-text">使用方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98"><span class="nav-number">7.</span> <span class="nav-text">常见问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A1%B9%E7%9B%AE%E5%9C%B0%E5%9D%80"><span class="nav-number">8.</span> <span class="nav-text">项目地址</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Maskbugzero"
+      src="/images/touxiang.jpg">
+  <p class="site-author-name" itemprop="name">Maskbugzero</p>
+  <div class="site-description" itemprop="description">人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">32</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Maskbugzero" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Maskbugzero" rel="noopener me external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.5772447.xyz/posts/973246e2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/touxiang.jpg">
+      <meta itemprop="name" content="Maskbugzero">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MReloaded">
+      <meta itemprop="description" content="人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="AHK实现DD驱动按键连发（v2.0 GUI版） | MReloaded">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          AHK实现DD驱动按键连发（v2.0 GUI版）
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2021-08-27 08:13:21" itemprop="dateCreated datePublished" datetime="2021-08-27T08:13:21+08:00">2021-08-27</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-06-20 14:40:00" itemprop="dateModified" datetime="2026-06-20T14:40:00+08:00">2026-06-20</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AHK/" itemprop="url" rel="index"><span itemprop="name">AHK</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AHK/%E6%8A%80%E5%B7%A7/" itemprop="url" rel="index"><span itemprop="name">技巧</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>2.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>8 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>早在 2021 年就写过一个基于 AHK + DD 驱动的按键连发脚本，当时的版本很简陋——硬编码按键码、固定的间隔、没有任何界面，纯粹是”能用就行”的水平。最近抽空用 <strong>AutoHotkey v2.0</strong> 全面重写了它，加入了 GUI 界面、按键录制、配置保存等功能，同时也针对反作弊检测做了优化。</p>
+<p>如果你不熟悉 DD 驱动：它是一个硬件级的键鼠模拟驱动，走的是内核层的模拟路径，比 AHK 原生的 <code>Send</code> &#x2F; <code>ControlSend</code> 更底层，某些游戏或软件只认 DD 驱动的模拟输入。</p>
+<h2 id="功能概览"><a href="#功能概览" class="headerlink" title="功能概览"></a>功能概览</h2><table>
+<thead>
+<tr>
+<th>功能</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GUI 界面</td>
+<td>告别纯脚本，可视化操作</td>
+</tr>
+<tr>
+<td>按键录制</td>
+<td>按一个键即可添加到连发列表，不用查码表</td>
+</tr>
+<tr>
+<td>多键连发</td>
+<td>支持勾选多个按键同时连发</td>
+</tr>
+<tr>
+<td>鼠标支持</td>
+<td>支持左键、右键、中键连发</td>
+</tr>
+<tr>
+<td>间隔可调</td>
+<td>1~9999ms 自由设置</td>
+</tr>
+<tr>
+<td>随机抖动</td>
+<td>30% 随机延迟，对抗反作弊检测</td>
+</tr>
+<tr>
+<td>配置持久化</td>
+<td>自动保存到 <code>config.ini</code>，重启保留设置</td>
+</tr>
+<tr>
+<td>管理员权限</td>
+<td>自动检测并提权</td>
+</tr>
+</tbody></table>
+<h2 id="实现细节"><a href="#实现细节" class="headerlink" title="实现细节"></a>实现细节</h2><h3 id="1-管理员权限检查"><a href="#1-管理员权限检查" class="headerlink" title="1. 管理员权限检查"></a>1. 管理员权限检查</h3><p>DD 驱动需要管理员权限才能加载，脚本启动时自动检测：</p>
+<figure class="highlight ahk"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">if !<span class="built_in">A_IsAdmin</span> &#123;</span><br><span class="line">    Run(&#x27;*RunAs <span class="string">&quot;&#x27; A_ScriptFullPath &#x27;&quot;</span>&#x27;)</span><br><span class="line">    <span class="keyword">ExitApp</span>()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果没有管理员权限，自动以管理员身份重新启动自身。</p>
+<h3 id="2-完整的-DD-键码映射表"><a href="#2-完整的-DD-键码映射表" class="headerlink" title="2. 完整的 DD 键码映射表"></a>2. 完整的 DD 键码映射表</h3><p>初版脚本只硬编码了一个 <code>502</code>（x 键），新版建立了完整的键盘 + 鼠标码表：</p>
+<figure class="highlight ahk"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">DD_KEY_MAP := Map(</span><br><span class="line">    <span class="string">&quot;escape&quot;</span>, <span class="number">100</span>, <span class="string">&quot;f1&quot;</span>, <span class="number">101</span>, <span class="string">&quot;f2&quot;</span>, <span class="number">102</span>, ...</span><br><span class="line">    <span class="string">&quot;q&quot;</span>, <span class="number">301</span>, <span class="string">&quot;w&quot;</span>, <span class="number">302</span>, <span class="string">&quot;e&quot;</span>, <span class="number">303</span>, ...</span><br><span class="line">    <span class="string">&quot;a&quot;</span>, <span class="number">401</span>, <span class="string">&quot;s&quot;</span>, <span class="number">402</span>, <span class="string">&quot;d&quot;</span>, <span class="number">403</span>, ...</span><br><span class="line">    <span class="string">&quot;z&quot;</span>, <span class="number">501</span>, <span class="string">&quot;x&quot;</span>, <span class="number">502</span>, <span class="string">&quot;c&quot;</span>, <span class="number">503</span>, ...</span><br><span class="line">    <span class="string">&quot;lb&quot;</span>, <span class="number">1</span>, <span class="string">&quot;rb&quot;</span>, <span class="number">4</span>, <span class="string">&quot;mid&quot;</span>, <span class="number">16</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>这样用户按任何键都能被正确识别和模拟，不需要手动查码表。</p>
+<h3 id="3-直接加载-DD-dll"><a href="#3-直接加载-DD-dll" class="headerlink" title="3. 直接加载 DD.dll"></a>3. 直接加载 DD.dll</h3><p>废弃了旧版的 <code>Class_DD.ahk</code> 封装，直接通过 <code>DllCall</code> 加载 DLL：</p>
+<figure class="highlight ahk"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">DLL_PATH := <span class="built_in">A_ScriptDir</span> <span class="string">&quot;\DD.dll&quot;</span></span><br><span class="line">hModule := DllCall(<span class="string">&quot;LoadLibrary&quot;</span>, <span class="string">&quot;Str&quot;</span>, DLL_PATH, <span class="string">&quot;Ptr&quot;</span>)</span><br><span class="line">pDD_key := DllCall(<span class="string">&quot;GetProcAddress&quot;</span>, <span class="string">&quot;Ptr&quot;</span>, hModule, <span class="string">&quot;AStr&quot;</span>, <span class="string">&quot;DD_key&quot;</span>, <span class="string">&quot;Ptr&quot;</span>)</span><br><span class="line">pDD_btn := DllCall(<span class="string">&quot;GetProcAddress&quot;</span>, <span class="string">&quot;Ptr&quot;</span>, hModule, <span class="string">&quot;AStr&quot;</span>, <span class="string">&quot;DD_btn&quot;</span>, <span class="string">&quot;Ptr&quot;</span>)</span><br><span class="line">DllCall(pDD_btn, <span class="string">&quot;Int&quot;</span>, <span class="number">0</span>)  <span class="comment">; 初始化驱动</span></span><br></pre></td></tr></table></figure>
+
+<p>这样做的好处：</p>
+<ul>
+<li>不需要额外的 <code>Class_DD.ahk</code> 文件</li>
+<li>加载过程完全可控</li>
+<li>加载失败时有明确的错误提示</li>
+</ul>
+<h3 id="4-GUI-界面设计"><a href="#4-GUI-界面设计" class="headerlink" title="4. GUI 界面设计"></a>4. GUI 界面设计</h3><figure class="highlight ahk"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">MyGui := Gui(, <span class="string">&quot;AHK连发&quot;</span>)</span><br><span class="line">MyGui.SetFont(<span class="string">&quot;s10&quot;</span>, <span class="string">&quot;Microsoft YaHei&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<p>界面包含几个核心区域：</p>
+<ul>
+<li><strong>间隔设置</strong>：输入框，单位毫秒，默认 200ms</li>
+<li><strong>按键管理</strong>：录制按钮 + 一键添加左右键 + 清空</li>
+<li><strong>按键列表</strong>：带勾选框的 ListView，打勾即参与连发</li>
+<li><strong>启动&#x2F;停止按钮</strong>：大号醒目按钮，红色表示运行中</li>
+</ul>
+<p>![界面区域说明](GUI 界面分为间隔设置区、按键管理区、按键列表区、启停控制区四个区域。)</p>
+<h3 id="5-按键录制功能"><a href="#5-按键录制功能" class="headerlink" title="5. 按键录制功能"></a>5. 按键录制功能</h3><p>这是体验提升最大的功能。旧版要手动改代码改键码，新版直接按一下就行：</p>
+<figure class="highlight ahk"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">StartRecord(*) &#123;</span><br><span class="line">    BtnRec.Text := <span class="string">&quot;请按键...&quot;</span></span><br><span class="line">    ih := InputHook(<span class="string">&quot;L1 M T3&quot;</span>)   <span class="comment">; 监听一个按键，超时3秒</span></span><br><span class="line">    ih.KeyOpt(<span class="string">&quot;&#123;All&#125;&quot;</span>, <span class="string">&quot;E&quot;</span>)</span><br><span class="line">    ih.Start()</span><br><span class="line">    ih.Wait()</span><br><span class="line">    </span><br><span class="line"><span class="title">    keyName := StrLower(ih.EndKey ? ih.EndKey :</span> ih.Input)</span><br><span class="line">    if DD_KEY_MAP.Has(keyName) &#123;</span><br><span class="line">        AddKeyItem(keyName)</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        ToolTip <span class="string">&quot;未定义按键: &quot;</span> keyName</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>InputHook</code> 拦截下一次按键，查码表后自动添加到列表。超时 3 秒无操作自动取消。</p>
+<h3 id="6-反作弊检测对策——随机抖动"><a href="#6-反作弊检测对策——随机抖动" class="headerlink" title="6. 反作弊检测对策——随机抖动"></a>6. 反作弊检测对策——随机抖动</h3><p>很多游戏的 anti-cheat 会检测固定间隔的输入模式。新版加入了 <strong>30% 随机抖动</strong>：</p>
+<figure class="highlight ahk"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ScheduleNext() &#123;</span><br><span class="line"><span class="title">    interval := IsNumber(EditMs.Value) ? Integer(EditMs.Value) :</span> <span class="number">200</span></span><br><span class="line">    jitter := Random(-interval * <span class="number">0.3</span>, interval * <span class="number">0.3</span>)</span><br><span class="line">    delay := Max(<span class="number">10</span>, interval + jitter)</span><br><span class="line">    <span class="keyword">SetTimer</span>(WorkLoop, -delay)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>举例：设置 200ms 间隔，实际范围是 <strong>140~260ms</strong> 之间的随机值。每次触发间隔都不同，有效避免被固定模式检测抓包。</p>
+<h3 id="7-鼠标按键支持"><a href="#7-鼠标按键支持" class="headerlink" title="7. 鼠标按键支持"></a>7. 鼠标按键支持</h3><p>DD 驱动对鼠标按键的处理与键盘不同——键盘用 <code>DD_key</code>，鼠标用 <code>DD_btn</code>：</p>
+<figure class="highlight ahk"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">if (itemName = <span class="string">&quot;lb&quot;</span> || itemName = <span class="string">&quot;rb&quot;</span> || itemName = <span class="string">&quot;mid&quot;</span>) &#123;</span><br><span class="line">    DllCall(pDD_btn, <span class="string">&quot;Int&quot;</span>, code)       <span class="comment">; 按下</span></span><br><span class="line">    Sleep <span class="number">10</span></span><br><span class="line">    DllCall(pDD_btn, <span class="string">&quot;Int&quot;</span>, code * <span class="number">2</span>)   <span class="comment">; 释放</span></span><br><span class="line">&#125; else &#123;</span><br><span class="line">    DllCall(pDD_key, <span class="string">&quot;Int&quot;</span>, code, <span class="string">&quot;Int&quot;</span>, <span class="number">1</span>)   <span class="comment">; 按下</span></span><br><span class="line">    Sleep <span class="number">10</span></span><br><span class="line">    DllCall(pDD_key, <span class="string">&quot;Int&quot;</span>, code, <span class="string">&quot;Int&quot;</span>, <span class="number">2</span>)   <span class="comment">; 释放</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>DD 鼠标的释放码是按下码的 <strong>2 倍</strong>（例如左键按下&#x3D;1，释放&#x3D;2）。</p>
+<h3 id="8-配置持久化"><a href="#8-配置持久化" class="headerlink" title="8. 配置持久化"></a>8. 配置持久化</h3><p>使用 INI 文件保存设置，重启脚本自动恢复：</p>
+<figure class="highlight ahk"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">SaveConfig() &#123;</span><br><span class="line">    IniWrite(EditMs.Value, CONFIG_PATH, <span class="string">&quot;Settings&quot;</span>, <span class="string">&quot;Interval&quot;</span>)</span><br><span class="line">    keyStr := <span class="string">&quot;&quot;</span></span><br><span class="line">    Loop LV.GetCount() &#123;</span><br><span class="line">        name := LV.GetText(<span class="built_in">A_Index</span>, <span class="number">2</span>)</span><br><span class="line">        state := LV.GetNext(<span class="built_in">A_Index</span> - <span class="number">1</span>, <span class="string">&quot;Checked&quot;</span>) ? <span class="string">&quot;1&quot;</span> : <span class="string">&quot;0&quot;</span></span><br><span class="line">        keyStr .= name <span class="string">&quot;:&quot;</span> state <span class="string">&quot;,&quot;</span></span><br><span class="line">    &#125;</span><br><span class="line">    IniWrite(RTrim(keyStr, <span class="string">&quot;,&quot;</span>), CONFIG_PATH, <span class="string">&quot;Settings&quot;</span>, <span class="string">&quot;Keys&quot;</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>保存格式示例（<code>config.ini</code>）：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[Settings]</span></span><br><span class="line"><span class="attr">Interval</span>=<span class="number">200</span></span><br><span class="line"><span class="attr">Keys</span>=x:<span class="number">1</span>,c:<span class="number">1</span>,lb:<span class="number">0</span>,rb:<span class="number">1</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="9-热键"><a href="#9-热键" class="headerlink" title="9. 热键"></a>9. 热键</h3><table>
+<thead>
+<tr>
+<th>热键</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&#96;（反引号，SC029）</td>
+<td>启动&#x2F;停止连发</td>
+</tr>
+<tr>
+<td>F12</td>
+<td>彻底退出脚本</td>
+</tr>
+</tbody></table>
+<p>反引号键放在 ESC 下面，方便左手操作，不影响正常打字。</p>
+<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight ahk"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#Requires AutoHotkey v2.0</span></span><br><span class="line"><span class="meta">#SingleInstance Force</span></span><br><span class="line"></span><br><span class="line"><span class="comment">; =========================</span></span><br><span class="line"><span class="comment">; 1. 管理员权限检查</span></span><br><span class="line"><span class="comment">; =========================</span></span><br><span class="line">if !<span class="built_in">A_IsAdmin</span> &#123;</span><br><span class="line">    Run(&#x27;*RunAs <span class="string">&quot;&#x27; A_ScriptFullPath &#x27;&quot;</span>&#x27;)</span><br><span class="line">    <span class="keyword">ExitApp</span>()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">; =========================</span></span><br><span class="line"><span class="comment">; 2. 码表定义</span></span><br><span class="line"><span class="comment">; =========================</span></span><br><span class="line">DD_KEY_MAP := Map(</span><br><span class="line">    <span class="string">&quot;escape&quot;</span>, <span class="number">100</span>, <span class="string">&quot;f1&quot;</span>, <span class="number">101</span>, <span class="string">&quot;f2&quot;</span>, <span class="number">102</span>, <span class="string">&quot;f3&quot;</span>, <span class="number">103</span>, <span class="string">&quot;f4&quot;</span>, <span class="number">104</span>, <span class="string">&quot;f5&quot;</span>, <span class="number">105</span>, <span class="string">&quot;f6&quot;</span>, <span class="number">106</span>, <span class="string">&quot;f7&quot;</span>, <span class="number">107</span>, <span class="string">&quot;f8&quot;</span>, <span class="number">108</span>, <span class="string">&quot;f9&quot;</span>, <span class="number">109</span>, <span class="string">&quot;f10&quot;</span>, <span class="number">110</span>, <span class="string">&quot;f11&quot;</span>, <span class="number">111</span>, <span class="string">&quot;f12&quot;</span>, <span class="number">112</span>,</span><br><span class="line">    <span class="string">&quot;``&quot;</span>, <span class="number">200</span>, <span class="string">&quot;1&quot;</span>, <span class="number">201</span>, <span class="string">&quot;2&quot;</span>, <span class="number">202</span>, <span class="string">&quot;3&quot;</span>, <span class="number">203</span>, <span class="string">&quot;4&quot;</span>, <span class="number">204</span>, <span class="string">&quot;5&quot;</span>, <span class="number">205</span>, <span class="string">&quot;6&quot;</span>, <span class="number">206</span>, <span class="string">&quot;7&quot;</span>, <span class="number">207</span>, <span class="string">&quot;8&quot;</span>, <span class="number">208</span>, <span class="string">&quot;9&quot;</span>, <span class="number">209</span>, <span class="string">&quot;0&quot;</span>, <span class="number">210</span>, <span class="string">&quot;-&quot;</span>, <span class="number">211</span>, <span class="string">&quot;=&quot;</span>, <span class="number">212</span>, <span class="string">&quot;\&quot;</span>, <span class="number">213</span>, <span class="string">&quot;backspace&quot;</span>, <span class="number">214</span>,</span><br><span class="line">    <span class="string">&quot;tab&quot;</span>, <span class="number">300</span>, <span class="string">&quot;q&quot;</span>, <span class="number">301</span>, <span class="string">&quot;w&quot;</span>, <span class="number">302</span>, <span class="string">&quot;e&quot;</span>, <span class="number">303</span>, <span class="string">&quot;r&quot;</span>, <span class="number">304</span>, <span class="string">&quot;t&quot;</span>, <span class="number">305</span>, <span class="string">&quot;y&quot;</span>, <span class="number">306</span>, <span class="string">&quot;u&quot;</span>, <span class="number">307</span>, <span class="string">&quot;i&quot;</span>, <span class="number">308</span>, <span class="string">&quot;o&quot;</span>, <span class="number">309</span>, <span class="string">&quot;p&quot;</span>, <span class="number">310</span>, <span class="string">&quot;[&quot;</span>, <span class="number">311</span>, <span class="string">&quot;]&quot;</span>, <span class="number">312</span>, <span class="string">&quot;enter&quot;</span>, <span class="number">313</span>,</span><br><span class="line">    <span class="string">&quot;capslock&quot;</span>, <span class="number">400</span>, <span class="string">&quot;a&quot;</span>, <span class="number">401</span>, <span class="string">&quot;s&quot;</span>, <span class="number">402</span>, <span class="string">&quot;d&quot;</span>, <span class="number">403</span>, <span class="string">&quot;f&quot;</span>, <span class="number">404</span>, <span class="string">&quot;g&quot;</span>, <span class="number">405</span>, <span class="string">&quot;h&quot;</span>, <span class="number">406</span>, <span class="string">&quot;j&quot;</span>, <span class="number">407</span>, <span class="string">&quot;k&quot;</span>, <span class="number">408</span>, <span class="string">&quot;l&quot;</span>, <span class="number">409</span>, <span class="string">&quot;;&quot;</span>, <span class="number">410</span>, <span class="string">&quot;&#x27;&quot;</span>, <span class="number">411</span>,</span><br><span class="line">    <span class="string">&quot;lshift&quot;</span>, <span class="number">500</span>, <span class="string">&quot;z&quot;</span>, <span class="number">501</span>, <span class="string">&quot;x&quot;</span>, <span class="number">502</span>, <span class="string">&quot;c&quot;</span>, <span class="number">503</span>, <span class="string">&quot;v&quot;</span>, <span class="number">504</span>, <span class="string">&quot;b&quot;</span>, <span class="number">505</span>, <span class="string">&quot;n&quot;</span>, <span class="number">506</span>, <span class="string">&quot;m&quot;</span>, <span class="number">507</span>, <span class="string">&quot;,&quot;</span>, <span class="number">508</span>, <span class="string">&quot;.&quot;</span>, <span class="number">509</span>, <span class="string">&quot;/&quot;</span>, <span class="number">510</span>, </span><br><span class="line">    <span class="string">&quot;lctrl&quot;</span>, <span class="number">600</span>, <span class="string">&quot;lwin&quot;</span>, <span class="number">601</span>, <span class="string">&quot;lalt&quot;</span>, <span class="number">602</span>, <span class="string">&quot;space&quot;</span>, <span class="number">603</span>,</span><br><span class="line">    <span class="string">&quot;up&quot;</span>, <span class="number">709</span>, <span class="string">&quot;left&quot;</span>, <span class="number">710</span>, <span class="string">&quot;down&quot;</span>, <span class="number">711</span>, <span class="string">&quot;right&quot;</span>, <span class="number">712</span>,</span><br><span class="line">    <span class="string">&quot;numpad0&quot;</span>, <span class="number">800</span>, <span class="string">&quot;numpad1&quot;</span>, <span class="number">801</span>, <span class="string">&quot;numpad2&quot;</span>, <span class="number">802</span>, <span class="string">&quot;numpad3&quot;</span>, <span class="number">803</span>, <span class="string">&quot;numpad4&quot;</span>, <span class="number">804</span>, <span class="string">&quot;numpad5&quot;</span>, <span class="number">805</span>, <span class="string">&quot;numpad6&quot;</span>, <span class="number">806</span>, <span class="string">&quot;numpad7&quot;</span>, <span class="number">807</span>, <span class="string">&quot;numpad8&quot;</span>, <span class="number">808</span>, <span class="string">&quot;numpad9&quot;</span>, <span class="number">809</span>,</span><br><span class="line">    <span class="string">&quot;lb&quot;</span>, <span class="number">1</span>, <span class="string">&quot;rb&quot;</span>, <span class="number">4</span>, <span class="string">&quot;mid&quot;</span>, <span class="number">16</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">; =========================</span></span><br><span class="line"><span class="comment">; 3. 加载 DD 驱动</span></span><br><span class="line"><span class="comment">; =========================</span></span><br><span class="line">DLL_PATH := <span class="built_in">A_ScriptDir</span> <span class="string">&quot;\DD.dll&quot;</span></span><br><span class="line">CONFIG_PATH := <span class="built_in">A_ScriptDir</span> <span class="string">&quot;\config.ini&quot;</span></span><br><span class="line"></span><br><span class="line">if !FileExist(DLL_PATH) &#123;</span><br><span class="line">    MsgBox <span class="string">&quot;找不到 DD.dll，请确保它与脚本在同一目录下！&quot;</span></span><br><span class="line">    <span class="keyword">ExitApp</span>()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">hModule := DllCall(<span class="string">&quot;LoadLibrary&quot;</span>, <span class="string">&quot;Str&quot;</span>, DLL_PATH, <span class="string">&quot;Ptr&quot;</span>)</span><br><span class="line">if !hModule &#123;</span><br><span class="line">    MsgBox <span class="string">&quot;驱动加载失败，可能是架构不匹配或被杀软拦截。&quot;</span></span><br><span class="line">    <span class="keyword">ExitApp</span>()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">pDD_key := DllCall(<span class="string">&quot;GetProcAddress&quot;</span>, <span class="string">&quot;Ptr&quot;</span>, hModule, <span class="string">&quot;AStr&quot;</span>, <span class="string">&quot;DD_key&quot;</span>, <span class="string">&quot;Ptr&quot;</span>)</span><br><span class="line">pDD_btn := DllCall(<span class="string">&quot;GetProcAddress&quot;</span>, <span class="string">&quot;Ptr&quot;</span>, hModule, <span class="string">&quot;AStr&quot;</span>, <span class="string">&quot;DD_btn&quot;</span>, <span class="string">&quot;Ptr&quot;</span>)</span><br><span class="line">DllCall(pDD_btn, <span class="string">&quot;Int&quot;</span>, <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">; =========================</span></span><br><span class="line"><span class="comment">; 4. UI 界面</span></span><br><span class="line"><span class="comment">; =========================</span></span><br><span class="line">MyGui := Gui(, <span class="string">&quot;AHK连发&quot;</span>)</span><br><span class="line">MyGui.SetFont(<span class="string">&quot;s10&quot;</span>, <span class="string">&quot;Microsoft YaHei&quot;</span>)</span><br><span class="line"></span><br><span class="line">MyGui.Add(<span class="string">&quot;Text&quot;</span>, <span class="string">&quot;&quot;</span>, <span class="string">&quot;间隔 (ms):&quot;</span>)</span><br><span class="line">EditMs := MyGui.Add(<span class="string">&quot;Edit&quot;</span>, <span class="string">&quot;vInterval x+10 w80&quot;</span>, <span class="string">&quot;200&quot;</span>)</span><br><span class="line">EditMs.OnEvent(<span class="string">&quot;Change&quot;</span>, (*) =&gt; SaveConfig())</span><br><span class="line"></span><br><span class="line">OpFrame := MyGui.Add(<span class="string">&quot;GroupBox&quot;</span>, <span class="string">&quot;xm w280 h60&quot;</span>, <span class="string">&quot;按键管理&quot;</span>)</span><br><span class="line">BtnRec := MyGui.Add(<span class="string">&quot;Button&quot;</span>, <span class="string">&quot;xp+10 yp+25 w90&quot;</span>, <span class="string">&quot;录制按键&quot;</span>)</span><br><span class="line">BtnRec.OnEvent(<span class="string">&quot;Click&quot;</span>, StartRecord)</span><br><span class="line">MyGui.Add(<span class="string">&quot;Button&quot;</span>, <span class="string">&quot;x+5 w50&quot;</span>, <span class="string">&quot;+左键&quot;</span>).OnEvent(<span class="string">&quot;Click&quot;</span>, (*) =&gt; AddKeyItem(<span class="string">&quot;lb&quot;</span>))</span><br><span class="line">MyGui.Add(<span class="string">&quot;Button&quot;</span>, <span class="string">&quot;x+5 w50&quot;</span>, <span class="string">&quot;+右键&quot;</span>).OnEvent(<span class="string">&quot;Click&quot;</span>, (*) =&gt; AddKeyItem(<span class="string">&quot;rb&quot;</span>))</span><br><span class="line">MyGui.Add(<span class="string">&quot;Button&quot;</span>, <span class="string">&quot;x+5 w50&quot;</span>, <span class="string">&quot;清空&quot;</span>).OnEvent(<span class="string">&quot;Click&quot;</span>, ClearList)</span><br><span class="line"></span><br><span class="line">LV := MyGui.Add(<span class="string">&quot;ListView&quot;</span>, <span class="string">&quot;xm w280 h150 Checked&quot;</span>,[<span class="string">&quot;&quot;</span>, <span class="string">&quot;按键名称&quot;</span>])</span><br><span class="line">LV.ModifyCol(<span class="number">1</span>, <span class="number">30</span>)</span><br><span class="line">LV.ModifyCol(<span class="number">2</span>, <span class="number">230</span>)</span><br><span class="line">LV.OnEvent(<span class="string">&quot;ItemCheck&quot;</span>, (*) =&gt; SaveConfig())</span><br><span class="line"></span><br><span class="line">BtnToggle := MyGui.Add(<span class="string">&quot;Button&quot;</span>, <span class="string">&quot;xm w280 h40&quot;</span>, <span class="string">&quot;启动 ( `` )&quot;</span>)</span><br><span class="line">BtnToggle.SetFont(<span class="string">&quot;bold s11&quot;</span>)</span><br><span class="line">BtnToggle.OnEvent(<span class="string">&quot;Click&quot;</span>, ToggleRunning)</span><br><span class="line"></span><br><span class="line">MyGui.Add(<span class="string">&quot;Text&quot;</span>, <span class="string">&quot;xm w280 Center cGray&quot;</span>, <span class="string">&quot;F12 彻底退出&quot;</span>)</span><br><span class="line">MyGui.OnEvent(<span class="string">&quot;Close&quot;</span>, (*) =&gt; <span class="keyword">ExitApp</span>())</span><br><span class="line"></span><br><span class="line">Global IsRunning := <span class="literal">false</span></span><br><span class="line"></span><br><span class="line">LoadConfig()</span><br><span class="line">MyGui.Show()</span><br><span class="line"></span><br><span class="line"><span class="comment">; =========================</span></span><br><span class="line"><span class="comment">; 5. 功能逻辑</span></span><br><span class="line"><span class="comment">; =========================</span></span><br><span class="line"></span><br><span class="line">StartRecord(*) &#123;</span><br><span class="line">    BtnRec.Text := <span class="string">&quot;请按键...&quot;</span></span><br><span class="line">    ih := InputHook(<span class="string">&quot;L1 M T3&quot;</span>)</span><br><span class="line">    ih.KeyOpt(<span class="string">&quot;&#123;All&#125;&quot;</span>, <span class="string">&quot;E&quot;</span>)</span><br><span class="line">    ih.Start()</span><br><span class="line">    ih.Wait()</span><br><span class="line">    </span><br><span class="line"><span class="title">    keyName := StrLower(ih.EndKey ? ih.EndKey :</span> ih.Input)</span><br><span class="line">    BtnRec.Text := <span class="string">&quot;录制按键&quot;</span></span><br><span class="line">    </span><br><span class="line">    if (keyName == <span class="string">&quot;&quot;</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    if DD_KEY_MAP.Has(keyName) &#123;</span><br><span class="line">        AddKeyItem(keyName)</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        ToolTip <span class="string">&quot;未定义按键: &quot;</span> keyName</span><br><span class="line">        <span class="keyword">SetTimer</span> (*) =&gt; ToolTip(), -<span class="number">2000</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">AddKeyItem(name, enabled := <span class="literal">true</span>) &#123;</span><br><span class="line">    Loop LV.GetCount() &#123;</span><br><span class="line">        if (LV.GetText(<span class="built_in">A_Index</span>, <span class="number">2</span>) == name) &#123;</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    LV.Add(enabled ? <span class="string">&quot;Check&quot;</span> : <span class="string">&quot;-Check&quot;</span>, <span class="string">&quot;&quot;</span>, name)</span><br><span class="line">    SaveConfig()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">ClearList(*) &#123;</span><br><span class="line">    Global IsRunning</span><br><span class="line">    if (LV.GetCount() &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        LV.Delete()</span><br><span class="line">        SaveConfig()</span><br><span class="line">    &#125;</span><br><span class="line">    if IsRunning &#123;</span><br><span class="line">        ToggleRunning() </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">ToggleRunning(*) &#123;</span><br><span class="line">    Global IsRunning</span><br><span class="line">    if !IsRunning &#123;</span><br><span class="line">        hasChecked := <span class="literal">false</span></span><br><span class="line">        Loop LV.GetCount() &#123;</span><br><span class="line">            if LV.GetNext(<span class="built_in">A_Index</span> - <span class="number">1</span>, <span class="string">&quot;Checked&quot;</span>) &#123;</span><br><span class="line">                hasChecked := <span class="literal">true</span></span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        if !hasChecked &#123;</span><br><span class="line">            ToolTip <span class="string">&quot;请先在列表里【打勾】需要连发的按键&quot;</span></span><br><span class="line">            <span class="keyword">SetTimer</span> (*) =&gt; ToolTip(), -<span class="number">2000</span></span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        IsRunning := <span class="literal">true</span></span><br><span class="line">        BtnToggle.Text := <span class="string">&quot;停止 ( `` )&quot;</span></span><br><span class="line">        BtnToggle.Opt(<span class="string">&quot;cRed&quot;</span>)</span><br><span class="line">        </span><br><span class="line">        ScheduleNext()</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        IsRunning := <span class="literal">false</span></span><br><span class="line">        BtnToggle.Text := <span class="string">&quot;启动 ( `` )&quot;</span></span><br><span class="line">        BtnToggle.Opt(<span class="string">&quot;cDefault&quot;</span>)</span><br><span class="line">        <span class="keyword">SetTimer</span>(WorkLoop, <span class="number">0</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">ScheduleNext() &#123;</span><br><span class="line"><span class="title">    interval := IsNumber(EditMs.Value) ? Integer(EditMs.Value) :</span> <span class="number">200</span></span><br><span class="line">    jitter := Random(-interval * <span class="number">0.3</span>, interval * <span class="number">0.3</span>)</span><br><span class="line">    delay := Max(<span class="number">10</span>, interval + jitter)</span><br><span class="line">    <span class="keyword">SetTimer</span>(WorkLoop, -delay)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">WorkLoop() &#123;</span><br><span class="line">    Global IsRunning</span><br><span class="line">    Static inLoop := <span class="literal">false</span></span><br><span class="line">    if !IsRunning || inLoop &#123;</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    inLoop := <span class="literal">true</span></span><br><span class="line">    </span><br><span class="line">    row := <span class="number">0</span></span><br><span class="line">    Loop &#123;</span><br><span class="line">        row := LV.GetNext(row, <span class="string">&quot;Checked&quot;</span>)</span><br><span class="line">        if !row &#123;</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">        &#125;</span><br><span class="line">            </span><br><span class="line">        itemName := LV.GetText(row, <span class="number">2</span>)</span><br><span class="line">        if !DD_KEY_MAP.Has(itemName) &#123;</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line">            </span><br><span class="line">        code := DD_KEY_MAP[itemName]</span><br><span class="line">        </span><br><span class="line">        if (itemName = <span class="string">&quot;lb&quot;</span> || itemName = <span class="string">&quot;rb&quot;</span> || itemName = <span class="string">&quot;mid&quot;</span>) &#123;</span><br><span class="line">            DllCall(pDD_btn, <span class="string">&quot;Int&quot;</span>, code)</span><br><span class="line">            Sleep <span class="number">10</span></span><br><span class="line">            DllCall(pDD_btn, <span class="string">&quot;Int&quot;</span>, code * <span class="number">2</span>)</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            DllCall(pDD_key, <span class="string">&quot;Int&quot;</span>, code, <span class="string">&quot;Int&quot;</span>, <span class="number">1</span>)</span><br><span class="line">            Sleep <span class="number">10</span></span><br><span class="line">            DllCall(pDD_key, <span class="string">&quot;Int&quot;</span>, code, <span class="string">&quot;Int&quot;</span>, <span class="number">2</span>)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    inLoop := <span class="literal">false</span></span><br><span class="line">    if IsRunning &#123;</span><br><span class="line">        ScheduleNext()</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">SaveConfig() &#123;</span><br><span class="line">    if FileExist(CONFIG_PATH) &#123;</span><br><span class="line">        FileDelete(CONFIG_PATH)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    IniWrite(EditMs.Value, CONFIG_PATH, <span class="string">&quot;Settings&quot;</span>, <span class="string">&quot;Interval&quot;</span>)</span><br><span class="line">    </span><br><span class="line">    keyStr := <span class="string">&quot;&quot;</span></span><br><span class="line">    Loop LV.GetCount() &#123;</span><br><span class="line">        name := LV.GetText(<span class="built_in">A_Index</span>, <span class="number">2</span>)</span><br><span class="line">        state := LV.GetNext(<span class="built_in">A_Index</span> - <span class="number">1</span>, <span class="string">&quot;Checked&quot;</span>) ? <span class="string">&quot;1&quot;</span> : <span class="string">&quot;0&quot;</span></span><br><span class="line">        keyStr .= name <span class="string">&quot;:&quot;</span> state <span class="string">&quot;,&quot;</span></span><br><span class="line">    &#125;</span><br><span class="line">    IniWrite(RTrim(keyStr, <span class="string">&quot;,&quot;</span>), CONFIG_PATH, <span class="string">&quot;Settings&quot;</span>, <span class="string">&quot;Keys&quot;</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">LoadConfig() &#123;</span><br><span class="line">    if !FileExist(CONFIG_PATH) &#123;</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    try &#123;</span><br><span class="line">        iv := IniRead(CONFIG_PATH, <span class="string">&quot;Settings&quot;</span>, <span class="string">&quot;Interval&quot;</span>, <span class="string">&quot;200&quot;</span>)</span><br><span class="line">        EditMs.Value := iv</span><br><span class="line">        </span><br><span class="line">        keysData := IniRead(CONFIG_PATH, <span class="string">&quot;Settings&quot;</span>, <span class="string">&quot;Keys&quot;</span>, <span class="string">&quot;&quot;</span>)</span><br><span class="line">        if (keysData != <span class="string">&quot;&quot;</span>) &#123;</span><br><span class="line"><span class="built_in">            for ,</span> item in StrSplit(keysData, <span class="string">&quot;,&quot;</span>) &#123;</span><br><span class="line">                if (item = <span class="string">&quot;&quot;</span>) &#123;</span><br><span class="line">                    <span class="keyword">continue</span></span><br><span class="line">                &#125;</span><br><span class="line">                parts := StrSplit(item, <span class="string">&quot;:&quot;</span>)</span><br><span class="line">                if (parts.Length == <span class="number">2</span>) &#123;</span><br><span class="line">                    AddKeyItem(parts[<span class="number">1</span>], parts[<span class="number">2</span>] == <span class="string">&quot;1&quot;</span>)</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">; =========================</span></span><br><span class="line"><span class="comment">; 6. 热键</span></span><br><span class="line"><span class="comment">; =========================</span></span><br><span class="line"><span class="title">~SC029::</span>ToggleRunning()</span><br><span class="line"><span class="title">F12::</span><span class="keyword">ExitApp</span>()</span><br></pre></td></tr></table></figure>
+
+<h2 id="新旧版本对比"><a href="#新旧版本对比" class="headerlink" title="新旧版本对比"></a>新旧版本对比</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>旧版 (v1)</th>
+<th>新版 (v2)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>AHK 版本</td>
+<td>v1</td>
+<td>v2.0</td>
+</tr>
+<tr>
+<td>界面</td>
+<td>无（纯脚本）</td>
+<td>GUI 界面</td>
+</tr>
+<tr>
+<td>按键管理</td>
+<td>硬编码键码</td>
+<td>录制 + 列表 + 勾选</td>
+</tr>
+<tr>
+<td>支持按键数</td>
+<td>1 个</td>
+<td>不限（多键同时）</td>
+</tr>
+<tr>
+<td>鼠标支持</td>
+<td>不支持</td>
+<td>左&#x2F;右&#x2F;中键</td>
+</tr>
+<tr>
+<td>间隔调节</td>
+<td>固定 20ms</td>
+<td>可自定义</td>
+</tr>
+<tr>
+<td>反作弊</td>
+<td>无</td>
+<td>30% 随机抖动</td>
+</tr>
+<tr>
+<td>配置保存</td>
+<td>无</td>
+<td>INI 持久化</td>
+</tr>
+<tr>
+<td>DD 加载</td>
+<td>Class_DD.ahk 封装</td>
+<td>直接 DllCall</td>
+</tr>
+<tr>
+<td>权限处理</td>
+<td>无</td>
+<td>自动提权</td>
+</tr>
+</tbody></table>
+<h2 id="使用方法"><a href="#使用方法" class="headerlink" title="使用方法"></a>使用方法</h2><ol>
+<li>安装 <strong>AutoHotkey v2.0</strong></li>
+<li>将 <code>DD.dll</code> 放到与脚本同一目录</li>
+<li>双击运行脚本（自动以管理员身份运行）</li>
+<li>GUI 界面中：<ul>
+<li>点击「录制按键」然后按一个键，加入列表</li>
+<li>或直接点「+左键」「+右键」添加鼠标按键</li>
+<li>在列表中 <strong>打勾</strong> 需要连发的按键</li>
+<li>设置间隔（默认 200ms）</li>
+</ul>
+</li>
+<li>按反引号键（<code>`</code>，ESC 下面那个）启动&#x2F;停止连发</li>
+<li>按 F12 退出</li>
+</ol>
+<h2 id="常见问题"><a href="#常见问题" class="headerlink" title="常见问题"></a>常见问题</h2><p><strong>Q: 提示”找不到 DD.dll”？</strong><br>确保 <code>DD.dll</code> 与脚本文件在同一目录下。如果是从别处下载的 DD 驱动，注意区分 32 位 &#x2F; 64 位版本。</p>
+<p><strong>Q: 驱动加载失败？</strong><br>通常是杀毒软件拦截了 DD.dll。将脚本目录添加到杀软白名单，或临时关闭杀软后再试。</p>
+<p><strong>Q: 游戏里没反应？</strong><br>部分游戏的反作弊系统会拦截 DD 驱动。确认游戏是否允许硬件级模拟输入。</p>
+<p><strong>Q: 想换个启动热键？</strong><br>修改最后一行 <code>~SC029::ToggleRunning()</code> —— <code>SC029</code> 是反引号键的扫描码。改为 <code>~F8::ToggleRunning()</code> 就是 F8 键启动。</p>
+<h2 id="项目地址"><a href="#项目地址" class="headerlink" title="项目地址"></a>项目地址</h2><ul>
+<li><a target="_blank" rel="noopener external nofollow noreferrer" href="https://www.autohotkey.com/">AutoHotkey 官网</a></li>
+<li>脚本源码：见上方完整源码区域</li>
+</ul>
+<hr>
+<p><strong>更新于 2026-06-20</strong>：从 AHK v1 纯脚本全面升级为 AHK v2.0 GUI 版本。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>Maskbugzero
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.5772447.xyz/posts/973246e2/" title="AHK实现DD驱动按键连发（v2.0 GUI版）">https://blog.5772447.xyz/posts/973246e2/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by/4.0/deed.zh" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/AHK/" rel="tag"># AHK</a>
+              <a href="/tags/DD/" rel="tag"># DD</a>
+              <a href="/tags/%E6%8C%89%E9%94%AE%E8%BF%9E%E5%8F%91/" rel="tag"># 按键连发</a>
+              <a href="/tags/%E6%B8%B8%E6%88%8F%E5%B7%A5%E5%85%B7/" rel="tag"># 游戏工具</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/posts/b86f5b0a/" rel="prev" title="关于群晖优化可以用的一键命令">
+                  <i class="fa fa-angle-left"></i> 关于群晖优化可以用的一键命令
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/posts/22c45a8c/" rel="next" title="一句命令激活Windows">
+                  一句命令激活Windows <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">Maskbugzero</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">16k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">59 分钟</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

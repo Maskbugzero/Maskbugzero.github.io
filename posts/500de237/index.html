@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.5772447.xyz","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="使用GitHub Actions云编译OpenWrt项目并带有闪讯拨号插件（Netkeeper），实现自动化编译和构建OpenWrt固件的OpenWrt编译项目">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Netkeeper-OpenWrt——专注闪讯上网">
+<meta property="og:url" content="https://blog.5772447.xyz/posts/500de237/index.html">
+<meta property="og:site_name" content="MReloaded">
+<meta property="og:description" content="使用GitHub Actions云编译OpenWrt项目并带有闪讯拨号插件（Netkeeper），实现自动化编译和构建OpenWrt固件的OpenWrt编译项目">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.5772447.xyz/img/1691391007455.webp">
+<meta property="og:image" content="https://blog.5772447.xyz/img/1691391032241.webp">
+<meta property="og:image" content="https://blog.5772447.xyz/img/1691391099821.webp">
+<meta property="og:image" content="https://blog.5772447.xyz/img/1691391048766.webp">
+<meta property="og:image" content="https://blog.5772447.xyz/img/1691391142303.webp">
+<meta property="article:published_time" content="2020-04-06T04:11:02.000Z">
+<meta property="article:modified_time" content="2020-04-06T04:11:02.000Z">
+<meta property="article:author" content="Maskbugzero">
+<meta property="article:tag" content="OpenWrt">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://blog.5772447.xyz/img/1691391007455.webp">
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/500de237/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.5772447.xyz/posts/500de237/","path":"posts/500de237/","title":"Netkeeper-OpenWrt——专注闪讯上网"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Netkeeper-OpenWrt——专注闪讯上网 | MReloaded</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VGE8FYNHE7"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-VGE8FYNHE7","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MReloaded</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Life Oriented Programming</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A1%B9%E7%9B%AE%E5%9C%B0%E5%9D%80"><span class="nav-number">1.</span> <span class="nav-text">项目地址</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%BA%E4%BB%B6%E4%B8%8B%E8%BD%BD"><span class="nav-number">2.</span> <span class="nav-text">固件下载</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E8%AF%B4%E6%98%8E"><span class="nav-number">2.1.</span> <span class="nav-text">文件说明</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%99%BB%E5%BD%95%E9%A1%B5%E9%9D%A2"><span class="nav-number">3.</span> <span class="nav-text">登录页面</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E5%8A%9F%E8%83%BD"><span class="nav-number">4.</span> <span class="nav-text">核心功能</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95"><span class="nav-number">5.</span> <span class="nav-text">使用方法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%88%9D%E5%A7%8B%E9%85%8D%E7%BD%AE"><span class="nav-number">5.0.1.</span> <span class="nav-text">初始配置</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Netkeeper%E6%8F%92%E4%BB%B6%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E"><span class="nav-number">5.1.</span> <span class="nav-text">Netkeeper插件使用说明</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%99%AE%E9%80%9A%E6%8F%92%E4%BB%B6"><span class="nav-number">5.1.1.</span> <span class="nav-text">普通插件</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8B%A6%E6%88%AA%E6%8F%92%E4%BB%B6"><span class="nav-number">5.1.2.</span> <span class="nav-text">拦截插件</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E5%88%AB%E9%B8%A3%E8%B0%A2"><span class="nav-number">5.1.3.</span> <span class="nav-text">特别鸣谢</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%87%AA%E5%8A%A8%E8%8E%B7%E5%8F%96%E9%97%AA%E8%AE%AF%E5%AF%86%E7%A0%81%E5%B9%B6%E5%A1%AB%E5%86%99"><span class="nav-number">5.2.</span> <span class="nav-text">自动获取闪讯密码并填写</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AE%80%E5%8D%95%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95%EF%BC%9A"><span class="nav-number">5.2.1.</span> <span class="nav-text">简单使用方法：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E5%88%AB%E9%B8%A3%E8%B0%A2-1"><span class="nav-number">5.2.2.</span> <span class="nav-text">特别鸣谢</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BD%AF%E8%B7%AF%E7%94%B1%E5%86%99%E7%9B%98"><span class="nav-number">5.3.</span> <span class="nav-text">软路由写盘</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A1%B9%E7%9B%AE%E5%9F%BA%E4%BA%8E"><span class="nav-number">6.</span> <span class="nav-text">项目基于</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Maskbugzero"
+      src="/images/touxiang.jpg">
+  <p class="site-author-name" itemprop="name">Maskbugzero</p>
+  <div class="site-description" itemprop="description">人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">32</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Maskbugzero" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Maskbugzero" rel="noopener me external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.5772447.xyz/posts/500de237/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/touxiang.jpg">
+      <meta itemprop="name" content="Maskbugzero">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MReloaded">
+      <meta itemprop="description" content="人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Netkeeper-OpenWrt——专注闪讯上网 | MReloaded">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Netkeeper-OpenWrt——专注闪讯上网
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2020-04-06 12:11:02" itemprop="dateCreated datePublished" datetime="2020-04-06T12:11:02+08:00">2020-04-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/OpenWrt/" itemprop="url" rel="index"><span itemprop="name">OpenWrt</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/OpenWrt/%E8%B7%AF%E7%94%B1%E5%99%A8/" itemprop="url" rel="index"><span itemprop="name">路由器</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>936</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>3 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="项目地址"><a href="#项目地址" class="headerlink" title="项目地址"></a>项目地址</h2><p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/Maskbugzero/Netkeeper-OpenWrt">Maskbugzero&#x2F;Netkeeper-OpenWrt</a></p>
+<p>使用 GitHub Actions 云编译带有闪讯拨号插件（Netkeeper）的OpenWrt编译项目。</p>
+<h2 id="固件下载"><a href="#固件下载" class="headerlink" title="固件下载"></a>固件下载</h2><p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/Maskbugzero/Netkeeper-OpenWrt/releases">Openwrt-x86-64</a></p>
+<h3 id="文件说明"><a href="#文件说明" class="headerlink" title="文件说明"></a>文件说明</h3><table>
+<thead>
+<tr>
+<th align="left">文件名</th>
+<th align="left">描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">sha256sums</td>
+<td align="left">固件完整性校验文件</td>
+</tr>
+<tr>
+<td align="left">config.buildinfo</td>
+<td align="left">OpenWrt 编译配置文件</td>
+</tr>
+<tr>
+<td align="left">openwrt-x86-64-generic.manifest</td>
+<td align="left">固件内已集成软件包列表</td>
+</tr>
+<tr>
+<td align="left">openwrt-x86-64-generic-generic-rootfs.tar.gz</td>
+<td align="left">RootFS 文件</td>
+</tr>
+<tr>
+<td align="left">openwrt-x86-64-generic-rootfs-ext4.img.gz</td>
+<td align="left">不带引导的 RootFS 镜像</td>
+</tr>
+<tr>
+<td align="left"><strong>openwrt-x86-64-generic-squashfs-combined.vmdk</strong></td>
+<td align="left"><strong>VMDK 虚拟磁盘映像 (Legacy 引导)</strong></td>
+</tr>
+<tr>
+<td align="left"><strong>openwrt-x86-64-generic-squashfs-combined-efi.vmdk</strong></td>
+<td align="left"><strong>VMDK 虚拟磁盘映像 (UEFI 引导)</strong></td>
+</tr>
+<tr>
+<td align="left"><strong>openwrt-x86-64-generic-squashfs-combined.img.gz</strong></td>
+<td align="left"><strong>Squashfs 格式安装 &#x2F; 升级固件 (Legacy 引导)</strong></td>
+</tr>
+<tr>
+<td align="left"><strong>openwrt-x86-64-generic-squashfs-combined-efi.img.gz</strong></td>
+<td align="left"><strong>Squashfs 格式安装 &#x2F; 升级固件 (UEFI 引导)</strong></td>
+</tr>
+</tbody></table>
+<h2 id="登录页面"><a href="#登录页面" class="headerlink" title="登录页面"></a>登录页面</h2><ul>
+<li>用户名：root 密码为空 管理IP：192.168.1.1</li>
+</ul>
+<h2 id="核心功能"><a href="#核心功能" class="headerlink" title="核心功能"></a>核心功能</h2><ol>
+<li>Netkeeper插件使用说明</li>
+<li>自动获取闪讯密码并填写</li>
+</ol>
+<h2 id="使用方法"><a href="#使用方法" class="headerlink" title="使用方法"></a>使用方法</h2><h4 id="初始配置"><a href="#初始配置" class="headerlink" title="初始配置"></a>初始配置</h4><ol>
+<li>默认Lan管理IP为<code>192.168.1.1</code>，默认第一个网口为 LAN，第二个为 WAN</li>
+</ol>
+<p><img data-src="/img/1691391007455.webp" alt="登录页面"></p>
+<ol start="2">
+<li>直接登录，之后至系统 -&gt; 管理权 页面修改默认密码，点击保存应用后立即生效</li>
+</ol>
+<p><img data-src="/img/1691391032241.webp" alt="修改默认密码"></p>
+<h3 id="Netkeeper插件使用说明"><a href="#Netkeeper插件使用说明" class="headerlink" title="Netkeeper插件使用说明"></a>Netkeeper插件使用说明</h3><h4 id="普通插件"><a href="#普通插件" class="headerlink" title="普通插件"></a>普通插件</h4><p>在 网络 -&gt; 接口 -&gt; WAN编辑 -&gt; 选择闪讯拨号 -&gt; 确认切换 后</p>
+<p><img data-src="/img/1691391099821.webp" alt="切换为闪讯拨号"></p>
+<p>然后输入 用户名 和 密码 选择对应的 闪讯插件 保存应用即可拨号</p>
+<p><img data-src="/img/1691391048766.webp" alt="选择对应的闪讯插件"></p>
+<h4 id="拦截插件"><a href="#拦截插件" class="headerlink" title="拦截插件"></a>拦截插件</h4><p>在 网络 -&gt; 接口 -&gt; WAN编辑 -&gt; 选择闪讯拨号 -&gt; 确认切换 后</p>
+<p>选择 闪讯拦截 插件并开启闪讯拦截服务后，在PC端使用闪讯客户端拨号，会自动获取用户名与密码并拨号</p>
+<p>可以不用填写 用户名 和 密码</p>
+<p>在 服务 -&gt; 闪讯拦截 开启闪讯拦截服务</p>
+<p><img data-src="/img/1691391142303.webp" alt="开启闪讯拦截服务"></p>
+<h4 id="特别鸣谢"><a href="#特别鸣谢" class="headerlink" title="特别鸣谢"></a>特别鸣谢</h4><p>netkeeper的核心源码来自于miao1007的<a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/miao1007/Openwrt-NetKeeper">Openwrt-NetKeeper</a></p>
+<p>编译使用的源码来自于CCnut的<a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/CCnut/feed-netkeeper">feed-netkeeper</a></p>
+<h3 id="自动获取闪讯密码并填写"><a href="#自动获取闪讯密码并填写" class="headerlink" title="自动获取闪讯密码并填写"></a>自动获取闪讯密码并填写</h3><p>此功能须配合kuretru的<a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/kuretru/SingleNet-Robot">SingleNet-Robot</a>项目。由于本项目编译时以添加luci-mod-rpc，所以可直接使用推荐的LuCI服务端。</p>
+<h4 id="简单使用方法："><a href="#简单使用方法：" class="headerlink" title="简单使用方法："></a>简单使用方法：</h4><ol>
+<li>去<a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/kuretru/SingleNet-Robot/releases">项目</a>下载编译好的apk文件，并安装至手机</li>
+<li>点击<strong>服务器配置</strong>，输入服务端地址’<a target="_blank" rel="noopener external nofollow noreferrer" href="http://192.168.1.1/">http://192.168.1.1</a>‘ 及服务端网络接口名称’wan’</li>
+<li>服务端类型选择<strong>Luci Rpc</strong>，配置路由用户名密码</li>
+<li>点击<strong>测试服务器</strong>，若成功点击保存并退出，若失败请仔细检查服务端地址是否设置正确</li>
+<li>在调试面板输入当前的闪讯账号及密码，并点击<strong>手动更新用户名及密码</strong>查看是否自动更新成功</li>
+<li>点击<strong>注册定时任务</strong>以开启自动更新密码功能，无需此功能可不点击注册定时任务。若点击注册定时任务，可设置更新时间间隔。</li>
+</ol>
+<p><strong>PS</strong>：定制系统如MIUI等，需给予app足够的权限，其中设置sim卡时，若未给app <strong>获取手机信息</strong> 权限，将无法测试并造成闪退，且无法保存服务器数据。若未识别到收到的闪讯上网密码，则未给app <strong>读取通知类短信</strong> 权限。</p>
+<p><strong>PS</strong>：建议使用较为廉价的备用机，关闭移动数据，打开WIFI开关，只用于更新闪讯密码，可实现无缝更新闪讯密码。</p>
+<h4 id="特别鸣谢-1"><a href="#特别鸣谢-1" class="headerlink" title="特别鸣谢"></a>特别鸣谢</h4><p>kuretru的<a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/kuretru/SingleNet-Robot">SingleNet-Robot</a></p>
+<h3 id="软路由写盘"><a href="#软路由写盘" class="headerlink" title="软路由写盘"></a>软路由写盘</h3><ol>
+<li>将 img 文件上传</li>
+<li>输入命令 <code>dd if=/tmp/op.img of=/dev/sda</code> 回车（op.img 为固件的名称）</li>
+<li>最后输入 <code>reboot</code> 重启路由器</li>
+</ol>
+<h2 id="项目基于"><a href="#项目基于" class="headerlink" title="项目基于"></a>项目基于</h2><ul>
+<li><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/CCnut/feed-netkeeper">feed-netkeeper</a></li>
+<li><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/kuretru/SingleNet-Robot">SingleNet-Robot</a></li>
+<li><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/openwrt/openwrt">OpenWrt</a></li>
+<li><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/P3TERX/Actions-OpenWrt">P3TERX&#x2F;Actions-OpenWrt</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>Maskbugzero
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.5772447.xyz/posts/500de237/" title="Netkeeper-OpenWrt——专注闪讯上网">https://blog.5772447.xyz/posts/500de237/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by/4.0/deed.zh" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/OpenWrt/" rel="tag"># OpenWrt</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/posts/29dc6fe8/" rel="prev" title="Docker常用命令">
+                  <i class="fa fa-angle-left"></i> Docker常用命令
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/posts/f691db9d/" rel="next" title="基于STM32的空气质量检测仪">
+                  基于STM32的空气质量检测仪 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">Maskbugzero</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">16k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">59 分钟</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

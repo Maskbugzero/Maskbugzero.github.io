@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.5772447.xyz","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="同一份GPO推送脚本，80台电脑成功了30台就报错，最终定位到打印后台Print Spooler服务依赖链断裂。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AD域环境下打印机批量部署失败的排查手记">
+<meta property="og:url" content="https://blog.5772447.xyz/posts/a053a61/index.html">
+<meta property="og:site_name" content="MReloaded">
+<meta property="og:description" content="同一份GPO推送脚本，80台电脑成功了30台就报错，最终定位到打印后台Print Spooler服务依赖链断裂。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-06-20T00:00:00.000Z">
+<meta property="article:modified_time" content="2026-06-20T00:00:00.000Z">
+<meta property="article:author" content="Maskbugzero">
+<meta property="article:tag" content="桌面运维">
+<meta property="article:tag" content="AD域控">
+<meta property="article:tag" content="打印机">
+<meta property="article:tag" content="GPO">
+<meta property="article:tag" content="Windows">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/a053a61/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.5772447.xyz/posts/a053a61/","path":"posts/a053a61/","title":"AD域环境下打印机批量部署失败的排查手记"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>AD域环境下打印机批量部署失败的排查手记 | MReloaded</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VGE8FYNHE7"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-VGE8FYNHE7","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MReloaded</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Life Oriented Programming</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">问题背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%85%E9%9A%9C%E7%8E%B0%E8%B1%A1"><span class="nav-number">2.</span> <span class="nav-text">故障现象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%92%E6%9F%A5%E8%BF%87%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">排查过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E5%85%88%E8%A7%A3%E5%86%B3%E2%80%9D%E8%83%BD%E4%B8%8D%E8%83%BD%E7%94%A8%E2%80%9D%E7%9A%84%E9%97%AE%E9%A2%98%EF%BC%88%E6%AD%A2%E8%A1%80%EF%BC%89"><span class="nav-number">3.1.</span> <span class="nav-text">第一步：先解决”能不能用”的问题（止血）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E6%A3%80%E6%9F%A5GPO%E6%98%AF%E5%90%A6%E7%9C%9F%E7%9A%84%E4%B8%8B%E5%8F%91%E5%88%B0%E6%9C%BA%E5%99%A8"><span class="nav-number">3.2.</span> <span class="nav-text">第二步：检查GPO是否真的下发到机器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%9A%E6%89%8B%E5%8A%A8%E5%BC%BA%E5%88%B6%E5%88%B7%E6%96%B0%E7%AD%96%E7%95%A5"><span class="nav-number">3.3.</span> <span class="nav-text">第三步：手动强制刷新策略</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E5%9B%9B%E6%AD%A5%EF%BC%9A%E5%8E%BB%E7%9C%8B%E8%84%9A%E6%9C%AC%E5%88%B0%E5%BA%95%E5%B9%B2%E4%BA%86%E5%95%A5"><span class="nav-number">3.4.</span> <span class="nav-text">第四步：去看脚本到底干了啥</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%94%E6%AD%A5%EF%BC%9A%E5%AE%9A%E4%BD%8D-DNS-%E8%A7%A3%E6%9E%90%E5%A4%B1%E8%B4%A5%E5%8E%9F%E5%9B%A0"><span class="nav-number">3.5.</span> <span class="nav-text">第五步：定位 DNS 解析失败原因</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E5%85%AD%E6%AD%A5%EF%BC%9A%E9%AA%8C%E8%AF%81%E4%BF%AE%E5%A4%8D"><span class="nav-number">3.6.</span> <span class="nav-text">第六步：验证修复</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">4.</span> <span class="nav-text">解决方案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-DNS-%E4%BF%AE%E5%A4%8D%EF%BC%88%E6%B2%BB%E6%9C%AC%EF%BC%89"><span class="nav-number">4.1.</span> <span class="nav-text">1. DNS 修复（治本）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E8%84%9A%E6%9C%AC%E6%94%B9%E9%80%A0%EF%BC%88%E6%B2%BB%E6%A0%87-%E9%A2%84%E9%98%B2%EF%BC%89"><span class="nav-number">4.2.</span> <span class="nav-text">2. 脚本改造（治标+预防）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%BA%94%E6%80%A5%E6%96%B9%E6%A1%88"><span class="nav-number">4.3.</span> <span class="nav-text">3. 应急方案</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B9%E5%9B%A0%E5%88%86%E6%9E%90"><span class="nav-number">5.</span> <span class="nav-text">根因分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A2%84%E9%98%B2%E6%8E%AA%E6%96%BD"><span class="nav-number">6.</span> <span class="nav-text">预防措施</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">7.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Maskbugzero"
+      src="/images/touxiang.jpg">
+  <p class="site-author-name" itemprop="name">Maskbugzero</p>
+  <div class="site-description" itemprop="description">人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">32</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Maskbugzero" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Maskbugzero" rel="noopener me external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.5772447.xyz/posts/a053a61/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/touxiang.jpg">
+      <meta itemprop="name" content="Maskbugzero">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MReloaded">
+      <meta itemprop="description" content="人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="AD域环境下打印机批量部署失败的排查手记 | MReloaded">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          AD域环境下打印机批量部署失败的排查手记
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-06-20 08:00:00" itemprop="dateCreated datePublished" datetime="2026-06-20T08:00:00+08:00">2026-06-20</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">运维</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">桌面运维</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>7 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h2><p>周二上午9点刚过，行政部的李姐就冲进IT办公室：”王工，3楼、4楼新装的打印机一台都用不了，上周不是已经批量推送过去了吗？”</p>
+<p>事情要从一周前说起。我们公司上周搬迁，3楼、4楼办公区新增了6台网络打印机（HP M438n），按计划通过组策略（GPO）批量推送到对应的计算机OU。理论上只要机器重启或者刷新策略，就能自动映射好打印机。但现实是——80台机器里只有30台正常，剩下50台分布在3楼、4楼全部报错。</p>
+<p>影响范围不算小：3楼、4楼两个楼层加起来80个工位，行政、财务、销售部门都在这一片，业务基本停摆。紧急程度：<strong>P1</strong>（影响业务），需要在上午11点前给一个临时方案，下午前彻底解决。</p>
+<h2 id="故障现象"><a href="#故障现象" class="headerlink" title="故障现象"></a>故障现象</h2><p>正常的那30台机器，登录后能在”设备和打印机”里看到新增的6台打印机，能正常打印。</p>
+<p>出问题的50台机器表现完全一致：</p>
+<ol>
+<li>打开”设备和打印机”，6台打印机<strong>一台都不显示</strong>；</li>
+<li>手动运行<code>\\printserver\PrintInstaller\setup.exe</code>安装驱动，提示：<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Windows 无法连接到打印机，操作失败,错误为 0x0000011b</span><br></pre></td></tr></table></figure></li>
+<li>打开<code>printmanagement.msc</code>（打印管理），本机的”打印机”列表是空的，<strong>没有任何队列</strong>；</li>
+<li>事件查看器 → 系统日志里刷出大量红色错误：<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">错误  application  0  0  PrintService</span><br><span class="line">Spooler 正在关闭。</span><br></pre></td></tr></table></figure>
+每隔2-3分钟就重复一次。</li>
+</ol>
+<p>看到 <code>0x0000011b</code> 第一反应是今年闹得沸沸扬扬的 PrintNightmare 漏洞补丁导致的打印共享问题。但我们推的是本地驱动直连（IP直连），不应该走 SMB 共享才对。这个直觉告诉我——根因可能和漏洞补丁没关系，得另找思路。</p>
+<h2 id="排查过程"><a href="#排查过程" class="headerlink" title="排查过程"></a>排查过程</h2><h3 id="第一步：先解决”能不能用”的问题（止血）"><a href="#第一步：先解决”能不能用”的问题（止血）" class="headerlink" title="第一步：先解决”能不能用”的问题（止血）"></a>第一步：先解决”能不能用”的问题（止血）</h3><p>50台机器全靠脚本临时修不现实。我先让3楼前台、4楼前台、销售部主管这3台”关键岗”电脑单独处理：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 临时方案：手动添加打印机</span></span><br><span class="line"><span class="comment"># 走IPP端口直连，不依赖SMB共享</span></span><br><span class="line"><span class="built_in">Add-Printer</span> <span class="literal">-Name</span> <span class="string">&quot;HP-M438n-3F-01&quot;</span> `</span><br><span class="line">  <span class="literal">-DriverName</span> <span class="string">&quot;HP Universal Printing PCL 6&quot;</span> `</span><br><span class="line">  <span class="literal">-PortName</span> <span class="string">&quot;IP_192.168.30.201&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>测试发现：<strong>走IP直连可以装上</strong>。所以问题不在打印机本身，也不在网络层面（ICMP、9100端口都通）。问题卡在”批量推送”这个动作上。</p>
+<h3 id="第二步：检查GPO是否真的下发到机器"><a href="#第二步：检查GPO是否真的下发到机器" class="headerlink" title="第二步：检查GPO是否真的下发到机器"></a>第二步：检查GPO是否真的下发到机器</h3><p>在出问题的机器上跑：</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gpresult /h C:\gpo_report.html</span><br></pre></td></tr></table></figure>
+
+<p>打开报告一看——计算机配置里<strong>包含了我们那条打印机映射策略</strong>，OU归属也正确。策略是有的。</p>
+<h3 id="第三步：手动强制刷新策略"><a href="#第三步：手动强制刷新策略" class="headerlink" title="第三步：手动强制刷新策略"></a>第三步：手动强制刷新策略</h3><figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gpupdate /force</span><br></pre></td></tr></table></figure>
+
+<p>执行完重启，问题依旧。说明GPO能下发到，但执行动作的时候挂了。</p>
+<h3 id="第四步：去看脚本到底干了啥"><a href="#第四步：去看脚本到底干了啥" class="headerlink" title="第四步：去看脚本到底干了啥"></a>第四步：去看脚本到底干了啥</h3><p>打印机映射脚本本质上是个开机脚本，用 <code>rundll32 printui.dll</code> 走PointAndPrint模式：</p>
+<figure class="highlight bat"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rundll32 printui.dll,PrintUIEntry /<span class="keyword">in</span> /n &quot;\\printserver\HP-M438n-<span class="number">3</span>F-<span class="number">01</span>&quot;</span><br></pre></td></tr></table></figure>
+
+<p><strong>这里有 <code>\\printserver\</code>！</strong> 也就是说，脚本虽然最终连的是IP直连打印机，但驱动安装阶段还是要回到打印服务器去拉驱动文件。</p>
+<p>但前面排过 SMB 没通吗？我们马上测一下：</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">net</span> view \\printserver</span><br></pre></td></tr></table></figure>
+
+<p><strong>提示：发生系统错误 53。找不到网络路径。</strong></p>
+<p>哦豁，问题就出在这。50台机器都 ping 不通 <code>printserver</code> 这个主机名（DNS解析失败），而那30台正常的机器是上个月搬迁前就装好的——它们的本地 DNS 缓存里还残留着 <code>printserver</code> 的旧解析记录（指向搬迁前的服务器IP），所以”看起来”能工作。</p>
+<h3 id="第五步：定位-DNS-解析失败原因"><a href="#第五步：定位-DNS-解析失败原因" class="headerlink" title="第五步：定位 DNS 解析失败原因"></a>第五步：定位 DNS 解析失败原因</h3><p>在出问题的机器上：</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nslookup printserver</span><br></pre></td></tr></table></figure>
+
+<p>返回：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">服务器:  UnKnown</span><br><span class="line">Address:  192.168.10.5</span><br><span class="line">*** UnKnown 找不到 printserver: Non-existent domain</span><br></pre></td></tr></table></figure>
+
+<p>DNS服务器是我们内部的AD DC（192.168.10.5），正常的。但 <code>printserver</code> 这条A记录<strong>不在了</strong>。</p>
+<p>立即去DNS管理器查看：果然，搬迁那天IT同事在迁移打印服务器到新IP（192.168.30.200）的时候，<strong>只改了A记录的IP值，没保存</strong>。但诡异的是，有30台机器还能解析出来——后来查证，那30台机器在搬迁当天重启过，本地DNS缓存里有过临时解析，缓存还没过期；剩下50台上周都没重启过，今天一刷新就全暴露了。</p>
+<h3 id="第六步：验证修复"><a href="#第六步：验证修复" class="headerlink" title="第六步：验证修复"></a>第六步：验证修复</h3><p>DNS 修复后，在一台问题机器上 <code>ipconfig /flushdns</code>，然后 <code>gpupdate /force</code> 重启——打印机全出来了。</p>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><h3 id="1-DNS-修复（治本）"><a href="#1-DNS-修复（治本）" class="headerlink" title="1. DNS 修复（治本）"></a>1. DNS 修复（治本）</h3><p>在DNS管理器里：</p>
+<ul>
+<li>进入 <code>printserver</code> 的A记录，<strong>重新保存</strong>（值是对的，只是没保存成功）；</li>
+<li>顺手在DHCP里给所有客户端推送 DNS 搜索域 <code>corp.local</code>，避免单点主机名解析；</li>
+<li>给 <code>printserver</code> 加一条<strong>别名（CNAME）</strong>：<code>prt</code>，双管齐下防止单点故障。</li>
+</ul>
+<h3 id="2-脚本改造（治标-预防）"><a href="#2-脚本改造（治标-预防）" class="headerlink" title="2. 脚本改造（治标+预防）"></a>2. 脚本改造（治标+预防）</h3><p>把脚本里所有 <code>\\printserver\</code> 改成 IP 直连（<code>\\192.168.30.200\</code>），或者干脆全部用 <code>Add-Printer</code> 走IPP，彻底摆脱SMB依赖：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 改造后的脚本（节选）</span></span><br><span class="line"><span class="variable">$printers</span> = <span class="selector-tag">@</span>(</span><br><span class="line">    <span class="selector-tag">@</span>&#123;Name=<span class="string">&quot;HP-M438n-3F-01&quot;</span>; IP=<span class="string">&quot;192.168.30.201&quot;</span>&#125;,</span><br><span class="line">    <span class="selector-tag">@</span>&#123;Name=<span class="string">&quot;HP-M438n-3F-02&quot;</span>; IP=<span class="string">&quot;192.168.30.202&quot;</span>&#125;,</span><br><span class="line">    <span class="selector-tag">@</span>&#123;Name=<span class="string">&quot;HP-M438n-4F-01&quot;</span>; IP=<span class="string">&quot;192.168.30.211&quot;</span>&#125;</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">foreach</span> (<span class="variable">$p</span> <span class="keyword">in</span> <span class="variable">$printers</span>) &#123;</span><br><span class="line">    <span class="variable">$portName</span> = <span class="string">&quot;IP_<span class="variable">$</span>(<span class="variable">$p</span>.IP)&quot;</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="operator">-not</span> (<span class="built_in">Get-PrinterPort</span> <span class="literal">-Name</span> <span class="variable">$portName</span> <span class="literal">-ErrorAction</span> SilentlyContinue)) &#123;</span><br><span class="line">        <span class="built_in">Add-PrinterPort</span> <span class="literal">-Name</span> <span class="variable">$portName</span> <span class="literal">-PrinterHostAddress</span> <span class="variable">$p</span>.IP</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (<span class="operator">-not</span> (<span class="built_in">Get-Printer</span> <span class="literal">-Name</span> <span class="variable">$p</span>.Name <span class="literal">-ErrorAction</span> SilentlyContinue)) &#123;</span><br><span class="line">        <span class="built_in">Add-Printer</span> <span class="literal">-Name</span> <span class="variable">$p</span>.Name `</span><br><span class="line">            <span class="literal">-DriverName</span> <span class="string">&quot;HP Universal Printing PCL 6&quot;</span> `</span><br><span class="line">            <span class="literal">-PortName</span> <span class="variable">$portName</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-应急方案"><a href="#3-应急方案" class="headerlink" title="3. 应急方案"></a>3. 应急方案</h3><p>把上面这个 PowerShell 脚本放到共享路径 <code>\\fileserver\IT\Tools\RepairPrinters.ps1</code>，让有问题的用户<strong>右键以管理员运行</strong>一次，先把业务恢复。</p>
+<h2 id="根因分析"><a href="#根因分析" class="headerlink" title="根因分析"></a>根因分析</h2><p>表面看是打印机没装上，根因是<strong>变更管理没闭环</strong>：</p>
+<ol>
+<li>搬迁当天同事修改DNS记录时，<strong>没有验证保存结果</strong>（UI上点保存和实际写入是有区别的，UAC、域权限、AD复制延迟都可能让”看起来保存了”但实际没生效）；</li>
+<li>GPO 推送脚本强依赖主机名 <code>\\printserver\</code>，没有兜底机制；</li>
+<li>没有打印机连接状态的<strong>监控告警</strong>，等到用户主动报障才发现，业务影响已经扩大。</li>
+</ol>
+<blockquote>
+<p>说白了，<strong>单点 DNS 故障 + 强依赖主机名 + 零监控</strong>，三连击凑齐了，事故只是时间问题。</p>
+</blockquote>
+<h2 id="预防措施"><a href="#预防措施" class="headerlink" title="预防措施"></a>预防措施</h2><p>针对这次问题，给后续运维工作立了三条规矩：</p>
+<ol>
+<li><strong>变更后必验证</strong>：所有 DNS、DHCP、GPO 类变更必须<strong>变更前快照 + 变更后 5 分钟内 <code>nslookup</code> 验证</strong>，并在群内截图留痕。重要变更申请双人复核；</li>
+<li><strong>脚本去单点依赖</strong>：所有登录脚本、开机脚本里禁止写裸主机名，必须用 FQDN（<code>printserver.corp.local</code>）或 CNAME 别名，并且<strong>关键脚本增加 fallback 逻辑</strong>——主路径走不通就走IP直连；</li>
+<li><strong>加监控</strong>：用 Zabbix 监控关键打印机（IP在线、墨盒、卡纸）和<strong>域内关键主机名解析成功率</strong>，超过 5% 失败率自动告警。</li>
+</ol>
+<blockquote>
+<p>监控盲区是最贵的盲区，这次等于交了50台机器+1个上午的学费。</p>
+</blockquote>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>这次故障给团队最深的教训是：<strong>用户报障的”现象”和”根因”之间，往往隔了 3-4 层跳转</strong>。从打印机没装好 → 0x0000011b → GPO没生效 → DNS记录丢失，4步才到根因。如果一开始就盯着打印机本身（驱动、端口、网络），会浪费大量时间。</p>
+<p>排查这种”批量出问题”的场景，**最快的破局点不是”找正常的30台和异常的50台有什么区别”<strong>，而是</strong>直接去看”异常的那批，在哪一步出错了”**。这次 <code>nslookup printserver</code> 这一下，5分钟定位了根因，比逐个机器查 GPO 应用日志高效得多。</p>
+<blockquote>
+<p>运维老炮都懂的道理：<strong>先看 DNS，再看网络，最后看应用</strong>。别上来就重启服务。</p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>Maskbugzero
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.5772447.xyz/posts/a053a61/" title="AD域环境下打印机批量部署失败的排查手记">https://blog.5772447.xyz/posts/a053a61/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by/4.0/deed.zh" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" rel="tag"># 桌面运维</a>
+              <a href="/tags/AD%E5%9F%9F%E6%8E%A7/" rel="tag"># AD域控</a>
+              <a href="/tags/%E6%89%93%E5%8D%B0%E6%9C%BA/" rel="tag"># 打印机</a>
+              <a href="/tags/GPO/" rel="tag"># GPO</a>
+              <a href="/tags/Windows/" rel="tag"># Windows</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/posts/709d31a9/" rel="prev" title="微软输入法快速输入时间">
+                  <i class="fa fa-angle-left"></i> 微软输入法快速输入时间
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">Maskbugzero</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">16k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">59 分钟</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
