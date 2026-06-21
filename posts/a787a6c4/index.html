@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.5772447.xyz","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="企业AD域控新安全GPO策略推送后全员未生效，从组策略应用顺序、WMI筛选器、ACL权限到SYSVOL同步层层排查，最终锁定DFS复制延迟与策略版本号未更新的双重根因">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一次AD域控GPO策略推送失败导致终端安全基线不生效的排查实录">
+<meta property="og:url" content="https://blog.5772447.xyz/posts/a787a6c4/index.html">
+<meta property="og:site_name" content="Zero Day Notes">
+<meta property="og:description" content="企业AD域控新安全GPO策略推送后全员未生效，从组策略应用顺序、WMI筛选器、ACL权限到SYSVOL同步层层排查，最终锁定DFS复制延迟与策略版本号未更新的双重根因">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-06-21T01:00:00.000Z">
+<meta property="article:modified_time" content="2026-06-21T01:00:00.000Z">
+<meta property="article:author" content="Maskbugzero">
+<meta property="article:tag" content="桌面运维">
+<meta property="article:tag" content="AD域控">
+<meta property="article:tag" content="GPO">
+<meta property="article:tag" content="DFS复制">
+<meta property="article:tag" content="组策略">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/a787a6c4/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.5772447.xyz/posts/a787a6c4/","path":"posts/a787a6c4/","title":"一次AD域控GPO策略推送失败导致终端安全基线不生效的排查实录"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>一次AD域控GPO策略推送失败导致终端安全基线不生效的排查实录 | Zero Day Notes</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VGE8FYNHE7"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-VGE8FYNHE7","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Zero Day Notes</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Life Oriented Programming</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">问题背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%85%E9%9A%9C%E7%8E%B0%E8%B1%A1"><span class="nav-number">2.</span> <span class="nav-text">故障现象</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%88%E7%AB%AF%E4%BE%A7%E8%A1%A8%E7%8E%B0"><span class="nav-number">2.1.</span> <span class="nav-text">终端侧表现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%9F%E6%8E%A7%E4%BE%A7%E8%A1%A8%E7%8E%B0"><span class="nav-number">2.2.</span> <span class="nav-text">域控侧表现</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%92%E6%9F%A5%E8%BF%87%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">排查过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E5%B1%82%EF%BC%9A%E7%A1%AE%E8%AE%A4GPO%E9%93%BE%E6%8E%A5%E4%B8%8E%E4%BD%9C%E7%94%A8%E5%9F%9F"><span class="nav-number">3.1.</span> <span class="nav-text">第一层：确认GPO链接与作用域</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E5%B1%82%EF%BC%9A%E6%A3%80%E6%9F%A5%E7%AD%96%E7%95%A5%E5%86%B2%E7%AA%81%E4%B8%8E%E4%BC%98%E5%85%88%E7%BA%A7"><span class="nav-number">3.2.</span> <span class="nav-text">第二层：检查策略冲突与优先级</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%89%E5%B1%82%EF%BC%9A%E5%8F%91%E7%8E%B0GPO%E7%89%88%E6%9C%AC%E5%8F%B7%E5%BC%82%E5%B8%B8%E2%80%94%E2%80%94%E7%AD%96%E7%95%A5%E5%86%85%E5%AE%B9%E6%9C%AA%E5%86%99%E5%85%A5"><span class="nav-number">3.3.</span> <span class="nav-text">第三层：发现GPO版本号异常——策略内容未写入</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E5%9B%9B%E5%B1%82%EF%BC%9A%E6%8E%92%E6%9F%A5GPT-INI%E7%89%88%E6%9C%AC%E5%8F%B7%E6%9C%AA%E6%9B%B4%E6%96%B0%E7%9A%84%E5%8E%9F%E5%9B%A0"><span class="nav-number">3.4.</span> <span class="nav-text">第四层：排查GPT.INI版本号未更新的原因</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%94%E5%B1%82%EF%BC%9A%E7%A1%AE%E8%AE%A4DC02%E7%9A%84DFSR%E6%9C%8D%E5%8A%A1%E7%8A%B6%E6%80%81"><span class="nav-number">3.5.</span> <span class="nav-text">第五层：确认DC02的DFSR服务状态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E5%85%AD%E5%B1%82%EF%BC%9A%E4%BF%AE%E5%A4%8DGPO%E7%89%88%E6%9C%AC%E5%8F%B7%E5%B9%B6%E9%AA%8C%E8%AF%81"><span class="nav-number">3.6.</span> <span class="nav-text">第六层：修复GPO版本号并验证</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">4.</span> <span class="nav-text">解决方案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E4%BF%AE%E5%A4%8DSYSVOL-DFS%E5%A4%8D%E5%88%B6%E5%BB%B6%E8%BF%9F"><span class="nav-number">4.1.</span> <span class="nav-text">1. 修复SYSVOL DFS复制延迟</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E4%BF%AE%E5%A4%8DGPO%E7%89%88%E6%9C%AC%E5%8F%B7"><span class="nav-number">4.2.</span> <span class="nav-text">2. 修复GPO版本号</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%9C%A8%E6%89%80%E6%9C%89%E7%BB%88%E7%AB%AF%E4%B8%8A%E5%BC%BA%E5%88%B6%E5%88%B7%E6%96%B0%E7%AD%96%E7%95%A5"><span class="nav-number">4.3.</span> <span class="nav-text">3. 在所有终端上强制刷新策略</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B9%E5%9B%A0%E5%88%86%E6%9E%90"><span class="nav-number">5.</span> <span class="nav-text">根因分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A2%84%E9%98%B2%E6%8E%AA%E6%96%BD"><span class="nav-number">6.</span> <span class="nav-text">预防措施</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-GPO%E6%93%8D%E4%BD%9C%E8%A7%84%E8%8C%83"><span class="nav-number">6.1.</span> <span class="nav-text">1. GPO操作规范</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-DFS%E5%A4%8D%E5%88%B6%E7%9B%91%E6%8E%A7"><span class="nav-number">6.2.</span> <span class="nav-text">2. DFS复制监控</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-GPO%E9%83%A8%E7%BD%B2%E9%AA%8C%E8%AF%81%E6%B5%81%E7%A8%8B"><span class="nav-number">6.3.</span> <span class="nav-text">3. GPO部署验证流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E8%A1%A5%E4%B8%81%E7%BB%B4%E6%8A%A4%E7%AA%97%E5%8F%A3%E8%A7%84%E8%8C%83"><span class="nav-number">6.4.</span> <span class="nav-text">4. 补丁维护窗口规范</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">7.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Maskbugzero"
+      src="/images/touxiang.jpg">
+  <p class="site-author-name" itemprop="name">Maskbugzero</p>
+  <div class="site-description" itemprop="description">人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">24</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">34</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">39</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Maskbugzero" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Maskbugzero" rel="noopener me external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.5772447.xyz/posts/a787a6c4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/touxiang.jpg">
+      <meta itemprop="name" content="Maskbugzero">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zero Day Notes">
+      <meta itemprop="description" content="人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="一次AD域控GPO策略推送失败导致终端安全基线不生效的排查实录 | Zero Day Notes">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          一次AD域控GPO策略推送失败导致终端安全基线不生效的排查实录
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-06-21 09:00:00" itemprop="dateCreated datePublished" datetime="2026-06-21T09:00:00+08:00">2026-06-21</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">运维</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">桌面运维</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.6k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>13 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h2><p>周一早上九点，安全团队例行检查终端合规率时发现一个严重问题：上周五紧急发布的一条AD域控GPO策略——<strong>禁用USB大容量存储设备访问</strong>——在全公司约420台终端上竟然无一生效。这条策略是应审计要求必须在本周内落地的安全基线，安全团队已经在合规报告上标注了”已完成部署”，但实际情况却是任何员工插上U盘依然能正常读写。</p>
+<p>问题的影响范围覆盖了总部办公区所有域内计算机，紧急程度很高——审计组周三要来复查，如果终端仍然不合规，整年度的ISO 27001认证可能受到影响。作为桌面运维负责人，我立刻被拉进应急排查群。</p>
+<h2 id="故障现象"><a href="#故障现象" class="headerlink" title="故障现象"></a>故障现象</h2><h3 id="终端侧表现"><a href="#终端侧表现" class="headerlink" title="终端侧表现"></a>终端侧表现</h3><p>在多台终端上执行 <code>gpresult /h gpreport.html</code> 生成策略应用报告，发现：</p>
+<ol>
+<li><strong>该GPO在”已应用策略”列表中完全不出现</strong>——既不在计算机配置中，也不在用户配置中</li>
+<li>在”被过滤的策略（未应用原因）”列表中也找不到该GPO的任何记录</li>
+<li><code>gpupdate /force</code> 执行后返回”策略已成功更新”，但再次查看报告，该策略依然不在</li>
+</ol>
+<p>关键信息摘录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">C:\&gt; gpupdate /force</span><br><span class="line">正在更新策略...</span><br><span class="line"></span><br><span class="line">计算机策略更新已完成。</span><br><span class="line">用户策略更新已完成。</span><br><span class="line"></span><br><span class="line">C:\&gt; gpresult /v | findstr &quot;USB&quot;</span><br><span class="line">（无任何输出）</span><br></pre></td></tr></table></figure>
+
+<h3 id="域控侧表现"><a href="#域控侧表现" class="headerlink" title="域控侧表现"></a>域控侧表现</h3><p>在GPMC（Group Policy Management Console）中检查：</p>
+<ol>
+<li>该GPO <strong>已链接到正确的OU</strong>（<code>OU=总部办公终端,DC=corp,DC=local</code>），链接状态为”已启用”</li>
+<li>GPO的状态显示为**”已启用”**</li>
+<li>安全筛选中仅包含 <code>Authenticated Users</code>，没有额外的WMI筛选器</li>
+<li>但在”策略应用结果”模拟（Group Policy Results）中，针对任意一台该OU下的计算机模拟，该GPO均显示”未应用”</li>
+</ol>
+<p>更关键的发现：在GPMC中查看该GPO的<strong>版本号</strong>，计算机配置版本号为 <strong>0</strong>，用户配置版本号也是 <strong>0</strong>——这意味着该GPO虽然被创建了，但其策略设置实际上从未被正确写入。</p>
+<h2 id="排查过程"><a href="#排查过程" class="headerlink" title="排查过程"></a>排查过程</h2><p>排查从终端侧和域控侧同时展开，按照以下思路逐步推进：</p>
+<h3 id="第一层：确认GPO链接与作用域"><a href="#第一层：确认GPO链接与作用域" class="headerlink" title="第一层：确认GPO链接与作用域"></a>第一层：确认GPO链接与作用域</h3><p>首先确认GPO是否正确链接到目标OU，以及安全筛选是否合理。</p>
+<ol>
+<li>打开GPMC，展开 <code>corp.local</code> → <code>总部办公终端</code> OU，确认该GPO确实在链接列表中，且链接顺序为第3位（在两条现有GPO之后），链接启用状态为”是”</li>
+<li>检查安全筛选：仅包含 <code>Authenticated Users</code>，这是标准配置，没有问题</li>
+<li>检查是否有WMI筛选器绑定——确认无WMI筛选器</li>
+</ol>
+<p>这一步没有发现配置层面的明显错误，但注意到链接顺序在两条旧策略之后，需要进一步确认是否有策略冲突。</p>
+<h3 id="第二层：检查策略冲突与优先级"><a href="#第二层：检查策略冲突与优先级" class="headerlink" title="第二层：检查策略冲突与优先级"></a>第二层：检查策略冲突与优先级</h3><p>担心新GPO被更高优先级的策略覆盖：</p>
+<ol>
+<li>排在前面两条GPO分别是”桌面基础配置”和”终端监控代理部署”，检查了它们的计算机配置策略设置，没有任何涉及USB存储设备访问控制的条目——<strong>不存在策略冲突</strong></li>
+<li>检查”阻止继承”（Block Inheritance）——该OU未启用阻止继承</li>
+<li>检查”强制”（Enforced）——新GPO未标记为强制，但这不影响其正常应用，只是不保证优先级最高</li>
+</ol>
+<p>策略冲突不是根因，继续深入。</p>
+<h3 id="第三层：发现GPO版本号异常——策略内容未写入"><a href="#第三层：发现GPO版本号异常——策略内容未写入" class="headerlink" title="第三层：发现GPO版本号异常——策略内容未写入"></a>第三层：发现GPO版本号异常——策略内容未写入</h3><p>这是排查的关键转折点。在GPMC中右键该GPO选择”编辑”，打开Group Policy Editor：</p>
+<ol>
+<li>计算机配置下 <code>Administrative Templates → System → Removable Storage Access</code> 中所有USB相关策略确实被设置为”已启用&#x2F;已禁用”——<strong>策略设置内容在编辑器中是可见的</strong></li>
+<li>但回到GPMC主界面，该GPO的版本号显示为 <strong>0&#x2F;0</strong>（计算机配置版本&#x2F;用户配置版本），而不是预期的 <code>1/1</code> 或更高</li>
+</ol>
+<p>正常情况下，一旦在GPO编辑器中修改了设置并保存，GPO的版本号应该自动递增。版本号为0意味着GPO的 <code>GPT.INI</code> 文件中的版本信息没有更新。</p>
+<p>手动检查SYSVOL共享中的GPT.INI：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">\\corp.local\SYSVOL\corp.local\Policies\&#123;GPO-GUID&#125;\GPT.INI</span><br></pre></td></tr></table></figure>
+
+<p>内容如下：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[General]</span></span><br><span class="line"><span class="attr">Version</span>=<span class="number">0</span></span><br></pre></td></tr></table></figure>
+
+<p>而正常已应用的其他GPO的GPT.INI内容为：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[General]</span></span><br><span class="line"><span class="attr">Version</span>=<span class="number">65537</span></span><br><span class="line"><span class="attr">DisplayName</span>=桌面基础配置</span><br></pre></td></tr></table></figure>
+
+<p><strong>关键发现：GPT.INI中Version&#x3D;0，这意味着客户端在拉取GPO时会认为该策略没有任何变更，跳过应用。</strong></p>
+<h3 id="第四层：排查GPT-INI版本号未更新的原因"><a href="#第四层：排查GPT-INI版本号未更新的原因" class="headerlink" title="第四层：排查GPT.INI版本号未更新的原因"></a>第四层：排查GPT.INI版本号未更新的原因</h3><p>GPO编辑器中修改了设置，为什么GPT.INI版本号仍然是0？可能的原因有：</p>
+<ol>
+<li><strong>GPO编辑过程中连接了不同的域控</strong>——如果编辑时连接的是DC01，而GPT.INI只更新在DC01的SYSVOL上，由于DFS复制延迟，DC02上的GPT.INI可能尚未同步</li>
+<li><strong>SYSVOL的DFS复制故障</strong>——导致DC01上的更新未能传播到其他DC</li>
+</ol>
+<p>先检查域控拓扑：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">C:\&gt; repadmin /showrepl corp-dc01</span><br><span class="line">... 最近入站复制: 成功</span><br><span class="line"></span><br><span class="line">C:\&gt; repadmin /showrepl corp-dc02</span><br><span class="line">... 最近入站复制: DC01 → DC02, 成功, 时间 2026-06-20 14:32</span><br></pre></td></tr></table></figure>
+
+<p>AD复制看起来正常，但SYSVOL使用的是DFS复制（DFSR），与AD复制是独立的两套机制。检查DFS复制状态：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">C:\&gt; dfsradmin health new /rgname:&quot;Domain System Volume&quot; /rdname:&quot;SYSVOL Share&quot;</span><br><span class="line">  Domain System Volume - SYSVOL Share</span><br><span class="line">  复制组状态: 正常</span><br><span class="line">  DC01: 运行中, 最后同步 2026-06-20 14:30</span><br><span class="line">  DC02: 运行中, 最后同步 2026-06-19 23:15  ← 异常！</span><br></pre></td></tr></table></figure>
+
+<p><strong>发现：DC02的SYSVOL DFSR最后一次同步时间是6月19日23:15，已经超过12小时未同步！</strong></p>
+<p>进一步检查DC02的DFSR事件日志：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">事件ID: 5014</span><br><span class="line">描述: DFS Replication服务已成功建立与DC01的连接</span><br><span class="line"></span><br><span class="line">事件ID: 5008</span><br><span class="line">描述: DFS Replication服务检测到与DC01的连接上出现错误</span><br><span class="line">错误: 1722 (RPC服务器不可用)</span><br></pre></td></tr></table></figure>
+
+<h3 id="第五层：确认DC02的DFSR服务状态"><a href="#第五层：确认DC02的DFSR服务状态" class="headerlink" title="第五层：确认DC02的DFSR服务状态"></a>第五层：确认DC02的DFSR服务状态</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">C:\&gt; sc query dfsr</span><br><span class="line">STATE: 4 RUNNING</span><br><span class="line"></span><br><span class="line">C:\&gt; netstat -an | findstr &quot;135&quot;</span><br><span class="line">TCP 0.0.0.0:135 LISTENING</span><br></pre></td></tr></table></figure>
+
+<p>DFSR服务在运行，RPC端口也在监听。但回溯周五晚间的运维日志，发现周五20:00-22:00执行过DC02的补丁更新，期间服务器重启了一次。重启后DFSR服务虽然自动启动，但<strong>RPC连接建立存在延迟</strong>，且恰好周五晚间网络维护也关闭了部分防火墙端口，导致DC02与DC01之间的DFSR复制通道未能及时重建。</p>
+<p>最终在DC02上手动触发DFS复制：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">C:\&gt; dfsrdiag pollad /member:corp-dc02</span><br><span class="line">强制DFS Replication服务立即与AD进行同步...</span><br><span class="line">操作成功完成。</span><br></pre></td></tr></table></figure>
+
+<p>复制完成后，DC02上的GPT.INI被正确同步：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[General]</span></span><br><span class="line"><span class="attr">Version</span>=<span class="number">65537</span></span><br><span class="line"><span class="attr">DisplayName</span>=禁用USB大容量存储设备访问</span><br></pre></td></tr></table></figure>
+
+<h3 id="第六层：修复GPO版本号并验证"><a href="#第六层：修复GPO版本号并验证" class="headerlink" title="第六层：修复GPO版本号并验证"></a>第六层：修复GPO版本号并验证</h3><p>虽然DFS复制已恢复，但DC01上的GPT.INI版本号仍然是0——这说明问题不仅仅是复制延迟，<strong>原始DC01上的GPT.INI在GPO创建时就未被正确更新</strong>。</p>
+<p>通过GPO编辑器对该GPO做一次微小的修改（添加一条注释级别的无影响设置），然后保存，触发版本号递增：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[General]</span></span><br><span class="line"><span class="attr">Version</span>=<span class="number">196608</span></span><br></pre></td></tr></table></figure>
+
+<p>版本号从0变为196608（计算机配置版本2，用户配置版本1，编码为 <code>Version = ComputerVersion * 65536 + UserVersion = 2*65536+1 = 131073</code>… 实际Hex编码方式不同，但关键是Version不再是0）。</p>
+<p>等待DFS复制将更新后的GPT.INI同步到DC02，然后在多台终端上执行：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">C:\&gt; gpupdate /force</span><br><span class="line">正在更新策略...</span><br><span class="line">计算机策略更新已完成。</span><br><span class="line"></span><br><span class="line">C:\&gt; gpresult /h report.html</span><br></pre></td></tr></table></figure>
+
+<p>打开报告，确认GPO”禁用USB大容量存储设备访问”出现在<strong>已应用的计算机策略</strong>列表中，且USB存储设备访问控制的具体设置条目全部生效。</p>
+<p>在物理终端上测试：插入U盘，系统提示”访问被策略阻止”，无法读写——<strong>策略已正确生效</strong>。</p>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><p>最终解决涉及两个层面的修复：</p>
+<h3 id="1-修复SYSVOL-DFS复制延迟"><a href="#1-修复SYSVOL-DFS复制延迟" class="headerlink" title="1. 修复SYSVOL DFS复制延迟"></a>1. 修复SYSVOL DFS复制延迟</h3><p>确保DC01与DC02之间的DFS复制正常运行：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 在DC02上强制触发DFS复制同步</span></span><br><span class="line">dfsrdiag pollad /member:corp<span class="literal">-dc02</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查DFS复制健康状态</span></span><br><span class="line">dfsradmin health new /rgname:<span class="string">&quot;Domain System Volume&quot;</span> /rdname:<span class="string">&quot;SYSVOL Share&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 确认SYSVOL共享内容一致</span></span><br><span class="line"><span class="comment"># 比较两台DC上的GPT.INI版本号</span></span><br><span class="line"><span class="built_in">dir</span> \\corp<span class="literal">-dc01</span>\SYSVOL\corp.local\Policies\&#123;GUID&#125;\GPT.INI</span><br><span class="line"><span class="built_in">dir</span> \\corp<span class="literal">-dc02</span>\SYSVOL\corp.local\Policies\&#123;GUID&#125;\GPT.INI</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-修复GPO版本号"><a href="#2-修复GPO版本号" class="headerlink" title="2. 修复GPO版本号"></a>2. 修复GPO版本号</h3><p>对版本号为0的GPO做一次有效修改并保存，触发版本号自动递增：</p>
+<ul>
+<li>通过GPMC编辑器打开该GPO</li>
+<li>在计算机配置中任意添加一个无害设置（如设置一条已注释的策略），保存退出</li>
+<li>GPT.INI中的Version字段自动更新为非0值</li>
+<li>等待DFS复制同步到所有DC</li>
+</ul>
+<h3 id="3-在所有终端上强制刷新策略"><a href="#3-在所有终端上强制刷新策略" class="headerlink" title="3. 在所有终端上强制刷新策略"></a>3. 在所有终端上强制刷新策略</h3><figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># 单台终端</span><br><span class="line">gpupdate /force</span><br><span class="line"></span><br><span class="line"># 批量刷新（通过PsExec或SCCM推送到所有OU下计算机）</span><br><span class="line">psexec @computer_list.txt <span class="built_in">cmd</span> /c &quot;gpupdate /force&quot;</span><br></pre></td></tr></table></figure>
+
+<h2 id="根因分析"><a href="#根因分析" class="headerlink" title="根因分析"></a>根因分析</h2><p>问题的根本原因是<strong>双重故障叠加</strong>：</p>
+<ol>
+<li><p><strong>GPO创建时版本号未正确写入（GPT.INI Version&#x3D;0）</strong>：这是最核心的根因。当通过GPMC创建新GPO并编辑设置时，GPO的AD对象（在 <code>CN=Policies,CN=System,DC=corp,DC=local</code> 中）和SYSVOL文件（GPT.INI）应该同步更新版本号。但由于创建该GPO的管理员当时连接的GPMC优先选择了DC02作为编辑目标DC（GPMC会优先连接当前站点最近的DC），而DC02当时正在经历补丁更新后的重启过渡期，导致GPO的SYSVOL部分写入不完整——GPT.INI的Version字段未被更新为预期的初始值。</p>
+</li>
+<li><p><strong>SYSVOL DFS复制延迟</strong>：DC02在补丁重启后DFSR复制通道重建延迟（约12小时），导致即使DC01上如果有正确的GPT.INI也无法及时同步到DC02。而实际情况是DC02本身就是策略编辑的目标DC，文件只存在于DC02的SYSVOL上且版本号错误，复制到DC01后DC01也获得了错误的Version&#x3D;0。</p>
+</li>
+</ol>
+<p>客户端处理逻辑是：拉取GPO时检查GPT.INI中的Version号，如果Version与上次已应用的版本相同（或为0，等同于”无变更”），则跳过该GPO的应用。这就是所有420台终端均未生效的根本原因。</p>
+<h2 id="预防措施"><a href="#预防措施" class="headerlink" title="预防措施"></a>预防措施</h2><h3 id="1-GPO操作规范"><a href="#1-GPO操作规范" class="headerlink" title="1. GPO操作规范"></a>1. GPO操作规范</h3><ul>
+<li><strong>编辑GPO前确认目标DC状态</strong>：在GPMC中通过”更改域控”明确指定一台健康的DC作为编辑目标，避免自动选择正在维护中的DC</li>
+<li><strong>创建GPO后立即验证版本号</strong>：在GPMC中检查新GPO的版本号是否为非0值，如果版本号异常应立即通过编辑器做一次修改触发版本递增</li>
+<li><strong>GPO修改完成后检查SYSVOL一致性</strong>：比较所有DC上该GPO的GPT.INI内容，确保版本号和策略内容一致</li>
+</ul>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查所有DC上GPO版本号一致性</span></span><br><span class="line"><span class="variable">$gpoGuid</span> = <span class="string">&quot;&#123;GPO-GUID&#125;&quot;</span></span><br><span class="line"><span class="variable">$dcList</span> = <span class="built_in">Get-ADDomainController</span> <span class="literal">-Filter</span> * | <span class="built_in">Select-Object</span> <span class="literal">-ExpandProperty</span> HostName</span><br><span class="line"><span class="keyword">foreach</span> (<span class="variable">$dc</span> <span class="keyword">in</span> <span class="variable">$dcList</span>) &#123;</span><br><span class="line">    <span class="variable">$gptIni</span> = <span class="built_in">Get-Content</span> <span class="string">&quot;\\<span class="variable">$dc</span>\SYSVOL\corp.local\Policies\<span class="variable">$gpoGuid</span>\GPT.INI&quot;</span></span><br><span class="line">    <span class="built_in">Write-Host</span> <span class="string">&quot;<span class="variable">$dc:</span> Version = <span class="variable">$</span>(<span class="variable">$gptIni</span> | Select-String &#x27;Version=&#x27; | ForEach-Object &#123; <span class="variable">$_</span>.Line.Split(&#x27;=&#x27;)[1] &#125;)&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-DFS复制监控"><a href="#2-DFS复制监控" class="headerlink" title="2. DFS复制监控"></a>2. DFS复制监控</h3><ul>
+<li>建立DFS复制健康状态的定期监控，使用事件ID 5014（成功同步）和5008&#x2F;5002（同步失败）作为告警指标</li>
+<li>服务器补丁更新重启后，在运维流程中增加一步<strong>DFSR复制状态确认</strong>，确保SYSVOL复制恢复后再进行GPO操作</li>
+<li>设置DFSR复制告警阈值：如果某台DC超过4小时未完成SYSVOL同步，自动触发告警通知运维团队</li>
+</ul>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 定期检查DFSR复制状态（可加入监控脚本）</span></span><br><span class="line"><span class="variable">$dfsrStatus</span> = dfsradmin health new /rgname:<span class="string">&quot;Domain System Volume&quot;</span> /rdname:<span class="string">&quot;SYSVOL Share&quot;</span></span><br><span class="line"><span class="comment"># 解析输出，判断各DC最后同步时间是否在阈值内</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-GPO部署验证流程"><a href="#3-GPO部署验证流程" class="headerlink" title="3. GPO部署验证流程"></a>3. GPO部署验证流程</h3><ul>
+<li>GPO发布后，在至少3台不同网段的终端上执行 <code>gpresult /v</code> 确认策略已生效</li>
+<li>对安全基线类GPO，增加物理验证环节——实际测试策略约束效果（如插入U盘验证禁用效果）</li>
+<li>在GPMC中使用”组策略结果”模拟功能，在策略发布后对目标OU中的样本计算机进行模拟，确认GPO出现在”已应用”列表</li>
+</ul>
+<h3 id="4-补丁维护窗口规范"><a href="#4-补丁维护窗口规范" class="headerlink" title="4. 补丁维护窗口规范"></a>4. 补丁维护窗口规范</h3><ul>
+<li>DC补丁更新应安排在业务低峰期，且<strong>一次只维护一台DC</strong>，确保至少一台DC的SYSVOL始终可用且同步正常</li>
+<li>维护完成后必须验证DFSR复制恢复，并在运维检查清单中记录确认结果</li>
+<li>如果DC需要长时间停机维护，应先在GPMC中将”域控操作主机”角色确认转移，避免GPO编辑指向不可用的DC</li>
+</ul>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>这次排查给我最大的教训是：**GPO的”已创建+已链接”≠”已生效”**。在GPMC中看到一个GPO链接到了目标OU并且状态为启用，只是第一步，真正的生效依赖于三个条件同时满足：</p>
+<ol>
+<li>GPO的策略内容被正确写入SYSVOL（GPT.INI版本号≠0）</li>
+<li>SYSVOL内容在所有DC间通过DFS复制保持一致</li>
+<li>客户端能够成功拉取并应用GPO内容</li>
+</ol>
+<p>排查时我最初只关注了GPMC界面上的链接和筛选配置，浪费了近一个小时在策略冲突和优先级方向上。直到检查版本号才发现真正的入口。这也提醒我，<strong>排查AD域控相关问题时，一定要从底层文件（GPT.INI、SYSVOL共享）和复制机制入手</strong>，不要只依赖GPMC的图形界面——界面显示的是AD对象的元数据，而客户端实际读取的是SYSVOL文件，两者之间可能因复制延迟而不同步。</p>
+<p>另外一个实操经验：<strong>DC补丁维护后必须确认DFSR复制恢复</strong>。DFS复制不像AD复制那样有显式的复制失败告警，DFSR可能”静默失效”——服务在运行、端口在监听，但实际复制通道没有重建成功。只有通过 <code>dfsradmin health</code> 或事件日志才能发现问题。以后每次DC维护重启，运维检查清单上必须加上DFSR复制状态确认这一步。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>Maskbugzero
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.5772447.xyz/posts/a787a6c4/" title="一次AD域控GPO策略推送失败导致终端安全基线不生效的排查实录">https://blog.5772447.xyz/posts/a787a6c4/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by/4.0/deed.zh" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" rel="tag"># 桌面运维</a>
+              <a href="/tags/AD%E5%9F%9F%E6%8E%A7/" rel="tag"># AD域控</a>
+              <a href="/tags/GPO/" rel="tag"># GPO</a>
+              <a href="/tags/DFS%E5%A4%8D%E5%88%B6/" rel="tag"># DFS复制</a>
+              <a href="/tags/%E7%BB%84%E7%AD%96%E7%95%A5/" rel="tag"># 组策略</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/posts/a053a61/" rel="prev" title="AD域环境下打印机批量部署失败的排查手记">
+                  <i class="fa fa-angle-left"></i> AD域环境下打印机批量部署失败的排查手记
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2021 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">Maskbugzero</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">26k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">1:33</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
