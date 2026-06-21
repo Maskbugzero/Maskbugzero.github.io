@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.5772447.xyz","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="订单系统凌晨跑批大批量UPDATE，从库延迟飙升到40分钟，前端查询命中从库读到旧数据引发线上资损。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一次MySQL主从同步因大事务延迟导致订单数据不一致的排查实录">
+<meta property="og:url" content="https://blog.5772447.xyz/posts/eeb9b3c5/index.html">
+<meta property="og:site_name" content="Zero Day Notes">
+<meta property="og:description" content="订单系统凌晨跑批大批量UPDATE，从库延迟飙升到40分钟，前端查询命中从库读到旧数据引发线上资损。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-06-21T23:00:00.000Z">
+<meta property="article:modified_time" content="2026-06-21T23:00:00.000Z">
+<meta property="article:author" content="Maskbugzero">
+<meta property="article:tag" content="服务运维">
+<meta property="article:tag" content="MySQL">
+<meta property="article:tag" content="主从同步">
+<meta property="article:tag" content="大事务">
+<meta property="article:tag" content="数据一致性">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/eeb9b3c5/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.5772447.xyz/posts/eeb9b3c5/","path":"posts/eeb9b3c5/","title":"一次MySQL主从同步因大事务延迟导致订单数据不一致的排查实录"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>一次MySQL主从同步因大事务延迟导致订单数据不一致的排查实录 | Zero Day Notes</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VGE8FYNHE7"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-VGE8FYNHE7","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Zero Day Notes</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Life Oriented Programming</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">问题背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%85%E9%9A%9C%E7%8E%B0%E8%B1%A1"><span class="nav-number">2.</span> <span class="nav-text">故障现象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%92%E6%9F%A5%E8%BF%87%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">排查过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E7%A1%AE%E8%AE%A4%E4%BB%8E%E5%BA%93%E7%8A%B6%E6%80%81"><span class="nav-number">3.1.</span> <span class="nav-text">第一步：确认从库状态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E5%AE%9A%E4%BD%8D%E4%B8%BB%E5%BA%93%E4%B8%8A%E7%9A%84%E5%A4%A7%E4%BA%8B%E5%8A%A1"><span class="nav-number">3.2.</span> <span class="nav-text">第二步：定位主库上的大事务</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%9A%E5%88%86%E6%9E%90%E5%A4%A7%E4%BA%8B%E5%8A%A1%E4%B8%BA%E4%BD%95%E6%85%A2"><span class="nav-number">3.3.</span> <span class="nav-text">第三步：分析大事务为何慢</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E5%9B%9B%E6%AD%A5%EF%BC%9A%E5%88%86%E6%9E%90%E8%BF%99%E4%B8%AA%E4%BA%8B%E5%8A%A1%E7%9A%84%E5%90%88%E7%90%86%E6%80%A7"><span class="nav-number">3.4.</span> <span class="nav-text">第四步：分析这个事务的合理性</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">4.</span> <span class="nav-text">解决方案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%B4%A7%E6%80%A5%E6%AD%A2%E8%A1%80"><span class="nav-number">4.1.</span> <span class="nav-text">紧急止血</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%95%BF%E6%9C%9F%E4%BF%AE%E5%A4%8D"><span class="nav-number">4.2.</span> <span class="nav-text">长期修复</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B9%E5%9B%A0%E5%88%86%E6%9E%90"><span class="nav-number">5.</span> <span class="nav-text">根因分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A2%84%E9%98%B2%E6%8E%AA%E6%96%BD"><span class="nav-number">6.</span> <span class="nav-text">预防措施</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">7.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Maskbugzero"
+      src="/images/touxiang.jpg">
+  <p class="site-author-name" itemprop="name">Maskbugzero</p>
+  <div class="site-description" itemprop="description">人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">26</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">34</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">47</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Maskbugzero" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Maskbugzero" rel="noopener me external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.5772447.xyz/posts/eeb9b3c5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/touxiang.jpg">
+      <meta itemprop="name" content="Maskbugzero">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zero Day Notes">
+      <meta itemprop="description" content="人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="一次MySQL主从同步因大事务延迟导致订单数据不一致的排查实录 | Zero Day Notes">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          一次MySQL主从同步因大事务延迟导致订单数据不一致的排查实录
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-06-22 07:00:00" itemprop="dateCreated datePublished" datetime="2026-06-22T07:00:00+08:00">2026-06-22</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">运维</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">服务运维</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>2.3k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>8 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h2><p>周一早上 9 点 17 分，我刚端着咖啡走到工位，客服总监的电话就打了过来：”有客户投诉，昨天凌晨下的订单到现在还显示’待付款’，但钱已经扣了。再这样下去要上 12315 了。”</p>
+<p>我们做的是 B2B 商城系统，订单链路是标准的”主库写入 → 从库读取”分离架构。业务侧前端订单查询全部走从库，结算、支付回调走主库。按理说，正常的几条订单写入，从库延迟顶多几百毫秒。</p>
+<p>但这次不一样——运维群里同事反馈，从库 <code>Seconds_Behind_Master</code> 指标在凌晨 2 点之后就开始飘红，目前还在 40 分钟以上。也就是说，<strong>用户今天看到的订单状态，其实是凌晨 2 点之前的老数据</strong>。</p>
+<p>影响范围：所有 C 端订单查询接口（订单列表、订单详情、物流状态）。涉及用户：约 1.2 万。紧急程度：<strong>P1</strong>（业务受损，尚未扩散到资损，但已接到投诉）。</p>
+<h2 id="故障现象"><a href="#故障现象" class="headerlink" title="故障现象"></a>故障现象</h2><p>登录 Zabbix 监控大屏，几个关键指标同时告警：</p>
+<p><strong>1. 从库延迟（<code>Seconds_Behind_Master</code>）</strong></p>
+<p>从凌晨 2:00 开始延迟曲线从 0.5s 拉升，到 9:00 仍是 2400s（40 分钟），曲线呈”阶梯式上升”：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">02:00  delay=0.8s</span><br><span class="line">02:10  delay=45s</span><br><span class="line">02:30  delay=320s</span><br><span class="line">03:00  delay=980s</span><br><span class="line">05:00  delay=2100s</span><br><span class="line">07:00  delay=2350s</span><br><span class="line">09:00  delay=2412s</span><br></pre></td></tr></table></figure>
+
+<p><strong>2. 主库写入流量</strong></p>
+<p><code>Com_update</code> 计数显示凌晨 1:55 - 2:35 之间有 <strong>2.3 亿行</strong> UPDATE 操作集中在主库执行，binlog 产生量约 8.6 GB。</p>
+<p><strong>3. 错误日志</strong></p>
+<p>从库的 <code>mysqld.log</code> 里有大量 <code>Multi-statement transaction required more than &#39;max_binlog_cache_size&#39; bytes of storage</code> 警告——这说明从库尝试一次性应用一个超大事务时，binlog cache 不够用。</p>
+<p><strong>4. 业务报错</strong></p>
+<p>部分订单详情接口偶发返回 <code>ERROR 1213 (40001): Deadlock found when trying to get lock</code>，但这是次要现象，主要问题还是延迟。</p>
+<h2 id="排查过程"><a href="#排查过程" class="headerlink" title="排查过程"></a>排查过程</h2><h3 id="第一步：确认从库状态"><a href="#第一步：确认从库状态" class="headerlink" title="第一步：确认从库状态"></a>第一步：确认从库状态</h3><p>登录从库查看复制状态：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">mysql<span class="operator">&gt;</span> <span class="keyword">SHOW</span> SLAVE STATUS\G</span><br><span class="line"><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span> <span class="number">1.</span> <span class="type">row</span> <span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span></span><br><span class="line">               Slave_IO_State: Waiting <span class="keyword">for</span> master <span class="keyword">to</span> send event</span><br><span class="line">                  Master_Log_File: mysql<span class="operator">-</span>bin<span class="number">.000128</span></span><br><span class="line">              Read_Master_Log_Pos: <span class="number">523847212</span></span><br><span class="line">                 Relay_Log_File: relay<span class="operator">-</span>bin<span class="number">.000089</span></span><br><span class="line">              Relay_Log_Pos: <span class="number">480123441</span></span><br><span class="line">      Seconds_Behind_Master: <span class="number">2412</span></span><br><span class="line">Slave_SQL_Running_State: Reading event <span class="keyword">from</span> the relay log</span><br></pre></td></tr></table></figure>
+
+<p><code>Seconds_Behind_Master</code> 还在涨，但 <code>Slave_SQL_Running_State</code> 显示”Reading event from the relay log”——意味着 SQL 线程并没有卡死，是在<strong>持续追</strong>。这是典型的”大事务回放慢”症状。</p>
+<h3 id="第二步：定位主库上的大事务"><a href="#第二步：定位主库上的大事务" class="headerlink" title="第二步：定位主库上的大事务"></a>第二步：定位主库上的大事务</h3><p>登录主库，用 <code>mysqlbinlog</code> 工具扫 binlog 找最长的几个事务：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">mysqlbinlog --no-defaults -v -v \</span><br><span class="line">  --base64-output=DECODE-ROWS \</span><br><span class="line">  --start-datetime=<span class="string">&quot;2026-06-22 01:55:00&quot;</span> \</span><br><span class="line">  --stop-datetime=<span class="string">&quot;2026-06-22 02:35:00&quot;</span> \</span><br><span class="line">  mysql-bin.000127 mysql-bin.000128 | <span class="built_in">head</span> -200</span><br></pre></td></tr></table></figure>
+
+<p>很快就看到了一段超长事务——一个跑批任务（订单超时自动关闭）在 1:57 开始，到 2:28 结束，持续 31 分钟，涉及 800 万行订单的 UPDATE：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"># at 12345678</span><br><span class="line">#260622  1:57:14 server id 1  end_log_pos 12345890 CRC32 0xabcdef   Query thread_id=123456</span><br><span class="line">SET TIMESTAMP=1761119834</span><br><span class="line">BEGIN</span><br><span class="line">...</span><br><span class="line"># at 12345900</span><br><span class="line">#260622  1:57:14 server id 1  end_log_pos 12346100  Table_map: `order`.`t_order` mapped to number 123</span><br><span class="line">#260622  1:57:14 server id 1  end_log_pos 12346200  Update_rows: table id 123 flags: STMT_END_F</span><br><span class="line">### UPDATE `order`.`t_order`</span><br><span class="line">### WHERE</span><br><span class="line">###   @1=1000001</span><br><span class="line">###   @2=&#x27;PENDING_PAY&#x27;</span><br><span class="line">###   @3=&#x27;2026-06-21 10:23:11&#x27;</span><br><span class="line">###   ...</span><br><span class="line">### SET</span><br><span class="line">###   @1=1000001</span><br><span class="line">###   @2=&#x27;CLOSED_TIMEOUT&#x27;</span><br><span class="line">###   @3=&#x27;2026-06-22 01:57:14&#x27;</span><br><span class="line">... (此处省略约 800 万行类似的 UPDATE)</span><br></pre></td></tr></table></figure>
+
+<p>主库这一个事务生成的 binlog 就有 <strong>6.2 GB</strong>。</p>
+<h3 id="第三步：分析大事务为何慢"><a href="#第三步：分析大事务为何慢" class="headerlink" title="第三步：分析大事务为何慢"></a>第三步：分析大事务为何慢</h3><p>MySQL 主从复制的原理是：从库 SQL 线程拿到主库的 binlog event 后，<strong>单线程</strong>回放（默认配置下，MySQL 5.7 没有开启 MTS 多线程回放）。一个事务从主库传到从库，从库必须按顺序完整回放完才能进入下一个事务。</p>
+<p>主库上，800 万行 UPDATE 因为聚簇索引和锁的原因花 31 分钟；从库上同样要 800 万行 UPDATE，但因为：</p>
+<ol>
+<li>从库硬件配置略低（IOPS 只有主库的 60%）；</li>
+<li><code>sync_binlog=1</code>、<code>innodb_flush_log_at_trx_commit=1</code> 的双 1 配置让每行都强制刷盘；</li>
+<li>SQL 线程是单线程，无法并行回放。</li>
+</ol>
+<p>所以从库回放速度大约是主库的 1&#x2F;3 —— 自然就形成了 40 分钟的延迟。</p>
+<h3 id="第四步：分析这个事务的合理性"><a href="#第四步：分析这个事务的合理性" class="headerlink" title="第四步：分析这个事务的合理性"></a>第四步：分析这个事务的合理性</h3><p>继续看那段 binlog，发现这个”订单超时关闭”任务的 SQL 模式是：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 伪代码</span></span><br><span class="line"><span class="keyword">BEGIN</span>;</span><br><span class="line"><span class="keyword">UPDATE</span> t_order <span class="keyword">SET</span> status<span class="operator">=</span><span class="string">&#x27;CLOSED_TIMEOUT&#x27;</span>, close_time<span class="operator">=</span>NOW()</span><br><span class="line"><span class="keyword">WHERE</span> status<span class="operator">=</span><span class="string">&#x27;PENDING_PAY&#x27;</span> <span class="keyword">AND</span> create_time <span class="operator">&lt;</span> DATE_SUB(NOW(), <span class="type">INTERVAL</span> <span class="number">30</span> <span class="keyword">MINUTE</span>);</span><br><span class="line"><span class="keyword">COMMIT</span>;</span><br></pre></td></tr></table></figure>
+
+<p>单条 SQL 一次更新 800 万行。<strong>问题就出在这里</strong>——开发同学为了图省事，用一条大 SQL 完成全表批量更新。</p>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><h3 id="紧急止血"><a href="#紧急止血" class="headerlink" title="紧急止血"></a>紧急止血</h3><p><strong>1. 业务切流</strong>：把订单查询从从库切回主库（虽然主库压力大，但此刻一致性更重要）：</p>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 在 Nginx upstream 中临时调整</span></span><br><span class="line"><span class="section">upstream</span> order_query &#123;</span><br><span class="line">    <span class="comment"># 临时注释从库</span></span><br><span class="line">    <span class="comment"># server 10.0.10.22:3306;</span></span><br><span class="line">    <span class="attribute">server</span> <span class="number">10.0.10.21:3306</span> max_fails=<span class="number">2</span> fail_timeout=<span class="number">10s</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>2. 强制让从库跳过这个大事务</strong>（不推荐为常规操作，但紧急情况下可以）：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 评估一致性影响后，决定让从库直接跳过该超大事务</span></span><br><span class="line"><span class="comment">-- 因为这个事务是&quot;超时关闭&quot;，本身就是幂等操作，重新跑批会再处理一次</span></span><br><span class="line">mysql<span class="operator">&gt;</span> STOP SLAVE;</span><br><span class="line">mysql<span class="operator">&gt;</span> <span class="keyword">SET</span> <span class="keyword">GLOBAL</span> sql_slave_skip_counter <span class="operator">=</span> <span class="number">1</span>;</span><br><span class="line">mysql<span class="operator">&gt;</span> <span class="keyword">START</span> SLAVE;</span><br></pre></td></tr></table></figure>
+
+<p>但 <code>SET GLOBAL sql_slave_skip_counter = 1</code> 只能跳一个 event。我这里大事务跨多个文件，最终选择的是：<strong>让从库慢慢追回</strong>（保守但安全）。</p>
+<p><strong>3. 临时调大从库相关参数</strong>，提升回放速度：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># my.cnf</span></span><br><span class="line"><span class="attr">innodb_flush_log_at_trx_commit</span> = <span class="number">2</span></span><br><span class="line"><span class="attr">sync_binlog</span> = <span class="number">0</span></span><br><span class="line"><span class="attr">slave_parallel_workers</span> = <span class="number">8</span></span><br><span class="line"><span class="attr">slave_parallel_type</span> = LOGICAL_CLOCK</span><br></pre></td></tr></table></figure>
+
+<p>重启从库后，回放速度从 5000 行&#x2F;秒提升到 18000 行&#x2F;秒，2 小时内追平延迟。</p>
+<h3 id="长期修复"><a href="#长期修复" class="headerlink" title="长期修复"></a>长期修复</h3><p><strong>1. 业务侧：大事务拆小</strong></p>
+<p>推动开发同学把”订单超时关闭”改为<strong>分批 + 循环</strong>：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 优化后的跑批代码</span></span><br><span class="line"><span class="type">int</span> <span class="variable">batchSize</span> <span class="operator">=</span> <span class="number">1000</span>;</span><br><span class="line"><span class="type">int</span> affected;</span><br><span class="line"><span class="keyword">do</span> &#123;</span><br><span class="line">    <span class="comment">// 每次只更新 1000 行</span></span><br><span class="line">    affected = jdbcTemplate.update(</span><br><span class="line">        <span class="string">&quot;UPDATE t_order &quot;</span> +</span><br><span class="line">        <span class="string">&quot;SET status=&#x27;CLOSED_TIMEOUT&#x27;, close_time=NOW() &quot;</span> +</span><br><span class="line">        <span class="string">&quot;WHERE status=&#x27;PENDING_PAY&#x27; &quot;</span> +</span><br><span class="line">        <span class="string">&quot;AND create_time &lt; ? &quot;</span> +</span><br><span class="line">        <span class="string">&quot;LIMIT &quot;</span> + batchSize,</span><br><span class="line">        expireTime</span><br><span class="line">    );</span><br><span class="line">    <span class="comment">// 每批之间 sleep 100ms，给从库喘息</span></span><br><span class="line">    Thread.sleep(<span class="number">100</span>);</span><br><span class="line">&#125; <span class="keyword">while</span> (affected &gt; <span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+
+<p>这样每个事务只更新 1000 行，单事务 binlog 不到 1 MB，从库回放几乎无感知。</p>
+<p><strong>2. MySQL 配置：开启多线程复制</strong></p>
+<p>从库永久开启 MTS：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">slave_parallel_workers</span> = <span class="number">16</span></span><br><span class="line"><span class="attr">slave_parallel_type</span> = LOGICAL_CLOCK</span><br><span class="line"><span class="attr">slave_preserve_commit_order</span> = <span class="literal">ON</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>3. 监控告警</strong></p>
+<p>添加 <code>Seconds_Behind_Master &gt; 60s</code> 的告警，避免延迟 40 分钟才发现。</p>
+<p><strong>4. 架构优化</strong></p>
+<p>考虑订单读多写少、且对一致性要求高的特点，引入 <strong>ProxySQL</strong> 做读写分离，并支持强制走主库的功能（针对订单详情这种对一致性敏感的场景）。</p>
+<h2 id="根因分析"><a href="#根因分析" class="headerlink" title="根因分析"></a>根因分析</h2><p>这个问题的根本原因是<strong>业务开发同学没有”主从复制延迟”的意识</strong>，把单实例 MySQL 时代的”一条大 SQL 搞定一切”的习惯带到了主从架构下。</p>
+<p>具体三个直接原因：</p>
+<ol>
+<li><strong>单条 UPDATE 影响 800 万行</strong> —— 远超单事务合理大小（经验值：单事务 1 万行以内）；</li>
+<li><strong>从库默认单线程回放</strong> —— MySQL 5.7 默认 <code>slave_parallel_workers=0</code>，大事务没有并行能力；</li>
+<li><strong>未配置主从延迟告警</strong> —— 凌晨 2:00 延迟就开始累积，但 7 小时后才被业务反馈发现。</li>
+</ol>
+<h2 id="预防措施"><a href="#预防措施" class="headerlink" title="预防措施"></a>预防措施</h2><p><strong>1. 编码规范：禁止大事务</strong></p>
+<p>在 Code Review Checklist 中加入：单事务 DML 行数 ≤ 5000，binlog 大小 ≤ 10 MB。可以加 SQL 拦截器：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 生产环境拒绝大事务的拦截逻辑（伪代码）</span></span><br><span class="line"><span class="comment">-- 当 row_examined &gt; 10000 时直接 kill</span></span><br><span class="line"><span class="keyword">SET</span> <span class="variable">@max_rows</span> <span class="operator">=</span> <span class="number">10000</span>;</span><br><span class="line"><span class="comment">-- 通过 Performance Schema 或审计插件实现</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>2. 主从延迟全链路监控</strong></p>
+<p><code>Seconds_Behind_Master</code> 只是粗略值。更准确的方案是使用 <code>pt-heartbeat</code> 工具在主库每秒写一个时间戳，从库对比时间差得到精确延迟：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 主库</span></span><br><span class="line">pt-heartbeat -D <span class="built_in">test</span> --update -h 10.0.10.21</span><br><span class="line"><span class="comment"># 从库</span></span><br><span class="line">pt-heartbeat -D <span class="built_in">test</span> --monitor -h 10.0.10.22</span><br></pre></td></tr></table></figure>
+
+<p><strong>3. 跑批任务错峰执行</strong></p>
+<p>把”订单超时关闭”这种大跑批放在业务低峰（比如凌晨 3:30 - 5:00），并且增加单批 sleep，避免集中打主库。</p>
+<p><strong>4. 关键业务强制走主库</strong></p>
+<p>对一致性要求极高的接口（订单详情、支付结果、账户余额），在 ProxySQL 规则里强制 <code>mysql-default_session_target_host=master</code>，不走从库。</p>
+<p><strong>5. 定期演练</strong></p>
+<p>每季度做一次”主库宕机，从库强制提升”演练，验证从库是否能快速接管；同时也验证大事务场景下从库的恢复能力。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>这次故障的教训可以总结成三句话：</p>
+<p><strong>第一，MySQL 主从架构下，”单条大 SQL”是定时炸弹</strong>。开发同学需要从单实例思维切换到”主从延迟敏感”思维，养成”分批 + 循环”的习惯。</p>
+<p>**第二，监控不能只看”服务是否在线”**。<code>Slave_IO_Running=Yes</code> 和 <code>Slave_SQL_Running=Yes</code> 都是 Yes，但延迟可能已经几小时。<code>Seconds_Behind_Master</code> 告警必须配置，且阈值要合理。</p>
+<p><strong>第三，对一致性敏感的业务，不要无脑走读写分离</strong>。订单详情、支付结果这类场景，宁可让主库扛一部分读流量，也要保证数据一致性。读写分离的规则要细化到表&#x2F;接口级别，不能一刀切。</p>
+<p>最后，事后我和开发 leader 约法三章：<strong>所有大表 DML 必须经过 DBA Review，所有新上线的定时任务必须压测确认 binlog 体积</strong>。规则定下来了，但更重要的是执行。这次故障的客户投诉虽然已经处理完毕，但给了我们一个深刻的提醒：<strong>主从架构不是”装上就完事”的银弹，它是需要业务、运维、DBA 一起维护的契约</strong>。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>Maskbugzero
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.5772447.xyz/posts/eeb9b3c5/" title="一次MySQL主从同步因大事务延迟导致订单数据不一致的排查实录">https://blog.5772447.xyz/posts/eeb9b3c5/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by/4.0/deed.zh" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" rel="tag"># 服务运维</a>
+              <a href="/tags/MySQL/" rel="tag"># MySQL</a>
+              <a href="/tags/%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5/" rel="tag"># 主从同步</a>
+              <a href="/tags/%E5%A4%A7%E4%BA%8B%E5%8A%A1/" rel="tag"># 大事务</a>
+              <a href="/tags/%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7/" rel="tag"># 数据一致性</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/posts/a053a61/" rel="prev" title="AD域环境下打印机批量部署失败的排查手记">
+                  <i class="fa fa-angle-left"></i> AD域环境下打印机批量部署失败的排查手记
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2021 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">Maskbugzero</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">31k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">1:51</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
