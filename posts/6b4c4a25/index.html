@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.5772447.xyz","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="总部机房双线BGP接入电信联通，因误配AS-PATH正则表达式把学到的合法运营商路由全部拒绝，业务流量全部走错运营商导致关键业务延迟飙升400ms。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一次BGP双线接入因AS-PATH策略错误导致业务流量全部走错运营商的排查实录">
+<meta property="og:url" content="https://blog.5772447.xyz/posts/6b4c4a25/index.html">
+<meta property="og:site_name" content="Zero Day Notes">
+<meta property="og:description" content="总部机房双线BGP接入电信联通，因误配AS-PATH正则表达式把学到的合法运营商路由全部拒绝，业务流量全部走错运营商导致关键业务延迟飙升400ms。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-06-22T22:55:12.000Z">
+<meta property="article:modified_time" content="2026-06-22T22:55:12.000Z">
+<meta property="article:author" content="Maskbugzero">
+<meta property="article:tag" content="BGP">
+<meta property="article:tag" content="双线接入">
+<meta property="article:tag" content="AS-PATH">
+<meta property="article:tag" content="网络运维">
+<meta property="article:tag" content="路由策略">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/6b4c4a25/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.5772447.xyz/posts/6b4c4a25/","path":"posts/6b4c4a25/","title":"一次BGP双线接入因AS-PATH策略错误导致业务流量全部走错运营商的排查实录"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>一次BGP双线接入因AS-PATH策略错误导致业务流量全部走错运营商的排查实录 | Zero Day Notes</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VGE8FYNHE7"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-VGE8FYNHE7","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Zero Day Notes</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Life Oriented Programming</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">问题背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%85%E9%9A%9C%E7%8E%B0%E8%B1%A1"><span class="nav-number">2.</span> <span class="nav-text">故障现象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%92%E6%9F%A5%E8%BF%87%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">排查过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">4.</span> <span class="nav-text">解决方案</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B9%E5%9B%A0%E5%88%86%E6%9E%90"><span class="nav-number">5.</span> <span class="nav-text">根因分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A2%84%E9%98%B2%E6%8E%AA%E6%96%BD"><span class="nav-number">6.</span> <span class="nav-text">预防措施</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">7.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Maskbugzero"
+      src="/images/touxiang.jpg">
+  <p class="site-author-name" itemprop="name">Maskbugzero</p>
+  <div class="site-description" itemprop="description">人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">34</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">51</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Maskbugzero" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Maskbugzero" rel="noopener me external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.5772447.xyz/posts/6b4c4a25/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/touxiang.jpg">
+      <meta itemprop="name" content="Maskbugzero">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zero Day Notes">
+      <meta itemprop="description" content="人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="一次BGP双线接入因AS-PATH策略错误导致业务流量全部走错运营商的排查实录 | Zero Day Notes">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          一次BGP双线接入因AS-PATH策略错误导致业务流量全部走错运营商的排查实录
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-06-23 06:55:12" itemprop="dateCreated datePublished" datetime="2026-06-23T06:55:12+08:00">2026-06-23</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">运维</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">网络运维</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>2.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>8 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h2><p>总部机房采用”电信+联通”双线BGP接入架构，核心交换机与两家运营商建立eBGP邻居，通过AS-PATH属性和route-map实现流量调度——默认走电信、联通作为备份，特定网段走联通做负载。某周一下午14:30左右，研发同事反映访问部署在阿里云华东节点的多个API接口（用户中心、订单查询、支付回调）出现持续性卡顿，单次请求从正常的80ms飙升到500ms以上，短信网关、第三方支付回调更是出现间歇性超时。客服部门同步反馈多名用户投诉”支付完成但订单状态未更新”。</p>
+<h2 id="故障现象"><a href="#故障现象" class="headerlink" title="故障现象"></a>故障现象</h2><p>通过Zabbix监控看到关键业务指标异常：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">14:32:01  Gateway-IP-Monitor  WARN  核心交换机到阿里云华东(47.110.x.x)延迟 412ms (基线 35ms)</span><br><span class="line">14:32:01  BGP-Session-Monitor  INFO  eBGP 电信邻居 10.10.1.1 Established  (Up 87d 4h)</span><br><span class="line">14:32:01  BGP-Session-Monitor  INFO  eBGP 联通邻居 10.10.2.1 Established  (Up 87d 4h)</span><br><span class="line">14:32:15  Zabbix-Trapper        CRIT  HTTP 业务探测 api.example.com 5xx 告警 (连续3次)</span><br><span class="line">14:32:30  Zabbix-Trapper        CRIT  支付回调响应时间 &gt; 5s (SLA违约)</span><br></pre></td></tr></table></figure>
+
+<p>在核心交换机上查看路由表：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&lt;Switch&gt; display bgp routing-table ipv4 unicast brief</span><br><span class="line">Total Number of Routes: 412,387</span><br><span class="line">Network            NextHop        MED     LocPrf  PrefVal  Path/Ogn</span><br><span class="line"></span><br><span class="line">*  47.110.0.0/16     10.10.2.1      0       100     0        4134  ?</span><br><span class="line">*  47.110.0.0/16     10.10.1.1      0       100     0        4134 100 200 ?</span><br></pre></td></tr></table></figure>
+
+<p>诡异的事情出现了：阿里云华东段（47.110.0.0&#x2F;16）的两条路由都被打上了”无效标记”（问号<code>?</code>），其中电信链路（AS4134 → AS100 → AS200）多了一段莫名其妙的AS-PATH”100 200”，而正常情况下电信学到该网段的AS-PATH应该只显示”4134”或”4134 100”。</p>
+<h2 id="排查过程"><a href="#排查过程" class="headerlink" title="排查过程"></a>排查过程</h2><p><strong>第一步：确认BGP邻居状态正常</strong></p>
+<p>两条eBGP邻居均显示Established，消息收发计数没有异常抖动，说明TCP连接、Keepalive、BGP Open报文一切正常，问题出在路由策略层。</p>
+<p><strong>第二步：检查入方向route-map</strong></p>
+<p><code>display current-configuration | include route-map</code> 找到关键策略段：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">route-map FROM-TELECOM-IN permit 10</span><br><span class="line"> description Accept legitimate telecom routes</span><br><span class="line"> match as-path 10</span><br><span class="line">!</span><br><span class="line">route-map FROM-TELECOM-IN deny 20</span><br><span class="line"> description Reject transit routes</span><br><span class="line"> match as-path 20</span><br><span class="line">!</span><br><span class="line">ip as-path 10 permit ^(4134_)+$</span><br><span class="line">ip as-path 20 permit _100_200_</span><br></pre></td></tr></table></figure>
+
+<p>看到<code>as-path 20</code>那行瞬间明白问题所在——正则<code>_100_200_</code>会匹配<strong>任何包含”100 200”两个相邻AS</strong>的路径，包括电信运营商内部传递过来的真实路由。当时我们调度的逻辑是”拒绝任何包含私有AS号100、200的路径”，但忘记了一个事实：电信骨干网在传递某些跨网段路由时，会在AS-PATH中插入”100 200”作为内部标记（这是中国电信AS4134的私有AS号，用于内部选路标记）。</p>
+<p><strong>第三步：验证猜想</strong></p>
+<p>在核心交换机上抓取近期BGP Update报文，过滤AS-PATH含”100 200”的路由前缀数量：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&lt;Switch&gt; display bgp update-peer-group 10.10.1.1 statistics</span><br><span class="line">...</span><br><span class="line">Prefix count with AS-PATH matched _100_200_: 287,341</span><br></pre></td></tr></table></figure>
+
+<p>近30万条合法路由被这条正则误杀，全部进了BGP RIB-in的”待丢弃”队列，对端却还以为邻居都正常、路由都通告了。</p>
+<p><strong>第四步：检查本地注入的BGP路由</strong></p>
+<p>为防止出现路由黑洞，运维A同事把核心交换机的LoopBack0（10.255.0.1&#x2F;32）通过<code>network</code>命令注入BGP，这条命令的下一跳指向10.10.1.1（电信），触发了一段被错误拒绝的AS-PATH。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&lt;Switch&gt; display bgp routing-table 10.255.0.1</span><br><span class="line">BGP local router ID is 10.255.0.1</span><br><span class="line">Status codes: * - valid, &gt; - best, d - damped, h - history,</span><br><span class="line">              s - suppressed, S - stale, i - internal, b - backup</span><br><span class="line">Origin: i - IGP, e - EGP, ? - incomplete</span><br><span class="line"></span><br><span class="line">Total Number of Routes: 0</span><br></pre></td></tr></table></figure>
+
+<p>连自己的LoopBack都没被优选——所有从电信学到的路由都被route-map打上”无效”标记，对端联通的路由因为<code>local-preference</code>默认100而进入主表，但很多明细网段联通链路延迟本来就高，导致从核心出去的流量”全跑联通”。</p>
+<p><strong>第五步：与运营商侧核对</strong></p>
+<p>拨通电信大客户经理电话，对方工程师确认他们在上周末升级了AS4134的出口策略，会在AS-PATH中插入”100 200”作为新引入的BGP选路标记。也就是说不止我们这端，所有走电信BGP接入的企业客户都受到了影响——只是我们这条正则写得太严格。</p>
+<p><strong>第六步：临时止血</strong></p>
+<p>先把误杀的AS-PATH正则屏蔽掉，恢复路由：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">no ip as-path 20</span><br></pre></td></tr></table></figure>
+
+<p>60秒后，路由表刷新，47.110.0.0&#x2F;16的两条路由恢复正常选路，业务延迟从412ms回到35ms基线。</p>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><p><strong>长期方案：改用AS-PATH长度作为判定标准</strong></p>
+<p>“100 200”只是运营商内部标记，不能简单粗暴作为业务流的甄别依据。改为基于AS-PATH长度做拒绝：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ip as-path 10 permit ^(4134_)+$</span><br><span class="line">ip as-path 20 permit _(6451[2-9]|6553[0-5])_</span><br><span class="line">ip as-path 30 permit ^[0-9]+$  ! 只允许单一AS的路由（对端直连段）</span><br></pre></td></tr></table></figure>
+
+<p>只拒绝<strong>真正属于RFC 6996保留私有AS号</strong>的路径，避免误伤。</p>
+<p><strong>给route-map加日志计数</strong></p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">route-map FROM-TELECOM-IN deny 20</span><br><span class="line"> description Reject private AS</span><br><span class="line"> match as-path 20</span><br><span class="line"> set traffic-index 99</span><br></pre></td></tr></table></figure>
+
+<p>配合流量监控，一旦被拒绝的路由条目激增立即告警。</p>
+<p><strong>增加BGP邻居级监控</strong></p>
+<p>在Zabbix上对每个BGP邻居的关键指标做模板化：</p>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>告警阈值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>收到的BGP路由前缀数</td>
+<td>±20% baseline</td>
+</tr>
+<tr>
+<td>AS-PATH 拒绝计数</td>
+<td>&gt; 0</td>
+</tr>
+<tr>
+<td>Update 报文频率</td>
+<td>&gt; 1000&#x2F;分钟</td>
+</tr>
+<tr>
+<td>BGP邻居翻动次数</td>
+<td>&gt; 0&#x2F;小时</td>
+</tr>
+</tbody></table>
+<p><strong>关键配置变更走代码评审</strong></p>
+<p>这条<code>ip as-path 20 permit _100_200_</code>是去年一个临时调试遗留的命令，没有走严格的code review，从那之后就一直在线上跑了——是典型的”运行久了就以为是正确的”陷阱。</p>
+<h2 id="根因分析"><a href="#根因分析" class="headerlink" title="根因分析"></a>根因分析</h2><p>直接原因：去年临时调试写的<code>ip as-path 20 permit _100_200_</code>正则没有清理，该正则的本意是拒绝经过某些对等AS的路由，但因为AS-PATH正则下划线表示”任意字符串边界”，<code>_100_200_</code>实际匹配的是”含100和200这两个相邻AS号的所有路径”。</p>
+<p>深层原因：电信AS4134骨干网升级后，在跨网传递路由时会在AS-PATH中追加”100 200”作为内部标记，这本来是合法的BGP属性，但与我们的策略冲突，导致近30万条路由被误判无效。</p>
+<p>运营原因：路由策略类变更缺乏变更评审、回归测试、监控告警机制，”上线即正确”的惯性思维让这条命令在线上跑了8个多月，直到电信骨干网升级才暴露出问题。</p>
+<h2 id="预防措施"><a href="#预防措施" class="headerlink" title="预防措施"></a>预防措施</h2><p><strong>1. 路由策略变更必须走变更窗口</strong></p>
+<p>所有涉及<code>route-map</code>、<code>ip as-path</code>、<code>ip community-list</code>、<code>ip prefix-list</code>的变更，必须在业务低峰期执行，且必须经过至少一名网络架构师评审，并保留前后配置对比。</p>
+<p><strong>2. 部署”路由沙盒”</strong></p>
+<p>搭建一个隔离的BGP测试环境，使用Bird或FRRouting跑一个真实环境的镜像，配置变更先在沙盒里跑24小时观察，再上生产。</p>
+<p><strong>3. 完善BGP监控体系</strong></p>
+<ul>
+<li>每分钟采集BGP邻居的Received&#x2F;Active Routes数量</li>
+<li>对AS-PATH regex匹配做计数器</li>
+<li>任何route-map的<code>deny</code>规则都应配WELF&#x2F;Syslog上报</li>
+</ul>
+<p><strong>4. 与运营商建立常态化沟通机制</strong></p>
+<p>每次运营商侧骨干网升级、AS号调整、出口策略变化，都应在第一时间拿到变更通知单，评估对自有路由策略的影响。</p>
+<p><strong>5. 路由策略配置文件纳入Git管理</strong></p>
+<p>把核心交换机的配置按以下目录结构纳入Git：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">network-config/</span><br><span class="line">├── core-sw-01/</span><br><span class="line">│   ├── bgp.conf</span><br><span class="line">│   ├── route-map.conf</span><br><span class="line">│   └── changelog.md</span><br><span class="line">├── core-sw-02/</span><br><span class="line">└── README.md</span><br></pre></td></tr></table></figure>
+
+<p>每次配置变更都走commit-msg规范，”为什么要这样配”的业务背景要写在commit信息里，避免半年后回看一脸懵。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>这次故障给我们最深的教训是：<strong>网络策略的”误拒绝”比”误允许”更隐蔽</strong>。误允许会立刻有告警（被拒绝的路由完全消失、流量中断），而误拒绝会让路由”看起来还在”（实际被打上无效标记），却悄悄把流量引到错误的路径上，影响业务却难以第一时间定位。</p>
+<p>后续我们把”路由策略变更必须配监控”写进了运维SOP：任何新增的<code>deny</code>规则、任何修改的正则表达式、任何调整的<code>local-preference</code>，都必须配套一条监控项，且这条监控的告警接收人是这次变更的提交人本人——谁改的，谁兜底。</p>
+<p>BGP是互联网的”神经系统”，容不得半点马虎。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>Maskbugzero
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.5772447.xyz/posts/6b4c4a25/" title="一次BGP双线接入因AS-PATH策略错误导致业务流量全部走错运营商的排查实录">https://blog.5772447.xyz/posts/6b4c4a25/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by/4.0/deed.zh" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/BGP/" rel="tag"># BGP</a>
+              <a href="/tags/%E5%8F%8C%E7%BA%BF%E6%8E%A5%E5%85%A5/" rel="tag"># 双线接入</a>
+              <a href="/tags/AS-PATH/" rel="tag"># AS-PATH</a>
+              <a href="/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" rel="tag"># 网络运维</a>
+              <a href="/tags/%E8%B7%AF%E7%94%B1%E7%AD%96%E7%95%A5/" rel="tag"># 路由策略</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/posts/eeb9b3c5/" rel="prev" title="一次MySQL主从同步因大事务延迟导致订单数据不一致的排查实录">
+                  <i class="fa fa-angle-left"></i> 一次MySQL主从同步因大事务延迟导致订单数据不一致的排查实录
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2021 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">Maskbugzero</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">33k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">1:59</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

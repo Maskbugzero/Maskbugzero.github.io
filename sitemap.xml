@@ -2,6 +2,15 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://blog.5772447.xyz/posts/6b4c4a25/</loc>
+    
+    <lastmod>2026-06-22</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://blog.5772447.xyz/posts/eeb9b3c5/</loc>
     
     <lastmod>2026-06-21</lastmod>
@@ -38,7 +47,7 @@
   </url>
   
   <url>
-    <loc>https://blog.5772447.xyz/posts/9eb92141/</loc>
+    <loc>https://blog.5772447.xyz/posts/c9e5a7cb/</loc>
     
     <lastmod>2026-06-20</lastmod>
     
@@ -47,7 +56,7 @@
   </url>
   
   <url>
-    <loc>https://blog.5772447.xyz/posts/c9e5a7cb/</loc>
+    <loc>https://blog.5772447.xyz/posts/9eb92141/</loc>
     
     <lastmod>2026-06-20</lastmod>
     
@@ -238,7 +247,7 @@
 
   <url>
     <loc>https://blog.5772447.xyz/</loc>
-    <lastmod>2026-06-21</lastmod>
+    <lastmod>2026-06-22</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
