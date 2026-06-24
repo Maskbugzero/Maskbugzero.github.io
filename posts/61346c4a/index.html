@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.5772447.xyz","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="生产Redis实例因maxmemory配置不当，在业务高峰期内存耗尽后开始拒绝写入，上层应用缓存大面积穿透，数据库瞬间承压飙升。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一次Redis内存溢出导致缓存服务全部失效的排查实录">
+<meta property="og:url" content="https://blog.5772447.xyz/posts/61346c4a/index.html">
+<meta property="og:site_name" content="Zero Day Notes">
+<meta property="og:description" content="生产Redis实例因maxmemory配置不当，在业务高峰期内存耗尽后开始拒绝写入，上层应用缓存大面积穿透，数据库瞬间承压飙升。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-02-22T07:30:00.000Z">
+<meta property="article:modified_time" content="2023-02-22T07:30:00.000Z">
+<meta property="article:author" content="Maskbugzero">
+<meta property="article:tag" content="服务运维">
+<meta property="article:tag" content="Redis">
+<meta property="article:tag" content="缓存">
+<meta property="article:tag" content="内存管理">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/61346c4a/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.5772447.xyz/posts/61346c4a/","path":"posts/61346c4a/","title":"一次Redis内存溢出导致缓存服务全部失效的排查实录"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>一次Redis内存溢出导致缓存服务全部失效的排查实录 | Zero Day Notes</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VGE8FYNHE7"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-VGE8FYNHE7","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Zero Day Notes</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Life Oriented Programming</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">问题背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%85%E9%9A%9C%E7%8E%B0%E8%B1%A1"><span class="nav-number">2.</span> <span class="nav-text">故障现象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%92%E6%9F%A5%E8%BF%87%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">排查过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E7%A1%AE%E8%AE%A4-Redis-%E7%8A%B6%E6%80%81"><span class="nav-number">3.1.</span> <span class="nav-text">第一步：确认 Redis 状态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E5%88%86%E6%9E%90%E5%86%85%E5%AD%98%E5%8D%A0%E7%94%A8"><span class="nav-number">3.2.</span> <span class="nav-text">第二步：分析内存占用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%9A%E8%BF%BD%E6%BA%AF%E5%A4%A7-Key-%E7%9A%84%E4%BA%A7%E7%94%9F%E5%8E%9F%E5%9B%A0"><span class="nav-number">3.3.</span> <span class="nav-text">第三步：追溯大 Key 的产生原因</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E5%9B%9B%E6%AD%A5%EF%BC%9A%E8%AF%84%E4%BC%B0%E7%AB%8B%E5%8D%B3%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88"><span class="nav-number">3.4.</span> <span class="nav-text">第四步：评估立即处理方案</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">4.</span> <span class="nav-text">解决方案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E4%B8%B4%E6%97%B6%E4%BF%AE%E6%94%B9%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5%EF%BC%88%E4%B8%8D%E9%87%8D%E5%90%AF%EF%BC%89"><span class="nav-number">4.1.</span> <span class="nav-text">第一步：临时修改淘汰策略（不重启）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E5%88%A0%E9%99%A4%E5%A4%A7-Key%EF%BC%88%E9%81%BF%E5%85%8D%E7%9B%B4%E6%8E%A5-DEL%EF%BC%8C%E9%98%B2%E6%AD%A2%E9%98%BB%E5%A1%9E%EF%BC%89"><span class="nav-number">4.2.</span> <span class="nav-text">第二步：删除大 Key（避免直接 DEL，防止阻塞）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%9A%E6%88%AA%E6%96%AD%E7%A7%AF%E5%8E%8B-List"><span class="nav-number">4.3.</span> <span class="nav-text">第三步：截断积压 List</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E5%9B%9B%E6%AD%A5%EF%BC%9A%E4%BF%AE%E6%AD%A3%E5%95%86%E5%93%81%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1"><span class="nav-number">4.4.</span> <span class="nav-text">第四步：修正商品缓存设计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%94%E6%AD%A5%EF%BC%9A%E4%BF%AE%E5%A4%8D%E6%B6%88%E8%B4%B9%E8%80%85%E7%A7%AF%E5%8E%8B%E9%97%AE%E9%A2%98"><span class="nav-number">4.5.</span> <span class="nav-text">第五步：修复消费者积压问题</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B9%E5%9B%A0%E5%88%86%E6%9E%90"><span class="nav-number">5.</span> <span class="nav-text">根因分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A2%84%E9%98%B2%E6%8E%AA%E6%96%BD"><span class="nav-number">6.</span> <span class="nav-text">预防措施</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">7.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Maskbugzero"
+      src="/images/touxiang.jpg">
+  <p class="site-author-name" itemprop="name">Maskbugzero</p>
+  <div class="site-description" itemprop="description">人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">39</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">34</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">85</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Maskbugzero" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Maskbugzero" rel="noopener me external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.5772447.xyz/posts/61346c4a/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/touxiang.jpg">
+      <meta itemprop="name" content="Maskbugzero">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zero Day Notes">
+      <meta itemprop="description" content="人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="一次Redis内存溢出导致缓存服务全部失效的排查实录 | Zero Day Notes">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          一次Redis内存溢出导致缓存服务全部失效的排查实录
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-02-22 15:30:00" itemprop="dateCreated datePublished" datetime="2023-02-22T15:30:00+08:00">2023-02-22</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">运维</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">服务运维</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>1.6k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>6 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h2><p>某业务大促活动开始后约 2 小时，监控告警系统收到大量告警：</p>
+<ul>
+<li>数据库（MySQL）慢查询数量骤增，P99 响应时间从 50ms 升至 8000ms</li>
+<li>部分 API 接口 5xx 错误率达到 15%</li>
+<li>Redis 实例的 <code>rejected_connections</code> 计数器快速增长</li>
+</ul>
+<p>业务团队紧急联系运维排查，此时活动已进入高峰期，影响用户体验，需要快速定位并修复。</p>
+<hr>
+<h2 id="故障现象"><a href="#故障现象" class="headerlink" title="故障现象"></a>故障现象</h2><ul>
+<li>Redis <code>INFO</code> 命令返回 <code>used_memory</code> 接近服务器总内存</li>
+<li>Redis 日志中出现大量 <code>OOM command not allowed when used memory &gt; &#39;maxmemory&#39;</code> 错误</li>
+<li>应用日志中 Redis 写操作报错：<code>COMMAND NOT ALLOWED When Used Memory &gt; &#39;maxmemory&#39;</code></li>
+<li>MySQL 慢查询日志急剧增多，大量查询耗时 5-10 秒</li>
+<li>部分服务接口响应超时，用户请求报 504</li>
+</ul>
+<hr>
+<h2 id="排查过程"><a href="#排查过程" class="headerlink" title="排查过程"></a>排查过程</h2><h3 id="第一步：确认-Redis-状态"><a href="#第一步：确认-Redis-状态" class="headerlink" title="第一步：确认 Redis 状态"></a>第一步：确认 Redis 状态</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redis-cli -h redis-prod-01 -p 6379 -a &lt;password&gt; INFO memory</span><br></pre></td></tr></table></figure>
+
+<p>关键输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">used_memory:8388557312          # 约 8GB</span><br><span class="line">used_memory_human:7.81G</span><br><span class="line">maxmemory:8589934592            # 8GB</span><br><span class="line">maxmemory_human:8.00G</span><br><span class="line">maxmemory_policy:noeviction     # ⚠️ 不淘汰策略</span><br><span class="line">mem_fragmentation_ratio:1.23</span><br></pre></td></tr></table></figure>
+
+<p>Redis 已用内存 7.81GB，最大内存限制 8GB，使用率 97.7%，几乎满了。</p>
+<p>**关键发现：<code>maxmemory_policy</code> 为 <code>noeviction</code>**，意味着当内存满时，Redis 不会主动淘汰任何键，而是直接拒绝所有写操作（包括 SET、HSET、LPUSH 等），返回 OOM 错误。</p>
+<h3 id="第二步：分析内存占用"><a href="#第二步：分析内存占用" class="headerlink" title="第二步：分析内存占用"></a>第二步：分析内存占用</h3><p>查看 Redis 内存使用详情：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redis-cli -h redis-prod-01 -p 6379 -a &lt;password&gt; MEMORY DOCTOR</span><br></pre></td></tr></table></figure>
+
+<p>输出提示内存碎片率正常，但总体内存占用过高。</p>
+<p>使用 <code>DEBUG JMAP</code> 或 <code>redis-rdb-tools</code> 分析大 Key：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 扫描占用内存最多的 key（生产环境谨慎使用 KEYS，使用 SCAN 替代）</span></span><br><span class="line">redis-cli -h redis-prod-01 -p 6379 -a &lt;password&gt; --bigkeys</span><br></pre></td></tr></table></figure>
+
+<p>发现几个异常的大 Key：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Biggest string found so far &#x27;&quot;product:detail:cache:all&quot;&#x27; with 524288000 bytes  # 500MB！</span><br><span class="line">Biggest hash found so far &#x27;&quot;user:session:hash&quot;&#x27; with 1258291 fields</span><br><span class="line">Biggest list found so far &#x27;&quot;activity:log:queue&quot;&#x27; with 2847593 elements</span><br></pre></td></tr></table></figure>
+
+<p><strong><code>product:detail:cache:all</code></strong> 这个 Key 存储了 500MB 的数据，这是一个”全量商品缓存”，是某开发同学为了提高商品详情接口性能，将全部商品数据序列化后存入一个 Redis Key 中。</p>
+<p><strong><code>activity:log:queue</code></strong> 是一个活动日志队列，因为消费者处理不及，积压了将近 300 万条记录。</p>
+<h3 id="第三步：追溯大-Key-的产生原因"><a href="#第三步：追溯大-Key-的产生原因" class="headerlink" title="第三步：追溯大 Key 的产生原因"></a>第三步：追溯大 Key 的产生原因</h3><p>通过查看应用代码和 Redis 写入监控，发现：</p>
+<ol>
+<li><p><code>product:detail:cache:all</code>：大促前夕，开发同学为了”预热缓存”，写了一个脚本把全量商品（约 5 万个商品，每个商品序列化后约 10KB）存入一个 String Key。这个 Key 在大促当天被反复覆盖写入（每次预热都覆盖一次），每次写入耗时 2-3 秒，本身就是一个隐患。</p>
+</li>
+<li><p><code>activity:log:queue</code>：活动期间消费者处理速度远低于生产速度，积压数百万条未处理的日志条目，占用了大量内存。</p>
+</li>
+</ol>
+<h3 id="第四步：评估立即处理方案"><a href="#第四步：评估立即处理方案" class="headerlink" title="第四步：评估立即处理方案"></a>第四步：评估立即处理方案</h3><p>此时有几个选项：</p>
+<p><strong>方案 A：调大 maxmemory</strong>（临时方案）</p>
+<ul>
+<li>风险：服务器本身可用内存只有 12GB，Redis 已用约 8GB，系统还有其他进程，不建议调太高</li>
+<li>可临时调至 10GB，争取时间清理大 Key</li>
+</ul>
+<p><strong>方案 B：修改 maxmemory_policy 为 allkeys-lru</strong>（临时方案）</p>
+<ul>
+<li>让 Redis 自动淘汰最近最少使用的 Key</li>
+<li>风险：可能淘汰到重要的缓存数据，但好过直接拒绝写入</li>
+</ul>
+<p><strong>方案 C：立即删除大 Key</strong>（直接处理）</p>
+<ul>
+<li>删除大 String Key，释放 500MB 空间</li>
+<li>清空或截断积压 List</li>
+</ul>
+<p>综合评估后，选择<strong>先临时调整 maxmemory_policy，再清理大 Key，最后重新评估内存上限</strong>。</p>
+<hr>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><h3 id="第一步：临时修改淘汰策略（不重启）"><a href="#第一步：临时修改淘汰策略（不重启）" class="headerlink" title="第一步：临时修改淘汰策略（不重启）"></a>第一步：临时修改淘汰策略（不重启）</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redis-cli -h redis-prod-01 -p 6379 -a &lt;password&gt; CONFIG SET maxmemory-policy allkeys-lru</span><br></pre></td></tr></table></figure>
+
+<p>修改后，Redis 开始主动淘汰冷数据，写操作不再被拒绝，应用侧错误率立即下降。</p>
+<h3 id="第二步：删除大-Key（避免直接-DEL，防止阻塞）"><a href="#第二步：删除大-Key（避免直接-DEL，防止阻塞）" class="headerlink" title="第二步：删除大 Key（避免直接 DEL，防止阻塞）"></a>第二步：删除大 Key（避免直接 DEL，防止阻塞）</h3><p>直接 <code>DEL</code> 一个 500MB 的 Key 会阻塞 Redis 主线程数秒。使用异步删除：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Redis 4.0+ 支持 UNLINK 命令（异步删除）</span></span><br><span class="line">redis-cli -h redis-prod-01 -p 6379 -a &lt;password&gt; UNLINK <span class="string">&quot;product:detail:cache:all&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p><code>UNLINK</code> 命令将 Key 的删除操作交给后台线程，主线程几乎无阻塞。</p>
+<h3 id="第三步：截断积压-List"><a href="#第三步：截断积压-List" class="headerlink" title="第三步：截断积压 List"></a>第三步：截断积压 List</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 保留最新的 10000 条，其余丢弃（或者清空）</span></span><br><span class="line">redis-cli -h redis-prod-01 -p 6379 -a &lt;password&gt; LTRIM <span class="string">&quot;activity:log:queue&quot;</span> 0 9999</span><br></pre></td></tr></table></figure>
+
+<h3 id="第四步：修正商品缓存设计"><a href="#第四步：修正商品缓存设计" class="headerlink" title="第四步：修正商品缓存设计"></a>第四步：修正商品缓存设计</h3><p>与开发同学沟通，将”全量商品缓存”改为按商品 ID 分散存储：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">product:detail:&#123;product_id&#125;  →  单个商品数据（约 10KB/key）</span><br></pre></td></tr></table></figure>
+
+<p>并设置合理的 TTL（如 1 小时），避免永不过期。</p>
+<h3 id="第五步：修复消费者积压问题"><a href="#第五步：修复消费者积压问题" class="headerlink" title="第五步：修复消费者积压问题"></a>第五步：修复消费者积压问题</h3><p>扩容消费者实例数量（从 2 个扩到 8 个），加速消耗积压队列。</p>
+<hr>
+<h2 id="根因分析"><a href="#根因分析" class="headerlink" title="根因分析"></a>根因分析</h2><p>根本原因：<strong>缓存设计不合理 + maxmemory 策略配置错误</strong>。</p>
+<ol>
+<li><p>将大量数据存入单个 Redis Key，是典型的大 Key 反模式，不仅占用大量内存，还会导致网络带宽和序列化&#x2F;反序列化的额外开销。</p>
+</li>
+<li><p>使用 <code>noeviction</code> 策略对于缓存场景来说是错误选择——它适用于数据不能丢失的持久化场景（如队列），但对于普通缓存应改用 <code>allkeys-lru</code> 或 <code>volatile-lru</code>。</p>
+</li>
+<li><p>没有预估大促期间的内存需求，也没有设置合理的内存告警阈值（应在 80% 时告警）。</p>
+</li>
+</ol>
+<hr>
+<h2 id="预防措施"><a href="#预防措施" class="headerlink" title="预防措施"></a>预防措施</h2><p><strong>1. Redis 内存监控告警</strong></p>
+<p>在 80% 使用率时告警，90% 时紧急告警，不等到 OOM 再处理。</p>
+<p><strong>2. 大 Key 定期扫描</strong></p>
+<p>通过 <code>redis-cli --bigkeys</code> 或 <code>redis-rdb-tools</code> 分析 RDB 文件，定期检查大 Key：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 分析 RDB 文件（离线分析，不影响线上）</span></span><br><span class="line">rdb --<span class="built_in">command</span> memory dump.rdb | <span class="built_in">sort</span> -rn -k3 | <span class="built_in">head</span> -20</span><br></pre></td></tr></table></figure>
+
+<p><strong>3. 禁止大 Key 设计规范</strong></p>
+<p>在代码规范中明确：单个 Redis Key 的 Value 大小不超过 1MB，List&#x2F;Hash&#x2F;Set 的元素数量不超过 5000。</p>
+<p><strong>4. 缓存淘汰策略合理化</strong></p>
+<p>纯缓存场景统一使用 <code>allkeys-lru</code>，结合 TTL 管理数据生命周期。</p>
+<p><strong>5. 生产变更前做容量评估</strong></p>
+<p>大促类活动前，评估 Redis 内存峰值需求，提前扩容。</p>
+<hr>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>这次事故表明，Redis 的配置和使用规范同样需要纳入代码审查流程。一个大 Key、一个错误的淘汰策略，在平时可能不显眼，但到了业务高峰期就会变成定时炸弹。</p>
+<p>对于 Redis 运维，除了关注可用性，还要重点关注<strong>大 Key、热 Key、内存使用率、慢查询</strong>这四个维度，建立起常态化的监控和审计机制。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>Maskbugzero
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.5772447.xyz/posts/61346c4a/" title="一次Redis内存溢出导致缓存服务全部失效的排查实录">https://blog.5772447.xyz/posts/61346c4a/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by/4.0/deed.zh" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" rel="tag"># 服务运维</a>
+              <a href="/tags/Redis/" rel="tag"># Redis</a>
+              <a href="/tags/%E7%BC%93%E5%AD%98/" rel="tag"># 缓存</a>
+              <a href="/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/" rel="tag"># 内存管理</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/posts/7e4d3819/" rel="prev" title="一次Windows域账号批量锁定事件的排查实录">
+                  <i class="fa fa-angle-left"></i> 一次Windows域账号批量锁定事件的排查实录
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/posts/c3837b48/" rel="next" title="自用RouterOS系统设置命令">
+                  自用RouterOS系统设置命令 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2021 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">Maskbugzero</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">56k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">3:22</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

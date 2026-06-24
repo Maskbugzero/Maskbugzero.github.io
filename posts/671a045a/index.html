@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.5772447.xyz","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="内网多个HTTPS服务突然不可访问，浏览器提示证书错误，排查发现是内部CA签发的通配符证书悄然过期，且没有任何告警通知到运维团队。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一次SSL证书过期导致内网HTTPS服务全面中断的排查实录">
+<meta property="og:url" content="https://blog.5772447.xyz/posts/671a045a/index.html">
+<meta property="og:site_name" content="Zero Day Notes">
+<meta property="og:description" content="内网多个HTTPS服务突然不可访问，浏览器提示证书错误，排查发现是内部CA签发的通配符证书悄然过期，且没有任何告警通知到运维团队。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-09-05T00:30:00.000Z">
+<meta property="article:modified_time" content="2024-09-05T00:30:00.000Z">
+<meta property="article:author" content="Maskbugzero">
+<meta property="article:tag" content="服务运维">
+<meta property="article:tag" content="SSL">
+<meta property="article:tag" content="证书管理">
+<meta property="article:tag" content="HTTPS">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/671a045a/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.5772447.xyz/posts/671a045a/","path":"posts/671a045a/","title":"一次SSL证书过期导致内网HTTPS服务全面中断的排查实录"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>一次SSL证书过期导致内网HTTPS服务全面中断的排查实录 | Zero Day Notes</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VGE8FYNHE7"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-VGE8FYNHE7","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Zero Day Notes</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Life Oriented Programming</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">问题背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%85%E9%9A%9C%E7%8E%B0%E8%B1%A1"><span class="nav-number">2.</span> <span class="nav-text">故障现象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%92%E6%9F%A5%E8%BF%87%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">排查过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E7%A1%AE%E8%AE%A4%E8%AF%81%E4%B9%A6%E8%BF%87%E6%9C%9F%E6%83%85%E5%86%B5"><span class="nav-number">3.1.</span> <span class="nav-text">第一步：确认证书过期情况</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E7%A1%AE%E8%AE%A4%E8%AF%81%E4%B9%A6%E7%B1%BB%E5%9E%8B"><span class="nav-number">3.2.</span> <span class="nav-text">第二步：确认证书类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%9A%E4%B8%BA%E4%BB%80%E4%B9%88%E6%B2%A1%E6%9C%89%E6%94%B6%E5%88%B0%E5%88%B0%E6%9C%9F%E9%A2%84%E8%AD%A6%EF%BC%9F"><span class="nav-number">3.3.</span> <span class="nav-text">第三步：为什么没有收到到期预警？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E5%9B%9B%E6%AD%A5%EF%BC%9A%E6%89%BE%E5%88%B0%E5%86%85%E9%83%A8-CA"><span class="nav-number">3.4.</span> <span class="nav-text">第四步：找到内部 CA</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%94%E6%AD%A5%EF%BC%9A%E9%87%8D%E6%96%B0%E7%AD%BE%E5%8F%91%E8%AF%81%E4%B9%A6"><span class="nav-number">3.5.</span> <span class="nav-text">第五步：重新签发证书</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E5%85%AD%E6%AD%A5%EF%BC%9A%E6%9B%B4%E6%96%B0%E5%90%84%E6%9C%8D%E5%8A%A1%E7%9A%84%E8%AF%81%E4%B9%A6"><span class="nav-number">3.6.</span> <span class="nav-text">第六步：更新各服务的证书</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E6%80%BB%E7%BB%93"><span class="nav-number">4.</span> <span class="nav-text">解决方案总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B9%E5%9B%A0%E5%88%86%E6%9E%90"><span class="nav-number">5.</span> <span class="nav-text">根因分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A2%84%E9%98%B2%E6%8E%AA%E6%96%BD"><span class="nav-number">6.</span> <span class="nav-text">预防措施</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">7.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Maskbugzero"
+      src="/images/touxiang.jpg">
+  <p class="site-author-name" itemprop="name">Maskbugzero</p>
+  <div class="site-description" itemprop="description">人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">39</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">34</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">85</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Maskbugzero" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Maskbugzero" rel="noopener me external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.5772447.xyz/posts/671a045a/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/touxiang.jpg">
+      <meta itemprop="name" content="Maskbugzero">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zero Day Notes">
+      <meta itemprop="description" content="人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="一次SSL证书过期导致内网HTTPS服务全面中断的排查实录 | Zero Day Notes">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          一次SSL证书过期导致内网HTTPS服务全面中断的排查实录
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-09-05 08:30:00" itemprop="dateCreated datePublished" datetime="2024-09-05T08:30:00+08:00">2024-09-05</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">运维</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">服务运维</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>1.6k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>6 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h2><p>某周四早上 8:30，帮助台工单系统开始涌入大量相同类型的工单：员工反映多个内网系统无法访问，浏览器提示”您的连接不是私密连接”或”证书无效”，点击”高级”可以看到错误信息 <code>NET::ERR_CERT_DATE_INVALID</code>。</p>
+<p>受影响的系统包括：内网 GitLab、Jira、Confluence、Jenkins、内部文档管理系统等约 12 个 HTTPS 服务，全部托管在内网环境中。</p>
+<hr>
+<h2 id="故障现象"><a href="#故障现象" class="headerlink" title="故障现象"></a>故障现象</h2><ul>
+<li>浏览器打开内网 HTTPS 地址时报 SSL 证书错误：<code>NET::ERR_CERT_DATE_INVALID</code></li>
+<li>Chrome 错误详情：<code>服务器证书已过期</code>，证书有效期显示截止日期为昨日</li>
+<li>影响约 12 个内网 HTTPS 服务</li>
+<li>使用 HTTP（非 HTTPS）的内网服务不受影响</li>
+<li>外网面向公众的 HTTPS 服务（Let’s Encrypt 证书）不受影响</li>
+</ul>
+<hr>
+<h2 id="排查过程"><a href="#排查过程" class="headerlink" title="排查过程"></a>排查过程</h2><h3 id="第一步：确认证书过期情况"><a href="#第一步：确认证书过期情况" class="headerlink" title="第一步：确认证书过期情况"></a>第一步：确认证书过期情况</h3><p>用 openssl 工具快速检查几个受影响服务的证书：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> | openssl s_client -connect gitlab.internal.company.com:443 -servername gitlab.internal.company.com 2&gt;/dev/null | openssl x509 -noout -dates</span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">notBefore=Sep  5 00:00:00 2021 GMT</span><br><span class="line">notAfter=Sep  4 23:59:59 2024 GMT</span><br></pre></td></tr></table></figure>
+
+<p>证书昨日（2024-09-04）到期，今天（2024-09-05）证书已失效。</p>
+<p>再检查其他几个受影响的服务：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> host <span class="keyword">in</span> gitlab jira confluence jenkins docs; <span class="keyword">do</span></span><br><span class="line">    <span class="built_in">echo</span> -n <span class="string">&quot;<span class="variable">$host</span>.internal.company.com: &quot;</span></span><br><span class="line">    <span class="built_in">echo</span> | openssl s_client -connect <span class="string">&quot;<span class="variable">$host</span>.internal.company.com:443&quot;</span> 2&gt;/dev/null | openssl x509 -noout -enddate 2&gt;/dev/null</span><br><span class="line"><span class="keyword">done</span></span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">gitlab.internal.company.com:       notAfter=Sep  4 23:59:59 2024 GMT</span><br><span class="line">jira.internal.company.com:         notAfter=Sep  4 23:59:59 2024 GMT</span><br><span class="line">confluence.internal.company.com:   notAfter=Sep  4 23:59:59 2024 GMT</span><br><span class="line">jenkins.internal.company.com:      notAfter=Sep  4 23:59:59 2024 GMT</span><br><span class="line">docs.internal.company.com:         notAfter=Sep  4 23:59:59 2024 GMT</span><br></pre></td></tr></table></figure>
+
+<p>所有受影响的服务证书到期日期完全一致：<strong>2024年9月4日</strong>。这说明这 12 个服务使用的是同一张证书，而不是各自独立的证书。</p>
+<h3 id="第二步：确认证书类型"><a href="#第二步：确认证书类型" class="headerlink" title="第二步：确认证书类型"></a>第二步：确认证书类型</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> | openssl s_client -connect gitlab.internal.company.com:443 2&gt;/dev/null | openssl x509 -noout -text | grep -A5 <span class="string">&quot;Subject Alternative Name&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">X509v3 Subject Alternative Name: </span><br><span class="line">    DNS:*.internal.company.com</span><br><span class="line">    DNS:internal.company.com</span><br></pre></td></tr></table></figure>
+
+<p>这是一张 <strong>内网通配符证书（Wildcard Certificate）</strong>，覆盖所有 <code>*.internal.company.com</code> 的子域名。证书由内部 CA（根证书已部署到公司所有终端的信任链）签发，3 年有效期，上一次签发是 2021 年 9 月，今天正好到期。</p>
+<h3 id="第三步：为什么没有收到到期预警？"><a href="#第三步：为什么没有收到到期预警？" class="headerlink" title="第三步：为什么没有收到到期预警？"></a>第三步：为什么没有收到到期预警？</h3><p>翻查监控系统配置，发现：</p>
+<ol>
+<li><strong>Zabbix</strong> 中确实有 SSL 证书到期监控项，但只对<strong>公网域名</strong>（<code>www.company.com</code>、<code>api.company.com</code> 等）进行监控，内网域名没有加入监控列表</li>
+<li>上一任运维工程师（已离职）当时签发这张证书时，<strong>没有在日历中设置到期提醒</strong>，也没有记录在运维手册中</li>
+<li>邮件告警脚本存在，但 3 年前配置后从未验证过是否真正发出了告警</li>
+</ol>
+<h3 id="第四步：找到内部-CA"><a href="#第四步：找到内部-CA" class="headerlink" title="第四步：找到内部 CA"></a>第四步：找到内部 CA</h3><p>通过证书信息找到签发这张证书的内部 CA：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> | openssl s_client -connect gitlab.internal.company.com:443 2&gt;/dev/null | openssl x509 -noout -issuer</span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">issuer=C=CN, O=Company Internal CA, CN=Company Root CA G1</span><br></pre></td></tr></table></figure>
+
+<p>查找 CA 证书和私钥的存放位置，询问了老员工，最终找到保存在一台运维管理服务器（<code>mgmt-srv</code>）上的 <code>/etc/pki/internal-ca/</code> 目录下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> /etc/pki/internal-ca/</span><br><span class="line"><span class="comment"># ca.crt  ca.key  ca.srl  issued/</span></span><br></pre></td></tr></table></figure>
+
+<p>确认内部 CA 私钥存在且有效。</p>
+<h3 id="第五步：重新签发证书"><a href="#第五步：重新签发证书" class="headerlink" title="第五步：重新签发证书"></a>第五步：重新签发证书</h3><p>重新生成一张 3 年有效期的通配符证书，这次改为 3 年并在交接文档中记录：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 生成新的私钥</span></span><br><span class="line">openssl genrsa -out /tmp/wildcard-internal.key 2048</span><br><span class="line"></span><br><span class="line"><span class="comment"># 生成 CSR（证书签名请求）</span></span><br><span class="line"><span class="built_in">cat</span> &gt; /tmp/san.cnf &lt;&lt; <span class="string">&#x27;EOF&#x27;</span></span><br><span class="line">[req]</span><br><span class="line">req_extensions = v3_req</span><br><span class="line">distinguished_name = req_distinguished_name</span><br><span class="line">[req_distinguished_name]</span><br><span class="line">[v3_req]</span><br><span class="line">subjectAltName = @alt_names</span><br><span class="line">[alt_names]</span><br><span class="line">DNS.1 = *.internal.company.com</span><br><span class="line">DNS.2 = internal.company.com</span><br><span class="line">EOF</span><br><span class="line"></span><br><span class="line">openssl req -new -key /tmp/wildcard-internal.key \</span><br><span class="line">  -out /tmp/wildcard-internal.csr \</span><br><span class="line">  -subj <span class="string">&quot;/C=CN/O=Company/CN=*.internal.company.com&quot;</span> \</span><br><span class="line">  -config /tmp/san.cnf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 使用内部 CA 签发（有效期 3 年）</span></span><br><span class="line">openssl x509 -req -<span class="keyword">in</span> /tmp/wildcard-internal.csr \</span><br><span class="line">  -CA /etc/pki/internal-ca/ca.crt \</span><br><span class="line">  -CAkey /etc/pki/internal-ca/ca.key \</span><br><span class="line">  -CAcreateserial \</span><br><span class="line">  -out /tmp/wildcard-internal.crt \</span><br><span class="line">  -days 1095 \</span><br><span class="line">  -extensions v3_req \</span><br><span class="line">  -extfile /tmp/san.cnf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 验证新证书</span></span><br><span class="line">openssl x509 -noout -dates -<span class="keyword">in</span> /tmp/wildcard-internal.crt</span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">notBefore=Sep  5 02:10:00 2024 GMT</span><br><span class="line">notAfter=Sep  4 02:10:00 2027 GMT</span><br></pre></td></tr></table></figure>
+
+<h3 id="第六步：更新各服务的证书"><a href="#第六步：更新各服务的证书" class="headerlink" title="第六步：更新各服务的证书"></a>第六步：更新各服务的证书</h3><p>将新证书分发到所有受影响的服务器，并替换旧证书：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 复制到各服务器（以 Nginx 为例）</span></span><br><span class="line">scp /tmp/wildcard-internal.crt user@gitlab-server:/etc/nginx/ssl/internal.crt</span><br><span class="line">scp /tmp/wildcard-internal.key user@gitlab-server:/etc/nginx/ssl/internal.key</span><br><span class="line"></span><br><span class="line"><span class="comment"># 重载 Nginx</span></span><br><span class="line">ssh user@gitlab-server <span class="string">&quot;nginx -t &amp;&amp; nginx -s reload&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>对所有 12 个服务逐一执行。约 40 分钟后，全部服务恢复正常。</p>
+<hr>
+<h2 id="解决方案总结"><a href="#解决方案总结" class="headerlink" title="解决方案总结"></a>解决方案总结</h2><ol>
+<li>重签内部通配符证书（有效期至 2027-09-04）</li>
+<li>更新所有 12 个内网 HTTPS 服务的证书文件并重载</li>
+<li>在 Zabbix 中添加对内网域名的 SSL 证书到期监控（30 天、14 天、7 天分级告警）</li>
+<li>建立证书台账，记录所有证书的域名、有效期、存放位置、签发时间</li>
+</ol>
+<hr>
+<h2 id="根因分析"><a href="#根因分析" class="headerlink" title="根因分析"></a>根因分析</h2><p>根本原因是<strong>证书生命周期管理缺失</strong>：内网证书的签发、更新、到期预警没有纳入规范化的管理流程。负责人离职后，这段”历史知识”彻底断层，直到证书真正过期才被动发现。</p>
+<hr>
+<h2 id="预防措施"><a href="#预防措施" class="headerlink" title="预防措施"></a>预防措施</h2><p><strong>1. 全面的证书到期监控</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Zabbix 自定义监控项（检查证书到期天数）</span></span><br><span class="line"><span class="comment">#!/bin/bash</span></span><br><span class="line">DOMAIN=<span class="variable">$1</span></span><br><span class="line">PORT=<span class="variable">$&#123;2:-443&#125;</span></span><br><span class="line">DAYS=$(<span class="built_in">echo</span> | openssl s_client -connect <span class="string">&quot;<span class="variable">$DOMAIN</span>:<span class="variable">$PORT</span>&quot;</span> 2&gt;/dev/null \</span><br><span class="line">  | openssl x509 -noout -enddate 2&gt;/dev/null \</span><br><span class="line">  | sed <span class="string">&#x27;s/notAfter=//&#x27;</span> \</span><br><span class="line">  | xargs -I&#123;&#125; <span class="built_in">date</span> -d <span class="string">&quot;&#123;&#125;&quot;</span> +%s \</span><br><span class="line">  | xargs -I&#123;&#125; bash -c <span class="string">&#x27;echo $(( ($1 - $(date +%s)) / 86400 ))&#x27;</span> - &#123;&#125;)</span><br><span class="line"><span class="built_in">echo</span> <span class="variable">$DAYS</span></span><br></pre></td></tr></table></figure>
+
+<p>将所有内网和外网 HTTPS 域名加入监控。</p>
+<p><strong>2. 建立证书台账</strong></p>
+<p>在内部 Wiki 或文档管理系统中记录所有证书信息，包括到期时间，设置日历提醒（提前 90 天、30 天各提醒一次）。</p>
+<p><strong>3. 考虑迁移到 ACME 协议自动续签</strong></p>
+<p>对内网环境，可以搭建内部 ACME 服务（如 step-ca），实现证书自动续签，从根本上消除手动管理的风险。</p>
+<hr>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>证书管理是一项容易被遗忘但后果严重的运维工作。3 年有效期的证书，在签发后会很快淡出运维视野，直到某天突然”爆炸”。解决之道不是靠记忆力，而是靠<strong>自动化监控和标准化流程</strong>。</p>
+<p>一次简单的证书过期，影响了 12 个系统、全公司近 300 名员工的工作效率，教训深刻。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>Maskbugzero
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.5772447.xyz/posts/671a045a/" title="一次SSL证书过期导致内网HTTPS服务全面中断的排查实录">https://blog.5772447.xyz/posts/671a045a/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by/4.0/deed.zh" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" rel="tag"># 服务运维</a>
+              <a href="/tags/SSL/" rel="tag"># SSL</a>
+              <a href="/tags/%E8%AF%81%E4%B9%A6%E7%AE%A1%E7%90%86/" rel="tag"># 证书管理</a>
+              <a href="/tags/HTTPS/" rel="tag"># HTTPS</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/posts/9eb92141/" rel="prev" title="一次Docker容器OOM引发的服务雪崩排查实录">
+                  <i class="fa fa-angle-left"></i> 一次Docker容器OOM引发的服务雪崩排查实录
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/posts/a787a6c4/" rel="next" title="一次AD域控GPO策略推送失败导致终端安全基线不生效的排查实录">
+                  一次AD域控GPO策略推送失败导致终端安全基线不生效的排查实录 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2021 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">Maskbugzero</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">56k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">3:22</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

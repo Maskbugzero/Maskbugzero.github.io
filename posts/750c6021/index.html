@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.5772447.xyz","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="办公区员工反馈WiFi频繁断线，尤其是视频会议期间，排查发现是2.4GHz频段信道拥挤叠加非法AP干扰共同导致，通过重新规划信道和启用频段引导解决。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一次办公区无线网络间歇性断连的排查实录">
+<meta property="og:url" content="https://blog.5772447.xyz/posts/750c6021/index.html">
+<meta property="og:site_name" content="Zero Day Notes">
+<meta property="og:description" content="办公区员工反馈WiFi频繁断线，尤其是视频会议期间，排查发现是2.4GHz频段信道拥挤叠加非法AP干扰共同导致，通过重新规划信道和启用频段引导解决。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-11-07T03:00:00.000Z">
+<meta property="article:modified_time" content="2023-11-07T03:00:00.000Z">
+<meta property="article:author" content="Maskbugzero">
+<meta property="article:tag" content="网络运维">
+<meta property="article:tag" content="WiFi">
+<meta property="article:tag" content="无线网络">
+<meta property="article:tag" content="信道干扰">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/750c6021/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.5772447.xyz/posts/750c6021/","path":"posts/750c6021/","title":"一次办公区无线网络间歇性断连的排查实录"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>一次办公区无线网络间歇性断连的排查实录 | Zero Day Notes</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VGE8FYNHE7"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-VGE8FYNHE7","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Zero Day Notes</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Life Oriented Programming</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">问题背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%85%E9%9A%9C%E7%8E%B0%E8%B1%A1"><span class="nav-number">2.</span> <span class="nav-text">故障现象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%92%E6%9F%A5%E8%BF%87%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">排查过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E7%A1%AE%E8%AE%A4%E9%97%AE%E9%A2%98%E8%8C%83%E5%9B%B4"><span class="nav-number">3.1.</span> <span class="nav-text">第一步：确认问题范围</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E9%80%9A%E8%BF%87-Aruba-AC-%E6%9F%A5%E7%9C%8B%E6%97%A0%E7%BA%BF%E7%8E%AF%E5%A2%83"><span class="nav-number">3.2.</span> <span class="nav-text">第二步：通过 Aruba AC 查看无线环境</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%9A%E6%89%AB%E6%8F%8F%E6%97%A0%E7%BA%BF%E7%8E%AF%E5%A2%83%EF%BC%8C%E5%AF%BB%E6%89%BE%E5%B9%B2%E6%89%B0%E6%BA%90"><span class="nav-number">3.3.</span> <span class="nav-text">第三步：扫描无线环境，寻找干扰源</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E5%9B%9B%E6%AD%A5%EF%BC%9A%E7%8E%B0%E5%9C%BA%E5%AE%9A%E4%BD%8D%E9%9D%9E%E6%B3%95-AP"><span class="nav-number">3.4.</span> <span class="nav-text">第四步：现场定位非法 AP</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%94%E6%AD%A5%EF%BC%9A%E5%88%86%E6%9E%90%E5%90%8C%E9%A2%91%E5%B9%B2%E6%89%B0%E5%8E%9F%E7%90%86"><span class="nav-number">3.5.</span> <span class="nav-text">第五步：分析同频干扰原理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">4.</span> <span class="nav-text">解决方案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E7%A7%BB%E9%99%A4%E9%9D%9E%E6%B3%95-AP"><span class="nav-number">4.1.</span> <span class="nav-text">第一步：移除非法 AP</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E9%87%8D%E6%96%B0%E8%A7%84%E5%88%92-2-4GHz-%E4%BF%A1%E9%81%93%E5%88%86%E9%85%8D"><span class="nav-number">4.2.</span> <span class="nav-text">第二步：重新规划 2.4GHz 信道分配</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%9A%E5%BC%80%E5%90%AF%E9%A2%91%E6%AE%B5%E5%BC%95%E5%AF%BC%EF%BC%88Band-Steering%EF%BC%89"><span class="nav-number">4.3.</span> <span class="nav-text">第三步：开启频段引导（Band Steering）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E5%9B%9B%E6%AD%A5%EF%BC%9A%E8%B0%83%E6%95%B4-AP-%E5%8F%91%E5%B0%84%E5%8A%9F%E7%8E%87"><span class="nav-number">4.4.</span> <span class="nav-text">第四步：调整 AP 发射功率</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%94%E6%AD%A5%EF%BC%9A%E6%95%88%E6%9E%9C%E9%AA%8C%E8%AF%81"><span class="nav-number">4.5.</span> <span class="nav-text">第五步：效果验证</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B9%E5%9B%A0%E5%88%86%E6%9E%90"><span class="nav-number">5.</span> <span class="nav-text">根因分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A2%84%E9%98%B2%E6%8E%AA%E6%96%BD"><span class="nav-number">6.</span> <span class="nav-text">预防措施</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">7.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Maskbugzero"
+      src="/images/touxiang.jpg">
+  <p class="site-author-name" itemprop="name">Maskbugzero</p>
+  <div class="site-description" itemprop="description">人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">39</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">34</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">85</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Maskbugzero" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Maskbugzero" rel="noopener me external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.5772447.xyz/posts/750c6021/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/touxiang.jpg">
+      <meta itemprop="name" content="Maskbugzero">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zero Day Notes">
+      <meta itemprop="description" content="人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="一次办公区无线网络间歇性断连的排查实录 | Zero Day Notes">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          一次办公区无线网络间歇性断连的排查实录
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-11-07 11:00:00" itemprop="dateCreated datePublished" datetime="2023-11-07T11:00:00+08:00">2023-11-07</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">运维</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">网络运维</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>1.8k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>7 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h2><p>近期（大约持续了两周）公司办公区的员工陆续通过工单反馈，说 WiFi 连接很不稳定，主要表现是：</p>
+<ul>
+<li>视频会议（腾讯会议、Teams）经常卡顿、掉线</li>
+<li>手机和笔记本有时会突然断开 WiFi，重连后几分钟又断</li>
+<li>部分区域信号格数显示满格，但实际网速极慢</li>
+</ul>
+<p>受影响的主要是 3 楼办公区（约 80 名员工），4 楼相对较少。公司无线网络使用 Aruba 无线控制器（AC）统一管理约 30 台 AP，全部部署在室内天花板。</p>
+<hr>
+<h2 id="故障现象"><a href="#故障现象" class="headerlink" title="故障现象"></a>故障现象</h2><ul>
+<li>3 楼员工 WiFi 连接不稳定，视频会议频繁卡顿</li>
+<li>Windows 任务栏 WiFi 图标有时显示感叹号（受限连接）</li>
+<li>手机 WiFi 速度测试：下载约 1-3 Mbps（预期应有 50+ Mbps）</li>
+<li>但有线接入的员工完全不受影响，排除上联网络问题</li>
+</ul>
+<hr>
+<h2 id="排查过程"><a href="#排查过程" class="headerlink" title="排查过程"></a>排查过程</h2><h3 id="第一步：确认问题范围"><a href="#第一步：确认问题范围" class="headerlink" title="第一步：确认问题范围"></a>第一步：确认问题范围</h3><p>先用有线和无线各自进行网速测试，有线稳定在 100Mbps 左右，无线只有 2-5Mbps，明确是无线侧的问题。</p>
+<p>再确认问题时间规律：工单记录显示，问题主要出现在 9:30-11:30 和 14:00-16:00，正好是员工视频会议的密集时段，早晚时段没有明显问题。</p>
+<h3 id="第二步：通过-Aruba-AC-查看无线环境"><a href="#第二步：通过-Aruba-AC-查看无线环境" class="headerlink" title="第二步：通过 Aruba AC 查看无线环境"></a>第二步：通过 Aruba AC 查看无线环境</h3><p>登录 Aruba 无线控制器管理界面，查看 3 楼各 AP 的关联情况和流量统计：</p>
+<p><strong>发现 1：AP 3F-01 和 AP 3F-02 关联的设备数量异常多</strong></p>
+<p>正常每台 AP 关联设备 20-30 个，而 3F-01 和 3F-02 分别关联了 65 和 58 个设备，远超设计容量。</p>
+<p><strong>发现 2：2.4GHz 频段使用率极高</strong></p>
+<p>进入 RF（无线射频）监控页面，查看频谱使用情况：</p>
+<ul>
+<li>2.4GHz 频段：信道 6 的利用率达到 87%</li>
+<li>5GHz 频段：各信道利用率均在 30% 以下</li>
+</ul>
+<p>大量设备（尤其是老旧手机和打印机）扎堆连接 2.4GHz，而 5GHz 频段相对空闲。</p>
+<h3 id="第三步：扫描无线环境，寻找干扰源"><a href="#第三步：扫描无线环境，寻找干扰源" class="headerlink" title="第三步：扫描无线环境，寻找干扰源"></a>第三步：扫描无线环境，寻找干扰源</h3><p>在 Aruba AC 上启用 AM（Air Monitor）模式，对 3 楼进行无线环境扫描，查看附近 AP 的信道分布情况：</p>
+<p>扫描结果发现，在信道 6 上，除了我们自己部署的 AP 外，还检测到了 <strong>4 个非授权的 SSID</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SSID: TP-LINK_XXXX   信道: 6   RSSI: -65dBm   厂商: TP-Link</span><br><span class="line">SSID: TP-LINK_YYYY   信道: 6   RSSI: -72dBm   厂商: TP-Link</span><br><span class="line">SSID: ChinaNet-ZZZZ  信道: 6   RSSI: -68dBm   厂商: Huawei</span><br><span class="line">SSID: Mi_AABB        信道: 1   RSSI: -71dBm   厂商: Xiaomi</span><br></pre></td></tr></table></figure>
+
+<p><strong>同一频段上存在多个非授权 AP（来自员工自带的路由器或隔壁邻居的家用 WiFi），与我们的 AP 形成同频干扰。</strong></p>
+<h3 id="第四步：现场定位非法-AP"><a href="#第四步：现场定位非法-AP" class="headerlink" title="第四步：现场定位非法 AP"></a>第四步：现场定位非法 AP</h3><p>通过 Aruba 的 RSSI 强度信息和楼层平面图，大致定位了信号强度最强的两台非授权 AP 来源：</p>
+<ul>
+<li><code>TP-LINK_XXXX</code>（RSSI -65dBm）：信号来自 3 楼东侧某个角落</li>
+<li><code>ChinaNet-ZZZZ</code>（RSSI -68dBm）：信号来自楼下或相邻建筑</li>
+</ul>
+<p>到 3 楼东侧排查，在一个储物间里发现了一台员工私自安装的 TP-Link 路由器，他是因为自己工位信号不好，就从家里带了一个路由器来增强信号，接在了墙上的网络接口上，结果反而加剧了干扰。</p>
+<h3 id="第五步：分析同频干扰原理"><a href="#第五步：分析同频干扰原理" class="headerlink" title="第五步：分析同频干扰原理"></a>第五步：分析同频干扰原理</h3><p>2.4GHz 频段总带宽有限，常用的不重叠信道只有 3 个：<strong>1、6、11</strong>。当多个 AP 同时使用信道 6 时，它们的信号会相互干扰，设备需要等待信道空闲才能发送数据（CSMA&#x2F;CA 机制），信道越拥挤，等待时间越长，表现为网速慢、延迟高。</p>
+<p>我们的 3F-01、3F-02 都在信道 6，加上 4 个外部 AP 也在信道 6，7 个发射源共享一个 20MHz 宽的信道，效率极低。</p>
+<hr>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><h3 id="第一步：移除非法-AP"><a href="#第一步：移除非法-AP" class="headerlink" title="第一步：移除非法 AP"></a>第一步：移除非法 AP</h3><p>拔除储物间里员工私装的 TP-Link 路由器，并通知该员工不得私自接入未授权网络设备。告知全体员工相关规定。</p>
+<h3 id="第二步：重新规划-2-4GHz-信道分配"><a href="#第二步：重新规划-2-4GHz-信道分配" class="headerlink" title="第二步：重新规划 2.4GHz 信道分配"></a>第二步：重新规划 2.4GHz 信道分配</h3><p>重新梳理 3 楼所有 AP 的信道规划：</p>
+<ul>
+<li>将同一楼层相邻 AP 分配到不同的不重叠信道（1、6、11 错开分配）</li>
+<li>减少信道 6 上的 AP 数量</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">AP 3F-01  →  信道 1</span><br><span class="line">AP 3F-02  →  信道 11</span><br><span class="line">AP 3F-03  →  信道 6</span><br><span class="line">AP 3F-04  →  信道 1</span><br><span class="line">...（相邻不同信道，避免重叠）</span><br></pre></td></tr></table></figure>
+
+<h3 id="第三步：开启频段引导（Band-Steering）"><a href="#第三步：开启频段引导（Band-Steering）" class="headerlink" title="第三步：开启频段引导（Band Steering）"></a>第三步：开启频段引导（Band Steering）</h3><p>在 Aruba AC 上启用 Band Steering 功能，将支持 5GHz 的设备自动引导到 5GHz 频段：</p>
+<p>在 Aruba 管理界面：Configuration → SSID → Advanced → Band Steering → Enable</p>
+<p>Band Steering 工作原理：对于同时支持 2.4GHz 和 5GHz 的设备，AP 在 2.4GHz 上延迟响应 Probe Request，促使设备转向 5GHz 关联。</p>
+<h3 id="第四步：调整-AP-发射功率"><a href="#第四步：调整-AP-发射功率" class="headerlink" title="第四步：调整 AP 发射功率"></a>第四步：调整 AP 发射功率</h3><p>部分 AP 发射功率设置过高，导致信号覆盖区域重叠，加剧同频干扰。将相邻 AP 的发射功率适当降低：</p>
+<p>在 Aruba RF Plan 中，将 3 楼各 AP 的 2.4GHz 最大发射功率从 23dBm 调整至 17dBm，覆盖半径缩小，减少同频重叠区域。</p>
+<h3 id="第五步：效果验证"><a href="#第五步：效果验证" class="headerlink" title="第五步：效果验证"></a>第五步：效果验证</h3><p>调整完成后，次日早上进行测试：</p>
+<ul>
+<li>3 楼 AP 2.4GHz 信道 6 利用率从 87% 下降到 41%</li>
+<li>各 AP 关联设备数量均匀分布，3F-01 从 65 台降至 28 台</li>
+<li>无线下载速度测试：从 2-5Mbps 提升至 45-80Mbps</li>
+<li>视频会议测试：连续 1 小时无断线，质量正常</li>
+</ul>
+<hr>
+<h2 id="根因分析"><a href="#根因分析" class="headerlink" title="根因分析"></a>根因分析</h2><p>根本原因有两个：</p>
+<ol>
+<li><p><strong>同频干扰</strong>：3 楼 2.4GHz 频段信道 6 上存在大量 AP（包括外部非授权 AP），信道竞争激烈，设备需长时间等待信道空闲，导致网速下降。</p>
+</li>
+<li><p><strong>负载不均衡</strong>：2.4GHz 频段承载了过多设备，而 5GHz 相对空闲，缺少频段引导机制将设备均衡分流。</p>
+</li>
+</ol>
+<hr>
+<h2 id="预防措施"><a href="#预防措施" class="headerlink" title="预防措施"></a>预防措施</h2><p><strong>1. 定期无线环境扫描</strong></p>
+<p>每月通过 Aruba AM 或 Wi-Fi Analyzer 扫描一次，及时发现新增的非法 AP 和信道干扰。</p>
+<p><strong>2. 非法 AP 检测与告警</strong></p>
+<p>开启 Aruba Wireless Intrusion Protection（WIP）功能，自动检测并告警非授权设备接入。</p>
+<p><strong>3. 员工教育</strong></p>
+<p>通过邮件或公告明确：不得在公司网络上自行接入个人路由器、交换机等设备，违者按公司 IT 使用规范处理。</p>
+<p><strong>4. 定期审查 AP 规划</strong></p>
+<p>公司扩建或改建后，应重新审查 AP 布点和信道规划，不能使用初始规划一成不变。</p>
+<hr>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>无线网络故障相比有线往往更难直接定位，因为很多干扰因素”看不见摸不着”。这次故障的关键排查步骤是借助无线控制器的 RF 监控和频谱扫描功能，量化了信道利用率，并找到了隐藏的非法 AP 干扰源。</p>
+<p><strong>经验总结：</strong> 对于无线网络性能问题，要重点检查<strong>信道规划是否合理、是否存在同频干扰、5GHz 是否被充分利用</strong>。同时，员工私接设备的问题在企业网络中极为普遍，需要从技术手段（WIDS）和管理手段双管齐下。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>Maskbugzero
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.5772447.xyz/posts/750c6021/" title="一次办公区无线网络间歇性断连的排查实录">https://blog.5772447.xyz/posts/750c6021/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by/4.0/deed.zh" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" rel="tag"># 网络运维</a>
+              <a href="/tags/WiFi/" rel="tag"># WiFi</a>
+              <a href="/tags/%E6%97%A0%E7%BA%BF%E7%BD%91%E7%BB%9C/" rel="tag"># 无线网络</a>
+              <a href="/tags/%E4%BF%A1%E9%81%93%E5%B9%B2%E6%89%B0/" rel="tag"># 信道干扰</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/posts/709d31a9/" rel="prev" title="微软输入法快速输入时间">
+                  <i class="fa fa-angle-left"></i> 微软输入法快速输入时间
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/posts/81929d4d/" rel="next" title="一次K8s节点磁盘压力导致Pod批量驱逐的排查实录">
+                  一次K8s节点磁盘压力导致Pod批量驱逐的排查实录 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2021 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">Maskbugzero</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">56k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">3:22</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
