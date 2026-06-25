@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.5772447.xyz","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="分支机构通过IPSec VPN访问总部ERP时频繁超时卡死，Ping正常但大包传输失败，最终定位为隧道MTU与TCP MSS协商不匹配所致">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一次IPSec VPN隧道因MTU不匹配导致ERP系统远程访问异常的排查实录">
+<meta property="og:url" content="https://blog.5772447.xyz/posts/de113360/index.html">
+<meta property="og:site_name" content="Zero Day Notes">
+<meta property="og:description" content="分支机构通过IPSec VPN访问总部ERP时频繁超时卡死，Ping正常但大包传输失败，最终定位为隧道MTU与TCP MSS协商不匹配所致">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-06-25T23:00:00.000Z">
+<meta property="article:modified_time" content="2026-06-25T23:00:00.000Z">
+<meta property="article:author" content="Maskbugzero">
+<meta property="article:tag" content="网络运维">
+<meta property="article:tag" content="FortiGate">
+<meta property="article:tag" content="VPN">
+<meta property="article:tag" content="IPSec">
+<meta property="article:tag" content="MTU">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/de113360/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.5772447.xyz/posts/de113360/","path":"posts/de113360/","title":"一次IPSec VPN隧道因MTU不匹配导致ERP系统远程访问异常的排查实录"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>一次IPSec VPN隧道因MTU不匹配导致ERP系统远程访问异常的排查实录 | Zero Day Notes</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VGE8FYNHE7"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-VGE8FYNHE7","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Zero Day Notes</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Life Oriented Programming</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">问题背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%85%E9%9A%9C%E7%8E%B0%E8%B1%A1"><span class="nav-number">2.</span> <span class="nav-text">故障现象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%92%E6%9F%A5%E8%BF%87%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">排查过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E7%A1%AE%E8%AE%A4%E9%97%AE%E9%A2%98%E8%8C%83%E5%9B%B4%E2%80%94%E2%80%94%E6%98%AF%E5%90%A6%E5%8F%AA%E5%BD%B1%E5%93%8D%E5%8D%8E%E5%8D%97%E5%88%86%E5%85%AC%E5%8F%B8"><span class="nav-number">3.1.</span> <span class="nav-text">第一步：确认问题范围——是否只影响华南分公司</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E6%8E%92%E9%99%A4ERP%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%9C%AC%E8%BA%AB%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">3.2.</span> <span class="nav-text">第二步：排除ERP服务器本身的问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%9A%E6%8E%92%E9%99%A4VPN%E9%9A%A7%E9%81%93%E8%BF%9E%E9%80%9A%E6%80%A7%E9%97%AE%E9%A2%98"><span class="nav-number">3.3.</span> <span class="nav-text">第三步：排除VPN隧道连通性问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E5%9B%9B%E6%AD%A5%EF%BC%9A%E7%94%A8%E8%B7%AF%E5%BE%84MTU%E6%8E%A2%E6%B5%8B%E5%AE%9A%E4%BD%8D%E5%85%B3%E9%94%AE%E9%97%AE%E9%A2%98"><span class="nav-number">3.4.</span> <span class="nav-text">第四步：用路径MTU探测定位关键问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%94%E6%AD%A5%EF%BC%9A%E6%A3%80%E6%9F%A5TCP-MSS%E5%8D%8F%E5%95%86"><span class="nav-number">3.5.</span> <span class="nav-text">第五步：检查TCP MSS协商</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E5%85%AD%E6%AD%A5%EF%BC%9A%E9%AA%8C%E8%AF%81%E2%80%94%E2%80%94%E4%B8%BA%E4%BB%80%E4%B9%88Ping%E5%B0%8F%E5%8C%85%E9%80%9A%E4%BD%86%E5%A4%A7%E5%8C%85%E4%B8%8D%E9%80%9A"><span class="nav-number">3.6.</span> <span class="nav-text">第六步：验证——为什么Ping小包通但大包不通</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%83%E6%AD%A5%EF%BC%9A%E4%B8%BA%E4%BB%80%E4%B9%88%E6%B2%A1%E6%9C%89ICMP-Fragmentation-Needed%E5%8F%8D%E9%A6%88"><span class="nav-number">3.7.</span> <span class="nav-text">第七步：为什么没有ICMP Fragmentation Needed反馈</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E5%85%AB%E6%AD%A5%EF%BC%9A%E7%A1%AE%E8%AE%A4%E6%A0%B9%E5%9B%A0%E9%93%BE%E8%B7%AF"><span class="nav-number">3.8.</span> <span class="nav-text">第八步：确认根因链路</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">4.</span> <span class="nav-text">解决方案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%B4%A7%E6%80%A5%E6%AD%A2%E8%A1%80%EF%BC%885%E5%88%86%E9%92%9F%E5%86%85%E7%94%9F%E6%95%88%EF%BC%89"><span class="nav-number">4.1.</span> <span class="nav-text">紧急止血（5分钟内生效）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%AA%8C%E8%AF%81%E4%BF%AE%E5%A4%8D%E6%95%88%E6%9E%9C"><span class="nav-number">4.2.</span> <span class="nav-text">验证修复效果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%A8%E9%87%8F%E4%BF%AE%E5%A4%8D%E2%80%94%E2%80%94%E6%89%80%E6%9C%89%E5%88%86%E6%94%AF%E6%9C%BA%E6%9E%84VPN%E9%9A%A7%E9%81%93"><span class="nav-number">4.3.</span> <span class="nav-text">全量修复——所有分支机构VPN隧道</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B9%E5%9B%A0%E5%88%86%E6%9E%90"><span class="nav-number">5.</span> <span class="nav-text">根因分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A2%84%E9%98%B2%E6%8E%AA%E6%96%BD"><span class="nav-number">6.</span> <span class="nav-text">预防措施</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E6%A0%87%E5%87%86%E5%8C%96VPN%E9%9A%A7%E9%81%93TCP-MSS%E9%85%8D%E7%BD%AE"><span class="nav-number">6.1.</span> <span class="nav-text">1. 标准化VPN隧道TCP MSS配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-IPS%E7%AD%96%E7%95%A5%E4%BC%98%E5%8C%96%E2%80%94%E2%80%94%E6%94%BE%E8%A1%8CPMTU-Discovery-ICMP"><span class="nav-number">6.2.</span> <span class="nav-text">2. IPS策略优化——放行PMTU Discovery ICMP</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%AE%9A%E6%9C%9F%E8%B7%AF%E5%BE%84MTU%E6%8E%A2%E6%B5%8B%E5%B7%A1%E6%A3%80"><span class="nav-number">6.3.</span> <span class="nav-text">3. 定期路径MTU探测巡检</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E7%BD%91%E7%BB%9C%E5%8F%98%E6%9B%B4%E6%B5%81%E7%A8%8B%E7%BA%B3%E5%85%A5MTU%E5%AE%A1%E6%9F%A5"><span class="nav-number">6.4.</span> <span class="nav-text">4. 网络变更流程纳入MTU审查</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E6%96%87%E6%A1%A3%E5%8C%96MTU%E8%AE%A1%E7%AE%97%E6%96%B9%E6%B3%95"><span class="nav-number">6.5.</span> <span class="nav-text">5. 文档化MTU计算方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">7.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Maskbugzero"
+      src="/images/touxiang.jpg">
+  <p class="site-author-name" itemprop="name">Maskbugzero</p>
+  <div class="site-description" itemprop="description">人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">40</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">34</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">88</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Maskbugzero" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Maskbugzero" rel="noopener me external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.5772447.xyz/posts/de113360/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/touxiang.jpg">
+      <meta itemprop="name" content="Maskbugzero">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zero Day Notes">
+      <meta itemprop="description" content="人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="一次IPSec VPN隧道因MTU不匹配导致ERP系统远程访问异常的排查实录 | Zero Day Notes">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          一次IPSec VPN隧道因MTU不匹配导致ERP系统远程访问异常的排查实录
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-06-26 07:00:00" itemprop="dateCreated datePublished" datetime="2026-06-26T07:00:00+08:00">2026-06-26</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">运维</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">网络运维</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>4k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>14 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h2><p>公司在全国有8个分支机构，均通过FortiGate防火墙与总部建立IPSec VPN隧道，日常办公依赖总部的SAP ERP系统进行订单录入、库存查询和财务审批。周一上午9点，华南分公司的30多名员工集中登录ERP系统时，纷纷反馈页面加载极慢——登录界面要等2-3分钟才能显示，进入后点击菜单经常卡死超时，只能反复刷新碰运气。</p>
+<p>奇怪的是，Ping总部的服务器完全正常，延迟稳定在15ms左右，traceroute也每一跳都通畅。其他通过VPN访问的服务（如邮件OA）虽然也有点慢，但不像ERP这样完全不可用。网络监控平台上VPN隧道状态显示绿灯”Connected”，流量统计正常，没有任何告警。问题持续了整个上午，严重影响了华南分公司的业务运转，紧急程度极高——财务月结审批被迫延迟，客户订单无法及时录入。</p>
+<h2 id="故障现象"><a href="#故障现象" class="headerlink" title="故障现象"></a>故障现象</h2><p>故障的表现非常”诡异”，具有典型的MTU问题特征——小包通、大包不通：</p>
+<p><strong>现象一：Ping正常但ERP不可用</strong></p>
+<p>从华南分公司Ping总部ERP服务器<code>10.10.1.100</code>，100字节的小包100%成功，延迟15ms；但当Ping包大小超过1400字节时：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">C:\Users\zhao&gt; ping 10.10.1.100 -l 100 -n 10</span><br><span class="line">Reply from 10.10.1.100: bytes=100 time=15ms TTL=62</span><br><span class="line"></span><br><span class="line">C:\Users\zhao&gt; ping 10.10.1.100 -l 1500 -n 10</span><br><span class="line">Request timed out.</span><br><span class="line">Request timed out.</span><br><span class="line">Ping statistics for 10.10.1.100:</span><br><span class="line">    Packets: Sent = 10, Received = 0, Lost = 10 (100% loss)</span><br></pre></td></tr></table></figure>
+
+<p><strong>现象二：ERP登录页面加载极慢或超时</strong></p>
+<p>浏览器访问<code>https://erp.company.com</code>时，登录页的HTML框架能加载出来（小数据包），但包含CSS&#x2F;JS资源的大响应体经常卡在”传输中”状态，最终浏览器报<code>ERR_CONNECTION_TIMED_OUT</code>。</p>
+<p><strong>现象三：SSH大文件传输失败</strong></p>
+<p>通过SSH从华南服务器向总部scp一个50MB的备份文件，传输开始后几秒就卡死：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ scp backup.tar.gz admin@10.10.1.50:/tmp/</span><br><span class="line">backup.tar.gz                                    0%    0KB   --:-- ETA</span><br><span class="line"># 卡住不动，最终Connection reset by peer</span><br></pre></td></tr></table></figure>
+
+<p>但小文件（几KB的配置文件）可以正常传输。</p>
+<p><strong>现象四：TCP连接建立正常但数据传输中断</strong></p>
+<p>用Wireshark在华南分公司的客户端抓包，可以看到TCP三次握手顺利完成，客户端发送HTTP GET请求后，服务器回复了第一个数据包（SYN+ACK后的初始窗口），但当服务器连续发送多个满载（满1460字节）的TCP段时，客户端迟迟收不到后续数据，最终触发TCP重传，重传若干次后连接被reset。</p>
+<p>关键发现：抓包中看不到任何ICMP Fragmentation Needed消息，说明IP分片所需的通知被某处拦截了。</p>
+<h2 id="排查过程"><a href="#排查过程" class="headerlink" title="排查过程"></a>排查过程</h2><h3 id="第一步：确认问题范围——是否只影响华南分公司"><a href="#第一步：确认问题范围——是否只影响华南分公司" class="headerlink" title="第一步：确认问题范围——是否只影响华南分公司"></a>第一步：确认问题范围——是否只影响华南分公司</h3><p>第一时间联系其他7个分支，发现华东分公司（同样通过IPSec VPN接入）也反馈ERP访问缓慢，但华北分公司（通过专线接入，不走VPN）完全没有问题。这个对比非常关键——<strong>专线正常、VPN异常</strong>，问题锁定在VPN隧道层面。</p>
+<h3 id="第二步：排除ERP服务器本身的问题"><a href="#第二步：排除ERP服务器本身的问题" class="headerlink" title="第二步：排除ERP服务器本身的问题"></a>第二步：排除ERP服务器本身的问题</h3><p>直接在总部内网访问ERP服务器，响应迅速，没有任何异常。检查ERP服务器的系统负载、数据库连接池、Web服务器线程池，全部在正常范围内。确认问题不在服务器端。</p>
+<h3 id="第三步：排除VPN隧道连通性问题"><a href="#第三步：排除VPN隧道连通性问题" class="headerlink" title="第三步：排除VPN隧道连通性问题"></a>第三步：排除VPN隧道连通性问题</h3><p>VPN隧道状态在FortiGate监控面板上显示为绿色”Up”，路由表正确，Ping小包100%通过。初步排除隧道本身断裂的可能。但注意到隧道接口的MTU配置——FortiGate上VPN隧道接口默认MTU值：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"># 总部 FortiGate (FGT-HQ)</span><br><span class="line">FGT-HQ # diagnose netlink interface list vpn-tunnel-HN</span><br><span class="line">Name: vpn-tunnel-HN</span><br><span class="line">  MTU: 1436</span><br><span class="line">  Type: IPSec</span><br><span class="line">  Status: up</span><br><span class="line"></span><br><span class="line"># 华南 FortiGate (FGT-HN)</span><br><span class="line">FGT-HN # diagnose netlink interface list vpn-tunnel-HQ</span><br><span class="line">Name: vpn-tunnel-HQ</span><br><span class="line">  MTU: 1436</span><br><span class="line">  Type: IPSec</span><br><span class="line">  Status: up</span><br></pre></td></tr></table></figure>
+
+<p>隧道MTU为1436，这是因为IPSec ESP封装会占用额外头部空间（ESP头8字节 + ESP尾2字节 + ICV 12字节 + 外层IP头20字节 &#x3D; 42字节，1500-42&#x3D;1458…但实际FortiGate的默认值是1436，预留了更多空间给可能的UDP封装和NAT-T）。隧道MTU本身看起来没有异常。</p>
+<h3 id="第四步：用路径MTU探测定位关键问题"><a href="#第四步：用路径MTU探测定位关键问题" class="headerlink" title="第四步：用路径MTU探测定位关键问题"></a>第四步：用路径MTU探测定位关键问题</h3><p>使用Linux的<code>tracepath</code>命令进行路径MTU探测：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># 从华南Linux服务器探测到总部ERP</span><br><span class="line">$ tracepath 10.10.1.100</span><br><span class="line">1?: [LOCAL] 10.20.1.10                          mtu=1500</span><br><span class="line">2:  10.20.1.1 (华南FG内网口)                      mtu=1500</span><br><span class="line">3:  no reply</span><br><span class="line">4:  10.10.1.1 (总部FG内网口)                      mtu=1436  ← 链路MTU突降!</span><br><span class="line">5:  10.10.1.100 (ERP服务器)                       mtu=1436</span><br></pre></td></tr></table></figure>
+
+<p>关键发现：数据包经过VPN隧道后，路径MTU从1500降到了1436。这意味着从ERP服务器发往华南客户端的TCP数据包如果满载1460字节，在经过VPN隧道时会被封装成超过1500字节的IP包，需要分片。</p>
+<h3 id="第五步：检查TCP-MSS协商"><a href="#第五步：检查TCP-MSS协商" class="headerlink" title="第五步：检查TCP MSS协商"></a>第五步：检查TCP MSS协商</h3><p>查看FortiGate防火墙的TCP MSS配置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># 华南 FortiGate</span><br><span class="line">FGT-HN # show full-configuration | grep -i mss</span><br><span class="line">    set tcp-mss-sender 0</span><br><span class="line">    set tcp-mss-receiver 0</span><br><span class="line">    # 隧道接口未配置MSS协商</span><br></pre></td></tr></table></figure>
+
+<p>MSS值为0表示”未设置”——FortiGate不会在TCP SYN&#x2F;SYN-ACK中主动修改MSS值。这意味着TCP连接建立时，ERP服务器（在1500 MTU的内网环境中）会在SYN-ACK中通告MSS&#x3D;1460（MTU 1500 - 40字节IP+TCP头），华南客户端同理也在SYN中通告MSS&#x3D;1460。</p>
+<p><strong>这就是问题所在</strong>：双方协商的MSS&#x3D;1460，但数据实际要经过MTU&#x3D;1436的VPN隧道。ERP服务器按MSS&#x3D;1460发送满载TCP段，封装后IP包总长 &#x3D; 1460 + 40(IP头) + 42(IPSec封装) &#x3D; 1542字节，超过了出接口MTU 1500！这要么需要IP分片，要么被丢弃。</p>
+<h3 id="第六步：验证——为什么Ping小包通但大包不通"><a href="#第六步：验证——为什么Ping小包通但大包不通" class="headerlink" title="第六步：验证——为什么Ping小包通但大包不通"></a>第六步：验证——为什么Ping小包通但大包不通</h3><p>ICMP Echo Request小包（100字节）加上IPSec封装后仍远小于1500，无需分片，顺利通过。但1500字节的Ping包（IP层已达1500）加上IPSec封装后变成1542字节，超过了物理接口MTU，需要分片。</p>
+<h3 id="第七步：为什么没有ICMP-Fragmentation-Needed反馈"><a href="#第七步：为什么没有ICMP-Fragmentation-Needed反馈" class="headerlink" title="第七步：为什么没有ICMP Fragmentation Needed反馈"></a>第七步：为什么没有ICMP Fragmentation Needed反馈</h3><p>正常情况下，当路由器发现出接口MTU不足以转发不分片的包，且包的DF(Don’t Fragment)位为1时，应该返回ICMP Type 3 Code 4（Fragmentation Needed and DF Set）消息，通知发送方降低包大小。但我们在抓包中完全没看到这类ICMP消息！</p>
+<p>进一步排查发现两个原因：</p>
+<ol>
+<li><p><strong>FortiGate的IPS策略拦截了ICMP Fragmentation Needed消息</strong>——查看IPS Sensor配置，发现有一条默认规则<code>ICMP.DOS.FRGNeeded</code>将其标记为”Drop”，这是误将路径MTU发现的必要ICMP消息当作DOS攻击了。</p>
+</li>
+<li><p><strong>ERP服务器的Linux内核默认在TCP包中设置DF位</strong>——Linux的<code>net.ipv4.tcp_df</code>默认行为倾向于设置DF位以避免分片带来的性能损失。当DF&#x3D;1的TCP包在VPN封装后超MTU且被FortiGate丢弃时，本应返回ICMP Fragmentation Needed，但被IPS拦截了。</p>
+</li>
+</ol>
+<p><strong>双重打击</strong>：服务器设置了DF位禁止分片 → FortiGate需要返回ICMP通知 → IPS策略把ICMP通知拦截了 → 服务器永远不知道自己发的包太大 → 只能不断重传同样大小的包 → 连接卡死。</p>
+<h3 id="第八步：确认根因链路"><a href="#第八步：确认根因链路" class="headerlink" title="第八步：确认根因链路"></a>第八步：确认根因链路</h3><p>完整的因果链路：</p>
+<ol>
+<li>IPSec隧道封装增加42字节开销 → 隀道MTU从1500降到1436</li>
+<li>TCP MSS协商未适配隧道MTU → 双方协商MSS&#x3D;1460（应为1396）</li>
+<li>ERP服务器按MSS&#x3D;1460发送满载TCP段 → IPSec封装后超物理接口MTU</li>
+<li>TCP包DF位&#x3D;1 → 不能分片，由FortiGate丢弃</li>
+<li>FortiGate IPS策略拦截ICMP Fragmentation Needed → 发送方收不到PMTU通知</li>
+<li>服务器不断重传超大的TCP段 → 连接永远无法完成数据传输</li>
+<li>小包（&lt;1436-40&#x3D;1396字节）不受影响 → Ping小包正常、ERP小响应体能加载</li>
+</ol>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><h3 id="紧急止血（5分钟内生效）"><a href="#紧急止血（5分钟内生效）" class="headerlink" title="紧急止血（5分钟内生效）"></a>紧急止血（5分钟内生效）</h3><p><strong>方案一：在FortiGate隧道接口上启用TCP MSS协商</strong></p>
+<p>这是最标准的修复方式，在VPN隧道接口上设置MSS Sender和MSS Receiver值，让FortiGate在TCP SYN&#x2F;SYN-ACK经过隧道时自动修改MSS值，将其限制在隧道MTU允许的范围内：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"># 华南 FortiGate</span><br><span class="line">config system interface</span><br><span class="line">    edit &quot;vpn-tunnel-HQ&quot;</span><br><span class="line">        set tcp-mss-sender 1396</span><br><span class="line">        set tcp-mss-receiver 1396</span><br><span class="line">    next</span><br><span class="line">end</span><br><span class="line"></span><br><span class="line"># 总部 FortiGate</span><br><span class="line">config system interface</span><br><span class="line">    edit &quot;vpn-tunnel-HN&quot;</span><br><span class="line">        set tcp-mss-sender 1396</span><br><span class="line">        set tcp-mss-receiver 1396</span><br><span class="line">    next</span><br><span class="line">end</span><br></pre></td></tr></table></figure>
+
+<p>MSS值计算：隧道MTU 1436 - 40(IP头+TCP头) &#x3D; 1396。设置后，FortiGate会在TCP SYN经过隧道接口时将MSS Option从1460修改为1396，确保双方协商出的最大段大小不超过隧道承载能力。</p>
+<p><strong>修改后立即生效</strong>，无需重启隧道，已有连接会在下次TCP握手时使用新MSS值。</p>
+<p><strong>方案二：释放IPS对ICMP Fragmentation Needed的拦截</strong></p>
+<p>同时修复IPS策略，放行必要的PMTU Discovery ICMP消息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"># 总部 FortiGate IPS Sensor配置</span><br><span class="line">config firewall ips-policy</span><br><span class="line">    edit &quot;default-ips&quot;</span><br><span class="line">        config rule</span><br><span class="line">            edit 1</span><br><span class="line">                set name &quot;allow-pmtu-icmp&quot;</span><br><span class="line">                set signature &quot;ICMP.DOS.FRGNeeded&quot;</span><br><span class="line">                set status disable</span><br><span class="line">                set log enable</span><br><span class="line">                set action pass</span><br><span class="line">            next</span><br><span class="line">        end</span><br><span class="line">    next</span><br><span class="line">end</span><br></pre></td></tr></table></figure>
+
+<p>将<code>ICMP.DOS.FRGNeeded</code>规则从Drop改为Pass，确保路径MTU发现的ICMP消息能正常传递。这是TCP PMTU Discovery机制正常工作的必要条件。</p>
+<h3 id="验证修复效果"><a href="#验证修复效果" class="headerlink" title="验证修复效果"></a>验证修复效果</h3><p>修改后从华南分公司测试：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"># Ping大包测试</span><br><span class="line">C:\Users\zhao&gt; ping 10.10.1.100 -l 1500 -n 10</span><br><span class="line">Reply from 10.10.1.100: bytes=1500 time=16ms TTL=62</span><br><span class="line">Reply from 10.10.1.100: bytes=1500 time=16ms TTL=62</span><br><span class="line"># 100%成功！</span><br><span class="line"></span><br><span class="line"># ERP访问测试——登录页面3秒内完整加载，菜单点击秒级响应</span><br><span class="line"></span><br><span class="line"># SCP大文件传输测试</span><br><span class="line">$ scp backup.tar.gz admin@10.10.1.50:/tmp/</span><br><span class="line">backup.tar.gz                                   100%   50MB  12.8MB/s   00:03</span><br><span class="line"># 正常完成！</span><br></pre></td></tr></table></figure>
+
+<h3 id="全量修复——所有分支机构VPN隧道"><a href="#全量修复——所有分支机构VPN隧道" class="headerlink" title="全量修复——所有分支机构VPN隧道"></a>全量修复——所有分支机构VPN隧道</h3><p>紧急修复华南后，立即对所有8个分支的VPN隧道接口统一配置MSS：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"># 批量配置脚本（总部侧）</span><br><span class="line">for tunnel in vpn-tunnel-HN vpn-tunnel-HD vpn-tunnel-HB vpn-tunnel-HX vpn-tunnel-HW vpn-tunnel-HN2 vpn-tunnel-HS vpn-tunnel-HNE; do</span><br><span class="line">    config system interface</span><br><span class="line">        edit &quot;$tunnel&quot;</span><br><span class="line">            set tcp-mss-sender 1396</span><br><span class="line">            set tcp-mss-receiver 1396</span><br><span class="line">        next</span><br><span class="line">    end</span><br><span class="line">done</span><br></pre></td></tr></table></figure>
+
+<p>并在每台分支FortiGate上同样配置对应的隧道接口。</p>
+<h2 id="根因分析"><a href="#根因分析" class="headerlink" title="根因分析"></a>根因分析</h2><p>问题的根本原因是 <strong>IPSec VPN隧道的MTU开销未被TCP层感知和适配</strong>，叠加 <strong>IPS策略误杀PMTU Discovery的ICMP消息</strong>，形成了”黑盒”效应：</p>
+<p><strong>核心根因一：TCP MSS未适配隧道MTU</strong></p>
+<p>IPSec ESP封装会在原始IP包外增加约42字节的头部开销，导致物理链路上可承载的有效载荷从1500字节降到约1458字节（考虑NAT-T UDP封装则更低）。但TCP层在握手时协商的MSS是基于直连网段MTU 1500计算得出的1460，完全不知道中间有一个MTU更低的隧道。FortiGate的隧道接口默认未开启MSS协商修改功能（tcp-mss-sender&#x2F;receiver&#x3D;0），导致这个信息鸿沟无法自动弥合。</p>
+<p><strong>核心根因二：IPS拦截ICMP Fragmentation Needed阻断PMTU发现</strong></p>
+<p>RFC 1191定义的Path MTU Discovery机制本应作为MSS协商的后备方案——当TCP包因DF位无法分片而被中间路由器丢弃时，路由器应返回ICMP Type 3 Code 4消息通知发送方降低包大小。但FortiGate的IPS默认规则将此类ICMP消息标记为潜在DOS攻击并丢弃，使得PMTU Discovery机制完全失效。</p>
+<p>两个根因叠加：TCP不知道隧道MTU限制（MSS过大），又无法通过ICMP得知自己发的包太大（PMTU Discovery被阻断），导致发送方陷入”盲重传”的死循环。</p>
+<h2 id="预防措施"><a href="#预防措施" class="headerlink" title="预防措施"></a>预防措施</h2><h3 id="1-标准化VPN隧道TCP-MSS配置"><a href="#1-标准化VPN隧道TCP-MSS配置" class="headerlink" title="1. 标准化VPN隧道TCP MSS配置"></a>1. 标准化VPN隧道TCP MSS配置</h3><p>制定VPN隧道配置标准，所有新建隧道接口必须设置MSS值：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># FortiGate VPN隧道MSS配置标准</span><br><span class="line">tcp-mss-sender = 隧道MTU - 40</span><br><span class="line">tcp-mss-receiver = 隧道MTU - 40</span><br><span class="line"># 常见值：</span><br><span class="line">#   IPSec ESP (无NAT-T)：MTU=1458 → MSS=1418</span><br><span class="line">#   IPSec ESP (NAT-T/UDP封装)：MTU=1436 → MSS=1396</span><br></pre></td></tr></table></figure>
+
+<p>将此标准纳入VPN隧道配置Checklist，新建或修改隧道时强制执行。</p>
+<h3 id="2-IPS策略优化——放行PMTU-Discovery-ICMP"><a href="#2-IPS策略优化——放行PMTU-Discovery-ICMP" class="headerlink" title="2. IPS策略优化——放行PMTU Discovery ICMP"></a>2. IPS策略优化——放行PMTU Discovery ICMP</h3><p>在所有FortiGate的IPS Sensor中，将以下ICMP规则从默认的Drop改为Pass或至少Disable：</p>
+<ul>
+<li><code>ICMP.DOS.FRGNeeded</code> (Type 3 Code 4 - Fragmentation Needed)</li>
+<li><code>ICMP.Info.SourceQuench</code> (Type 4 - Source Quench，虽已废弃但部分设备仍使用)</li>
+</ul>
+<p>这些ICMP消息是IP网络正常运行的必要组成部分，误杀它们会导致PMTU Discovery失效，远比所谓的DOS风险危害更大。</p>
+<h3 id="3-定期路径MTU探测巡检"><a href="#3-定期路径MTU探测巡检" class="headerlink" title="3. 定期路径MTU探测巡检"></a>3. 定期路径MTU探测巡检</h3><p>编写自动化巡检脚本，每周对所有VPN隧道执行路径MTU探测：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="comment"># pmtu_check.sh - VPN隧道路径MTU巡检</span></span><br><span class="line">BRANCHES=(<span class="string">&quot;10.20.1.0/24 华南&quot;</span> <span class="string">&quot;10.30.1.0/24 华东&quot;</span> ...)</span><br><span class="line">HQ_ERP=<span class="string">&quot;10.10.1.100&quot;</span></span><br><span class="line">ALERT_THRESHOLD=1400</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> branch <span class="keyword">in</span> <span class="string">&quot;<span class="variable">$&#123;BRANCHES[@]&#125;</span>&quot;</span>; <span class="keyword">do</span></span><br><span class="line">    network=$(<span class="built_in">echo</span> <span class="variable">$branch</span> | awk <span class="string">&#x27;&#123;print $1&#125;&#x27;</span>)</span><br><span class="line">    name=$(<span class="built_in">echo</span> <span class="variable">$branch</span> | awk <span class="string">&#x27;&#123;print $2&#125;&#x27;</span>)</span><br><span class="line">    gw=$(<span class="built_in">echo</span> <span class="variable">$network</span> | sed <span class="string">&#x27;s/0\/24/1/&#x27;</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 从分支网关探测路径MTU</span></span><br><span class="line">    pmtu=$(tracepath -n <span class="variable">$HQ_ERP</span> 2&gt;&amp;1 | grep <span class="string">&quot;pmtu&quot;</span> | <span class="built_in">tail</span> -1 | awk <span class="string">&#x27;&#123;print $NF&#125;&#x27;</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> [ <span class="string">&quot;<span class="variable">$pmtu</span>&quot;</span> -lt <span class="string">&quot;<span class="variable">$ALERT_THRESHOLD</span>&quot;</span> ]; <span class="keyword">then</span></span><br><span class="line">        <span class="built_in">echo</span> <span class="string">&quot;[ALERT] <span class="variable">$name</span> 隧道路径MTU异常: <span class="variable">$pmtu</span> (期望 &gt;= <span class="variable">$ALERT_THRESHOLD</span>)&quot;</span></span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="built_in">echo</span> <span class="string">&quot;[OK] <span class="variable">$name</span> 隧道路径MTU正常: <span class="variable">$pmtu</span>&quot;</span></span><br><span class="line">    <span class="keyword">fi</span></span><br><span class="line"><span class="keyword">done</span></span><br></pre></td></tr></table></figure>
+
+<p>当路径MTU低于阈值时自动告警，防止MSS配置被意外修改或隧道MTU因封装方式变化而降低。</p>
+<h3 id="4-网络变更流程纳入MTU审查"><a href="#4-网络变更流程纳入MTU审查" class="headerlink" title="4. 网络变更流程纳入MTU审查"></a>4. 网络变更流程纳入MTU审查</h3><p>在FortiGate配置变更审批流程中加入MTU&#x2F;MSS审查环节：</p>
+<ul>
+<li>新增VPN隧道 → 必须检查MSS配置</li>
+<li>更改IPSec封装方式（如从ESP改为ESP+UDP封装）→ 重新计算MSS值</li>
+<li>修改IPS策略 → 检查是否影响PMTU Discovery ICMP放行</li>
+<li>更换ISP或链路类型 → 测试路径MTU是否变化</li>
+</ul>
+<h3 id="5-文档化MTU计算方法"><a href="#5-文档化MTU计算方法" class="headerlink" title="5. 文档化MTU计算方法"></a>5. 文档化MTU计算方法</h3><p>编写内部网络运维手册中的MTU计算章节，记录所有VPN隧道的：</p>
+<table>
+<thead>
+<tr>
+<th>隧道名称</th>
+<th>封装方式</th>
+<th>预留开销</th>
+<th>隧道MTU</th>
+<th>MSS值</th>
+<th>物理接口MTU</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>vpn-HN</td>
+<td>ESP+NAT-T</td>
+<td>64字节</td>
+<td>1436</td>
+<td>1396</td>
+<td>1500</td>
+</tr>
+<tr>
+<td>vpn-HD</td>
+<td>ESP</td>
+<td>42字节</td>
+<td>1458</td>
+<td>1418</td>
+<td>1500</td>
+</tr>
+</tbody></table>
+<p>让每位运维工程师都能快速查阅和计算正确的MSS值。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>这次故障的排查给我留下了深刻的教训：</p>
+<p><strong>教训一：Ping通不代表网络通。</strong> Ping只是ICMP小包测试，它能证明链路可达，但完全不能证明大包传输能力。在涉及VPN隧道的故障排查中，必须用不同大小的Ping包（<code>ping -l 1500</code>）或<code>tracepath</code>进行路径MTU探测，才能发现隐藏的MTU问题。</p>
+<p><strong>教训二：MTU&#x2F;MSS不匹配是VPN环境的”经典杀手”。</strong> IPSec封装带来的MTU缩减是必然的、可计算的，但TCP层对此毫不知情。如果不主动在隧道接口配置MSS协商修改，就等于让TCP盲目发送超大数据包，轻则分片降速，重则完全卡死。这是VPN运维的基本功课，不能等出事了才补。</p>
+<p><strong>教训三：IPS策略不能一刀切地拦截ICMP。</strong> 安全策略的”拦截一切ICMP”看似防御了ICMP-based DOS攻击，实则破坏了PMTU Discovery这一网络基础机制。安全与可用必须平衡，对于RFC定义的必要ICMP消息（Fragmentation Needed、Time Exceeded等），必须放行。</p>
+<p><strong>教训四：故障排查要善于利用”小包通、大包不通”这个特征。</strong> 当你发现小请求能成功但大数据传输失败，或者Ping通但应用不通，第一反应就应该是检查MTU&#x2F;MSS。这个特征太过典型，不必浪费时间去查服务器性能、应用日志、路由表——直接从MTU入手往往能最快定位。</p>
+<p>最终，一个1436的隧道MTU和未设置的MSS参数，加上一条过于激进的IPS规则，三者合力制造了一个”Ping正常但业务瘫痪”的经典假象。修复只需两行配置，但理解它需要整个IP&#x2F;TCP栈的知识。运维不只是改配置，更是理解协议。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>Maskbugzero
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.5772447.xyz/posts/de113360/" title="一次IPSec VPN隧道因MTU不匹配导致ERP系统远程访问异常的排查实录">https://blog.5772447.xyz/posts/de113360/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by/4.0/deed.zh" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" rel="tag"># 网络运维</a>
+              <a href="/tags/FortiGate/" rel="tag"># FortiGate</a>
+              <a href="/tags/VPN/" rel="tag"># VPN</a>
+              <a href="/tags/IPSec/" rel="tag"># IPSec</a>
+              <a href="/tags/MTU/" rel="tag"># MTU</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/posts/d8bfb5f0/" rel="prev" title="一次Kafka消费者Rebalance风暴导致业务数据延迟2小时的排查实录">
+                  <i class="fa fa-angle-left"></i> 一次Kafka消费者Rebalance风暴导致业务数据延迟2小时的排查实录
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2021 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">Maskbugzero</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">60k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">3:37</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
