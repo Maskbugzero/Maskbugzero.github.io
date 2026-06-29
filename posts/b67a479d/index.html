@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.5772447.xyz","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="RADIUS服务器的EAP-TLS根证书过期未及时轮换，2000+终端无线和802.1X有线同时认证失败，通过证书链分析、CRL吊销列表兼容、自动化轮换根治">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一次RADIUS服务器EAP-TLS证书过期导致全公司802.1X认证大规模掉线的排查实录">
+<meta property="og:url" content="https://blog.5772447.xyz/posts/b67a479d/index.html">
+<meta property="og:site_name" content="Zero Day Notes">
+<meta property="og:description" content="RADIUS服务器的EAP-TLS根证书过期未及时轮换，2000+终端无线和802.1X有线同时认证失败，通过证书链分析、CRL吊销列表兼容、自动化轮换根治">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-06-29T23:00:00.000Z">
+<meta property="article:modified_time" content="2026-06-29T23:00:00.000Z">
+<meta property="article:author" content="Maskbugzero">
+<meta property="article:tag" content="网络运维">
+<meta property="article:tag" content="RADIUS">
+<meta property="article:tag" content="EAP-TLS">
+<meta property="article:tag" content="802.1X">
+<meta property="article:tag" content="证书过期">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/b67a479d/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.5772447.xyz/posts/b67a479d/","path":"posts/b67a479d/","title":"一次RADIUS服务器EAP-TLS证书过期导致全公司802.1X认证大规模掉线的排查实录"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>一次RADIUS服务器EAP-TLS证书过期导致全公司802.1X认证大规模掉线的排查实录 | Zero Day Notes</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VGE8FYNHE7"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-VGE8FYNHE7","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Zero Day Notes</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Life Oriented Programming</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">问题背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%85%E9%9A%9C%E7%8E%B0%E8%B1%A1"><span class="nav-number">2.</span> <span class="nav-text">故障现象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%92%E6%9F%A5%E8%BF%87%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">排查过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E9%98%B6%E6%AE%B5%EF%BC%9A%E7%8E%B0%E5%9C%BA%E7%A1%AE%E8%AE%A4%E8%8C%83%E5%9B%B4"><span class="nav-number">3.1.</span> <span class="nav-text">第一阶段：现场确认范围</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E9%98%B6%E6%AE%B5%EF%BC%9A%E5%AE%9A%E4%BD%8D%E5%85%B7%E4%BD%93%E9%94%99%E8%AF%AF%E5%8E%9F%E5%9B%A0"><span class="nav-number">3.2.</span> <span class="nav-text">第二阶段：定位具体错误原因</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%89%E9%98%B6%E6%AE%B5%EF%BC%9A%E7%A1%AE%E8%AE%A4%E6%89%80%E6%9C%89%E5%85%B3%E8%81%94%E8%AF%81%E4%B9%A6%E7%8A%B6%E6%80%81"><span class="nav-number">3.3.</span> <span class="nav-text">第三阶段：确认所有关联证书状态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E5%9B%9B%E9%98%B6%E6%AE%B5%EF%BC%9A%E7%B4%A7%E6%80%A5%E6%AD%A2%E8%A1%80"><span class="nav-number">3.4.</span> <span class="nav-text">第四阶段：紧急止血</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%94%E9%98%B6%E6%AE%B5%EF%BC%9A%E9%95%BF%E6%9C%9F%E8%A7%A3%E5%86%B3-%E8%87%AA%E5%8A%A8%E5%8C%96%E8%AF%81%E4%B9%A6%E8%BD%AE%E6%8D%A2"><span class="nav-number">3.5.</span> <span class="nav-text">第五阶段：长期解决 - 自动化证书轮换</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E7%94%A8-AD-CS-%E6%9B%BF%E4%BB%A3%E8%87%AA%E5%BB%BA-OpenSSL-%E7%AD%BE%E5%8F%91"><span class="nav-number">3.5.1.</span> <span class="nav-text">1. 用 AD CS 替代自建 OpenSSL 签发</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E5%86%99-cron-%E8%87%AA%E5%8A%A8%E5%8C%96%E7%BB%AD%E7%AD%BE-%E9%83%A8%E7%BD%B2"><span class="nav-number">3.5.2.</span> <span class="nav-text">2. 写 cron 自动化续签 + 部署</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-%E7%BB%88%E7%AB%AF%E4%BE%A7%EF%BC%9A%E4%BD%BF%E7%94%A8-SCEP-NDES-%E8%87%AA%E5%8A%A8%E6%B3%A8%E5%86%8C"><span class="nav-number">3.5.3.</span> <span class="nav-text">3. 终端侧：使用 SCEP&#x2F;NDES 自动注册</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">4.</span> <span class="nav-text">解决方案</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B9%E5%9B%A0%E5%88%86%E6%9E%90"><span class="nav-number">5.</span> <span class="nav-text">根因分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A2%84%E9%98%B2%E6%8E%AA%E6%96%BD"><span class="nav-number">6.</span> <span class="nav-text">预防措施</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">7.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Maskbugzero"
+      src="/images/touxiang.jpg">
+  <p class="site-author-name" itemprop="name">Maskbugzero</p>
+  <div class="site-description" itemprop="description">人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">45</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">34</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">106</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Maskbugzero" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Maskbugzero" rel="noopener me external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.5772447.xyz/posts/b67a479d/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/touxiang.jpg">
+      <meta itemprop="name" content="Maskbugzero">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zero Day Notes">
+      <meta itemprop="description" content="人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="一次RADIUS服务器EAP-TLS证书过期导致全公司802.1X认证大规模掉线的排查实录 | Zero Day Notes">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          一次RADIUS服务器EAP-TLS证书过期导致全公司802.1X认证大规模掉线的排查实录
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-06-30 07:00:00" itemprop="dateCreated datePublished" datetime="2026-06-30T07:00:00+08:00">2026-06-30</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">运维</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">网络运维</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.5k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>13 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h2><p>公司办公网采用 802.1X 认证，无线和有线全部走 FreeRADIUS + Microsoft AD CS 颁发的 EAP-TLS 客户端证书，三年前由前同事搭建，当时写了个 <code>openssl</code> 一键生成脚本签了 10 年期的自建 CA，所有终端的根证书、FreeRADIUS 服务器证书、客户端证书全部挂在这棵 CA 下。</p>
+<p>2026 年 6 月 28 日上午 9 点 47 分开始，全公司 8 栋办公楼先后出现大规模无线断连和有线认证失败，研发部门、客服中心、工厂车间反馈最为集中。Zabbix 上 AP 的认证成功率从 99.6% 直线掉到 23%，无线控制器每秒钟有 400+ 重新认证请求堆积。我们的 2000+ 员工终端、IoT 设备、IP 电话几乎全部受影响，初步估计单是业务停滞损失每小时就在十万级别。事故发生前一周，刚好有同事反馈”Windows 提示网络证书有问题”，但当时没人在意——这就是典型的预警被忽视引发的连锁反应。</p>
+<h2 id="故障现象"><a href="#故障现象" class="headerlink" title="故障现象"></a>故障现象</h2><p>9 点 47 分开始，IT 群开始密集弹消息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">【研发2部-工位A12】电脑右下角弹&quot;无法连接到网络 WiFi&quot;</span><br><span class="line">【研发2部-工位A13】重连失败，提示&quot;无法验证服务器身份&quot;</span><br><span class="line">【客服中心】IP电话全部掉线，话机显示注册失败</span><br><span class="line">【6楼车间】扫码枪连不上AP，无法作业</span><br><span class="line">【财务部】连有线网提示&quot;无法完成身份验证&quot;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>无线场景</strong>：手机和笔记本弹出”无法验证服务器身份 &#x2F; Unable to verify server identity”，但 SSID 还是能搜到，点击连接后直接失败</li>
+<li><strong>有线场景</strong>：插了网线的工位弹出黄色感叹号，登录界面反复弹出要求输入域账号但怎么输都通不过</li>
+<li><strong>IoT 设备</strong>：IP 电话、扫码枪、门禁设备、打印机几乎全部离线</li>
+</ul>
+<p>抓包看无线控制器上的 Radius 报文：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[FreeRADIUS log] (5) eap_tls: ERROR: TLS Alert read:fatal:certificate unknown</span><br><span class="line">[FreeRADIUS log] (5) eap_tls: ERROR: TLS_accept: Failed in unknown state</span><br><span class="line">[FreeRADIUS log] (5) eap: ERROR: Failed continuing EAP TLS (13) session</span><br><span class="line">[FreeRADIUS log] (5)     [eap] = reject</span><br><span class="line">[FreeRADIUS log] (5)   [authz] = reject</span><br><span class="line">[FreeRADIUS log] (5) Auth: (5) Login incorrect (eap_tls: Failed to verify certificate):</span><br><span class="line">[FreeRADIUS log] (5) &#125; # server outer-eappeap-inner-tls &#123; ... &#125;</span><br></pre></td></tr></table></figure>
+
+<p>而前一天最后一次成功的认证日志时间戳是 6 月 27 日 23:58:14。问题集中在上午 9 点 47 分之后，<strong>所有</strong>终端都无法完成 EAP-TLS 握手。</p>
+<h2 id="排查过程"><a href="#排查过程" class="headerlink" title="排查过程"></a>排查过程</h2><h3 id="第一阶段：现场确认范围"><a href="#第一阶段：现场确认范围" class="headerlink" title="第一阶段：现场确认范围"></a>第一阶段：现场确认范围</h3><p>第一反应是 Radius 服务挂了，先用 SSH 登入两台 FreeRADIUS 节点查看服务状态：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># radius01 和 radius02 是 FreeRADIUS 主备集群</span></span><br><span class="line">ssh radius01 <span class="string">&quot;systemctl status freeradius | head -20&quot;</span></span><br><span class="line"><span class="comment"># ● freeradius.service - FreeRADIUS multi-protocol policy server</span></span><br><span class="line"><span class="comment">#    Active: active (running) since Mon 2024-01-15 14:22:08 CST</span></span><br><span class="line"><span class="comment"># 一切正常</span></span><br><span class="line"></span><br><span class="line">ssh radius01 <span class="string">&quot;radtest test test 127.0.0.1 0 testing123&quot;</span></span><br><span class="line"><span class="comment"># Received Access-Reject</span></span><br><span class="line"><span class="comment"># 嗯,本机 PAP 测试也失败</span></span><br></pre></td></tr></table></figure>
+
+<p>这个 PAP 测试失败很关键——这意味着<strong>不是网络问题、不是设备问题，是 FreeRADIUS 本身拒绝认证</strong>。如果 Radius 进程崩溃、配置错误，至少本地 <code>radtest</code> 应该成功。</p>
+<h3 id="第二阶段：定位具体错误原因"><a href="#第二阶段：定位具体错误原因" class="headerlink" title="第二阶段：定位具体错误原因"></a>第二阶段：定位具体错误原因</h3><p>打开 FreeRADIUS 的详细日志模式：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ssh radius01 <span class="string">&quot;radiusd -X 2&gt;&amp;1 | tee /tmp/radius-debug.log&quot;</span> &amp;</span><br><span class="line"><span class="comment"># 模拟一次无线认证</span></span><br><span class="line">radtest user@corp password 10.1.1.100 0 testing123</span><br></pre></td></tr></table></figure>
+
+<p>详细日志关键片段：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">(1) eap_tls: ERROR: SSL says error 10 : certificate has expired</span><br><span class="line">(1) eap_tls: ERROR: TLS Alert write:fatal:certificate expired</span><br><span class="line">(1) eap: ERROR: Failed continuing EAP TLS (13) session</span><br><span class="line">(1)     [eap] = reject</span><br></pre></td></tr></table></figure>
+
+<p><strong>根因锁定：RADIUS 服务器上 EAP-TLS 链路用的证书已经过期</strong>。这个证书就是 FreeRADIUS 服务器证书，是当年用自建 CA 签的，签发 10 年有效期，已经在 6 月 28 日 00:00:00 过期。</p>
+<h3 id="第三阶段：确认所有关联证书状态"><a href="#第三阶段：确认所有关联证书状态" class="headerlink" title="第三阶段：确认所有关联证书状态"></a>第三阶段：确认所有关联证书状态</h3><p>接下来要查清楚：到底过期了哪几张证书，根 CA 有没有一起过期：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">ssh radius01 <span class="string">&quot;ls -la /etc/freeradius/certs/&quot;</span></span><br><span class="line"><span class="comment"># total 64</span></span><br><span class="line"><span class="comment"># -rw-r--r-- 1 root root 2151 Jun 15 2024 ca.pem       # CA 根证书</span></span><br><span class="line"><span class="comment"># -rw-r--r-- 1 root root 2200 Jun 15 2024 server.pem   # Radius 服务器证书</span></span><br><span class="line"><span class="comment"># -rw-r--r-- 1 root root 2151 Jun 15 2024 server.crt</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看每张证书的过期时间</span></span><br><span class="line"><span class="keyword">for</span> cert <span class="keyword">in</span> /etc/freeradius/certs/&#123;ca,server&#125;.pem; <span class="keyword">do</span></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;=== <span class="variable">$cert</span> ===&quot;</span></span><br><span class="line">  openssl x509 -<span class="keyword">in</span> <span class="variable">$cert</span> -noout -dates -subject -issuer</span><br><span class="line"><span class="keyword">done</span></span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">=== /etc/freeradius/certs/ca.pem ===</span><br><span class="line">notBefore=Jun 15 14:22:08 2024 GMT</span><br><span class="line">notAfter =Jun 15 14:22:08 2034 GMT        # 根 CA 还有 8 年</span><br><span class="line">subject= /CN=Corp Internal CA</span><br><span class="line">issuer=  /CN=Corp Internal CA            # 自签根</span><br><span class="line"></span><br><span class="line">=== /etc/freeradius/certs/server.pem ===</span><br><span class="line">notBefore=Jun 15 14:22:08 2024 GMT</span><br><span class="line">notAfter =Jun 15 14:22:08 2026 GMT        # 昨天 00:00 过期！</span><br><span class="line">subject= /CN=radius.corp.example.com</span><br><span class="line">issuer=  /CN=Corp Internal CA            # 由上面这个 CA 签发</span><br></pre></td></tr></table></figure>
+
+<p>一目了然：<strong>根 CA 还在有效期，但服务器证书是 2 年前生成时签了 2 年（前面写的 10 年期是 CA 本身），server.pem 在 6 月 28 日 00:00 过期</strong>。我之前对脚本记忆有误，所以忽视了 Server 证书本身的 2 年有效期。</p>
+<p>更糟糕的是，这个 server.pem 同时被三处使用：</p>
+<ol>
+<li>FreeRADIUS 主配置文件 <code>/etc/freeradius/eap.conf</code> 和 <code>mods-available/eap</code></li>
+<li>FreeRADIUS 的客户端工具（用于向 AD CS 申请证书的 SCEP 接口）</li>
+<li><strong>AD CS 上挂的 Web Enrollment &#x2F; OCSP 服务也用了同一张证书做 SSL 绑定</strong></li>
+</ol>
+<h3 id="第四阶段：紧急止血"><a href="#第四阶段：紧急止血" class="headerlink" title="第四阶段：紧急止血"></a>第四阶段：紧急止血</h3><p>完全处理需要重新签发服务器证书、推送新的 CA&#x2F;服务器证书到 2000+ 终端，过程需要数小时。在此之前先用 OpenSSL 临时续签一张短期证书：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 在 radius01 上生成 CSR，向自建 CA 申请一张 30 天短期证书用于止血</span></span><br><span class="line"><span class="built_in">cd</span> /etc/freeradius/certs</span><br><span class="line">openssl req -new -key server.key -out server.csr \</span><br><span class="line">  -subj <span class="string">&quot;/CN=radius.corp.example.com&quot;</span> \</span><br><span class="line">  -addext <span class="string">&quot;subjectAltName=DNS:radius.corp.example.com,DNS:radius01.corp.example.com,IP:10.1.1.100&quot;</span></span><br><span class="line"></span><br><span class="line">openssl x509 -req -<span class="keyword">in</span> server.csr -CA ca.pem -CAkey ca.key \</span><br><span class="line">  -CAcreateserial -out server.pem -days 30 \</span><br><span class="line">  -sha256 -extfile &lt;(<span class="built_in">printf</span> <span class="string">&quot;subjectAltName=DNS:radius.corp.example.com,DNS:radius01.corp.example.com,IP:10.1.1.100&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<p>然后重启 FreeRADIUS：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ssh radius02 <span class="string">&quot;systemctl restart freeradius&quot;</span></span><br><span class="line">ssh radius01 <span class="string">&quot;systemctl restart freeradius&quot;</span></span><br><span class="line"><span class="comment"># 重新测试</span></span><br><span class="line">radtest <span class="built_in">test</span> <span class="built_in">test</span> 127.0.0.1 0 testing123</span><br><span class="line"><span class="comment"># Received Access-Accept</span></span><br></pre></td></tr></table></figure>
+
+<p>但这只是 FreeRADIUS 这一端，<strong>终端上的根 CA 信任链没变</strong>——终端有之前手工导入的根 CA，CA 还在有效期，<strong>EAP-TLS 客户端对服务器证书的校验会校验 issuer 链 + 过期时间</strong>。新签的 30 天证书由同一个 CA 签发，CA 链没变，所以理论上<strong>已部署过 CA 根证书的终端不需要重新安装 CA</strong>。</p>
+<p>可是事实是<strong>无线终端还是连不上</strong>！继续抓 FreeRADIUS 详细日志：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">(1) eap_tls: ERROR: SSL says error 26 : unsupported certificate purpose</span><br><span class="line">(1) eap_tls: ERROR: TLS Alert write:fatal:unsupported certificate</span><br></pre></td></tr></table></figure>
+
+<p>新问题！原因是脚本里签证书时没加 <code>extendedKeyUsage=serverAuth</code> 扩展：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 第一次签发的命令</span></span><br><span class="line">openssl x509 -req -<span class="keyword">in</span> server.csr -CA ca.pem -CAkey ca.key \</span><br><span class="line">  -CAcreateserial -out server.pem -days 30 -sha256</span><br><span class="line"><span class="comment"># 没有 extfile 参数</span></span><br></pre></td></tr></table></figure>
+
+<p>正确的签发方式需要加 EKU 扩展：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> &gt; /tmp/extfile.cnf &lt;&lt;<span class="string">&#x27;EOF&#x27;</span></span><br><span class="line">extendedKeyUsage = serverAuth, clientAuth</span><br><span class="line">subjectAltName = DNS:radius.corp.example.com, DNS:radius01.corp.example.com, IP:10.1.1.100</span><br><span class="line">EOF</span><br><span class="line"></span><br><span class="line">openssl x509 -req -<span class="keyword">in</span> server.csr -CA ca.pem -CAkey ca.key \</span><br><span class="line">  -CAcreateserial -out server.pem -days 30 \</span><br><span class="line">  -sha256 -extfile /tmp/extfile.cnf</span><br></pre></td></tr></table></figure>
+
+<p>再次重启后 FreeRADIUS 正常签出 <code>Received Access-Accept</code>，<strong>已信任 CA 根证书的终端陆续恢复</strong>。</p>
+<h3 id="第五阶段：长期解决-自动化证书轮换"><a href="#第五阶段：长期解决-自动化证书轮换" class="headerlink" title="第五阶段：长期解决 - 自动化证书轮换"></a>第五阶段：长期解决 - 自动化证书轮换</h3><p>30 天临时证书只是续命。要根治，必须做完整的自动化证书轮换：</p>
+<h4 id="1-用-AD-CS-替代自建-OpenSSL-签发"><a href="#1-用-AD-CS-替代自建-OpenSSL-签发" class="headerlink" title="1. 用 AD CS 替代自建 OpenSSL 签发"></a>1. 用 AD CS 替代自建 OpenSSL 签发</h4><figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># radius01 申请新证书时使用 certreq</span></span><br><span class="line"><span class="variable">$inf</span> = <span class="string">@&quot;</span></span><br><span class="line"><span class="string">[Version]</span></span><br><span class="line"><span class="string">Signature = &quot;`$Windows NT`$&quot;</span></span><br><span class="line"><span class="string">[NewRequest]</span></span><br><span class="line"><span class="string">Subject = &quot;CN=radius.corp.example.com&quot;</span></span><br><span class="line"><span class="string">KeySpec = 1</span></span><br><span class="line"><span class="string">KeyLength = 2048</span></span><br><span class="line"><span class="string">Exportable = TRUE</span></span><br><span class="line"><span class="string">MachineKeySet = TRUE</span></span><br><span class="line"><span class="string">SMIME = FALSE</span></span><br><span class="line"><span class="string">PrivateKeyArchive = FALSE</span></span><br><span class="line"><span class="string">UserProtected = FALSE</span></span><br><span class="line"><span class="string">UseExistingKeySet = FALSE</span></span><br><span class="line"><span class="string">ProviderName = &quot;Microsoft RSA SChannel Cryptographic Provider&quot;</span></span><br><span class="line"><span class="string">ProviderType = 12</span></span><br><span class="line"><span class="string">RequestType = PKCS10</span></span><br><span class="line"><span class="string">KeyUsage = 0xa0</span></span><br><span class="line"><span class="string">HashAlgorithm = SHA256</span></span><br><span class="line"><span class="string">[EnhancedKeyUsageExtension]</span></span><br><span class="line"><span class="string">OID = 1.3.6.1.5.5.7.3.1  ; Server Authentication</span></span><br><span class="line"><span class="string">OID = 1.3.6.1.5.5.7.3.2  ; Client Authentication</span></span><br><span class="line"><span class="string">[Extensions]</span></span><br><span class="line"><span class="string">2.5.29.17 = &quot;&#123;text&#125;&quot;</span></span><br><span class="line"><span class="string">_continue_ = &quot;dns= radius.corp.example.com&amp;&quot;</span></span><br><span class="line"><span class="string">_continue_ = &quot;dns= radius01.corp.example.com&amp;&quot;</span></span><br><span class="line"><span class="string">_continue_ = &quot;ipaddress= 10.1.1.100&amp;&quot;</span></span><br><span class="line"><span class="string">[RequestAttributes]</span></span><br><span class="line"><span class="string">CertificateTemplate = RadiusServerTemplate</span></span><br><span class="line"><span class="string">&quot;@</span></span><br><span class="line"><span class="variable">$inf</span> | <span class="built_in">Out-File</span> <span class="literal">-Encoding</span> ASCII C:\radius01.inf</span><br><span class="line">certreq <span class="literal">-new</span> C:\radius01.inf C:\radius01.req</span><br><span class="line">certreq <span class="literal">-submit</span> C:\radius01.req C:\radius01.cer</span><br><span class="line">certreq <span class="literal">-accept</span> C:\radius01.cer</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-写-cron-自动化续签-部署"><a href="#2-写-cron-自动化续签-部署" class="headerlink" title="2. 写 cron 自动化续签 + 部署"></a>2. 写 cron 自动化续签 + 部署</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="comment"># /usr/local/sbin/radius-cert-renew.sh</span></span><br><span class="line"><span class="comment"># 每 30 天提前 60 天轮换，确保证书永远不会过 60 天有效期</span></span><br><span class="line">DAYS_BEFORE_EXPIRY=60</span><br><span class="line">CERT_PATH=<span class="string">&quot;/etc/freeradius/certs/server.pem&quot;</span></span><br><span class="line">THUMBPRINT=$(openssl x509 -<span class="keyword">in</span> <span class="variable">$CERT_PATH</span> -noout -fingerprint -sha256 | <span class="built_in">cut</span> -d= -f2)</span><br><span class="line">EXPIRY=$(openssl x509 -<span class="keyword">in</span> <span class="variable">$CERT_PATH</span> -noout -enddate | <span class="built_in">cut</span> -d= -f2)</span><br><span class="line">EXPIRY_EPOCH=$(<span class="built_in">date</span> -d <span class="string">&quot;<span class="variable">$EXPIRY</span>&quot;</span> +%s)</span><br><span class="line">NOW_EPOCH=$(<span class="built_in">date</span> +%s)</span><br><span class="line">DAYS_LEFT=$(( (EXPIRY_EPOCH - NOW_EPOCH) / <span class="number">86400</span> ))</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> [ <span class="variable">$DAYS_LEFT</span> -gt <span class="variable">$DAYS_BEFORE_EXPIRY</span> ]; <span class="keyword">then</span></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;[OK] 证书还有 <span class="variable">$DAYS_LEFT</span> 天，无需续签&quot;</span></span><br><span class="line">  <span class="built_in">exit</span> 0</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;[WARN] 证书还有 <span class="variable">$DAYS_LEFT</span> 天，开始续签流程&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 1. 备份旧证书</span></span><br><span class="line"><span class="built_in">cp</span> -a <span class="variable">$CERT_PATH</span> <span class="variable">$&#123;CERT_PATH&#125;</span>.bak-$(<span class="built_in">date</span> +%Y%m%d)</span><br><span class="line"><span class="built_in">cp</span> -a /etc/freeradius/certs/server.key /etc/freeradius/certs/server.key.bak-$(<span class="built_in">date</span> +%Y%m%d)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 通过 certreq 申请（需要 winexe 调 Windows 端 certreq）</span></span><br><span class="line">winexe -U corp\\admin%password //radius01 <span class="string">&quot;cmd /c certreq -enroll -machine RadiusServerTemplate&quot;</span> 2&gt;/dev/null</span><br><span class="line"><span class="comment"># 把新证书导出到 Linux</span></span><br><span class="line">smbclient //radius01/c$ -U corp\\admin%password -c <span class="string">&quot;cd \ProgramData\Microsoft\Crypto\RSA\MachineKeys; ls&quot;</span> &gt; /dev/null</span><br><span class="line"><span class="comment"># ...省略实际取回流程</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 重启 FreeRADIUS</span></span><br><span class="line">systemctl restart freeradius</span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. 验证</span></span><br><span class="line"><span class="built_in">sleep</span> 5</span><br><span class="line">radtest <span class="built_in">test</span> <span class="built_in">test</span> 127.0.0.1 0 testing123 &amp;&amp; <span class="built_in">echo</span> <span class="string">&quot;[OK] 续签完成并通过测试&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="3-终端侧：使用-SCEP-NDES-自动注册"><a href="#3-终端侧：使用-SCEP-NDES-自动注册" class="headerlink" title="3. 终端侧：使用 SCEP&#x2F;NDES 自动注册"></a>3. 终端侧：使用 SCEP&#x2F;NDES 自动注册</h4><p>旧流程是 IT 同事手工给每台电脑装 CA 根证书，效率低且容易漏装。改用 NDES + Intune SCEP：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Intune SCEP 策略自动向 AD CS 申请客户端证书并推送</span></span><br><span class="line"><span class="comment"># 设备配置 - 配置文件 - SCEP 证书</span></span><br><span class="line"><span class="comment"># 证书类型: 设备</span></span><br><span class="line"><span class="comment"># Subject Name Format: CN=&#123;&#123;DeviceId&#125;&#125;,CN=&#123;&#123;AAD_Device_ID&#125;&#125;</span></span><br><span class="line"><span class="comment"># SAN: URI=&#123;&#123;DeviceId&#125;&#125;</span></span><br><span class="line"><span class="comment"># Key Usage: KeyEncipherment, DigitalSignature</span></span><br><span class="line"><span class="comment"># Key Size: 2048</span></span><br><span class="line"><span class="comment"># Hash Algorithm: SHA-2</span></span><br><span class="line"><span class="comment"># Extended Key Usage: 1.3.6.1.5.5.7.3.2  (Client Auth)</span></span><br><span class="line"><span class="comment"># SCEP Server URLs: https://ndes.corp<span class="doctag">.example</span>.com/certsrv/mscep/mscep.dll</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><p>最终落地的方案分三层：</p>
+<p><strong>止血阶段</strong>（T+0 ~ 30 分钟）：在 FreeRADIUS 上用 OpenSSL + 自建 CA 临时签发 30 天带 <code>extendedKeyUsage=serverAuth,clientAuth</code> 和 <code>subjectAltName</code> 的服务器证书，重启服务后约 70% 已部署 CA 根证书的终端自动恢复，剩下 30% 是历史装机从未导入过 CA 的工位机，由现场 IT 同事手工导入。</p>
+<p><strong>短期修复</strong>（T+1 ~ 2 周）：将 FreeRADIUS 证书切到 AD CS 颁发的 5 年期 RadiusServerTemplate 证书（受 5 年 CA 模板限制），由 certreq 自动续签脚本每 30 天检查并续签，提前 60 天主动轮换，避免再出现凌晨过期无人值守的情况。</p>
+<p><strong>长期根治</strong>（T+1 ~ 2 月）：</p>
+<ol>
+<li><strong>CA 侧</strong>：把自建 OpenSSL CA 整个迁移到企业 AD CS，使用 5 年期 <code>SubCA</code> 模板并启用 autoenroll，所有 2000+ 终端通过 GPO 自动注册 <code>RootCA</code> 信任</li>
+<li><strong>客户端侧</strong>：IoT 设备、扫码枪、IP 电话改为 SCEP 自动注册客户端证书，免去手工导入</li>
+<li><strong>监控侧</strong>：在 Zabbix 上添加对 <code>/etc/freeradius/certs/*.pem</code> 的扫描，所有证书剩余有效期 &lt; 90 天的都触发告警，证书清单每周发邮件给安全组</li>
+<li><strong>流程侧</strong>：建立”证书生命周期”维基页面，所有证书的签发日期、到期日期、负责人、轮换 SOP 一目了然，离到期 90&#x2F;60&#x2F;30&#x2F;7 天分别触发不同级别告警</li>
+</ol>
+<h2 id="根因分析"><a href="#根因分析" class="headerlink" title="根因分析"></a>根因分析</h2><p>深挖下来，这次事故有四个相互独立的根因叠加：</p>
+<ol>
+<li><strong>EAP-TLS 服务器证书的有效期被脚本写死成 2 年</strong>，而前同事把这个脚本注释为”自建 CA 10 年期”，导致后续接手的人（包括我）误以为整套体系都是 10 年一换</li>
+<li><strong>没有任何证书过期监控</strong>，Zabbix 监控的是 Radius 服务进程存活、AP 认证成功率，但<strong>没人意识到”证书”也是一种需要监控的资源</strong></li>
+<li><strong>历史装机太松散</strong>，CA 根证书在客户端没有强制 GPO 推送，部分工位机是当年实习生手工装的，证书已经丢&#x2F;坏，并且这个状态在 AP 重新认证时才暴露</li>
+<li><strong>缺乏证书全生命周期管理流程</strong>，没有 PKI 文档、没有续签 SOP、没有 SCEP&#x2F;NDES 这种”证书可以自动过期和续签”的设计，本质上还是手工运维的思路在管理 CA</li>
+</ol>
+<h2 id="预防措施"><a href="#预防措施" class="headerlink" title="预防措施"></a>预防措施</h2><p>基于这次踩坑，建立了下面这套预防体系：</p>
+<p><strong>1. 证书全生命周期管理系统</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 每周日凌晨 3 点扫描所有 Radius/网关证书，邮件给安全组</span></span><br><span class="line"><span class="comment">#!/bin/bash</span></span><br><span class="line"><span class="comment"># /usr/local/sbin/cert-watchdog.sh</span></span><br><span class="line">RECIPIENT=<span class="string">&quot;security-team@corp.example.com&quot;</span></span><br><span class="line">WARN_DAYS=90</span><br><span class="line">CRITICAL_DAYS=30</span><br><span class="line">CERT_DIRS=(<span class="string">&quot;/etc/freeradius/certs&quot;</span> <span class="string">&quot;/etc/nginx/ssl&quot;</span> <span class="string">&quot;/etc/strongswan/ipsec.d&quot;</span>)</span><br><span class="line"></span><br><span class="line">REPORT=<span class="string">&quot;&quot;</span></span><br><span class="line"><span class="keyword">for</span> <span class="built_in">dir</span> <span class="keyword">in</span> <span class="string">&quot;<span class="variable">$&#123;CERT_DIRS[@]&#125;</span>&quot;</span>; <span class="keyword">do</span></span><br><span class="line">  <span class="keyword">for</span> cert <span class="keyword">in</span> <span class="variable">$dir</span>/*.pem <span class="variable">$dir</span>/*.crt; <span class="keyword">do</span></span><br><span class="line">    [ -f <span class="string">&quot;<span class="variable">$cert</span>&quot;</span> ] || <span class="built_in">continue</span></span><br><span class="line">    EXPIRY=$(openssl x509 -<span class="keyword">in</span> <span class="string">&quot;<span class="variable">$cert</span>&quot;</span> -noout -enddate 2&gt;/dev/null | <span class="built_in">cut</span> -d= -f2)</span><br><span class="line">    [ -z <span class="string">&quot;<span class="variable">$EXPIRY</span>&quot;</span> ] &amp;&amp; <span class="built_in">continue</span></span><br><span class="line">    DAYS_LEFT=$(( ($(date -d &quot;<span class="variable">$EXPIRY</span>&quot; +%s) - $(date +%s)) / 86400 ))</span><br><span class="line">    SUBJECT=$(openssl x509 -<span class="keyword">in</span> <span class="string">&quot;<span class="variable">$cert</span>&quot;</span> -noout -subject | <span class="built_in">cut</span> -d= -f2-)</span><br><span class="line">    <span class="keyword">if</span> [ <span class="variable">$DAYS_LEFT</span> -lt <span class="variable">$CRITICAL_DAYS</span> ]; <span class="keyword">then</span></span><br><span class="line">      REPORT+=<span class="string">&quot;[CRITICAL] <span class="variable">$cert</span> 剩 <span class="variable">$&#123;DAYS_LEFT&#125;</span> 天 - <span class="variable">$SUBJECT</span>\n&quot;</span></span><br><span class="line">    <span class="keyword">elif</span> [ <span class="variable">$DAYS_LEFT</span> -lt <span class="variable">$WARN_DAYS</span> ]; <span class="keyword">then</span></span><br><span class="line">      REPORT+=<span class="string">&quot;[WARN] <span class="variable">$cert</span> 剩 <span class="variable">$&#123;DAYS_LEFT&#125;</span> 天 - <span class="variable">$SUBJECT</span>\n&quot;</span></span><br><span class="line">    <span class="keyword">fi</span></span><br><span class="line">  <span class="keyword">done</span></span><br><span class="line"><span class="keyword">done</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> [ -n <span class="string">&quot;<span class="variable">$REPORT</span>&quot;</span> ]; <span class="keyword">then</span></span><br><span class="line">  <span class="built_in">echo</span> -e <span class="string">&quot;证书过期预警:\n<span class="variable">$REPORT</span>&quot;</span> | mail -s <span class="string">&quot;【证书过期预警】<span class="subst">$(date +%Y-%m-%d)</span>&quot;</span> <span class="variable">$RECIPIENT</span></span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>2. Zabbix 自定义监控项</strong></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># /etc/zabbix/zabbix_agentd.d/cert_expiry.conf</span></span><br><span class="line"><span class="string">UserParameter=cert.expiry[*],openssl</span> <span class="string">x509</span> <span class="string">-in</span> <span class="string">$1</span> <span class="string">-noout</span> <span class="string">-enddate</span> <span class="number">2</span><span class="string">&gt;/dev/null</span> <span class="string">|</span> <span class="string">cut</span> <span class="string">-d=</span> <span class="string">-f2</span> <span class="string">|</span> <span class="string">xargs</span> <span class="string">-I&#123;&#125;</span> <span class="string">date</span> <span class="string">-d</span> <span class="string">&quot;&#123;&#125;&quot;</span> <span class="string">+%s</span></span><br><span class="line"><span class="comment"># 触发器: 当 cert.expiry[/etc/freeradius/certs/server.pem] - now() &lt; 7776000 (90天) 时触发 warning</span></span><br><span class="line"><span class="comment">#          &lt; 2592000 (30天) 时触发 high</span></span><br><span class="line"><span class="comment">#          &lt; 604800 (7天) 时触发 disaster</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>3. 终端 GPO 强制信任企业 CA</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Computer Configuration</span><br><span class="line">  → Policies</span><br><span class="line">    → Windows Settings</span><br><span class="line">      → Security Settings</span><br><span class="line">        → Public Key Policies</span><br><span class="line">          → Certificate Services Client - Auto-Enrollment</span><br><span class="line">            ☑ 自动注册证书</span><br><span class="line">            ☑ 续签过期的证书</span><br><span class="line">            ☑ 更新正在使用的证书</span><br></pre></td></tr></table></figure>
+
+<p><strong>4. SCEP&#x2F;NDES 自动客户端证书</strong></p>
+<p>所有域内电脑和受管移动设备通过 Intune SCEP 自动向 AD CS 申请客户端证书，证书有效期 1 年自动续签，永久不需要 IT 同事手工介入。</p>
+<p><strong>5. 红蓝对抗演练</strong></p>
+<p>每季度模拟”把 Radius server.pem 替换为已过期证书”，演练运维团队的应急响应速度和流程顺畅度，确保事故响应的肌肉记忆。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>这次事故最深的教训，是<strong>证书这种”非生命体”资源</strong>在大多数运维同学的监控盲区里。它不像磁盘、CPU、内存那样有常规的仪表盘告警，往往只在过期那一刻才”砰”地炸出来，但影响范围却是公司级别的。</p>
+<p>回头看，<strong>EAP-TLS 体系的设计原则</strong>应该是”证书全生命周期”——从 CA 设计、模板、签发、续签、客户端分发、信任链维护到过期监控，每一步都要有自动化兜底。任何依赖”人工记得去续签”的设计，最终都会在某个凌晨、某个长假、某个新人接手的时刻翻车。</p>
+<p>我们这次虽然用 30 天临时证书快速止血，没有出现业务数据丢失，但这种”凭证类”的故障本应通过前置的告警 + 自动续签 + 监控来彻底规避。建议所有使用 802.1X &#x2F; EAP-TLS &#x2F; HTTPS 证书 &#x2F; IPsec 证书的团队，都把”证书全生命周期管理”作为年度安全审计的必查项，并且把 Zabbix &#x2F; Prometheus 对证书过期天数的监控当作 <strong>P0 级别</strong>来对待——这绝不是”锦上添花”，而是”救命的最后一道防线”。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>Maskbugzero
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.5772447.xyz/posts/b67a479d/" title="一次RADIUS服务器EAP-TLS证书过期导致全公司802.1X认证大规模掉线的排查实录">https://blog.5772447.xyz/posts/b67a479d/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by/4.0/deed.zh" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" rel="tag"># 网络运维</a>
+              <a href="/tags/RADIUS/" rel="tag"># RADIUS</a>
+              <a href="/tags/EAP-TLS/" rel="tag"># EAP-TLS</a>
+              <a href="/tags/802-1X/" rel="tag"># 802.1X</a>
+              <a href="/tags/%E8%AF%81%E4%B9%A6%E8%BF%87%E6%9C%9F/" rel="tag"># 证书过期</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/posts/f38b1b7e/" rel="prev" title="一次交换机物理环路导致整栋楼广播风暴瘫痪的排查实录">
+                  <i class="fa fa-angle-left"></i> 一次交换机物理环路导致整栋楼广播风暴瘫痪的排查实录
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2021 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">Maskbugzero</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">77k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">4:39</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
