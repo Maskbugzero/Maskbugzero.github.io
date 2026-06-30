@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.5772447.xyz","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="文件服务器存储控制器故障切换导致漫游用户配置文件损坏，市场部全员周一早登录卡死30分钟——本文记录从事件查看器到注册表ProfileList的完整排查过程。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一次Windows漫游用户配置文件损坏导致终端登录卡死的排查实录">
+<meta property="og:url" content="https://blog.5772447.xyz/posts/d2a21abf/index.html">
+<meta property="og:site_name" content="Zero Day Notes">
+<meta property="og:description" content="文件服务器存储控制器故障切换导致漫游用户配置文件损坏，市场部全员周一早登录卡死30分钟——本文记录从事件查看器到注册表ProfileList的完整排查过程。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-06-30T23:00:00.000Z">
+<meta property="article:modified_time" content="2026-06-30T23:00:00.000Z">
+<meta property="article:author" content="Maskbugzero">
+<meta property="article:tag" content="桌面运维">
+<meta property="article:tag" content="AD域控">
+<meta property="article:tag" content="Windows">
+<meta property="article:tag" content="漫游配置文件">
+<meta property="article:tag" content="文件服务器">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/d2a21abf/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.5772447.xyz/posts/d2a21abf/","path":"posts/d2a21abf/","title":"一次Windows漫游用户配置文件损坏导致终端登录卡死的排查实录"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>一次Windows漫游用户配置文件损坏导致终端登录卡死的排查实录 | Zero Day Notes</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VGE8FYNHE7"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-VGE8FYNHE7","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Zero Day Notes</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Life Oriented Programming</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E9%97%AE%E9%A2%98%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">一、问题背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E6%95%85%E9%9A%9C%E7%8E%B0%E8%B1%A1"><span class="nav-number">2.</span> <span class="nav-text">二、故障现象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E6%8E%92%E6%9F%A5%E8%BF%87%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">三、排查过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E6%8E%92%E9%99%A4%E7%BD%91%E7%BB%9C%E5%92%8CSMB%E8%BF%9E%E9%80%9A%E6%80%A7%E9%97%AE%E9%A2%98"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 排除网络和SMB连通性问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E6%8E%92%E6%9F%A5%E6%BC%AB%E6%B8%B8%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E6%9C%AC%E8%BA%AB"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 排查漫游配置文件本身</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E5%8F%91%E7%8E%B0%E5%85%B3%E9%94%AE%E7%BA%BF%E7%B4%A2"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 发现关键线索</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-%E9%AA%8C%E8%AF%81%E5%AE%A2%E6%88%B7%E7%AB%AF%E6%B3%A8%E5%86%8C%E8%A1%A8"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 验证客户端注册表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5-%E8%BF%BD%E9%97%AE%EF%BC%9A%E4%B8%BA%E4%BB%80%E4%B9%88NTUSER-DAT%E8%86%A8%E8%83%80%E5%88%B03-2GB%EF%BC%9F"><span class="nav-number">3.5.</span> <span class="nav-text">3.5 追问：为什么NTUSER.DAT膨胀到3.2GB？</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">4.</span> <span class="nav-text">四、解决方案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E7%B4%A7%E6%80%A5%E6%AD%A2%E8%A1%80%EF%BC%88%E5%91%A8%E4%B8%80-9-30%EF%BC%89"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 紧急止血（周一 9:30）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E4%BF%AE%E5%A4%8DDataSyncAgent%E6%B3%A8%E5%86%8C%E8%A1%A8%E6%B3%84%E6%BC%8F"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 修复DataSyncAgent注册表泄漏</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E5%AD%98%E5%82%A8%E7%A1%AC%E4%BB%B6%E4%BF%AE%E5%A4%8D"><span class="nav-number">4.3.</span> <span class="nav-text">4.3 存储硬件修复</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E6%A0%B9%E5%9B%A0%E5%88%86%E6%9E%90"><span class="nav-number">5.</span> <span class="nav-text">五、根因分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AD%E3%80%81%E9%A2%84%E9%98%B2%E6%8E%AA%E6%96%BD"><span class="nav-number">6.</span> <span class="nav-text">六、预防措施</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1-%E6%BC%AB%E6%B8%B8%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E4%BC%98%E5%8C%96"><span class="nav-number">6.1.</span> <span class="nav-text">6.1 漫游配置文件优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2-%E6%96%87%E4%BB%B6%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%AB%AF%E5%8A%A0%E5%9B%BA"><span class="nav-number">6.2.</span> <span class="nav-text">6.2 文件服务器端加固</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-3-%E7%AC%AC%E4%B8%89%E6%96%B9%E8%BD%AF%E4%BB%B6%E6%B2%BB%E7%90%86"><span class="nav-number">6.3.</span> <span class="nav-text">6.3 第三方软件治理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-4-%E9%AB%98%E5%8F%AF%E7%94%A8%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%94%B9%E8%BF%9B"><span class="nav-number">6.4.</span> <span class="nav-text">6.4 高可用存储架构改进</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%83%E3%80%81%E6%80%BB%E7%BB%93"><span class="nav-number">7.</span> <span class="nav-text">七、总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Maskbugzero"
+      src="/images/touxiang.jpg">
+  <p class="site-author-name" itemprop="name">Maskbugzero</p>
+  <div class="site-description" itemprop="description">人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">47</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">34</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">112</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Maskbugzero" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Maskbugzero" rel="noopener me external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.5772447.xyz/posts/d2a21abf/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/touxiang.jpg">
+      <meta itemprop="name" content="Maskbugzero">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zero Day Notes">
+      <meta itemprop="description" content="人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="一次Windows漫游用户配置文件损坏导致终端登录卡死的排查实录 | Zero Day Notes">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          一次Windows漫游用户配置文件损坏导致终端登录卡死的排查实录
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-07-01 07:00:00" itemprop="dateCreated datePublished" datetime="2026-07-01T07:00:00+08:00">2026-07-01</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">运维</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">桌面运维</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.5k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>13 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="一、问题背景"><a href="#一、问题背景" class="headerlink" title="一、问题背景"></a>一、问题背景</h2><p>周一早上 8:47，桌面运维团队的工单系统开始疯狂涌入——短短 15 分钟内收到 23 条报修，全部来自公司总部 6 楼。报修内容高度一致：”电脑开机后一直卡在’正在准备 Windows’界面””登录进去桌面是黑的，鼠标能动但是什么都点不了””电脑登录后桌面图标全没了，提示使用临时配置文件”。</p>
+<p>受影响用户集中在市场部和行政部，大约 35 台终端。这批用户有一个共同特点：都配置了 AD 域漫游用户配置文件（Roaming User Profile），用户登录&#x2F;注销时，配置文件会从文件服务器 <code>\\fs01\Profiles$</code> 同步。</p>
+<p>这已经是当天早上的第一波”周一综合征”，而且显然不是普通的”重启试试”能解决的。</p>
+<h2 id="二、故障现象"><a href="#二、故障现象" class="headerlink" title="二、故障现象"></a>二、故障现象</h2><p>赶去 6 楼实地确认，典型故障表现如下：</p>
+<p><strong>现象一：登录界面长时间卡死（最严重）</strong></p>
+<p>输入域密码后，屏幕显示”正在准备 Windows”，转圈 20-30 分钟后才进入桌面。进入后发现桌面背景为纯黑色，任务栏无响应，开始菜单无法展开。右键桌面→个性化→主题，显示”此版本的 Windows 尚未激活”——实际上机器是正常激活的，这是 User Profile Service 加载失败的副作用。</p>
+<p><strong>现象二：使用临时配置文件登录</strong></p>
+<p>部分用户登录后一切正常，但桌面空无一物，弹窗提示：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">您已使用临时配置文件登录。</span><br><span class="line">您无法访问您的文件，注销时将删除在此配置文件中创建的文件。</span><br></pre></td></tr></table></figure>
+
+<p>检查 <code>C:\Users</code> 目录，除了正常用户名 <code>zhangsan</code> 外，多出一个 <code>TEMP.000</code> 或 <code>TEMP.DOMAIN.000</code> 的文件夹。系统无法加载服务器上的漫游配置文件，自动降级为本地临时配置文件。</p>
+<p><strong>现象三：事件查看器大量错误</strong></p>
+<p>在一台能勉强进入桌面的机器上打开事件查看器（<code>eventvwr.msc</code>），”应用程序和服务日志 → Microsoft → Windows → User Profile Service → Operational” 下连续出现多个错误事件：</p>
+<ul>
+<li><strong>Event ID 1521</strong>：Windows 无法加载漫游配置文件 <code>\\fs01\Profiles$\zhangsan.v6</code>。详情：拒绝访问。</li>
+<li><strong>Event ID 1509</strong>：Windows 无法将文件 <code>\\fs01\Profiles$\zhangsan.v6\NTUSER.DAT</code> 复制到 <code>C:\Users\zhangsan</code>。详细信息：文件或目录已损坏且无法读取。</li>
+<li><strong>Event ID 1502</strong>：Windows 无法加载漫游配置文件，因此正在使用本地配置文件登录。</li>
+</ul>
+<p>同时在系统日志中发现：</p>
+<ul>
+<li><strong>Event ID 1000, Application Error</strong>：<code>explorer.exe</code> 反复崩溃，故障模块 <code>windows.storage.dll</code>。</li>
+<li><strong>Event ID 1001, Windows Error Reporting</strong>：故障存储段 1977044612335988347，类型 4。</li>
+</ul>
+<p>从故障范围看，所有受影响用户漫游配置文件都指向同一台文件服务器 <code>fs01</code>，但 6 楼有线网络和 SMB 共享本身都是通的——用 <code>\\fs01\Profiles$</code> 可以从其他终端正常访问。</p>
+<h2 id="三、排查过程"><a href="#三、排查过程" class="headerlink" title="三、排查过程"></a>三、排查过程</h2><h3 id="3-1-排除网络和SMB连通性问题"><a href="#3-1-排除网络和SMB连通性问题" class="headerlink" title="3.1 排除网络和SMB连通性问题"></a>3.1 排除网络和SMB连通性问题</h3><p>第一步先把网络层面的嫌疑排除掉。</p>
+<p>在受影响终端上执行：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Test-NetConnection</span> <span class="literal">-ComputerName</span> fs01 <span class="literal">-Port</span> <span class="number">445</span></span><br></pre></td></tr></table></figure>
+
+<p>结果：<code>TcpTestSucceeded : True</code>，SMB 端口 445 通。</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">net</span> use \\fs01\Profiles$ /user:domain\adminaccount</span><br></pre></td></tr></table></figure>
+
+<p>映射成功，可以正常 <code>dir</code> 浏览目录结构。说明不是基本的网络或 SMB 认证问题。</p>
+<h3 id="3-2-排查漫游配置文件本身"><a href="#3-2-排查漫游配置文件本身" class="headerlink" title="3.2 排查漫游配置文件本身"></a>3.2 排查漫游配置文件本身</h3><p>既然网络层正常，接下来直接检查漫游配置文件服务器端的文件状态。</p>
+<p>登录文件服务器 <code>fs01</code>，进入 <code>D:\Profiles$</code>，找到受影响用户（以 <code>zhangsan</code> 为例）的配置文件目录 <code>zhangsan.v6</code>（Windows 10&#x2F;11 漫游配置文件默认带 <code>.v6</code> 版本后缀）。</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Get-ChildItem</span> <span class="literal">-Path</span> <span class="string">&quot;D:\Profiles<span class="variable">$</span>\zhangsan.v6&quot;</span> <span class="literal">-Recurse</span> | <span class="built_in">Measure-Object</span> <span class="literal">-Property</span> Length <span class="literal">-Sum</span></span><br></pre></td></tr></table></figure>
+
+<p>输出结果令人困惑：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Count    : 11247</span><br><span class="line">Average  : ...</span><br><span class="line">Sum      : 8421162376</span><br></pre></td></tr></table></figure>
+
+<p>——这个用户的漫游配置文件足足 <strong>8.4GB</strong>！</p>
+<p>再检查核心文件 <code>NTUSER.DAT</code>（用户注册表 HKCU 配置单元）：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Get-Item</span> <span class="string">&quot;D:\Profiles<span class="variable">$</span>\zhangsan.v6\NTUSER.DAT&quot;</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Mode         LastWriteTime       Length Name</span><br><span class="line">----         -------------       ------ ----</span><br><span class="line">-a----  2026/6/27  18:14    3218546688 NTUSER.DAT</span><br></pre></td></tr></table></figure>
+
+<p><code>NTUSER.DAT</code> 高达 <strong>3.2GB</strong>！正常情况下，这个文件通常在 1MB 到 30MB 之间。3.2GB 的 NTUSER.DAT 意味着用户注册表配置单元存在严重膨胀——可能是某个应用程序疯狂向注册表写入数据。</p>
+<h3 id="3-3-发现关键线索"><a href="#3-3-发现关键线索" class="headerlink" title="3.3 发现关键线索"></a>3.3 发现关键线索</h3><p>逐个检查受影响用户后，发现一个规律：</p>
+<ol>
+<li><strong>所有受影响用户的 NTUSER.DAT 文件最后修改时间都是上周五（6月27日）18:10~18:20 之间。</strong></li>
+<li><strong>其中 5 个用户的 NTUSER.DAT 文件大小为 0 字节——文件已损坏。</strong></li>
+<li><strong>其余用户的 NTUSER.DAT 大小从 500MB 到 3.2GB 不等。</strong></li>
+</ol>
+<p>这指向一个非常明确的方向：<strong>周五下班高峰时段，文件服务器发生了某种写入中断，导致正在同步的漫游配置文件损坏。</strong></p>
+<p>接下来排查文件服务器的事件日志：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Get-WinEvent</span> <span class="literal">-LogName</span> System <span class="literal">-MaxEvents</span> <span class="number">500</span> | <span class="built_in">Where-Object</span> &#123; </span><br><span class="line">    <span class="variable">$_</span>.TimeCreated <span class="operator">-gt</span> <span class="string">&#x27;2026-06-27T17:00:00&#x27;</span> <span class="operator">-and</span> <span class="variable">$_</span>.TimeCreated <span class="operator">-lt</span> <span class="string">&#x27;2026-06-27T18:30:00&#x27;</span> </span><br><span class="line">&#125; | <span class="built_in">Where-Object</span> &#123; <span class="variable">$_</span>.LevelDisplayName <span class="operator">-eq</span> <span class="string">&#x27;Error&#x27;</span> <span class="operator">-or</span> <span class="variable">$_</span>.LevelDisplayName <span class="operator">-eq</span> <span class="string">&#x27;Warning&#x27;</span> &#125; | <span class="built_in">Format-Table</span> TimeCreated, Id, ProviderName, Message <span class="literal">-Wrap</span></span><br></pre></td></tr></table></figure>
+
+<p>关键发现——System 日志中：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">2026-06-27 18:12:34  Event ID 129, source: storahci</span><br><span class="line">Reset to device, \Device\RaidPort0, was issued.</span><br><span class="line"></span><br><span class="line">2026-06-27 18:12:35  Event ID 153, source: disk</span><br><span class="line">The IO operation at logical block address 0x3a84e200 for Disk 2 (PDO name: \Device\0000003a) was retried.</span><br><span class="line"></span><br><span class="line">2026-06-27 18:14:02  Event ID 129, source: storahci</span><br><span class="line">Reset to device, \Device\RaidPort0, was issued.</span><br><span class="line"></span><br><span class="line">2026-06-27 18:14:19  Event ID 153, source: disk</span><br><span class="line">The IO operation at logical block address 0x3a84e200 for Disk 2 (PDO name: \Device\0000003a) was retried.</span><br><span class="line"></span><br><span class="line">2026-06-27 18:14:21  Event ID 5142, source: ClusSvc</span><br><span class="line">Cluster Shared Volume &#x27;Volume1&#x27; (&#x27;D:&#x27;) has entered a paused state because of &#x27;STATUS_CONNECTION_DISCONNECTED(c000020c)&#x27;. All I/O will temporarily be queued until a path to the volume is reestablished.</span><br></pre></td></tr></table></figure>
+
+<p><strong>确认根因方向：文件服务器存储控制器发生了故障切换！</strong></p>
+<p>在周五 18:12 到 18:14 之间，<code>fs01</code> 文件服务器的 RAID 控制器出现硬件级 IO 错误，触发了 Windows 故障转移集群的 CSV（Cluster Shared Volume）暂停。虽然集群在 18:14:21 之后恢复了路径连接，但在这个 2 分钟的窗口内：</p>
+<ol>
+<li>部分正在注销的用户，其终端正在向 <code>\\fs01\Profiles$</code> 回写漫游配置文件</li>
+<li>SMB Write 操作因为底层磁盘 IO 失败而中断</li>
+<li><code>NTUSER.DAT</code> 和其他配置文件的写入处于”半完成”状态</li>
+<li>部分文件的元数据（MFT 记录）写入完成但数据块未落盘，导致文件系统层面能”看到”文件，但读取时返回 CRC 错误</li>
+</ol>
+<h3 id="3-4-验证客户端注册表"><a href="#3-4-验证客户端注册表" class="headerlink" title="3.4 验证客户端注册表"></a>3.4 验证客户端注册表</h3><p>回到受影响终端，进一步验证客户端侧的配置：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">reg query <span class="string">&quot;HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList&quot;</span> /s</span><br></pre></td></tr></table></figure>
+
+<p>在 <code>ProfileList</code> 下，受影响用户的 <code>ProfileImagePath</code> 指向 <code>C:\Users\zhangsan</code>，但 <code>State</code> 键值为 <code>0x00008000</code>（表示正在使用临时配置文件）。<code>RefCount</code> 和 <code>CentralProfile</code> 子键中的 <code>SMBShare</code> 仍然指向 <code>\\fs01\Profiles$</code>。</p>
+<p>同时在 <code>HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileGuid</code> 中，找到了损坏配置文件对应的 GUID，<code>Flags</code> 值包含 <code>0x00000004</code>（MANDATORY_PROFILE，强制配置文件标志），进一步证实了系统已将本地临时配置文件设为”强制”模式。</p>
+<h3 id="3-5-追问：为什么NTUSER-DAT膨胀到3-2GB？"><a href="#3-5-追问：为什么NTUSER-DAT膨胀到3-2GB？" class="headerlink" title="3.5 追问：为什么NTUSER.DAT膨胀到3.2GB？"></a>3.5 追问：为什么NTUSER.DAT膨胀到3.2GB？</h3><p>解决燃眉之急后，顺藤摸瓜追查 <code>NTUSER.DAT</code> 膨胀的原因。用 Sysinternals 的 <code>ProcMon</code> 在重建配置文件后的用户 session 中监控注册表活动，发现一个叫 <code>DataSyncAgent.exe</code> 的服务进程（来自某第三方数据同步软件）以每秒 500+ 次的频率向 <code>HKCU\Software\DataSync\FileHistory\*</code> 写入文件的同步状态记录，每天累积约 200MB 的注册表写入。</p>
+<p>这个软件本应把同步状态写入 SQLite 数据库，但配置错误导致它把所有记录写进了 <code>HKCU</code>。<code>NTUSER.DAT</code> 在 3 个月内从正常的 5MB 膨胀到 3.2GB——这是隐患，而磁盘故障只是触发器。</p>
+<h2 id="四、解决方案"><a href="#四、解决方案" class="headerlink" title="四、解决方案"></a>四、解决方案</h2><h3 id="4-1-紧急止血（周一-9-30）"><a href="#4-1-紧急止血（周一-9-30）" class="headerlink" title="4.1 紧急止血（周一 9:30）"></a>4.1 紧急止血（周一 9:30）</h3><p>对于 <code>NTUSER.DAT</code> 为 0 字节的 5 个用户（配置文件已彻底损坏且不可恢复）：</p>
+<ol>
+<li>将服务器端的配置文件目录改名备份：<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Rename-Item</span> <span class="string">&quot;D:\Profiles<span class="variable">$</span>\zhangsan.v6&quot;</span> <span class="string">&quot;D:\Profiles<span class="variable">$</span>\zhangsan.v6.CORRUPT&quot;</span></span><br></pre></td></tr></table></figure></li>
+<li>让用户重新登录，系统自动在服务器端创建全新的漫游配置文件。</li>
+<li>从备份目录中手动恢复 <code>Desktop</code>、<code>Documents</code>、<code>Favorites</code> 等关键文件夹。</li>
+</ol>
+<p>对于 NTUSER.DAT 巨大但有内容的其他用户（约 30 人）：</p>
+<ol>
+<li>在服务器端用 <code>regedit</code> 加载损坏的 NTUSER.DAT 为配置单元，检查是否能正常读取——大部分可以。</li>
+<li>用 Windows 内置工具压缩：<code>compact /c /s:&quot;D:\Profiles$\zhangsan.v6&quot;</code>。</li>
+<li>在用户终端清理 <code>C:\Users\zhangsan</code> 本地缓存后重新登录，触发从服务器重新同步。</li>
+</ol>
+<h3 id="4-2-修复DataSyncAgent注册表泄漏"><a href="#4-2-修复DataSyncAgent注册表泄漏" class="headerlink" title="4.2 修复DataSyncAgent注册表泄漏"></a>4.2 修复DataSyncAgent注册表泄漏</h3><p>定位到 <code>DataSyncAgent</code> 的服务配置文件 <code>C:\Program Files\DataSync\config.ini</code>，发现：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[Storage]</span></span><br><span class="line"><span class="attr">Backend</span>=registry</span><br></pre></td></tr></table></figure>
+
+<p>应改为：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[Storage]</span></span><br><span class="line"><span class="attr">Backend</span>=sqlite</span><br><span class="line"><span class="attr">Path</span>=C:\ProgramData\DataSync\sync_history.db</span><br></pre></td></tr></table></figure>
+
+<p>修改后重启 DataSyncAgent 服务。然后编写清理脚本，批量清理受影响用户 <code>HKCU\Software\DataSync\FileHistory</code> 下累积的数百万条过期记录：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Get-ChildItem</span> <span class="string">&quot;D:\Profiles<span class="variable">$</span>\*.v6\NTUSER.DAT&quot;</span> | <span class="built_in">ForEach-Object</span> &#123;</span><br><span class="line">    <span class="variable">$hivePath</span> = <span class="variable">$_</span>.FullName</span><br><span class="line">    reg load HKLM\TempHive <span class="variable">$hivePath</span></span><br><span class="line">    reg delete <span class="string">&quot;HKLM\TempHive\Software\DataSync\FileHistory&quot;</span> /f</span><br><span class="line">    reg unload HKLM\TempHive</span><br><span class="line">    compact /c /s:<span class="variable">$hivePath</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><strong>注意</strong>：<code>reg load</code> 操作需要以管理员身份运行，卸载前务必确认无其他进程持有句柄。</p>
+</blockquote>
+<h3 id="4-3-存储硬件修复"><a href="#4-3-存储硬件修复" class="headerlink" title="4.3 存储硬件修复"></a>4.3 存储硬件修复</h3><p><code>fs01</code> 的 RAID 控制器间歇性 IO 错误指向磁盘背板或控制器固件问题。运维团队安排当天晚间窗口更换了 Disk 2（SMART 报告 <code>Reallocated_Sector_Ct=328</code>），升级了 RAID 控制器固件到厂商推荐版本。</p>
+<h2 id="五、根因分析"><a href="#五、根因分析" class="headerlink" title="五、根因分析"></a>五、根因分析</h2><p>这次故障由两层原因叠加导致：</p>
+<p><strong>直接触发原因</strong>：文件服务器 <code>fs01</code> 的 RAID 控制器出现硬件级 IO 故障，触发 Windows 故障转移集群 CSV 进入暂停状态。在约 2 分钟的 IO 中断窗口内，正值周五 18:10-18:20 的下班高峰，大量用户同时注销并回写漫游配置文件。SMB Write 请求因底层磁盘 IO 失败而中断，<code>NTUSER.DAT</code> 等核心文件写入半途而废，导致文件损坏（部分为 0 字节，部分内容乱码）。</p>
+<p><strong>放大因素（根因）</strong>：<code>DataSyncAgent</code> 第三方同步软件错误配置，把每日 200MB 的同步状态记录写入了 <code>HKCU\Software\DataSync\FileHistory</code>，导致 <code>NTUSER.DAT</code> 从正常 5MB 膨胀到 500MB~3.2GB。巨大的 <code>NTUSER.DAT</code> 使得：</p>
+<ul>
+<li>正常的登录&#x2F;注销同步时间从 5 秒增加到 30-120 秒</li>
+<li>同步过程中碰到 IO 中断的概率被急剧放大（暴露窗口扩大了 10-100 倍）</li>
+<li>文件越大，写入中断后损坏的概率越高</li>
+</ul>
+<p><strong>为什么只有 6 楼的用户受影响？</strong> 6 楼市场部和行政部是 <code>DataSyncAgent</code> 软件的重度用户（用于跨终端文件同步需求），其他楼层的用户未安装该软件，<code>NTUSER.DAT</code> 体积正常（5-20MB），虽然也经历了同样的磁盘 IO 中断，但因为文件写入时间极短（不到 1 秒），恰好错过了故障窗口。</p>
+<h2 id="六、预防措施"><a href="#六、预防措施" class="headerlink" title="六、预防措施"></a>六、预防措施</h2><h3 id="6-1-漫游配置文件优化"><a href="#6-1-漫游配置文件优化" class="headerlink" title="6.1 漫游配置文件优化"></a>6.1 漫游配置文件优化</h3><p>通过 GPO 限制漫游配置文件大小和行为：</p>
+<ul>
+<li><strong>计算机配置 → 管理模板 → 系统 → 用户配置文件 → 限制漫游配置文件大小</strong>：设置为 500MB（<code>NTUSER.DAT</code> 正常情况下不超过 30MB，留充足余量）</li>
+<li><strong>用户配置 → 管理模板 → 系统 → 用户配置文件 → 排除漫游配置文件中的目录</strong>：添加 <code>AppData\Local;AppData\LocalLow;Downloads;Saved Games</code></li>
+<li><strong>启用文件夹重定向</strong>：将 <code>Desktop</code>、<code>Documents</code>、<code>Pictures</code> 通过 GPO 重定向到 <code>\\fs01\Users$</code>，减少漫游配置文件本身的体积</li>
+</ul>
+<h3 id="6-2-文件服务器端加固"><a href="#6-2-文件服务器端加固" class="headerlink" title="6.2 文件服务器端加固"></a>6.2 文件服务器端加固</h3><ul>
+<li>在 <code>fs01</code> 上启用卷影复制（VSS），设置每天两次的快照计划，保留 14 天</li>
+<li>为存储控制器配置主动告警：Event ID 129（storahci reset）和 Event ID 153（disk retry）触发 P1 告警</li>
+<li>磁盘 SMART 监控：<code>Reallocated_Sector_Ct</code>、<code>Current_Pending_Sector</code>、<code>Offline_Uncorrectable</code> 任一指标非零即报警</li>
+<li>CSV 暂停事件（Cluster Event ID 5142）触发 P0 告警，5 分钟内未恢复则自动电话通知</li>
+</ul>
+<h3 id="6-3-第三方软件治理"><a href="#6-3-第三方软件治理" class="headerlink" title="6.3 第三方软件治理"></a>6.3 第三方软件治理</h3><ul>
+<li>建立域内终端软件白名单机制：所有写入 <code>HKCU</code> 的应用程序需提供”注册表写入量评估报告”</li>
+<li>新软件接入流程增加注册表行为审计环节：用 <code>ProcMon</code> + <code>Sysmon</code> 在测试机上运行 24 小时，分析 <code>HKCU</code> 写入量和频率</li>
+<li><code>DataSyncAgent</code> 问题修复后全网推送，并通过 SCCM 合规基线强制执行 <code>Backend=sqlite</code> 配置</li>
+</ul>
+<h3 id="6-4-高可用存储架构改进"><a href="#6-4-高可用存储架构改进" class="headerlink" title="6.4 高可用存储架构改进"></a>6.4 高可用存储架构改进</h3><p>虽然当前文件服务器已是双节点 Windows 故障转移集群，但此次事件暴露了一个盲区：<strong>故障切换窗口内的 IO 中断无法完全避免</strong>。</p>
+<p>改进方案：</p>
+<ul>
+<li>为漫游配置文件共享启用 SMB 连续可用性（<code>Set-SmbShare -Name Profiles$ -ContinuouslyAvailable $true</code>），结合 SMB Transparent Failover 减少切换期间的 IO 丢失</li>
+<li>评估将漫游配置文件后端迁移到 DFS-N + DFS-R，利用多副本降低单点故障影响（虽然 DFS-R 对漫游配置文件有自身限制，需谨慎评估）</li>
+</ul>
+<h2 id="七、总结"><a href="#七、总结" class="headerlink" title="七、总结"></a>七、总结</h2><p>这次故障表面上是”配置文件损坏”的简单问题，但背后暴露了三个层次的技术债务：</p>
+<ol>
+<li><strong>监控盲区</strong>：文件服务器存储控制器的 IO 重试和 CSV 暂停事件只有事后查询才知道，缺少实时告警。从故障发生到被发现，间隔了整整 60 个小时（周五晚到周一早）。</li>
+<li><strong>配置漂移</strong>：<code>DataSyncAgent</code> 软件错误配置 3 个月无人发现，因为 “能用就行”的心态让注册表悄悄膨胀到 3.2GB。</li>
+<li><strong>架构薄弱</strong>：漫游配置文件把所有用户状态绑定到单一 SMB 共享的单点，且缺少有效的隔离机制——一个应用的注册表泄漏可以拖垮整栋楼的用户登录。</li>
+</ol>
+<p>对运维团队最大的教训是：**”慢速故障”（Slow Failure）比”硬故障”更具破坏性。** 磁盘 IO 偶尔重试没人关注，注册表一点点膨胀没人关注，直到某个周一早上 35 人同时登录卡死，才被一记闷棍打醒。把监控和告警的颗粒度做到”异常即感知”，远比”故障后排查”更划算。</p>
+<hr>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>Maskbugzero
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.5772447.xyz/posts/d2a21abf/" title="一次Windows漫游用户配置文件损坏导致终端登录卡死的排查实录">https://blog.5772447.xyz/posts/d2a21abf/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by/4.0/deed.zh" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" rel="tag"># 桌面运维</a>
+              <a href="/tags/AD%E5%9F%9F%E6%8E%A7/" rel="tag"># AD域控</a>
+              <a href="/tags/Windows/" rel="tag"># Windows</a>
+              <a href="/tags/%E6%BC%AB%E6%B8%B8%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6/" rel="tag"># 漫游配置文件</a>
+              <a href="/tags/%E6%96%87%E4%BB%B6%E6%9C%8D%E5%8A%A1%E5%99%A8/" rel="tag"># 文件服务器</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/posts/c26a6921/" rel="prev" title="一次服务器CPU软中断飙高导致服务间歇性超时的排查实录">
+                  <i class="fa fa-angle-left"></i> 一次服务器CPU软中断飙高导致服务间歇性超时的排查实录
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2021 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">Maskbugzero</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">84k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">5:05</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
