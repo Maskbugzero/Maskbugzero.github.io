@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.5772447.xyz","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="服务器CPU使用率60%不高，top也看不出异常进程，但服务频繁超时——最终定位到网络软中断全部压在单核上，这才是隐藏的性能杀手。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一次服务器CPU软中断飙高导致服务间歇性超时的排查实录">
+<meta property="og:url" content="https://blog.5772447.xyz/posts/c26a6921/index.html">
+<meta property="og:site_name" content="Zero Day Notes">
+<meta property="og:description" content="服务器CPU使用率60%不高，top也看不出异常进程，但服务频繁超时——最终定位到网络软中断全部压在单核上，这才是隐藏的性能杀手。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-06-30T13:00:00.000Z">
+<meta property="article:modified_time" content="2026-06-30T13:00:00.000Z">
+<meta property="article:author" content="Maskbugzero">
+<meta property="article:tag" content="服务运维">
+<meta property="article:tag" content="CPU软中断">
+<meta property="article:tag" content="性能调优">
+<meta property="article:tag" content="网络中断">
+<meta property="article:tag" content="Linux内核">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/c26a6921/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.5772447.xyz/posts/c26a6921/","path":"posts/c26a6921/","title":"一次服务器CPU软中断飙高导致服务间歇性超时的排查实录"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>一次服务器CPU软中断飙高导致服务间歇性超时的排查实录 | Zero Day Notes</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VGE8FYNHE7"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-VGE8FYNHE7","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Zero Day Notes</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Life Oriented Programming</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E9%97%AE%E9%A2%98%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">一、问题背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E6%95%85%E9%9A%9C%E7%8E%B0%E8%B1%A1"><span class="nav-number">2.</span> <span class="nav-text">二、故障现象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E6%8E%92%E6%9F%A5%E8%BF%87%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">三、排查过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E6%8E%92%E9%99%A4%E5%BA%94%E7%94%A8%E5%B1%82%E9%97%AE%E9%A2%98"><span class="nav-number">3.1.</span> <span class="nav-text">第一步：排除应用层问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E5%AE%9A%E4%BD%8D%E5%86%85%E6%A0%B8%E5%B1%82%E9%9D%A2%E7%9A%84%E7%93%B6%E9%A2%88"><span class="nav-number">3.2.</span> <span class="nav-text">第二步：定位内核层面的瓶颈</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%9A%E8%BF%BD%E6%BA%AF%E4%B8%AD%E6%96%AD%E4%BA%B2%E5%92%8C%E6%80%A7%E9%85%8D%E7%BD%AE"><span class="nav-number">3.3.</span> <span class="nav-text">第三步：追溯中断亲和性配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E5%9B%9B%E6%AD%A5%EF%BC%9A%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E8%BD%AF%E4%B8%AD%E6%96%AD%E7%9A%84%E5%A4%84%E7%90%86%E6%9C%BA%E5%88%B6"><span class="nav-number">3.4.</span> <span class="nav-text">第四步：深入理解软中断的处理机制</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">4.</span> <span class="nav-text">四、解决方案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%B4%A7%E6%80%A5%E6%AD%A2%E8%A1%80%EF%BC%9A%E6%89%8B%E5%8A%A8%E7%BB%91%E5%AE%9A%E7%BD%91%E5%8D%A1%E4%B8%AD%E6%96%AD%E5%88%B0%E5%A4%9A%E4%B8%AA%E6%A0%B8%E5%BF%83"><span class="nav-number">4.1.</span> <span class="nav-text">紧急止血：手动绑定网卡中断到多个核心</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%95%BF%E6%9C%9F%E4%BC%98%E5%8C%96%EF%BC%9ARPS-RFS-%E8%BF%9B%E4%B8%80%E6%AD%A5%E5%88%86%E6%95%A3%E8%BD%AF%E4%B8%AD%E6%96%AD"><span class="nav-number">4.2.</span> <span class="nav-text">长期优化：RPS + RFS 进一步分散软中断</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BF%AE%E5%A4%8D-irqbalance-%E6%9C%8D%E5%8A%A1"><span class="nav-number">4.3.</span> <span class="nav-text">修复 irqbalance 服务</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E6%A0%B9%E5%9B%A0%E5%88%86%E6%9E%90"><span class="nav-number">5.</span> <span class="nav-text">五、根因分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AD%E3%80%81%E9%A2%84%E9%98%B2%E6%8E%AA%E6%96%BD"><span class="nav-number">6.</span> <span class="nav-text">六、预防措施</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E8%A1%A5%E9%BD%90%E8%BD%AF%E4%B8%AD%E6%96%AD%E7%9B%91%E6%8E%A7"><span class="nav-number">6.1.</span> <span class="nav-text">1. 补齐软中断监控</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E5%BB%BA%E7%AB%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%B8%8A%E7%BA%BF%E6%A0%87%E5%87%86%E6%A8%A1%E6%9D%BF"><span class="nav-number">6.2.</span> <span class="nav-text">2. 建立服务器上线标准模板</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-irqbalance-%E5%AD%98%E6%B4%BB%E7%9B%91%E6%8E%A7"><span class="nav-number">6.3.</span> <span class="nav-text">3. irqbalance 存活监控</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E5%AE%9A%E6%9C%9F%E6%80%A7%E8%83%BD%E5%9F%BA%E7%BA%BF%E5%B7%A1%E6%A3%80"><span class="nav-number">6.4.</span> <span class="nav-text">4. 定期性能基线巡检</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%83%E3%80%81%E6%80%BB%E7%BB%93"><span class="nav-number">7.</span> <span class="nav-text">七、总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Maskbugzero"
+      src="/images/touxiang.jpg">
+  <p class="site-author-name" itemprop="name">Maskbugzero</p>
+  <div class="site-description" itemprop="description">人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">46</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">34</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">110</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Maskbugzero" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Maskbugzero" rel="noopener me external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.5772447.xyz/posts/c26a6921/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/touxiang.jpg">
+      <meta itemprop="name" content="Maskbugzero">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zero Day Notes">
+      <meta itemprop="description" content="人不能永远18岁，但总有18岁的人。一个关于学习、工作以及生活的个人博客。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="一次服务器CPU软中断飙高导致服务间歇性超时的排查实录 | Zero Day Notes">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          一次服务器CPU软中断飙高导致服务间歇性超时的排查实录
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-06-30 21:00:00" itemprop="dateCreated datePublished" datetime="2026-06-30T21:00:00+08:00">2026-06-30</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">运维</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" itemprop="url" rel="index"><span itemprop="name">服务运维</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.7k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>14 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="一、问题背景"><a href="#一、问题背景" class="headerlink" title="一、问题背景"></a>一、问题背景</h2><p>周三下午三点，业务群突然炸锅——客服反馈”工单系统卡得要命，点一个页面转十几秒才出来”。我看了一眼 Grafana，订单服务的 P99 延迟从平时的 120ms 飙到了 8 秒以上，Nginx 的 504 错误率从 0.01% 蹿到了 3.7%。但诡异的是，核心业务服务器（两台 32 核 64GB 的物理机，CentOS 7.9，前面挂 LVS+Keepalived）的 CPU 使用率才 58%~65%，内存也还有 22GB 空闲，磁盘 IO wait 只有 2.3%。看起来哪哪都正常，偏偏服务就是慢。</p>
+<p>业务方催得紧，老板在群里 @ 了我三次。这次的排查过程，让我对”CPU 使用率不高就代表没事”这个惯性认知有了全新的认识。</p>
+<h2 id="二、故障现象"><a href="#二、故障现象" class="headerlink" title="二、故障现象"></a>二、故障现象</h2><p>初步登录服务器后，我快速过了一遍常规指标：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ top -bn1 | <span class="built_in">head</span> -15</span><br><span class="line">top - 15:12:34 up 137 days,  2:44,  3 <span class="built_in">users</span>,  load average: 18.45, 14.22, 11.30</span><br><span class="line">Tasks: 412 total,   1 running, 411 sleeping,   0 stopped,   0 zombie</span><br><span class="line">%Cpu(s): 18.2 us,  8.7 sy,  0.0 ni, 68.1 <span class="built_in">id</span>,  0.0 wa,  0.0 hi,  5.0 si,  0.0 st</span><br><span class="line">KiB Mem:  65712344 total, 43567112 used, 22145232 free,   512344 buffers</span><br><span class="line">KiB Swap: 16777212 total,  1245000 used, 15532212 free. 32145678 cached Mem</span><br><span class="line"></span><br><span class="line">  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND</span><br><span class="line">17812 appuser   20   0 12.345g 5.231g  28700 S  45.2  8.3  1234:12 java</span><br><span class="line"> 5642 nginx     20   0  287456  45678   3200 S  12.3  0.1   345:23 nginx</span><br></pre></td></tr></table></figure>
+
+<p>表面看，Java 进程占 45% CPU、Nginx 占 12%，负载 18.45 对于 32 核来说也不算高——但注意 <code>%Cpu(s)</code> 那行有个不对劲的数字：**<code>5.0 si</code>**。</p>
+<p>这里解释一下 <code>top</code> 中 CPU 状态各字段的含义：</p>
+<ul>
+<li><code>us</code>（user）：用户态进程占用</li>
+<li><code>sy</code>（system）：内核态占用</li>
+<li><code>si</code>（softirq）：<strong>软中断</strong>占用——这个值是关键线索</li>
+<li><code>hi</code>（hardirq）：硬中断占用</li>
+</ul>
+<p>正常情况下，<code>si</code> 在 1% 以下，超过 2% 就要引起警觉，超过 5% 则通常是网卡中断风暴的前兆。</p>
+<p>进一步用 <code>mpstat</code> 确认：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ mpstat -P ALL 2 5</span><br><span class="line">03:15:01 PM  CPU    %usr   %<span class="built_in">nice</span>    %sys %iowait    %irq   %soft  %steal  %guest   %idle</span><br><span class="line">03:15:03 PM  all   18.45    0.00    9.12    2.30    0.50   12.35    0.00    0.00   57.28</span><br><span class="line">03:15:03 PM    0    2.12    0.00    1.50    0.00    0.00   92.38    0.00    0.00    4.00</span><br><span class="line">03:15:03 PM    1   35.23    0.00   15.42    0.00    0.00    0.12    0.00    0.00   49.23</span><br><span class="line">03:15:03 PM    2    1.35    0.00    2.34    0.00    0.00    0.08    0.00    0.00   96.23</span><br><span class="line">03:15:03 PM    3   36.12    0.00   14.23    0.00    0.00    0.05    0.00    0.00   49.60</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p>真相大白——**CPU 0 的 <code>%soft</code> 高达 92.38%**，几乎全部被软中断占满！而其他 31 个核心要么在跑业务、要么几乎空闲。32 核的机器，网络中断处理却全部压在 CPU 0 一个核上，形成了典型的”单核处理所有网卡中断”的性能瓶颈。</p>
+<p>再查一下网卡中断分布：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cat</span> /proc/interrupts | grep -E <span class="string">&quot;CPU0|eth0&quot;</span></span><br><span class="line">           CPU0       CPU1       CPU2       CPU3  ...    CPU31</span><br><span class="line"> 59:   82341456          0          0          0  ...        0   IR-PCI-MSI-edge      eth0-TxRx-0</span><br><span class="line"> 60:  102345678          0          0          0  ...        0   IR-PCI-MSI-edge      eth0-TxRx-1</span><br><span class="line"> 61:   95678901          0          0          0  ...        0   IR-PCI-MSI-edge      eth0-TxRx-2</span><br><span class="line"> 62:   89765432          0          0          0  ...        0   IR-PCI-MSI-edge      eth0-TxRx-3</span><br></pre></td></tr></table></figure>
+
+<p>四队列万兆网卡（Intel X540），四个硬件中断队列（IRQ 59~62）<strong>全部绑定在 CPU 0 上</strong>。每秒近 4 亿次中断全部由一个核心处理，这个核心在软中断的泥潭里完全无法抽身。</p>
+<h2 id="三、排查过程"><a href="#三、排查过程" class="headerlink" title="三、排查过程"></a>三、排查过程</h2><h3 id="第一步：排除应用层问题"><a href="#第一步：排除应用层问题" class="headerlink" title="第一步：排除应用层问题"></a>第一步：排除应用层问题</h3><p>一开始我以为是 Java 应用有性能瓶颈。先用 Arthas 挂上 Java 进程看了一眼：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ arthas-boot</span><br><span class="line">[arthas@17812]$ dashboard</span><br></pre></td></tr></table></figure>
+
+<p>JVM 堆内存使用 62%，GC 频率正常（Young GC 约 15 次&#x2F;分钟，Full GC 0 次），线程池没有积压。排除 JVM 层面的问题。</p>
+<p>再看 Nginx 日志，大量请求的 <code>upstream_response_time</code> 高达 8<del>15 秒，但 <code>upstream_connect_time</code> 只有 1</del>3ms。说明 Nginx 和后端 Java 应用之间的 TCP 连接建立很快，但数据传输极慢——这直接把矛头指向了<strong>内核网络栈的处理性能</strong>。</p>
+<h3 id="第二步：定位内核层面的瓶颈"><a href="#第二步：定位内核层面的瓶颈" class="headerlink" title="第二步：定位内核层面的瓶颈"></a>第二步：定位内核层面的瓶颈</h3><p><code>top</code> 和 <code>mpstat</code> 已经暴露了软中断问题，但我需要确认它确实是网络软中断，而不是其他类型（如块设备、定时器、RCU 等）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cat</span> /proc/softirqs | <span class="built_in">head</span> -10</span><br><span class="line">                    CPU0       CPU1       CPU2  ...    CPU31</span><br><span class="line">          HI:          0          0          0  ...        0</span><br><span class="line">       TIMER:  45678901   23456789   21234567  ... 19876543</span><br><span class="line">      NET_TX:    123456        789       1023  ...      567</span><br><span class="line">      NET_RX: 723456789        456        789  ...      345</span><br><span class="line">       BLOCK:      34567       1023       2048  ...     1567</span><br><span class="line">    IRQ_POLL:          0          0          0  ...        0</span><br><span class="line">     TASKLET:    1234567      34567      23456  ...    12345</span><br><span class="line">       SCHED:   12345678    3456789    4567890  ...   2345678</span><br><span class="line">     HRTIMER:    2345678    8765432    7654321  ...   3456789</span><br><span class="line">         RCU:  123456789   45678901   38901234  ...  56789012</span><br></pre></td></tr></table></figure>
+
+<p>CPU 0 的 <strong>NET_RX（网络接收软中断）</strong> 高达 7.2 亿次，是 CPU 1 的 <strong>160 万倍</strong>。问题确认：所有网卡接收中断的回调函数 <code>net_rx_action()</code> 全部在 CPU 0 上执行，导致该核心被独占。</p>
+<h3 id="第三步：追溯中断亲和性配置"><a href="#第三步：追溯中断亲和性配置" class="headerlink" title="第三步：追溯中断亲和性配置"></a>第三步：追溯中断亲和性配置</h3><p>检查网卡中断的 SMP 亲和性（smp_affinity）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cat</span> /proc/irq/59/smp_affinity</span><br><span class="line">00000001</span><br><span class="line">$ <span class="built_in">cat</span> /proc/irq/60/smp_affinity</span><br><span class="line">00000001</span><br><span class="line">$ <span class="built_in">cat</span> /proc/irq/61/smp_affinity</span><br><span class="line">00000001</span><br><span class="line">$ <span class="built_in">cat</span> /proc/irq/62/smp_affinity</span><br><span class="line">00000001</span><br></pre></td></tr></table></figure>
+
+<p>每一个中断的 <code>smp_affinity</code> 都是 <code>00000001</code>，即只允许 CPU 0 处理。这是系统默认行为，网卡驱动加载时 <code>irqbalance</code> 服务没有正确分发中断。</p>
+<p>查一下 <code>irqbalance</code> 的状态：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ systemctl status irqbalance</span><br><span class="line">● irqbalance.service - irqbalance daemon</span><br><span class="line">   Loaded: loaded (/usr/lib/systemd/system/irqbalance.service; enabled)</span><br><span class="line">   Active: failed (Result: exit-code) since Wed 2026-05-14 03:10:23 CST; 1 months 16 days ago</span><br></pre></td></tr></table></figure>
+
+<p>果然——<code>irqbalance</code> 在 5 月 14 日凌晨系统自动安全更新重启后挂掉了，之后再也没起来过。这 47 天里，所有新增的网络中断都堆积在 CPU 0 上，随着业务流量逐步增长（Q2 日均请求从 180 万涨到 310 万），CPU 0 的软中断负担越来越重，直到今天下午流量峰值时彻底撑不住。</p>
+<h3 id="第四步：深入理解软中断的处理机制"><a href="#第四步：深入理解软中断的处理机制" class="headerlink" title="第四步：深入理解软中断的处理机制"></a>第四步：深入理解软中断的处理机制</h3><p>这里有必要先理清 Linux 网络数据包的接收路径，否则很难理解为什么”一个 CPU 忙、31 个 CPU 闲”也会导致性能问题：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">网卡硬件中断 → IRQ handler（极短，记录到 poll_list）</span><br><span class="line">    → 触发软中断 NET_RX_SOFTIRQ</span><br><span class="line">        → net_rx_action() 轮询 poll_list</span><br><span class="line">            → NAPI poll（网卡驱动的 poll 函数）</span><br><span class="line">                → 从 Ring Buffer 取数据包</span><br><span class="line">                → 构建 sk_buff</span><br><span class="line">                → 送入协议栈（IP→TCP→Socket）</span><br><span class="line">                    → 唤醒等待该 Socket 的用户态进程</span><br></pre></td></tr></table></figure>
+
+<p>关键问题在于：<strong>用户态进程被唤醒后，内核调度器倾向于将进程调度到”距离数据最近的 CPU”上执行</strong>——也就是唤醒它的那个 CPU。如果进程恰好被调度到了 CPU 0（软中断所在核心），而 CPU 0 此时正忙于处理海量软中断（<code>%soft</code> 92%），进程几乎没有 CPU 时间来执行实际业务逻辑。这就形成了一个恶性循环：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">软中断占满 CPU 0</span><br><span class="line">    → 用户态进程被调度到 CPU 0（被唤醒）</span><br><span class="line">    → 进程得不到 CPU 时间片（被软中断抢占）</span><br><span class="line">    → 进程处理请求变慢</span><br><span class="line">    → 请求积压、TCP 接收缓冲区塞满</span><br><span class="line">    → 触发更多数据包到达、更多软中断</span><br><span class="line">    → 软中断更重、CPU 0 更忙</span><br></pre></td></tr></table></figure>
+
+<p>如果用 <code>perf</code> 来验证，会更直观：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ perf top -C 0</span><br><span class="line">Samples: 1M of event <span class="string">&#x27;cpu-clock&#x27;</span>, Event count (approx.): 123456789000</span><br><span class="line">Overhead  Shared Object          Symbol</span><br><span class="line">  42.35%  [kernel]               [k] net_rx_action</span><br><span class="line">  18.72%  [kernel]               [k] __netif_receive_skb_core</span><br><span class="line">  12.45%  [kernel]               [k] ip_rcv</span><br><span class="line">   8.91%  [kernel]               [k] tcp_v4_rcv</span><br><span class="line">   5.23%  [kernel]               [k] process_backlog</span><br><span class="line">   3.12%  [kernel]               [k] napi_gro_receive</span><br><span class="line">   ...</span><br></pre></td></tr></table></figure>
+
+<p>CPU 0 上 90% 以上的时间都在处理网络协议栈，真正留给用户态进程的时间不到 10%。而一个正常的 Java 请求处理需要经过 JSON 反序列化、业务逻辑计算、数据库查询、结果组装等步骤——被挤压到 10% 的 CPU 时间里，自然慢如蜗牛。</p>
+<h2 id="四、解决方案"><a href="#四、解决方案" class="headerlink" title="四、解决方案"></a>四、解决方案</h2><h3 id="紧急止血：手动绑定网卡中断到多个核心"><a href="#紧急止血：手动绑定网卡中断到多个核心" class="headerlink" title="紧急止血：手动绑定网卡中断到多个核心"></a>紧急止血：手动绑定网卡中断到多个核心</h3><p>业务不能等，先手动把四个网卡中断队列分别绑到不同的 CPU 核心：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 关闭 irqbalance（防止它反向操作覆盖我们的设置）</span></span><br><span class="line">systemctl stop irqbalance</span><br><span class="line"></span><br><span class="line"><span class="comment"># 将中断队列分别绑定到 CPU 0、8、16、24（分散在不同的物理核心和 NUMA 节点上）</span></span><br><span class="line"><span class="built_in">echo</span> 00000100 &gt; /proc/irq/59/smp_affinity   <span class="comment"># IRQ  59 → CPU 8</span></span><br><span class="line"><span class="built_in">echo</span> 00000100 &gt; /proc/irq/60/smp_affinity   <span class="comment"># IRQ  60 → CPU 8</span></span><br><span class="line"><span class="built_in">echo</span> 00010000 &gt; /proc/irq/61/smp_affinity   <span class="comment"># IRQ  61 → CPU 16</span></span><br><span class="line"><span class="built_in">echo</span> 01000000 &gt; /proc/irq/62/smp_affinity   <span class="comment"># IRQ  62 → CPU 24</span></span><br></pre></td></tr></table></figure>
+
+<p><code>smp_affinity</code> 的值是一个 16 进制位掩码，每一位代表一个 CPU。例如 <code>01000000</code> 的二进制表示为 CPU 24。</p>
+<p>验证中断分布变化：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cat</span> /proc/interrupts | grep eth0 | awk <span class="string">&#x27;&#123;print $1, $2, $3, $4, $5, $NF&#125;&#x27;</span></span><br><span class="line">59: 82341456 0 0 0 ... eth0-TxRx-0</span><br><span class="line">60: 102345678 0 0 0 ... eth0-TxRx-1  <span class="comment"># 刚改完，历史计数还在</span></span><br><span class="line">61: 95678901 0 0 0 ... eth0-TxRx-2</span><br><span class="line">62: 89765432 0 0 0 ... eth0-TxRx-3</span><br></pre></td></tr></table></figure>
+
+<p>历史计数不会清零，等待几秒后再次查看，确认新的中断确实在流向指定的 CPU：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ watch -n1 <span class="string">&#x27;cat /proc/interrupts | grep eth0&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>大约 30 秒后，<code>mpstat</code> 确认软中断已分散：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ mpstat -P 0,8,16,24 1</span><br><span class="line">03:22:30 PM  CPU    %usr   %sys   %soft</span><br><span class="line">03:22:31 PM    0    1.23   2.45    3.12</span><br><span class="line">03:22:31 PM    8    0.56   1.23   18.45</span><br><span class="line">03:22:31 PM   16    0.34   1.56   20.12</span><br><span class="line">03:22:31 PM   24    0.67   1.34   17.89</span><br></pre></td></tr></table></figure>
+
+<p>Nginx 504 错误率应声从 3.7% 跌到 0.02%，P99 延迟从 8 秒回落到 180ms。</p>
+<h3 id="长期优化：RPS-RFS-进一步分散软中断"><a href="#长期优化：RPS-RFS-进一步分散软中断" class="headerlink" title="长期优化：RPS + RFS 进一步分散软中断"></a>长期优化：RPS + RFS 进一步分散软中断</h3><p>手动中断绑定解决了燃眉之急，但四个硬件队列只能分散到四个核心，对于 32 核机器来说远远不够。更好的方案是启用 <strong>RPS（Receive Packet Steering）</strong>，让内核在软件层面把数据包分发给更多核心处理：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 启用 RPS：把 CPU 0-31 全部加入 eth0 各队列的处理核心掩码</span></span><br><span class="line"><span class="comment"># ffffffff = 32 个 CPU 全部参与软中断处理</span></span><br><span class="line"><span class="built_in">echo</span> ffffffff &gt; /sys/class/net/eth0/queues/rx-0/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> ffffffff &gt; /sys/class/net/eth0/queues/rx-1/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> ffffffff &gt; /sys/class/net/eth0/queues/rx-2/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> ffffffff &gt; /sys/class/net/eth0/queues/rx-3/rps_cpus</span><br><span class="line"></span><br><span class="line"><span class="comment"># 调整 RPS 流表大小（默认 4096，高并发场景建议 32768）</span></span><br><span class="line"><span class="built_in">echo</span> 32768 &gt; /sys/class/net/eth0/queues/rx-0/rps_flow_cnt</span><br><span class="line"><span class="built_in">echo</span> 32768 &gt; /sys/class/net/eth0/queues/rx-1/rps_flow_cnt</span><br><span class="line"><span class="built_in">echo</span> 32768 &gt; /sys/class/net/eth0/queues/rx-2/rps_flow_cnt</span><br><span class="line"><span class="built_in">echo</span> 32768 &gt; /sys/class/net/eth0/queues/rx-3/rps_flow_cnt</span><br></pre></td></tr></table></figure>
+
+<p>再启用 <strong>RFS（Receive Flow Steering）</strong>，让内核把同一流的数据包定向到应用所在的 CPU，进一步提升缓存命中率：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 设置全局 RFS 表大小</span></span><br><span class="line"><span class="built_in">echo</span> 32768 &gt; /proc/sys/net/core/rps_sock_flow_entries</span><br><span class="line"></span><br><span class="line"><span class="comment"># 为每个接收队列设置 RFS 条目数</span></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> $(<span class="built_in">seq</span> 0 3); <span class="keyword">do</span></span><br><span class="line">    <span class="built_in">echo</span> 8192 &gt; /sys/class/net/eth0/queues/rx-<span class="variable">$i</span>/rps_flow_cnt</span><br><span class="line"><span class="keyword">done</span></span><br></pre></td></tr></table></figure>
+
+<p>持久化这些配置到 <code>/etc/rc.d/rc.local</code> 或 systemd 服务，确保重启后不丢失：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> &gt;&gt; /etc/rc.d/rc.local &lt;&lt; <span class="string">&#x27;EOF&#x27;</span></span><br><span class="line"><span class="comment"># RPS/RFS optimization for eth0</span></span><br><span class="line"><span class="keyword">for</span> q <span class="keyword">in</span> /sys/class/net/eth0/queues/rx-*; <span class="keyword">do</span></span><br><span class="line">    <span class="built_in">echo</span> ffffffff &gt; <span class="variable">$q</span>/rps_cpus</span><br><span class="line">    <span class="built_in">echo</span> 32768 &gt; <span class="variable">$q</span>/rps_flow_cnt</span><br><span class="line"><span class="keyword">done</span></span><br><span class="line"><span class="built_in">echo</span> 32768 &gt; /proc/sys/net/core/rps_sock_flow_entries</span><br><span class="line">EOF</span><br><span class="line"><span class="built_in">chmod</span> +x /etc/rc.d/rc.local</span><br></pre></td></tr></table></figure>
+
+<h3 id="修复-irqbalance-服务"><a href="#修复-irqbalance-服务" class="headerlink" title="修复 irqbalance 服务"></a>修复 irqbalance 服务</h3><p>根源之一是 <code>irqbalance</code> 挂了没人知道，修复并加固：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 置入正式的中断绑定策略脚本</span></span><br><span class="line"><span class="built_in">cat</span> &gt; /etc/sysconfig/irqbalance &lt;&lt; <span class="string">&#x27;EOF&#x27;</span></span><br><span class="line">IRQBALANCE_ARGS=<span class="string">&quot;--hintpolicy=exact --banirq=59 --banirq=60 --banirq=61 --banirq=62&quot;</span></span><br><span class="line">EOF</span><br><span class="line">systemctl <span class="built_in">enable</span> irqbalance</span><br><span class="line">systemctl start irqbalance</span><br></pre></td></tr></table></figure>
+
+<p>这里用 <code>--banirq</code> 把我们已经手动绑定好的网卡中断排除在 irqbalance 的自动管理之外，避免它反转我们的设置。</p>
+<h2 id="五、根因分析"><a href="#五、根因分析" class="headerlink" title="五、根因分析"></a>五、根因分析</h2><p>这次问题的根本原因是一个<strong>三层连锁失效</strong>：</p>
+<ol>
+<li><p><strong>irqbalance 服务静默故障</strong>：5 月 14 日的安全更新重启了服务器，irqbalance 因依赖的某些内核模块加载时序问题启动失败，但没有触发任何告警。此后 47 天，服务器一直在”IRQ 全部绑在 CPU 0”的单核中断处理模式下运行。</p>
+</li>
+<li><p><strong>缺乏软中断监控</strong>：我们的 Prometheus 监控采集了 CPU 使用率、内存、磁盘、网络流量等指标，但没有采集 <code>/proc/softirqs</code> 的数据。<code>node_exporter</code> 默认的 <code>--collector.interrupts</code> 参数只采集硬中断（<code>/proc/interrupts</code>），不采集软中断（<code>/proc/softirqs</code>）。这导致 CPU 0 的软中断使用率从 2% 慢慢爬到 92% 的过程中，监控面板一片风平浪静。</p>
+</li>
+<li><p><strong>业务流量自然增长越过临界点</strong>：Q2 日均请求量从 180 万涨到 310 万（+72%），而”单核处理所有网络中断”这个架构的极限大约在日均 250 万请求左右。超过这个临界点后，软中断开始抢占用户态 CPU 时间，性能呈断崖式下跌，而不是线性退化。</p>
+</li>
+</ol>
+<h2 id="六、预防措施"><a href="#六、预防措施" class="headerlink" title="六、预防措施"></a>六、预防措施</h2><h3 id="1-补齐软中断监控"><a href="#1-补齐软中断监控" class="headerlink" title="1. 补齐软中断监控"></a>1. 补齐软中断监控</h3><p>在 <code>node_exporter</code> 启动参数中加入软中断采集：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># /etc/systemd/system/node_exporter.service 修改</span></span><br><span class="line">ExecStart=/usr/local/bin/node_exporter \</span><br><span class="line">    --collector.interrupts \</span><br><span class="line">    --collector.softirqs \</span><br><span class="line">    --web.listen-address=:9100</span><br></pre></td></tr></table></figure>
+
+<p>对应地，在 Prometheus 中添加告警规则：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># softirq_alerts.yml</span></span><br><span class="line"><span class="attr">groups:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">softirq</span></span><br><span class="line">    <span class="attr">rules:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">alert:</span> <span class="string">HighSoftirqPerCPU</span></span><br><span class="line">        <span class="attr">expr:</span> <span class="string">rate(node_softirqs_total&#123;softirq=&quot;NET_RX&quot;&#125;[5m])</span> <span class="string">&gt;</span> <span class="number">100000</span></span><br><span class="line">        <span class="attr">for:</span> <span class="string">5m</span></span><br><span class="line">        <span class="attr">labels:</span></span><br><span class="line">          <span class="attr">severity:</span> <span class="string">warning</span></span><br><span class="line">        <span class="attr">annotations:</span></span><br><span class="line">          <span class="attr">summary:</span> <span class="string">&quot;CPU <span class="template-variable">&#123;&#123; $labels.cpu &#125;&#125;</span> 网络软中断过高&quot;</span></span><br><span class="line">          <span class="attr">description:</span> <span class="string">&quot;当前速率 <span class="template-variable">&#123;&#123; $value | humanize &#125;&#125;</span>/s，可能导致服务延迟增加&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-建立服务器上线标准模板"><a href="#2-建立服务器上线标准模板" class="headerlink" title="2. 建立服务器上线标准模板"></a>2. 建立服务器上线标准模板</h3><p>今后所有新上线的物理服务器或大规格虚机，必须在初始化阶段完成以下配置：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 标准网络优化脚本（纳入装机 Kickstart/PXE 模板）</span></span><br><span class="line"><span class="comment"># 1. 启用 RPS</span></span><br><span class="line"><span class="comment"># 2. 设置 Ring Buffer 大小</span></span><br><span class="line"><span class="comment"># 3. 启用 TSO/GRO</span></span><br><span class="line"><span class="comment"># 4. 调整 TCP backlog</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># RPS 在所有队列启用</span></span><br><span class="line"><span class="keyword">for</span> q <span class="keyword">in</span> /sys/class/net/*/queues/rx-*; <span class="keyword">do</span></span><br><span class="line">    [ -f <span class="variable">$q</span>/rps_cpus ] &amp;&amp; <span class="built_in">echo</span> ffffffff &gt; <span class="variable">$q</span>/rps_cpus</span><br><span class="line">    [ -f <span class="variable">$q</span>/rps_flow_cnt ] &amp;&amp; <span class="built_in">echo</span> 32768 &gt; <span class="variable">$q</span>/rps_flow_cnt</span><br><span class="line"><span class="keyword">done</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Ring Buffer 拉到最大</span></span><br><span class="line">ethtool -G eth0 rx 4096 tx 4096</span><br><span class="line"></span><br><span class="line"><span class="comment"># TCP backlog</span></span><br><span class="line">sysctl -w net.core.netdev_max_backlog=5000</span><br><span class="line">sysctl -w net.core.somaxconn=4096</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-irqbalance-存活监控"><a href="#3-irqbalance-存活监控" class="headerlink" title="3. irqbalance 存活监控"></a>3. irqbalance 存活监控</h3><p>在基础监控中加入 irqbalance 进程存活检测：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 利用 node_exporter 的 textfile collector</span></span><br><span class="line"><span class="comment"># 或直接用 process_exporter</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">alert:</span> <span class="string">IrqbalanceDown</span></span><br><span class="line">  <span class="attr">expr:</span> <span class="string">absent(process_start_time_seconds&#123;process=&quot;irqbalance&quot;&#125;)</span></span><br><span class="line">  <span class="attr">for:</span> <span class="string">10m</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">severity:</span> <span class="string">critical</span></span><br><span class="line">  <span class="attr">annotations:</span></span><br><span class="line">    <span class="attr">summary:</span> <span class="string">&quot;irqbalance 服务未运行&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-定期性能基线巡检"><a href="#4-定期性能基线巡检" class="headerlink" title="4. 定期性能基线巡检"></a>4. 定期性能基线巡检</h3><p>每季度对核心服务器做一次性能基线检查，包括中断分布、软中断速率、NUMA 亲和性等——用脚本自动化，而不是靠人记住。</p>
+<h2 id="七、总结"><a href="#七、总结" class="headerlink" title="七、总结"></a>七、总结</h2><p>这次排查给我上了深刻的一课：**”CPU 整体使用率不高”绝对不等于”CPU 没有瓶颈”**。<code>top</code> 那行 <code>%Cpu(s)</code> 里面的 <code>si</code>（软中断）字段，平时看起来永远是个位数，以至于大多数人（包括之前的我）都习惯性忽略它。但恰恰是这个不起眼的指标，一旦集中在单核上，就能把整台服务器拖垮。</p>
+<p>回顾整个过程，工具链用得并不复杂——<code>top</code>、<code>mpstat</code>、<code>/proc/interrupts</code>、<code>/proc/softirqs</code>、<code>perf top</code>——都是 Linux 自带的基础工具。真正的难点在于<strong>思维路径</strong>：当 CPU 不高、内存够用、磁盘不忙、网络带宽也充足的时候，你的排查方向应该往哪里走？这次经历让我意识到，中断处理（硬中断 + 软中断）是一个经常被遗漏的排查维度。现代服务器动辄几十甚至上百核，如果中断亲和性配置不当，”一核有难、多核围观”的场面会比想象中更容易出现。</p>
+<p>另外，<strong>监控的盲区就是事故的土壤</strong>。我们花了大量精力监控应用指标、基础设施指标，却偏偏漏掉了软中断这个看似”底层”的指标。47 天的时间里，CPU 0 的软中断从正常慢慢走到极限，如果有哪怕一条与此相关的告警，都不至于等到业务方投诉才发现。</p>
+<p>最后抛一个问题给各位同行：你们线上服务器的 <code>/proc/softirqs</code> 分布是什么样的？不妨现在就打开看看，说不定有惊喜。</p>
+<hr>
+<p><em>本文涉及的 <code>/proc</code> 文件系统和 <code>sysfs</code> 接口均为 Linux 标准接口，配置示例基于 CentOS 7.9 和 Intel X540 网卡，其他发行版和网卡型号请根据实际情况调整。</em></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>Maskbugzero
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.5772447.xyz/posts/c26a6921/" title="一次服务器CPU软中断飙高导致服务间歇性超时的排查实录">https://blog.5772447.xyz/posts/c26a6921/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by/4.0/deed.zh" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" rel="tag"># 服务运维</a>
+              <a href="/tags/CPU%E8%BD%AF%E4%B8%AD%E6%96%AD/" rel="tag"># CPU软中断</a>
+              <a href="/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/" rel="tag"># 性能调优</a>
+              <a href="/tags/%E7%BD%91%E7%BB%9C%E4%B8%AD%E6%96%AD/" rel="tag"># 网络中断</a>
+              <a href="/tags/Linux%E5%86%85%E6%A0%B8/" rel="tag"># Linux内核</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/posts/b67a479d/" rel="prev" title="一次RADIUS服务器EAP-TLS证书过期导致全公司802.1X认证大规模掉线的排查实录">
+                  <i class="fa fa-angle-left"></i> 一次RADIUS服务器EAP-TLS证书过期导致全公司802.1X认证大规模掉线的排查实录
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2021 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">Maskbugzero</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">80k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">4:52</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
