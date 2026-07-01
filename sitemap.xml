@@ -2,6 +2,15 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://blog.5772447.xyz/posts/1672d715/</loc>
+    
+    <lastmod>2026-07-01</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://blog.5772447.xyz/posts/d2a21abf/</loc>
     
     <lastmod>2026-06-30</lastmod>
@@ -427,7 +436,7 @@
 
   <url>
     <loc>https://blog.5772447.xyz/</loc>
-    <lastmod>2026-06-30</lastmod>
+    <lastmod>2026-07-01</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
