@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="公司内多台员工电脑在同一天集中出现蓝屏死机，BSOD错误码各不相同，排查发现是前一天推送的一个驱动更新包与特定网卡型号不兼容导致。">
+<title>一次员工电脑批量蓝屏的排查实录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/99601deb/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次员工电脑批量蓝屏的排查实录">
+<meta property='og:description' content="公司内多台员工电脑在同一天集中出现蓝屏死机，BSOD错误码各不相同，排查发现是前一天推送的一个驱动更新包与特定网卡型号不兼容导致。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/99601deb/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='蓝屏' /><meta property='article:tag' content='BSOD' /><meta property='article:tag' content='驱动' /><meta property='article:tag' content='桌面运维' /><meta property='article:published_time' content='2025-05-20T14:00:00&#43;00:00'/><meta property='article:modified_time' content='2025-05-20T14:00:00&#43;00:00'/>
+<meta name="twitter:title" content="一次员工电脑批量蓝屏的排查实录">
+<meta name="twitter:description" content="公司内多台员工电脑在同一天集中出现蓝屏死机，BSOD错误码各不相同，排查发现是前一天推送的一个驱动更新包与特定网卡型号不兼容导致。">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column compact"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="images/touxiang.jpg" 
+                        width=""
+                        height=""
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description"></h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/post' >
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>Dark Mode</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" style="background-color: hsl(195, 60%, 84%); color: hsl(195, 60%, 15%);">
+                桌面运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/99601deb/">一次员工电脑批量蓝屏的排查实录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            公司内多台员工电脑在同一天集中出现蓝屏死机，BSOD错误码各不相同，排查发现是前一天推送的一个驱动更新包与特定网卡型号不兼容导致。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2025-05-20T14:00:00Z'>Tuesday, May 20, 2025</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        2 minutes read
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>某周二上午，IT 服务台在 2 小时内接到 18 个蓝屏相关工单，用户反映电脑突然蓝屏重启，屏幕显示蓝色错误界面后自动重启。部分用户反映重启后又蓝屏，进入死循环，需要 IT 上门处理。</p>
+<p>分析工单发现，出现问题的机器主要集中在某一批次（戴尔 OptiPlex 7090），其他机型也有零星案例。所有出现问题的机器有一个共同点：昨天（周一）都收到了一个通过 SCCM（System Center Configuration Manager）推送的驱动更新包。</p>
+<hr>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>多台机器出现不同的 BSOD 错误码：
+<ul>
+<li><code>DRIVER_IRQL_NOT_LESS_OR_EQUAL</code></li>
+<li><code>SYSTEM_THREAD_EXCEPTION_NOT_HANDLED</code></li>
+<li><code>PAGE_FAULT_IN_NONPAGED_AREA</code></li>
+</ul>
+</li>
+<li>部分机器重启后再次蓝屏，无法正常进入 Windows</li>
+<li>出问题的机器集中在昨天收到驱动更新的设备</li>
+<li>问题机器操作系统：Windows 10 22H2</li>
+</ul>
+<hr>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="第一步收集崩溃转储文件"><a href="#%e7%ac%ac%e4%b8%80%e6%ad%a5%e6%94%b6%e9%9b%86%e5%b4%a9%e6%ba%83%e8%bd%ac%e5%82%a8%e6%96%87%e4%bb%b6" class="header-anchor"></a>第一步：收集崩溃转储文件
+</h3><p>蓝屏后，Windows 会生成内存转储文件（Minidump）。收集几台典型故障机的转储文件：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>路径：C:\Windows\Minidump\*.dmp
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>使用 WinDbg（Windows 调试工具）分析：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span># 在 WinDbg 中打开 dmp 文件后执行：
+</span></span><span style="display:flex;"><span>!analyze -v
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>对 3 台不同机器的 dmp 文件分析结果，都指向同一个模块：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>Probably caused by : e1d65x64.sys ( e1d65x64+XXXXX )
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>e1d65x64.sys</code> 是 <strong>Intel 网卡驱动</strong>（具体型号为 Intel Ethernet Connection I219-LM）。</p>
+<h3 id="第二步确认驱动版本"><a href="#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e7%a1%ae%e8%ae%a4%e9%a9%b1%e5%8a%a8%e7%89%88%e6%9c%ac" class="header-anchor"></a>第二步：确认驱动版本
+</h3><p>在一台还能启动的问题机器上查看网卡驱动版本：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>设备管理器 → 网络适配器 → Intel(R) Ethernet Connection I219-LM → 属性 → 驱动程序
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>显示：</p>
+<ul>
+<li>驱动版本：<strong>12.19.2.45</strong>（更新后的版本）</li>
+<li>驱动日期：<strong>2025-05-19</strong>（昨天）</li>
+</ul>
+<p>在一台没有收到更新、运行正常的同款机器上查看：</p>
+<ul>
+<li>驱动版本：12.18.9.23（旧版本）</li>
+</ul>
+<h3 id="第三步查看-sccm-更新推送记录"><a href="#%e7%ac%ac%e4%b8%89%e6%ad%a5%e6%9f%a5%e7%9c%8b-sccm-%e6%9b%b4%e6%96%b0%e6%8e%a8%e9%80%81%e8%ae%b0%e5%bd%95" class="header-anchor"></a>第三步：查看 SCCM 更新推送记录
+</h3><p>登录 SCCM 控制台，查看昨天（2025-05-19）推送的软件包：</p>
+<p>发现昨天推送了一个&quot;Intel 网卡驱动更新包 v12.19.2.45&quot;，部署范围为&quot;所有工作站（Windows 10）&quot;，推送时间为 18:00，因此很多员工是今天上班开机后才开始安装，安装完成重启后触发蓝屏。</p>
+<p><strong>受影响范围评估：</strong></p>
+<ul>
+<li>昨天收到该更新包的设备：约 240 台</li>
+<li>已出现蓝屏的：18 台（均为戴尔 OptiPlex 7090，搭载 Intel I219-LM 网卡）</li>
+<li>其他品牌机型：有同款网卡的也出现了少量案例</li>
+</ul>
+<h3 id="第四步查阅驱动版本相关信息"><a href="#%e7%ac%ac%e5%9b%9b%e6%ad%a5%e6%9f%a5%e9%98%85%e9%a9%b1%e5%8a%a8%e7%89%88%e6%9c%ac%e7%9b%b8%e5%85%b3%e4%bf%a1%e6%81%af" class="header-anchor"></a>第四步：查阅驱动版本相关信息
+</h3><p>查阅 Intel 官网和微软 WHQL 驱动数据库，以及该版本驱动的发布说明：</p>
+<p>在 Intel 社区论坛找到了相关讨论，有其他用户反映 12.19.2.45 版本的驱动在 Windows 10 特定版本上存在兼容性问题，官方正在排查，建议暂时回滚到上一个稳定版本（12.18.9.23）。</p>
+<h3 id="第五步制定处理方案"><a href="#%e7%ac%ac%e4%ba%94%e6%ad%a5%e5%88%b6%e5%ae%9a%e5%a4%84%e7%90%86%e6%96%b9%e6%a1%88" class="header-anchor"></a>第五步：制定处理方案
+</h3><p>对于<strong>还能启动</strong>的问题机器：通过脚本回滚驱动。</p>
+<p>对于<strong>无法启动</strong>的问题机器（重复蓝屏）：需要进入安全模式或 WinPE 回滚驱动。</p>
+<hr>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><h3 id="方案一能正常启动的机器远程或用户自行操作"><a href="#%e6%96%b9%e6%a1%88%e4%b8%80%e8%83%bd%e6%ad%a3%e5%b8%b8%e5%90%af%e5%8a%a8%e7%9a%84%e6%9c%ba%e5%99%a8%e8%bf%9c%e7%a8%8b%e6%88%96%e7%94%a8%e6%88%b7%e8%87%aa%e8%a1%8c%e6%93%8d%e4%bd%9c" class="header-anchor"></a>方案一：能正常启动的机器（远程或用户自行操作）
+</h3><p>通过 PowerShell 批量回滚网卡驱动：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span><span style="color:#75715e"># 查看当前网卡驱动版本</span>
+</span></span><span style="display:flex;"><span>Get-WmiObject Win32_PnPSignedDriver | Where-Object {$_.DeviceName <span style="color:#f92672">-like</span> <span style="color:#e6db74">&#34;*Intel*Ethernet*&#34;</span>} | Select-Object DeviceName, DriverVersion, DriverDate
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 回滚驱动（设备管理器操作）</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 或通过命令行卸载当前版本并安装旧版本</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>手动操作步骤：</p>
+<ol>
+<li>设备管理器 → 网络适配器 → Intel Ethernet Connection I219-LM</li>
+<li>右键 → 属性 → 驱动程序 → 回退驱动程序</li>
+<li>如果&quot;回退驱动程序&quot;按钮灰色不可用（没有备份），则使用旧版驱动安装包手动安装</li>
+</ol>
+<p>准备了旧版驱动安装包（12.18.9.23），部署到 SCCM 软件分发，用户可以直接运行安装。</p>
+<h3 id="方案二无法启动的机器反复蓝屏"><a href="#%e6%96%b9%e6%a1%88%e4%ba%8c%e6%97%a0%e6%b3%95%e5%90%af%e5%8a%a8%e7%9a%84%e6%9c%ba%e5%99%a8%e5%8f%8d%e5%a4%8d%e8%93%9d%e5%b1%8f" class="header-anchor"></a>方案二：无法启动的机器（反复蓝屏）
+</h3><p><strong>方法一：进入安全模式</strong></p>
+<ol>
+<li>强制重启 3 次，Windows 自动进入&quot;高级启动选项&quot;</li>
+<li>疑难解答 → 高级选项 → 启动设置 → 重新启动</li>
+<li>进入安全模式后，设备管理器回滚网卡驱动，或直接卸载驱动（安全模式下无线网络功能不加载有问题的驱动）</li>
+</ol>
+<p><strong>方法二：WinPE 启动盘</strong>
+对于安全模式也进不去的机器，使用 IT 部门预先制作的 WinPE 启动 U 盘：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-cmd" data-lang="cmd"><span style="display:flex;"><span># 在 WinPE 中挂载 Windows 系统分区后，删除问题驱动
+</span></span><span style="display:flex;"><span>dism /image:C:\ /remove-driver /driver:oem12.inf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>其中 <code>oem12.inf</code> 对应 Intel 网卡驱动的 INF 文件编号（需在正常机器上预先确认）。</p>
+<p><strong>效果：</strong> 所有 18 台问题机器在当天下午 3 点前全部恢复正常。</p>
+<h3 id="立即在-sccm-中暂停并撤回该驱动更新"><a href="#%e7%ab%8b%e5%8d%b3%e5%9c%a8-sccm-%e4%b8%ad%e6%9a%82%e5%81%9c%e5%b9%b6%e6%92%a4%e5%9b%9e%e8%af%a5%e9%a9%b1%e5%8a%a8%e6%9b%b4%e6%96%b0" class="header-anchor"></a>立即在 SCCM 中暂停并撤回该驱动更新
+</h3><p>对已推送但还未安装的机器，在 SCCM 中将该部署的状态设置为&quot;不可用&quot;，防止继续安装。</p>
+<hr>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>根本原因是 <strong>SCCM 驱动更新推送前缺乏充分的测试验证</strong>，将一个存在兼容性 bug 的驱动版本（Intel 12.19.2.45）直接大批量推送到生产环境，导致大量安装了该驱动的设备出现蓝屏。</p>
+<p>次要原因是<strong>推送范围过广</strong>，没有采用灰度（分阶段）部署策略，第一批应该只推送少量测试机器，验证稳定后再扩大范围。</p>
+<hr>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><p><strong>1. 驱动更新分阶段推送</strong></p>
+<p>在 SCCM 中创建测试集合（如 20 台代表性机器），先推送测试集合，观察 24-48 小时无问题后，再推送全量。</p>
+<p><strong>2. 推送时间选择</strong></p>
+<p>避免在下班后推送涉及重启的更新，否则出现问题无人第一时间响应。改为在周三/周四工作时间推送，方便快速响应。</p>
+<p><strong>3. 崩溃转储监控</strong></p>
+<p>接入 Microsoft Intune 或 SCCM 的设备健康报告，监控 BSOD 发生率。若在 24 小时内某款驱动关联的 BSOD 数量超过阈值，自动暂停相关更新并告警。</p>
+<p><strong>4. 维护一个&quot;已验证驱动版本&quot;白名单</strong></p>
+<p>对常用驱动（网卡、显卡、声卡等），维护一个经过验证的稳定版本列表，未经测试的新版本不进入大规模推送流程。</p>
+<hr>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>批量蓝屏事件对 IT 运维团队来说是高压力事件，尤其是当用户的工作电脑无法正常使用时，会产生大量抱怨和催促。这次事件暴露了我们在软件/驱动更新管理上的薄弱环节。</p>
+<p><strong>最重要的教训：</strong> 生产环境的变更永远要&quot;小步走&quot;，灰度测试不是可选项，而是必选项。一个小时的测试，可能避免数百台机器同时出问题。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E8%93%9D%E5%B1%8F/">蓝屏</a>
+        
+            <a href="/tags/bsod/">BSOD</a>
+        
+            <a href="/tags/%E9%A9%B1%E5%8A%A8/">驱动</a>
+        
+            <a href="/tags/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/">桌面运维</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">Related content</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/a787a6c4/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次AD域控GPO策略推送失败导致终端安全基线不生效的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/7e4d3819/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次Windows域账号批量锁定事件的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
+        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.1ff1e5fdc4e178ed422e50aa407526dc552f26342d729343fded19416194382c.js" defer></script>
+
+
+    </body>
+</html>

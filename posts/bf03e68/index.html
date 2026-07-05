@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="沛喆PZ-L8路由器刷集客教程，包括初始分区数据和初始环境变量，以及一些常用的命令。">
+<title>沛喆PZ-L8路由器刷机教程</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/bf03e68/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="沛喆PZ-L8路由器刷机教程">
+<meta property='og:description' content="沛喆PZ-L8路由器刷集客教程，包括初始分区数据和初始环境变量，以及一些常用的命令。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/bf03e68/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='路由器' /><meta property='article:published_time' content='2023-08-03T19:58:25&#43;00:00'/><meta property='article:modified_time' content='2023-08-03T19:58:25&#43;00:00'/>
+<meta name="twitter:title" content="沛喆PZ-L8路由器刷机教程">
+<meta name="twitter:description" content="沛喆PZ-L8路由器刷集客教程，包括初始分区数据和初始环境变量，以及一些常用的命令。">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column compact"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="images/touxiang.jpg" 
+                        width=""
+                        height=""
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description"></h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/post' >
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>Dark Mode</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%B7%AF%E7%94%B1%E5%99%A8/" style="background-color: hsl(353, 60%, 84%); color: hsl(353, 60%, 15%);">
+                路由器
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%95%99%E7%A8%8B/" style="background-color: hsl(281, 60%, 84%); color: hsl(281, 60%, 15%);">
+                教程
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/bf03e68/">沛喆PZ-L8路由器刷机教程</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            沛喆PZ-L8路由器刷集客教程，包括初始分区数据和初始环境变量，以及一些常用的命令。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2023-08-03T19:58:25Z'>Thursday, August 3, 2023</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        2 minutes read
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="前言"><a href="#%e5%89%8d%e8%a8%80" class="header-anchor"></a>前言
+</h2><p>沛喆PZ-L8路由器刷机教程</p>
+<h2 id="接ttl"><a href="#%e6%8e%a5ttl" class="header-anchor"></a>接TTL
+</h2><p>插好TTL,路由器主板上有标注引脚,VCC请不要接！！！</p>
+<h2 id="上电进u-boot"><a href="#%e4%b8%8a%e7%94%b5%e8%bf%9bu-boot" class="header-anchor"></a>上电进u-boot
+</h2><p>打开终端软件，配置：115200,8,无,1,无</p>
+<p>路由器上电后快速按esc，中断uboot启动</p>
+<h2 id="输入smeminfo查看初始分区"><a href="#%e8%be%93%e5%85%a5smeminfo%e6%9f%a5%e7%9c%8b%e5%88%9d%e5%a7%8b%e5%88%86%e5%8c%ba" class="header-anchor"></a>输入smeminfo查看初始分区
+</h2><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>IPQ5018# smeminfo
+</span></span><span style="display:flex;"><span>ubi0: attaching mtd1
+</span></span><span style="display:flex;"><span>ubi0: scanning is finished
+</span></span><span style="display:flex;"><span>ubi0: attached mtd1 <span style="color:#f92672">(</span>name <span style="color:#e6db74">&#34;mtd=0&#34;</span>, size <span style="color:#ae81ff">58</span> MiB<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>ubi0: PEB size: <span style="color:#ae81ff">131072</span> bytes <span style="color:#f92672">(</span><span style="color:#ae81ff">128</span> KiB<span style="color:#f92672">)</span>, LEB size: <span style="color:#ae81ff">126976</span> bytes
+</span></span><span style="display:flex;"><span>ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size <span style="color:#ae81ff">2048</span>
+</span></span><span style="display:flex;"><span>ubi0: VID header offset: <span style="color:#ae81ff">2048</span> <span style="color:#f92672">(</span>aligned 2048<span style="color:#f92672">)</span>, data offset: <span style="color:#ae81ff">4096</span>
+</span></span><span style="display:flex;"><span>ubi0: good PEBs: 464, bad PEBs: 0, corrupted PEBs: <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>ubi0: user volume: 5, internal volumes: 1, max. volumes count: <span style="color:#ae81ff">128</span>
+</span></span><span style="display:flex;"><span>ubi0: max/mean erase counter: 25/11, WL threshold: 4096, image sequence number: <span style="color:#ae81ff">1838781505</span>
+</span></span><span style="display:flex;"><span>ubi0: available PEBs: 0, total reserved PEBs: 464, PEBs reserved <span style="color:#66d9ef">for</span> bad PEB handling: <span style="color:#ae81ff">20</span>
+</span></span><span style="display:flex;"><span>flash_type:             0xb
+</span></span><span style="display:flex;"><span>flash_index:            0x0
+</span></span><span style="display:flex;"><span>flash_chip_select:      0x0
+</span></span><span style="display:flex;"><span>flash_block_size:       0x20000
+</span></span><span style="display:flex;"><span>flash_density:          0x80000
+</span></span><span style="display:flex;"><span>partition table offset  0x0
+</span></span><span style="display:flex;"><span>No.: Name             Attributes            Start             Size
+</span></span><span style="display:flex;"><span>  0: 0:SBL1           0x0000ffff              0x0          0x80000
+</span></span><span style="display:flex;"><span>  1: 0:MIBIB          0x0000ffff          0x80000          0x80000
+</span></span><span style="display:flex;"><span>  2: 0:BOOTCONFIG     0x0000ffff         0x100000          0x40000
+</span></span><span style="display:flex;"><span>  3: 0:BOOTCONFIG1    0x0000ffff         0x140000          0x40000
+</span></span><span style="display:flex;"><span>  4: 0:QSEE           0x0000ffff         0x180000         0x100000
+</span></span><span style="display:flex;"><span>  5: 0:QSEE_1         0x0000ffff         0x280000         0x100000
+</span></span><span style="display:flex;"><span>  6: 0:DEVCFG         0x0000ffff         0x380000          0x40000
+</span></span><span style="display:flex;"><span>  7: 0:DEVCFG_1       0x0000ffff         0x3c0000          0x40000
+</span></span><span style="display:flex;"><span>  8: 0:CDT            0x0000ffff         0x400000          0x40000
+</span></span><span style="display:flex;"><span>  9: 0:CDT_1          0x0000ffff         0x440000          0x40000
+</span></span><span style="display:flex;"><span> 10: 0:APPSBLENV      0x0000ffff         0x480000          0x80000
+</span></span><span style="display:flex;"><span> 11: 0:APPSBL         0x0000ffff         0x500000         0x140000
+</span></span><span style="display:flex;"><span> 12: 0:APPSBL_1       0x0000ffff         0x640000         0x140000
+</span></span><span style="display:flex;"><span> 13: 0:ART            0x0000ffff         0x780000         0x100000
+</span></span><span style="display:flex;"><span> 14: 0:TRAINING       0x0000ffff         0x880000          0x80000
+</span></span><span style="display:flex;"><span> 15: rootfs           0x0000ffff        0x4300000        0x3a00000
+</span></span><span style="display:flex;"><span>        ubi vol <span style="color:#ae81ff">0</span> kernel
+</span></span><span style="display:flex;"><span>        ubi vol <span style="color:#ae81ff">1</span> wifi_fw
+</span></span><span style="display:flex;"><span>        ubi vol <span style="color:#ae81ff">2</span> bt_fw
+</span></span><span style="display:flex;"><span>        ubi vol <span style="color:#ae81ff">3</span> ubi_rootfs
+</span></span><span style="display:flex;"><span>        ubi vol <span style="color:#ae81ff">4</span> rootfs_data
+</span></span><span style="display:flex;"><span> 16: rootfs_1         0x0000ffff         0x900000        0x3a00000
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img alt="查看初始分区" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/img/1691567258333.webp"></p>
+<h2 id="输入printenv查看初始启动参数"><a href="#%e8%be%93%e5%85%a5printenv%e6%9f%a5%e7%9c%8b%e5%88%9d%e5%a7%8b%e5%90%af%e5%8a%a8%e5%8f%82%e6%95%b0" class="header-anchor"></a>输入printenv查看初始启动参数
+</h2><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>IPQ5018# printenv
+</span></span><span style="display:flex;"><span>baudrate<span style="color:#f92672">=</span><span style="color:#ae81ff">115200</span>
+</span></span><span style="display:flex;"><span>bootcmd<span style="color:#f92672">=</span>bootipq
+</span></span><span style="display:flex;"><span>bootdelay<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>done_upgrade<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>eth1addr<span style="color:#f92672">=</span>xxxx
+</span></span><span style="display:flex;"><span>ethact<span style="color:#f92672">=</span>eth0
+</span></span><span style="display:flex;"><span>ethaddr<span style="color:#f92672">=</span>xxxx
+</span></span><span style="display:flex;"><span>fdt_high<span style="color:#f92672">=</span>0x4A400000
+</span></span><span style="display:flex;"><span>fdtcontroladdr<span style="color:#f92672">=</span>4a9c4004
+</span></span><span style="display:flex;"><span>flash_type<span style="color:#f92672">=</span><span style="color:#ae81ff">11</span>
+</span></span><span style="display:flex;"><span>ignore_part<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>ipaddr<span style="color:#f92672">=</span>192.168.10.10
+</span></span><span style="display:flex;"><span>machid<span style="color:#f92672">=</span><span style="color:#ae81ff">8040000</span>
+</span></span><span style="display:flex;"><span>mtddevname<span style="color:#f92672">=</span>fs
+</span></span><span style="display:flex;"><span>mtddevnum<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>mtdids<span style="color:#f92672">=</span>nand0<span style="color:#f92672">=</span>nand0
+</span></span><span style="display:flex;"><span>mtdparts<span style="color:#f92672">=</span>mtdparts<span style="color:#f92672">=</span>nand0:0x3a00000@0x4300000<span style="color:#f92672">(</span>fs<span style="color:#f92672">)</span>,
+</span></span><span style="display:flex;"><span>netmask<span style="color:#f92672">=</span>255.255.255.0
+</span></span><span style="display:flex;"><span>new_rootfs0<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>new_rootfs1<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>partition<span style="color:#f92672">=</span>nand0,0
+</span></span><span style="display:flex;"><span>rootfs_num<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>serverip<span style="color:#f92672">=</span>192.168.10.19
+</span></span><span style="display:flex;"><span>soc_hw_version<span style="color:#f92672">=</span><span style="color:#ae81ff">20180101</span>
+</span></span><span style="display:flex;"><span>soc_version_major<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>soc_version_minor<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>stderr<span style="color:#f92672">=</span>serial@78AF000
+</span></span><span style="display:flex;"><span>stdin<span style="color:#f92672">=</span>serial@78AF000
+</span></span><span style="display:flex;"><span>stdout<span style="color:#f92672">=</span>serial@78AF000
+</span></span><span style="display:flex;"><span>sysfail<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Environment size: 630/262140 bytes
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img alt="初始启动参数" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/img/1691567293106.webp"></p>
+<h2 id="配置tftp服务"><a href="#%e9%85%8d%e7%bd%aetftp%e6%9c%8d%e5%8a%a1" class="header-anchor"></a>配置TFTP服务
+</h2><p>电脑网卡配置
+ip地址：192.168.10.19
+掩码：255.255.255.0
+关闭防火墙
+将ubi-JIKEAP_N3000.img固件放入根目录</p>
+<h2 id="ttl刷固件"><a href="#ttl%e5%88%b7%e5%9b%ba%e4%bb%b6" class="header-anchor"></a>TTL刷固件
+</h2><p>电脑网口接路由器WAN，输入以下命令开始刷机</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>tftpboot ubi-JIKEAP_N3000.img   
+</span></span><span style="display:flex;"><span>flash rootfs
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>提示OK后，断电重启</p>
+<p>搞定</p>
+<h3 id="备用命令"><a href="#%e5%a4%87%e7%94%a8%e5%91%bd%e4%bb%a4" class="header-anchor"></a>备用命令
+</h3><p>IPQ5018# nand erase 0x900000 0x3a00000</p>
+<p>IPQ5018# setenv bootargs
+IPQ5018# setenv eth2addr
+IPQ5018# setenv eth3addr
+IPQ5018# setenv fsbootargs</p>
+<p>IPQ5018# setenv mtdparts mtdparts=nand0:0x3a00000@0x4300000(fs),
+IPQ5018# setenv mtdparts mtdparts=nand0:0x3a00000@0x900000(fs),</p>
+<p>IPQ5018# saveenv</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E8%B7%AF%E7%94%B1%E5%99%A8/">路由器</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">Related content</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/97279196/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">JCG Q20路由器刷机教程</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/7c4a1a51/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">MTK7621路由器刷Mikrotik rb750gr3固件</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
+        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.1ff1e5fdc4e178ed422e50aa407526dc552f26342d729343fded19416194382c.js" defer></script>
+
+
+    </body>
+</html>

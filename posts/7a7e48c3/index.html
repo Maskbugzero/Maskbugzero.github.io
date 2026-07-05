@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content=">-">
+<title>一次Prometheus告警风暴拖垮邮件与企业微信告警通道的排查实录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/7a7e48c3/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次Prometheus告警风暴拖垮邮件与企业微信告警通道的排查实录">
+<meta property='og:description' content=">-">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/7a7e48c3/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Prometheus' /><meta property='article:tag' content='Alertmanager' /><meta property='article:tag' content='告警风暴' /><meta property='article:tag' content='监控告警' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2026-06-28T06:55:00&#43;00:00'/><meta property='article:modified_time' content='2026-06-28T06:55:00&#43;00:00'/>
+<meta name="twitter:title" content="一次Prometheus告警风暴拖垮邮件与企业微信告警通道的排查实录">
+<meta name="twitter:description" content=">-">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column compact"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="images/touxiang.jpg" 
+                        width=""
+                        height=""
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description"></h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/post' >
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>Dark Mode</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/7a7e48c3/">一次Prometheus告警风暴拖垮邮件与企业微信告警通道的排查实录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            &gt;-
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-06-28T06:55:00Z'>Sunday, June 28, 2026</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        5 minutes read
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="一问题背景"><a href="#%e4%b8%80%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>一、问题背景
+</h2><p>周四下午 14:20 左右，公司内部运维群突然开始&quot;刷屏&quot;——每秒钟都有十几条告警消息从企业微信机器人推出来，密密麻麻的红色 ERROR 几乎把群聊淹没。我当时正在处理一个普通的工单，看到群里&quot;炸了&quot;的第一反应是某个核心服务挂了，但仔细扫了几条告警内容后又觉得不对：大量&quot;Redis 慢查询&quot;、&ldquo;接口 P99 突增&rdquo;、&ldquo;磁盘 IO 升高&quot;这种零散的二级告警，没有一条提到核心业务异常。</p>
+<p>更诡异的是，我试着登录 Grafana 看核心仪表盘，结果返回 502；打开邮件客户端想看原始告警，登录后邮件列表一直转圈加载不出来。这一刻我才意识到——告警本身把告警通道打爆了。</p>
+<p>我们的监控栈是典型的&quot;Prometheus + Alertmanager + 企业微信/邮件&quot;组合，部署在 2 节点的 VM 上，Prometheus 单实例抓取大约 280 个 target，覆盖 12 套业务系统。按理说应该是个很稳的架构，那天下午发生的事情彻底改变了我们对&quot;告警治理&quot;的认知。</p>
+<h2 id="二故障现象"><a href="#%e4%ba%8c%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>二、故障现象
+</h2><p>故障爆发后，我开始从外到内逐层观察，记录下的关键现象如下：</p>
+<p><strong>1. 企业微信群告警刷屏</strong></p>
+<p>群机器人从 14:20 开始以大约 12 条/秒的速率推送告警，告警内容主要分两类：</p>
+<ul>
+<li><code>HighRequestLatency</code> P99 延迟大于 1s（业务接口 50+）</li>
+<li><code>RedisSlowQuery</code> 慢查询大于 100ms（Redis 实例 12+）</li>
+<li><code>ContainerCPUThrottled</code> CPU 限流（Pod 30+）</li>
+<li><code>NodeDiskIOHigh</code> 节点磁盘 IO 高（节点 8+）</li>
+</ul>
+<p>但所有告警的 <code>severity</code> 标签都是 <code>warning</code>，没有任何 <code>critical</code> 级别的告警出现。</p>
+<p><strong>2. 邮件系统卡死</strong></p>
+<p>公司内部邮箱（基于 Postfix + Dovecot 自建）登录后无法加载新邮件，运维组的公共收件箱 <code>ops-alert@company.com</code> 在 10 分钟内收到了 18,742 封邮件。我 <code>ssh</code> 到邮件服务器上看了一眼：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ postqueue -p | tail -5
+</span></span><span style="display:flex;"><span>-- <span style="color:#ae81ff">18472</span> Kbytes in <span style="color:#ae81ff">18742</span> Requests.
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>队列里堆了 1.8 万封待发邮件，Postfix 的 <code>qmgr</code> 进程 CPU 占用飙到 380%（多核），<code>active</code> 队列达到 <code>smtp_destination_concurrency_limit</code> 的上限。</p>
+<p><strong>3. Grafana 不可达</strong></p>
+<p>通过 <code>curl -I http://grafana.internal:3000</code> 测试返回 502。Grafana 后端依赖的 Prometheus 数据源因为查询请求堆积而响应缓慢，Grafana 默认的超时时间是 30 秒，大量仪表盘请求堆积导致前端一直 502。</p>
+<p><strong>4. 真正致命的故障被淹没</strong></p>
+<p>事后复盘发现，在 14:15 左右（也就是告警风暴前 5 分钟），核心订单数据库的主从复制其实已经中断，从库 <code>Seconds_Behind_Master</code> 飙到 <code>NULL</code>，意味着 IO 线程已经停了。但因为告警风暴期间 Alertmanager 的处理队列被压垮，<strong>这条 critical 级别的告警根本没有被发送出来</strong>。最终这个故障是业务部门反馈&quot;订单数据不准&quot;后我手动查数据库才发现的，业务受影响时长接近 2 小时。</p>
+<h2 id="三排查过程"><a href="#%e4%b8%89%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>三、排查过程
+</h2><p>我按&quot;告警链路 → 告警源头 → 告警通道&quot;三段式展开排查，整个过程大约用了 40 分钟。</p>
+<h3 id="31-紧急止血先让告警通道活过来"><a href="#31-%e7%b4%a7%e6%80%a5%e6%ad%a2%e8%a1%80%e5%85%88%e8%ae%a9%e5%91%8a%e8%ad%a6%e9%80%9a%e9%81%93%e6%b4%bb%e8%bf%87%e6%9d%a5" class="header-anchor"></a>3.1 紧急止血：先让告警通道活过来
+</h3><p>第一件事是阻止告警继续刷屏。我直接 <code>ssh</code> 到 Alertmanager 节点，先停掉企业微信机器人的 webhook 投递：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ systemctl status alertmanager
+</span></span><span style="display:flex;"><span>● alertmanager.service - Alertmanager
+</span></span><span style="display:flex;"><span>   Active: active <span style="color:#f92672">(</span>running<span style="color:#f92672">)</span> since ...
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 临时禁用webhook</span>
+</span></span><span style="display:flex;"><span>$ vim /etc/alertmanager/alertmanager.yml
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 在webhook_config前加 - name: &#39;disabled&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 注释掉 receivers 段中所有 webhook</span>
+</span></span><span style="display:flex;"><span>$ systemctl reload alertmanager
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>然后去邮件服务器上把堆积的队列清掉，保留最近的 200 封邮件作为证据：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 查看队列</span>
+</span></span><span style="display:flex;"><span>$ postqueue -p | head -20
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 把队列里老于30分钟的邮件全部退信</span>
+</span></span><span style="display:flex;"><span>$ postsuper -d ALL deferred
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 或者更精细：只删除30分钟前的</span>
+</span></span><span style="display:flex;"><span>$ find /var/spool/postfix/deferred -type f -mmin +30 -delete
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>止血操作大约花了 5 分钟，群里的刷屏停了，邮件系统开始慢慢恢复。Grafana 在 2 分钟后也能正常打开。</p>
+<h3 id="32-查告警源头为什么这么多告警同时触发"><a href="#32-%e6%9f%a5%e5%91%8a%e8%ad%a6%e6%ba%90%e5%a4%b4%e4%b8%ba%e4%bb%80%e4%b9%88%e8%bf%99%e4%b9%88%e5%a4%9a%e5%91%8a%e8%ad%a6%e5%90%8c%e6%97%b6%e8%a7%a6%e5%8f%91" class="header-anchor"></a>3.2 查告警源头：为什么这么多告警同时触发？
+</h3><p>止血之后开始查根因。打开 Alertmanager 的 Web UI（<code>http://alertmanager:9093</code>），在 Alerts 页面看到 <code>Active</code> 状态的告警有 <strong>2,347 条</strong>。这显然不正常——我每秒钟大概只有 5~10 个真实异常指标会被触发，绝大部分都是抖动。</p>
+<p>我抽样了几条告警，看它们的 <code>Active Since</code> 和 <code>Labels</code>：</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>告警名称</th>
+          <th>触发数</th>
+          <th>Active Since</th>
+          <th>severity</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>HighRequestLatency</td>
+          <td>487</td>
+          <td>14:18:42</td>
+          <td>warning</td>
+      </tr>
+      <tr>
+          <td>RedisSlowQuery</td>
+          <td>156</td>
+          <td>14:19:03</td>
+          <td>warning</td>
+      </tr>
+      <tr>
+          <td>ContainerCPUThrottled</td>
+          <td>312</td>
+          <td>14:19:18</td>
+          <td>warning</td>
+      </tr>
+      <tr>
+          <td>NodeDiskIOHigh</td>
+          <td>88</td>
+          <td>14:19:31</td>
+          <td>warning</td>
+      </tr>
+  </tbody>
+</table></div>
+<p><strong>所有告警的 Active Since 都集中在 14:18~14:19 这 1 分钟内</strong>。这说明不是&quot;业务真的出了这么多问题&rdquo;，而是某个时间点发生了一次&quot;集体抖动&quot;。</p>
+<p>接着我去查 Prometheus 的告警规则文件 <code>/etc/prometheus/rules/</code>，发现一个被忽视的配置：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#75715e"># rules/business.yaml</span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">alert</span>: <span style="color:#ae81ff">HighRequestLatency</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">expr</span>: |<span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[1m])) by (le, service)) &gt; 1</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># 缺失 for 字段!</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">labels</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">severity</span>: <span style="color:#ae81ff">warning</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">annotations</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">summary</span>: <span style="color:#e6db74">&#34;接口 P99 延迟高&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>for</code> 字段是<strong>告警持续多久才真正发送</strong>的关键参数。我之前为了&quot;新告警规则快速生效&quot;，把 <code>for</code> 字段都删掉了，意图是&quot;指标一超标就告警&quot;，结果就是任何一次 1~2 秒的网络抖动、一次 GC 暂停、一次容器重启，都会被立刻当成告警发送。</p>
+<p>我去查了那 1 分钟内发生了什么事，从 Kubernetes 事件里看到：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl get events --sort-by<span style="color:#f92672">=</span>.lastTimestamp | head -20
+</span></span><span style="display:flex;"><span>14:18:35  Normal   ScalingReplicaSet   deployment/order-service
+</span></span><span style="display:flex;"><span>14:18:38  Normal   Pulling              pod/order-service-7d8f9-xnz2j
+</span></span><span style="display:flex;"><span>14:18:40  Normal   Scheduled            pod/order-service-7d8f9-abcde
+</span></span><span style="display:flex;"><span>14:18:42  Normal   Created              pod/order-service-7d8f9-abcde
+</span></span><span style="display:flex;"><span>14:19:15  Normal   Started              pod/order-service-7d8f9-abcde
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>14:18 左右，业务团队发布了一版新服务，Deployment 滚动更新导致 30+ Pod 同时重启、镜像拉取、初始化，Prometheus 在这 1 分钟内采集到了大量瞬时高 CPU、高延迟、慢查询指标，<strong>所有缺 <code>for</code> 的告警规则同时被触发</strong>。</p>
+<h3 id="33-查-alertmanager-配置为什么告警没有被合并"><a href="#33-%e6%9f%a5-alertmanager-%e9%85%8d%e7%bd%ae%e4%b8%ba%e4%bb%80%e4%b9%88%e5%91%8a%e8%ad%a6%e6%b2%a1%e6%9c%89%e8%a2%ab%e5%90%88%e5%b9%b6" class="header-anchor"></a>3.3 查 Alertmanager 配置：为什么告警没有被合并？
+</h3><p>光解释清楚了告警源头还不够——为什么 2347 条告警没有按&quot;业务系统&quot;、&ldquo;告警类型&quot;分组到一起，而是被一条条推出去？</p>
+<p>打开 <code>/etc/alertmanager/alertmanager.yml</code>，看到路由配置是这样的：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">route</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">group_by</span>: [<span style="color:#e6db74">&#39;alertname&#39;</span>]   <span style="color:#75715e"># 只按告警名分组!</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">group_wait</span>: <span style="color:#ae81ff">5s</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">group_interval</span>: <span style="color:#ae81ff">10s       </span> <span style="color:#75715e"># 太短!</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">repeat_interval</span>: <span style="color:#ae81ff">1h</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">receiver</span>: <span style="color:#e6db74">&#39;ops-default&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">receivers</span>:
+</span></span><span style="display:flex;"><span>  - <span style="color:#f92672">name</span>: <span style="color:#e6db74">&#39;ops-default&#39;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">webhook_configs</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">url</span>: <span style="color:#e6db74">&#39;https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx&#39;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">email_configs</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">to</span>: <span style="color:#e6db74">&#39;ops-alert@company.com&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>问题一：<code>group_by: ['alertname']</code></strong> 意味着所有同名告警会被分到一组，但每条告警的 <code>service</code>、<code>pod</code> 标签还是独立的，会作为多条记录在组里。所以 <code>HighRequestLatency</code> 告警虽然合并成了 1 条群消息，但群消息里包含 487 个 service 实例，<strong>消息体超大，企业微信 API 直接报错</strong>。</p>
+<p><strong>问题二：<code>group_interval: 10s</code></strong>，意味着 Alertmanager 每 10 秒就重新评估并发送一次&quot;组更新&quot;消息。结果就是这 2 分钟内，Alertmanager 给企业微信机器人推送了 12 次/秒 的频率。</p>
+<p><strong>问题三：企业微信机器人限流</strong>，官方限制是每分钟最多 20 条消息。当 Alertmanager 推得比限流还快，HTTP 429 响应导致消息被丢弃，但 Alertmanager 的 retry 机制又会重试，进一步加剧了堆积。</p>
+<p><strong>问题四：邮件更是无差别全发</strong>，Postfix 没有针对 <code>ops-alert@company.com</code> 这个收件人做 rate limit，所以 1.8 万封邮件在 10 分钟内全部进队列。</p>
+<h3 id="34-查根因告警为什么-critical-告警没发出来"><a href="#34-%e6%9f%a5%e6%a0%b9%e5%9b%a0%e5%91%8a%e8%ad%a6%e4%b8%ba%e4%bb%80%e4%b9%88-critical-%e5%91%8a%e8%ad%a6%e6%b2%a1%e5%8f%91%e5%87%ba%e6%9d%a5" class="header-anchor"></a>3.4 查根因告警：为什么 critical 告警没发出来？
+</h3><p>这是最让我后怕的部分。我去 Alertmanager 的日志里翻：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ journalctl -u alertmanager --since <span style="color:#e6db74">&#34;14:00&#34;</span> | grep -i <span style="color:#e6db74">&#34;notify&#34;</span>
+</span></span><span style="display:flex;"><span>... 14:21:18 notify_loop ... rate limited
+</span></span><span style="display:flex;"><span>... 14:21:19 notify_loop ... rate limited
+</span></span><span style="display:flex;"><span>... 14:21:20 notify_loop ... queue full, drop
+</span></span><span style="display:flex;"><span>... 14:21:21 notify_loop ... queue full, drop
+</span></span><span style="display:flex;"><span>... 14:21:22 notify_loop ... queue full, drop
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>queue full, drop</code> 才是关键。Alertmanager 的内部通知队列是有上限的（默认 10000 条），当它自己处理不过来时，新来的告警<strong>直接被丢弃</strong>。也就是说，<strong>critical 的 DB 告警不是被&quot;挤到后面&rdquo;，而是被&quot;丢掉&quot;了</strong>。这是最严重的告警可靠性问题。</p>
+<h2 id="四解决方案"><a href="#%e5%9b%9b%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>四、解决方案
+</h2><p>针对上面四个层面的问题，我做了一次系统性的整改。</p>
+<h3 id="41-告警规则层加-for-持续时间和分级"><a href="#41-%e5%91%8a%e8%ad%a6%e8%a7%84%e5%88%99%e5%b1%82%e5%8a%a0-for-%e6%8c%81%e7%bb%ad%e6%97%b6%e9%97%b4%e5%92%8c%e5%88%86%e7%ba%a7" class="header-anchor"></a>4.1 告警规则层：加 <code>for</code> 持续时间和分级
+</h3><p>把所有 warning 级别的告警都加上 <code>for</code> 字段，按业务特征选择不同持续时间：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#75715e"># rules/business.yaml（整改后）</span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">alert</span>: <span style="color:#ae81ff">HighRequestLatency</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">expr</span>: |<span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)) &gt; 1</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">for</span>: <span style="color:#ae81ff">5m          </span> <span style="color:#75715e"># 持续5分钟才告警</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">labels</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">severity</span>: <span style="color:#ae81ff">warning</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">category</span>: <span style="color:#ae81ff">latency</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">annotations</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">summary</span>: <span style="color:#e6db74">&#34;接口 {{ $labels.service }} P99 延迟 {{ $value }}s&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">alert</span>: <span style="color:#ae81ff">RedisSlowQuery</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">expr</span>: |<span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    rate(redis_commands_duration_seconds_sum[2m]) / rate(redis_commands_duration_seconds_count[2m]) &gt; 0.1</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">for</span>: <span style="color:#ae81ff">3m</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">labels</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">severity</span>: <span style="color:#ae81ff">warning</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">category</span>: <span style="color:#ae81ff">cache</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># critical级别单独写，for 较短但需要更严格的指标</span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">alert</span>: <span style="color:#ae81ff">MySQLReplicationBroken</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">expr</span>: |<span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    mysql_slave_status_slave_io_running == 0</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">for</span>: <span style="color:#ae81ff">1m</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">labels</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">severity</span>: <span style="color:#ae81ff">critical</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">category</span>: <span style="color:#ae81ff">database</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>注意 <code>expr</code> 里的 <code>rate</code> 窗口也从 1m 改成了 5m，进一步平滑瞬时抖动。</p>
+<h3 id="42-alertmanager-层精细化路由--抑制--分级"><a href="#42-alertmanager-%e5%b1%82%e7%b2%be%e7%bb%86%e5%8c%96%e8%b7%af%e7%94%b1--%e6%8a%91%e5%88%b6--%e5%88%86%e7%ba%a7" class="header-anchor"></a>4.2 Alertmanager 层：精细化路由 + 抑制 + 分级
+</h3><p>重写 <code>alertmanager.yml</code>，核心改动：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">43
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">44
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">45
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">46
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">47
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">48
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">49
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">50
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">51
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">52
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">53
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">54
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">global</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">resolve_timeout</span>: <span style="color:#ae81ff">5m</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">route</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">receiver</span>: <span style="color:#e6db74">&#39;ops-default&#39;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">group_by</span>: [<span style="color:#e6db74">&#39;alertname&#39;</span>, <span style="color:#e6db74">&#39;cluster&#39;</span>, <span style="color:#e6db74">&#39;service&#39;</span>]   <span style="color:#75715e"># 加多维度分组</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">group_wait</span>: <span style="color:#ae81ff">30s       </span> <span style="color:#75715e"># 首次等30s再发，让同组告警合并</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">group_interval</span>: <span style="color:#ae81ff">5m    </span> <span style="color:#75715e"># 组更新间隔拉到5分钟</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">repeat_interval</span>: <span style="color:#ae81ff">4h</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">routes</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># critical 走独立通道，避免被warning淹没</span>
+</span></span><span style="display:flex;"><span>    - <span style="color:#f92672">matchers</span>:
+</span></span><span style="display:flex;"><span>        - <span style="color:#ae81ff">severity = &#34;critical&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">receiver</span>: <span style="color:#e6db74">&#39;ops-critical&#39;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">group_wait</span>: <span style="color:#ae81ff">10s</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">group_interval</span>: <span style="color:#ae81ff">1m</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">repeat_interval</span>: <span style="color:#ae81ff">1h</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">continue</span>: <span style="color:#66d9ef">false</span>     <span style="color:#75715e"># critical 走完后不再往 default 走</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># 业务发布期间静音</span>
+</span></span><span style="display:flex;"><span>    - <span style="color:#f92672">matchers</span>:
+</span></span><span style="display:flex;"><span>        - <span style="color:#ae81ff">category =~ &#34;latency|cache&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">receiver</span>: <span style="color:#e6db74">&#39;ops-business&#39;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">group_interval</span>: <span style="color:#ae81ff">10m</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">repeat_interval</span>: <span style="color:#ae81ff">24h</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">active_time_intervals</span>:
+</span></span><span style="display:flex;"><span>        - <span style="color:#ae81ff">business_hours</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 抑制规则：critical 告警触发时，抑制相关的 warning</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">inhibit_rules</span>:
+</span></span><span style="display:flex;"><span>  - <span style="color:#f92672">source_matchers</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">severity = &#34;critical&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">target_matchers</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">severity = &#34;warning&#34;</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">category =~ &#34;latency|cache|io&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">equal</span>: [<span style="color:#e6db74">&#39;cluster&#39;</span>, <span style="color:#e6db74">&#39;service&#39;</span>]
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">receivers</span>:
+</span></span><span style="display:flex;"><span>  - <span style="color:#f92672">name</span>: <span style="color:#e6db74">&#39;ops-critical&#39;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">webhook_configs</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">url</span>: <span style="color:#e6db74">&#39;https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=CRITICAL_KEY&#39;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">send_resolved</span>: <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">email_configs</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">to</span>: <span style="color:#e6db74">&#39;ops-critical@company.com&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  - <span style="color:#f92672">name</span>: <span style="color:#e6db74">&#39;ops-default&#39;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">webhook_configs</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">url</span>: <span style="color:#e6db74">&#39;https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=DEFAULT_KEY&#39;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># 加重试和限流配置</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">max_alerts</span>: <span style="color:#ae81ff">50</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  - <span style="color:#f92672">name</span>: <span style="color:#e6db74">&#39;ops-business&#39;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">webhook_configs</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">url</span>: <span style="color:#e6db74">&#39;https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=BIZ_KEY&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="43-告警通道层企业微信分群--邮件限流"><a href="#43-%e5%91%8a%e8%ad%a6%e9%80%9a%e9%81%93%e5%b1%82%e4%bc%81%e4%b8%9a%e5%be%ae%e4%bf%a1%e5%88%86%e7%be%a4--%e9%82%ae%e4%bb%b6%e9%99%90%e6%b5%81" class="header-anchor"></a>4.3 告警通道层：企业微信分群 + 邮件限流
+</h3><p>企业微信机器人的限流是硬性 20 条/分钟，靠 Alertmanager 自己节流不够，必须在<strong>通道层</strong>做隔离：</p>
+<ul>
+<li><strong>创建 3 个机器人</strong>：critical、business、default，各自独立 webhook</li>
+<li><strong>创建 3 个群</strong>：核心告警群（仅 critical）、业务告警群（warning+）、综合告警群</li>
+<li><strong>邮件也分收件人</strong>：<code>ops-critical@</code>、<code>ops-business@</code>、<code>ops-default@</code>，分别给 oncall 工程师、业务负责人、邮件组订阅</li>
+</ul>
+<p>邮件系统层面，给 Postfix 加上发件限流：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># /etc/postfix/main.cf</span>
+</span></span><span style="display:flex;"><span>smtp_destination_concurrency_limit <span style="color:#f92672">=</span> <span style="color:#ae81ff">20</span>
+</span></span><span style="display:flex;"><span>default_destination_rate_delay <span style="color:#f92672">=</span> 1s
+</span></span><span style="display:flex;"><span>smtp_extra_recipient_limit <span style="color:#f92672">=</span> <span style="color:#ae81ff">50</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="44-可靠性层告警持久化--自监控"><a href="#44-%e5%8f%af%e9%9d%a0%e6%80%a7%e5%b1%82%e5%91%8a%e8%ad%a6%e6%8c%81%e4%b9%85%e5%8c%96--%e8%87%aa%e7%9b%91%e6%8e%a7" class="header-anchor"></a>4.4 可靠性层：告警持久化 + 自监控
+</h3><p>为了防止&quot;告警队列满后丢告警&quot;再次发生，做了三件事：</p>
+<ol>
+<li><strong>启用 Alertmanager 集群模式</strong>：部署 3 个 Alertmanager 节点，Gossip 同步告警状态</li>
+<li><strong>加告警自监控</strong>：在 Prometheus 里配置一个 meta-alert，监控 <code>alertmanager_notifications_failed_total</code> 是否在涨、<code>alertmanager_notification_queue_capacity</code> 是否接近满</li>
+<li><strong>关键告警双通道</strong>：critical 告警同时走邮件 + 钉钉 + 电话，缺一不可</li>
+</ol>
+<h2 id="五根因分析"><a href="#%e4%ba%94%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>五、根因分析
+</h2><p>事后复盘总结，根因有四个层面，由浅到深：</p>
+<p><strong>1. 告警规则设计缺陷（最直接）</strong>——所有 warning 告警缺失 <code>for</code> 持续时间，把&quot;瞬时抖动&quot;当成&quot;持续故障&quot;处理，这是导致 2347 条告警同时触发的直接原因。<code>for</code> 是 Prometheus 告警体系里最容易被忽略、但又最关键的一个参数。</p>
+<p><strong>2. Alertmanager 分组策略过粗</strong>——<code>group_by: ['alertname']</code> 看似在合并，实际只是合并了告警名，每条告警的实例标签还是作为多条独立记录存在，结果就是&quot;组很大、消息很胖&quot;。企业微信 API 对单条消息体大小是有限制的（20KB 左右），超长消息会被截断甚至拒绝。</p>
+<p><strong>3. 告警通道无分层</strong>——所有 severity 都走同一通道，告警风暴时 critical 和 warning 互相挤占资源，企业微信 20 条/分钟的限流被 warning 消息吃光，critical 消息根本发不出去。</p>
+<p><strong>4. 缺乏告警自监控</strong>——没有监控&quot;告警系统本身是否健康&quot;，导致 Alertmanager 队列满、丢告警这种&quot;次生故障&quot;完全不可见。这是最致命的，因为告警系统一旦失效，整个监控体系等于瞎了。</p>
+<h2 id="六预防措施"><a href="#%e5%85%ad%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>六、预防措施
+</h2><p>针对这次故障，我梳理出 5 条长期预防措施：</p>
+<p><strong>1. 告警规则审计常态化</strong></p>
+<p>把告警规则检查纳入 PR Review 流程，CI 里加一个 <code>promtool check rules</code> 的检查，确保每条告警都有合理的 <code>for</code> 字段。同时每月做一次告警规则审计，清理长期不触发或永远在触发的&quot;僵尸告警&quot;。</p>
+<p><strong>2. 告警分级通道永久隔离</strong></p>
+<p>critical / warning / info 必须在 Alertmanager 配置里走完全不同的 receiver 和 webhook，<strong>禁止混用通道</strong>。任何 critical 告警必须同时配邮件 + 至少一种 IM 通道，且 receiver 配 <code>send_resolved: true</code> 确保恢复时也能收到通知。</p>
+<p><strong>3. 告警降级与抑制规则</strong></p>
+<p>完善 <code>inhibit_rules</code>，critical 告警触发时自动抑制同服务同 cluster 的 warning 告警，避免&quot;父故障触发一堆子告警&quot;。同时为不同业务系统配置&quot;维护窗口&quot;，在主动发布期间自动静音相关告警（用 <code>mute_time_intervals</code>）。</p>
+<p><strong>4. 告警系统自身监控</strong></p>
+<p>必须给监控组件本身也加监控，至少包括：</p>
+<ul>
+<li><code>alertmanager_notifications_failed_total</code> 增长率</li>
+<li><code>alertmanager_notification_queue_size</code> / <code>queue_capacity</code> 比值</li>
+<li><code>prometheus_tsdb_head_series</code> 增长趋势</li>
+<li><code>prometheus_target_sync_failed_total</code></li>
+</ul>
+<p>这四个指标任何一个出问题，本身就是 critical 告警。</p>
+<p><strong>5. 定期演练&quot;告警风暴&quot;</strong></p>
+<p>每季度做一次&quot;告警风暴演练&quot;——人为在测试环境触发一个能产生 1000+ 告警的故障，验证告警系统的承载能力、通道隔离效果、抑制规则是否生效。我后来在测试环境复现了这次的场景，发现 1000 条告警经过新配置后只发出去 23 条，群里完全可控。</p>
+<h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
+</h2><p>这次故障给我的最大教训是：<strong>告警系统的健壮性是 SRE 工作中最容易被忽视的一环</strong>。我们花了大量精力建设监控覆盖度，却很少花时间思考&quot;告警系统本身挂了怎么办&quot;。</p>
+<p>几个值得长期践行的原则：</p>
+<ul>
+<li><strong>告警是产品质量，不是越多越好</strong>。一条没人看的告警比没有告警更糟，因为它会消耗人对告警的敏感度。</li>
+<li><strong><code>for</code> 字段是告警规则的灵魂</strong>。没有 <code>for</code> 的告警规则就是定时炸弹，迟早会在某次发布或重启时引爆。</li>
+<li><strong>告警通道必须分层</strong>。critical 告警是&quot;救命&quot;的通道，绝不能和 warning 混用。</li>
+<li><strong>监控监控本身</strong>。这是 SRE 领域一个朴素的哲学问题——你必须能监控到你正在监控这件事，否则就是盲人骑瞎马。</li>
+</ul>
+<p>故障后我们重写了所有告警规则和 Alertmanager 配置，并补齐了告警自监控。半年后再回头看，告警群里基本只剩下真正需要人介入的告警，告警疲劳感大幅降低，运维同事的&quot;告警响应时间&quot;也从平均 25 分钟缩短到了 6 分钟。投资在告警治理上的时间，绝对是回报率最高的那部分。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/prometheus/">Prometheus</a>
+        
+            <a href="/tags/alertmanager/">Alertmanager</a>
+        
+            <a href="/tags/%E5%91%8A%E8%AD%A6%E9%A3%8E%E6%9A%B4/">告警风暴</a>
+        
+            <a href="/tags/%E7%9B%91%E6%8E%A7%E5%91%8A%E8%AD%A6/">监控告警</a>
+        
+            <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/">服务运维</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">Related content</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/1b83a967/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次GitLab CI Runner卡死导致生产部署流水线全停的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/4c970ef4/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次Linux服务器文件系统inode耗尽导致磁盘有空间却无法写入的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/d8bfb5f0/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次Kafka消费者Rebalance风暴导致业务数据延迟2小时的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/eeb9b3c5/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次MySQL主从同步因大事务延迟导致订单数据不一致的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/671a045a/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次SSL证书过期导致内网HTTPS服务全面中断的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
+        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.1ff1e5fdc4e178ed422e50aa407526dc552f26342d729343fded19416194382c.js" defer></script>
+
+
+    </body>
+</html>

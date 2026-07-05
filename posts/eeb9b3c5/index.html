@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="订单系统凌晨跑批大批量UPDATE，从库延迟飙升到40分钟，前端查询命中从库读到旧数据引发线上资损。">
+<title>一次MySQL主从同步因大事务延迟导致订单数据不一致的排查实录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/eeb9b3c5/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次MySQL主从同步因大事务延迟导致订单数据不一致的排查实录">
+<meta property='og:description' content="订单系统凌晨跑批大批量UPDATE，从库延迟飙升到40分钟，前端查询命中从库读到旧数据引发线上资损。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/eeb9b3c5/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='MySQL' /><meta property='article:tag' content='主从同步' /><meta property='article:tag' content='大事务' /><meta property='article:tag' content='数据一致性' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2026-06-22T07:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-06-22T07:00:00&#43;00:00'/>
+<meta name="twitter:title" content="一次MySQL主从同步因大事务延迟导致订单数据不一致的排查实录">
+<meta name="twitter:description" content="订单系统凌晨跑批大批量UPDATE，从库延迟飙升到40分钟，前端查询命中从库读到旧数据引发线上资损。">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column compact"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="images/touxiang.jpg" 
+                        width=""
+                        height=""
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description"></h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/post' >
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>Dark Mode</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/eeb9b3c5/">一次MySQL主从同步因大事务延迟导致订单数据不一致的排查实录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            订单系统凌晨跑批大批量UPDATE，从库延迟飙升到40分钟，前端查询命中从库读到旧数据引发线上资损。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-06-22T07:00:00Z'>Monday, June 22, 2026</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        4 minutes read
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>周一早上 9 点 17 分，我刚端着咖啡走到工位，客服总监的电话就打了过来：&ldquo;有客户投诉，昨天凌晨下的订单到现在还显示&rsquo;待付款&rsquo;，但钱已经扣了。再这样下去要上 12315 了。&rdquo;</p>
+<p>我们做的是 B2B 商城系统，订单链路是标准的&quot;主库写入 → 从库读取&quot;分离架构。业务侧前端订单查询全部走从库，结算、支付回调走主库。按理说，正常的几条订单写入，从库延迟顶多几百毫秒。</p>
+<p>但这次不一样——运维群里同事反馈，从库 <code>Seconds_Behind_Master</code> 指标在凌晨 2 点之后就开始飘红，目前还在 40 分钟以上。也就是说，<strong>用户今天看到的订单状态，其实是凌晨 2 点之前的老数据</strong>。</p>
+<p>影响范围：所有 C 端订单查询接口（订单列表、订单详情、物流状态）。涉及用户：约 1.2 万。紧急程度：<strong>P1</strong>（业务受损，尚未扩散到资损，但已接到投诉）。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>登录 Zabbix 监控大屏，几个关键指标同时告警：</p>
+<p><strong>1. 从库延迟（<code>Seconds_Behind_Master</code>）</strong></p>
+<p>从凌晨 2:00 开始延迟曲线从 0.5s 拉升，到 9:00 仍是 2400s（40 分钟），曲线呈&quot;阶梯式上升&quot;：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>02:00  delay=0.8s
+</span></span><span style="display:flex;"><span>02:10  delay=45s
+</span></span><span style="display:flex;"><span>02:30  delay=320s
+</span></span><span style="display:flex;"><span>03:00  delay=980s
+</span></span><span style="display:flex;"><span>05:00  delay=2100s
+</span></span><span style="display:flex;"><span>07:00  delay=2350s
+</span></span><span style="display:flex;"><span>09:00  delay=2412s
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>2. 主库写入流量</strong></p>
+<p><code>Com_update</code> 计数显示凌晨 1:55 - 2:35 之间有 <strong>2.3 亿行</strong> UPDATE 操作集中在主库执行，binlog 产生量约 8.6 GB。</p>
+<p><strong>3. 错误日志</strong></p>
+<p>从库的 <code>mysqld.log</code> 里有大量 <code>Multi-statement transaction required more than 'max_binlog_cache_size' bytes of storage</code> 警告——这说明从库尝试一次性应用一个超大事务时，binlog cache 不够用。</p>
+<p><strong>4. 业务报错</strong></p>
+<p>部分订单详情接口偶发返回 <code>ERROR 1213 (40001): Deadlock found when trying to get lock</code>，但这是次要现象，主要问题还是延迟。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="第一步确认从库状态"><a href="#%e7%ac%ac%e4%b8%80%e6%ad%a5%e7%a1%ae%e8%ae%a4%e4%bb%8e%e5%ba%93%e7%8a%b6%e6%80%81" class="header-anchor"></a>第一步：确认从库状态
+</h3><p>登录从库查看复制状态：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span>mysql<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">SHOW</span> SLAVE STATUS<span style="color:#960050;background-color:#1e0010">\</span><span style="color:#66d9ef">G</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">***************************</span> <span style="color:#ae81ff">1</span>. <span style="color:#66d9ef">row</span> <span style="color:#f92672">***************************</span>
+</span></span><span style="display:flex;"><span>               Slave_IO_State: Waiting <span style="color:#66d9ef">for</span> master <span style="color:#66d9ef">to</span> send event
+</span></span><span style="display:flex;"><span>                  Master_Log_File: mysql<span style="color:#f92672">-</span>bin.<span style="color:#ae81ff">000128</span>
+</span></span><span style="display:flex;"><span>              Read_Master_Log_Pos: <span style="color:#ae81ff">523847212</span>
+</span></span><span style="display:flex;"><span>                 Relay_Log_File: relay<span style="color:#f92672">-</span>bin.<span style="color:#ae81ff">000089</span>
+</span></span><span style="display:flex;"><span>              Relay_Log_Pos: <span style="color:#ae81ff">480123441</span>
+</span></span><span style="display:flex;"><span>      Seconds_Behind_Master: <span style="color:#ae81ff">2412</span>
+</span></span><span style="display:flex;"><span>Slave_SQL_Running_State: Reading event <span style="color:#66d9ef">from</span> the relay log
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>Seconds_Behind_Master</code> 还在涨，但 <code>Slave_SQL_Running_State</code> 显示&quot;Reading event from the relay log&quot;——意味着 SQL 线程并没有卡死，是在<strong>持续追</strong>。这是典型的&quot;大事务回放慢&quot;症状。</p>
+<h3 id="第二步定位主库上的大事务"><a href="#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e5%ae%9a%e4%bd%8d%e4%b8%bb%e5%ba%93%e4%b8%8a%e7%9a%84%e5%a4%a7%e4%ba%8b%e5%8a%a1" class="header-anchor"></a>第二步：定位主库上的大事务
+</h3><p>登录主库，用 <code>mysqlbinlog</code> 工具扫 binlog 找最长的几个事务：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>mysqlbinlog --no-defaults -v -v <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  --base64-output<span style="color:#f92672">=</span>DECODE-ROWS <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  --start-datetime<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;2026-06-22 01:55:00&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  --stop-datetime<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;2026-06-22 02:35:00&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  mysql-bin.000127 mysql-bin.000128 | head -200
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>很快就看到了一段超长事务——一个跑批任务（订单超时自动关闭）在 1:57 开始，到 2:28 结束，持续 31 分钟，涉及 800 万行订单的 UPDATE：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-mysql" data-lang="mysql"><span style="display:flex;"><span><span style="color:#75715e"># at 12345678
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">#260622  1:57:14 server id 1  end_log_pos 12345890 CRC32 0xabcdef   Query thread_id=123456
+</span></span></span><span style="display:flex;"><span><span style="color:#66d9ef">SET</span> <span style="color:#66d9ef">TIMESTAMP</span><span style="color:#f92672">=</span><span style="color:#ae81ff">1761119834</span>
+</span></span><span style="display:flex;"><span>BEGIN
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># at 12345900
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">#260622  1:57:14 server id 1  end_log_pos 12346100  Table_map: `order`.`t_order` mapped to number 123
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">#260622  1:57:14 server id 1  end_log_pos 12346200  Update_rows: table id 123 flags: STMT_END_F
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">### UPDATE `order`.`t_order`
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">### WHERE
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">###   @1=1000001
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">###   @2=&#39;PENDING_PAY&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">###   @3=&#39;2026-06-21 10:23:11&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">###   ...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">### SET
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">###   @1=1000001
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">###   @2=&#39;CLOSED_TIMEOUT&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">###   @3=&#39;2026-06-22 01:57:14&#39;
+</span></span></span><span style="display:flex;"><span>... (<span style="color:#960050;background-color:#1e0010">此处省略约</span> <span style="color:#ae81ff">800</span> <span style="color:#960050;background-color:#1e0010">万行类似的</span> <span style="color:#66d9ef">UPDATE</span>)
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>主库这一个事务生成的 binlog 就有 <strong>6.2 GB</strong>。</p>
+<h3 id="第三步分析大事务为何慢"><a href="#%e7%ac%ac%e4%b8%89%e6%ad%a5%e5%88%86%e6%9e%90%e5%a4%a7%e4%ba%8b%e5%8a%a1%e4%b8%ba%e4%bd%95%e6%85%a2" class="header-anchor"></a>第三步：分析大事务为何慢
+</h3><p>MySQL 主从复制的原理是：从库 SQL 线程拿到主库的 binlog event 后，<strong>单线程</strong>回放（默认配置下，MySQL 5.7 没有开启 MTS 多线程回放）。一个事务从主库传到从库，从库必须按顺序完整回放完才能进入下一个事务。</p>
+<p>主库上，800 万行 UPDATE 因为聚簇索引和锁的原因花 31 分钟；从库上同样要 800 万行 UPDATE，但因为：</p>
+<ol>
+<li>从库硬件配置略低（IOPS 只有主库的 60%）；</li>
+<li><code>sync_binlog=1</code>、<code>innodb_flush_log_at_trx_commit=1</code> 的双 1 配置让每行都强制刷盘；</li>
+<li>SQL 线程是单线程，无法并行回放。</li>
+</ol>
+<p>所以从库回放速度大约是主库的 1/3 —— 自然就形成了 40 分钟的延迟。</p>
+<h3 id="第四步分析这个事务的合理性"><a href="#%e7%ac%ac%e5%9b%9b%e6%ad%a5%e5%88%86%e6%9e%90%e8%bf%99%e4%b8%aa%e4%ba%8b%e5%8a%a1%e7%9a%84%e5%90%88%e7%90%86%e6%80%a7" class="header-anchor"></a>第四步：分析这个事务的合理性
+</h3><p>继续看那段 binlog，发现这个&quot;订单超时关闭&quot;任务的 SQL 模式是：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#75715e">-- 伪代码
+</span></span></span><span style="display:flex;"><span><span style="color:#66d9ef">BEGIN</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">UPDATE</span> t_order <span style="color:#66d9ef">SET</span> status<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;CLOSED_TIMEOUT&#39;</span>, close_time<span style="color:#f92672">=</span>NOW()
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">WHERE</span> status<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;PENDING_PAY&#39;</span> <span style="color:#66d9ef">AND</span> create_time <span style="color:#f92672">&lt;</span> DATE_SUB(NOW(), INTERVAL <span style="color:#ae81ff">30</span> <span style="color:#66d9ef">MINUTE</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">COMMIT</span>;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>单条 SQL 一次更新 800 万行。<strong>问题就出在这里</strong>——开发同学为了图省事，用一条大 SQL 完成全表批量更新。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><h3 id="紧急止血"><a href="#%e7%b4%a7%e6%80%a5%e6%ad%a2%e8%a1%80" class="header-anchor"></a>紧急止血
+</h3><p><strong>1. 业务切流</strong>：把订单查询从从库切回主库（虽然主库压力大，但此刻一致性更重要）：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#75715e"># 在 Nginx upstream 中临时调整
+</span></span></span><span style="display:flex;"><span><span style="color:#66d9ef">upstream</span> <span style="color:#e6db74">order_query</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># 临时注释从库
+</span></span></span><span style="display:flex;"><span>    <span style="color:#75715e"># server 10.0.10.22:3306;
+</span></span></span><span style="display:flex;"><span>    <span style="color:#f92672">server</span> 10.0.10.21:<span style="color:#ae81ff">3306</span> <span style="color:#e6db74">max_fails=2</span> <span style="color:#e6db74">fail_timeout=10s</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>2. 强制让从库跳过这个大事务</strong>（不推荐为常规操作，但紧急情况下可以）：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#75715e">-- 评估一致性影响后，决定让从库直接跳过该超大事务
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">-- 因为这个事务是&#34;超时关闭&#34;，本身就是幂等操作，重新跑批会再处理一次
+</span></span></span><span style="display:flex;"><span>mysql<span style="color:#f92672">&gt;</span> STOP SLAVE;
+</span></span><span style="display:flex;"><span>mysql<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">SET</span> <span style="color:#66d9ef">GLOBAL</span> sql_slave_skip_counter <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>mysql<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">START</span> SLAVE;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>但 <code>SET GLOBAL sql_slave_skip_counter = 1</code> 只能跳一个 event。我这里大事务跨多个文件，最终选择的是：<strong>让从库慢慢追回</strong>（保守但安全）。</p>
+<p><strong>3. 临时调大从库相关参数</strong>，提升回放速度：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ini" data-lang="ini"><span style="display:flex;"><span><span style="color:#75715e"># my.cnf</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">innodb_flush_log_at_trx_commit</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">2</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">sync_binlog</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">0</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">slave_parallel_workers</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">8</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">slave_parallel_type</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">LOGICAL_CLOCK</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>重启从库后，回放速度从 5000 行/秒提升到 18000 行/秒，2 小时内追平延迟。</p>
+<h3 id="长期修复"><a href="#%e9%95%bf%e6%9c%9f%e4%bf%ae%e5%a4%8d" class="header-anchor"></a>长期修复
+</h3><p><strong>1. 业务侧：大事务拆小</strong></p>
+<p>推动开发同学把&quot;订单超时关闭&quot;改为<strong>分批 + 循环</strong>：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#75715e">// 优化后的跑批代码</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">int</span> batchSize <span style="color:#f92672">=</span> 1000;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">int</span> affected;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">do</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 每次只更新 1000 行</span>
+</span></span><span style="display:flex;"><span>    affected <span style="color:#f92672">=</span> jdbcTemplate.<span style="color:#a6e22e">update</span>(
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;UPDATE t_order &#34;</span> <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;SET status=&#39;CLOSED_TIMEOUT&#39;, close_time=NOW() &#34;</span> <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;WHERE status=&#39;PENDING_PAY&#39; &#34;</span> <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;AND create_time &lt; ? &#34;</span> <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;LIMIT &#34;</span> <span style="color:#f92672">+</span> batchSize,
+</span></span><span style="display:flex;"><span>        expireTime
+</span></span><span style="display:flex;"><span>    );
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 每批之间 sleep 100ms，给从库喘息</span>
+</span></span><span style="display:flex;"><span>    Thread.<span style="color:#a6e22e">sleep</span>(100);
+</span></span><span style="display:flex;"><span>} <span style="color:#66d9ef">while</span> (affected <span style="color:#f92672">&gt;</span> 0);
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这样每个事务只更新 1000 行，单事务 binlog 不到 1 MB，从库回放几乎无感知。</p>
+<p><strong>2. MySQL 配置：开启多线程复制</strong></p>
+<p>从库永久开启 MTS：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ini" data-lang="ini"><span style="display:flex;"><span><span style="color:#a6e22e">slave_parallel_workers</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">16</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">slave_parallel_type</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">LOGICAL_CLOCK</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">slave_preserve_commit_order</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">ON</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>3. 监控告警</strong></p>
+<p>添加 <code>Seconds_Behind_Master &gt; 60s</code> 的告警，避免延迟 40 分钟才发现。</p>
+<p><strong>4. 架构优化</strong></p>
+<p>考虑订单读多写少、且对一致性要求高的特点，引入 <strong>ProxySQL</strong> 做读写分离，并支持强制走主库的功能（针对订单详情这种对一致性敏感的场景）。</p>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>这个问题的根本原因是<strong>业务开发同学没有&quot;主从复制延迟&quot;的意识</strong>，把单实例 MySQL 时代的&quot;一条大 SQL 搞定一切&quot;的习惯带到了主从架构下。</p>
+<p>具体三个直接原因：</p>
+<ol>
+<li><strong>单条 UPDATE 影响 800 万行</strong> —— 远超单事务合理大小（经验值：单事务 1 万行以内）；</li>
+<li><strong>从库默认单线程回放</strong> —— MySQL 5.7 默认 <code>slave_parallel_workers=0</code>，大事务没有并行能力；</li>
+<li><strong>未配置主从延迟告警</strong> —— 凌晨 2:00 延迟就开始累积，但 7 小时后才被业务反馈发现。</li>
+</ol>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><p><strong>1. 编码规范：禁止大事务</strong></p>
+<p>在 Code Review Checklist 中加入：单事务 DML 行数 ≤ 5000，binlog 大小 ≤ 10 MB。可以加 SQL 拦截器：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#75715e">-- 生产环境拒绝大事务的拦截逻辑（伪代码）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">-- 当 row_examined &gt; 10000 时直接 kill
+</span></span></span><span style="display:flex;"><span><span style="color:#66d9ef">SET</span> <span style="color:#f92672">@</span>max_rows <span style="color:#f92672">=</span> <span style="color:#ae81ff">10000</span>;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">-- 通过 Performance Schema 或审计插件实现
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>2. 主从延迟全链路监控</strong></p>
+<p><code>Seconds_Behind_Master</code> 只是粗略值。更准确的方案是使用 <code>pt-heartbeat</code> 工具在主库每秒写一个时间戳，从库对比时间差得到精确延迟：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 主库</span>
+</span></span><span style="display:flex;"><span>pt-heartbeat -D test --update -h 10.0.10.21
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 从库</span>
+</span></span><span style="display:flex;"><span>pt-heartbeat -D test --monitor -h 10.0.10.22
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>3. 跑批任务错峰执行</strong></p>
+<p>把&quot;订单超时关闭&quot;这种大跑批放在业务低峰（比如凌晨 3:30 - 5:00），并且增加单批 sleep，避免集中打主库。</p>
+<p><strong>4. 关键业务强制走主库</strong></p>
+<p>对一致性要求极高的接口（订单详情、支付结果、账户余额），在 ProxySQL 规则里强制 <code>mysql-default_session_target_host=master</code>，不走从库。</p>
+<p><strong>5. 定期演练</strong></p>
+<p>每季度做一次&quot;主库宕机，从库强制提升&quot;演练，验证从库是否能快速接管；同时也验证大事务场景下从库的恢复能力。</p>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这次故障的教训可以总结成三句话：</p>
+<p><strong>第一，MySQL 主从架构下，&ldquo;单条大 SQL&quot;是定时炸弹</strong>。开发同学需要从单实例思维切换到&quot;主从延迟敏感&quot;思维，养成&quot;分批 + 循环&quot;的习惯。</p>
+<p><strong>第二，监控不能只看&quot;服务是否在线&rdquo;</strong>。<code>Slave_IO_Running=Yes</code> 和 <code>Slave_SQL_Running=Yes</code> 都是 Yes，但延迟可能已经几小时。<code>Seconds_Behind_Master</code> 告警必须配置，且阈值要合理。</p>
+<p><strong>第三，对一致性敏感的业务，不要无脑走读写分离</strong>。订单详情、支付结果这类场景，宁可让主库扛一部分读流量，也要保证数据一致性。读写分离的规则要细化到表/接口级别，不能一刀切。</p>
+<p>最后，事后我和开发 leader 约法三章：<strong>所有大表 DML 必须经过 DBA Review，所有新上线的定时任务必须压测确认 binlog 体积</strong>。规则定下来了，但更重要的是执行。这次故障的客户投诉虽然已经处理完毕，但给了我们一个深刻的提醒：<strong>主从架构不是&quot;装上就完事&quot;的银弹，它是需要业务、运维、DBA 一起维护的契约</strong>。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/mysql/">MySQL</a>
+        
+            <a href="/tags/%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5/">主从同步</a>
+        
+            <a href="/tags/%E5%A4%A7%E4%BA%8B%E5%8A%A1/">大事务</a>
+        
+            <a href="/tags/%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7/">数据一致性</a>
+        
+            <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/">服务运维</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">Related content</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/671a045a/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次SSL证书过期导致内网HTTPS服务全面中断的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/9eb92141/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次Docker容器OOM引发的服务雪崩排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/81929d4d/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次K8s节点磁盘压力导致Pod批量驱逐的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/61346c4a/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次Redis内存溢出导致缓存服务全部失效的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/86fd6190/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次VMware ESXi主机紫屏宕机的排查与恢复实录</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
+        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.1ff1e5fdc4e178ed422e50aa407526dc552f26342d729343fded19416194382c.js" defer></script>
+
+
+    </body>
+</html>

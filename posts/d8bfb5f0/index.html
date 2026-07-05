@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content=">-">
+<title>一次Kafka消费者Rebalance风暴导致业务数据延迟2小时的排查实录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/d8bfb5f0/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次Kafka消费者Rebalance风暴导致业务数据延迟2小时的排查实录">
+<meta property='og:description' content=">-">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/d8bfb5f0/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kafka' /><meta property='article:tag' content='Rebalance' /><meta property='article:tag' content='Consumer Group' /><meta property='article:tag' content='服务运维' /><meta property='article:tag' content='消息队列' /><meta property='article:published_time' content='2026-06-25T07:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-06-25T07:00:00&#43;00:00'/>
+<meta name="twitter:title" content="一次Kafka消费者Rebalance风暴导致业务数据延迟2小时的排查实录">
+<meta name="twitter:description" content=">-">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column compact"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="images/touxiang.jpg" 
+                        width=""
+                        height=""
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description"></h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/post' >
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>Dark Mode</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/d8bfb5f0/">一次Kafka消费者Rebalance风暴导致业务数据延迟2小时的排查实录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            &gt;-
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-06-25T07:00:00Z'>Thursday, June 25, 2026</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        5 minutes read
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>凌晨 03:15，监控平台推送告警：订单实时处理链路中 Kafka Consumer Group <code>order-realtime-processor</code> 的消费延迟（Consumer Lag）飙升至 2300 万条，下游数据仓库的 T+0 实时看板数据停止更新，BI 同事反馈今天上午 9 点要汇报的数据完全拿不到。</p>
+<p>这条链路是整个订单系统的核心——订单服务的每条状态变更（创建/支付/发货/签收/退款）都会写入 Kafka Topic <code>order_status_change</code>（30 分区，3 副本），由 6 个消费者实例组成的 Consumer Group 消费后写入 ClickHouse 宽表，供 BI 报表和数据看板查询。延迟意味着一线运营和财务都无法看到最新的业务数据。</p>
+<p>凌晨是我方值班，接到电话后立刻开始排查。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>初步检查发现几个关键异常：</p>
+<p><strong>1. Consumer Lag 曲线异常</strong></p>
+<p>打开 Kafka 监控（用的是 Burrow + Grafana），Consumer Lag 图表显示从 02:48 开始，Lag 从正常的 200~500 条开始陡峭爬升，到 03:15 时已经接近 2300 万，曲线几乎没有回落趋势。</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 通过 kafka-consumer-groups 查看具体 lag</span>
+</span></span><span style="display:flex;"><span>$ kafka-consumer-groups --bootstrap-server kafka-broker-1:9092 <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  --group order-realtime-processor --describe
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>GROUP                    TOPIC              PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG
+</span></span><span style="display:flex;"><span>order-realtime-processor order_status_change <span style="color:#ae81ff">0</span>          <span style="color:#ae81ff">15233456780</span>    <span style="color:#ae81ff">15256689120</span>     <span style="color:#ae81ff">23232340</span>
+</span></span><span style="display:flex;"><span>order-realtime-processor order_status_change <span style="color:#ae81ff">1</span>          <span style="color:#ae81ff">15211234560</span>    <span style="color:#ae81ff">15234456900</span>     <span style="color:#ae81ff">23222340</span>
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>所有 30 个分区的 lag 都接近 2300 万，说明不是单个分区热点问题，而是整个 Consumer Group 集体&quot;罢工&quot;了一段时间。</p>
+<p><strong>2. Consumer Group 状态不稳定</strong></p>
+<p>Consumer Group 的成员列表在 Burrow 中频繁变化，每隔 2~3 分钟就能观察到一次 Rebalance 事件：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>NOTICE [2026-06-25 02:48:12] Group order-realtime-processor REBALANCE: 
+</span></span><span style="display:flex;"><span>  member-1 left group, reassigning partitions
+</span></span><span style="display:flex;"><span>NOTICE [2026-06-25 02:49:33] Group order-realtime-processor REBALANCE: 
+</span></span><span style="display:flex;"><span>  member-3 left group, reassigning partitions
+</span></span><span style="display:flex;"><span>NOTICE [2026-06-25 02:51:56] Group order-realtime-processor REBALANCE: 
+</span></span><span style="display:flex;"><span>  member-5 joined group, reassigning partitions
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>持续的 Rebalance 意味着消费者在这个时间段内基本无法正常消费消息——每次 Rebalance 期间所有分区消费都会暂停。</p>
+<p><strong>3. 消费者实例 OOM 重启</strong></p>
+<p>查看 Kubernetes 中 6 个消费者 Pod 的日志，发现其中 3 个在 02:45 到 03:10 之间反复重启：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>2026-06-25 02:45:23.456 WARN  [Consumer clientId=consumer-order-realtime-3] 
+</span></span><span style="display:flex;"><span>  This member will leave the group because consumer poll timeout has expired. 
+</span></span><span style="display:flex;"><span>  This means the time between subsequent calls to poll() was longer than the 
+</span></span><span style="display:flex;"><span>  configured max.poll.interval.ms, which typically implies that the poll loop 
+</span></span><span style="display:flex;"><span>  is spending too much time processing messages.
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>2026-06-25 02:45:23.789 INFO  [Consumer clientId=consumer-order-realtime-3] 
+</span></span><span style="display:flex;"><span>  Member consumer-order-realtime-3 sending LeaveGroup request to coordinator
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>关键：消费者因为两次 <code>poll()</code> 调用间隔超过了 <code>max.poll.interval.ms</code>（默认 5 分钟），被 Group Coordinator 主动踢出，触发了 Rebalance。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="第一步确认消费逻辑是否有死循环或慢处理"><a href="#%e7%ac%ac%e4%b8%80%e6%ad%a5%e7%a1%ae%e8%ae%a4%e6%b6%88%e8%b4%b9%e9%80%bb%e8%be%91%e6%98%af%e5%90%a6%e6%9c%89%e6%ad%bb%e5%be%aa%e7%8e%af%e6%88%96%e6%85%a2%e5%a4%84%e7%90%86" class="header-anchor"></a>第一步：确认消费逻辑是否有死循环或慢处理
+</h3><p>先拉取消费者 Pod 的最近一次 GC 日志和 JVM 堆栈：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 查看 GC 情况</span>
+</span></span><span style="display:flex;"><span>$ kubectl logs order-consumer-3 --tail<span style="color:#f92672">=</span><span style="color:#ae81ff">500</span> | grep <span style="color:#e6db74">&#34;GC&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>2026-06-25 02:44:18.123 <span style="color:#f92672">[</span>GC <span style="color:#f92672">(</span>Allocation Failure<span style="color:#f92672">)]</span> 1254K-&gt;984772K<span style="color:#f92672">(</span>2048M<span style="color:#f92672">)</span>, 0.452s
+</span></span><span style="display:flex;"><span>2026-06-25 02:44:45.567 <span style="color:#f92672">[</span>Full GC<span style="color:#f92672">]</span> 1876543K-&gt;1592340K<span style="color:#f92672">(</span>2048M<span style="color:#f92672">)</span>, 12.345s
+</span></span><span style="display:flex;"><span>2026-06-25 02:44:58.234 <span style="color:#f92672">[</span>Full GC<span style="color:#f92672">]</span> 1892345K-&gt;1792340K<span style="color:#f92672">(</span>2048M<span style="color:#f92672">)</span>, 15.234s
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Full GC 耗时 12~15 秒，堆内存几乎全部占用（堆上限 2GB，老年代接近 1.8GB），GC 之后没有明显释放。典型的<strong>内存泄漏导致 GC 阻塞，处理时间被无限拉长</strong>。</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 查看堆栈确认卡在哪里</span>
+</span></span><span style="display:flex;"><span>$ kubectl exec order-consumer-3 -- jstack <span style="color:#66d9ef">$(</span>pidof java<span style="color:#66d9ef">)</span> | head -200
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>堆栈显示大量线程卡在 <code>HashMap.put()</code> 和 <code>ArrayList.add()</code> 操作上，调用链指向业务代码的 <code>OrderEventAggregator.aggregateByCity()</code> 方法。</p>
+<h3 id="第二步定位内存泄漏的根因"><a href="#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e5%ae%9a%e4%bd%8d%e5%86%85%e5%ad%98%e6%b3%84%e6%bc%8f%e7%9a%84%e6%a0%b9%e5%9b%a0" class="header-anchor"></a>第二步：定位内存泄漏的根因
+</h3><p>查看 <code>OrderEventAggregator</code> 的源码：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">OrderEventAggregator</span> {
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 问题代码：用于按城市聚合订单金额的 Map 没有清理机制</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> Map<span style="color:#f92672">&lt;</span>String, BigDecimal<span style="color:#f92672">&gt;</span> cityAmountMap <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> HashMap<span style="color:#f92672">&lt;&gt;</span>();
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">aggregateByCity</span>(OrderEvent event) {
+</span></span><span style="display:flex;"><span>        String city <span style="color:#f92672">=</span> event.<span style="color:#a6e22e">getCity</span>();
+</span></span><span style="display:flex;"><span>        BigDecimal amount <span style="color:#f92672">=</span> event.<span style="color:#a6e22e">getAmount</span>();
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>        cityAmountMap.<span style="color:#a6e22e">merge</span>(city, amount, BigDecimal::add);
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 每批处理完后写入 ClickHouse，但 Map 永远不清空！</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (batchCount <span style="color:#f92672">&gt;=</span> batchSize) {
+</span></span><span style="display:flex;"><span>            writeToClickHouse(cityAmountMap);
+</span></span><span style="display:flex;"><span>            batchCount <span style="color:#f92672">=</span> 0;
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// BUG: 这里应该 cityAmountMap.clear()，但被遗漏了</span>
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这个 <code>cityAmountMap</code> 以城市名为 key，每来一条订单就累加金额。问题是业务跑了几个月，城市维度越来越多（市级/区级/县级加起来上千个），而且每次 <code>writeToClickHouse</code> 之后<code>忘了调用 clear()</code>，导致 Map 无限膨胀。</p>
+<p>几个月的订单数据累积下来，<code>cityAmountMap</code> 里每个城市的 <code>BigDecimal</code> 值越来越大，最终撑爆了 2GB 的堆。</p>
+<h3 id="第三步为什么-rebalance-会持续震荡"><a href="#%e7%ac%ac%e4%b8%89%e6%ad%a5%e4%b8%ba%e4%bb%80%e4%b9%88-rebalance-%e4%bc%9a%e6%8c%81%e7%bb%ad%e9%9c%87%e8%8d%a1" class="header-anchor"></a>第三步：为什么 Rebalance 会持续震荡？
+</h3><p>这里有个典型的 Kafka Consumer 配置冲突问题。看一下消费者的配置：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-properties" data-lang="properties"><span style="display:flex;"><span><span style="color:#75715e"># 问题配置组合</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">max.poll.records</span><span style="color:#f92672">=</span><span style="color:#e6db74">2000          # 每批拉取大量消息</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">max.poll.interval.ms</span><span style="color:#f92672">=</span><span style="color:#e6db74">300000    # 两次 poll 间隔上限 5 分钟</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">session.timeout.ms</span><span style="color:#f92672">=</span><span style="color:#e6db74">30000       # 心跳超时 30 秒</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">heartbeat.interval.ms</span><span style="color:#f92672">=</span><span style="color:#e6db74">3000     # 心跳间隔 3 秒</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">enable.auto.commit</span><span style="color:#f92672">=</span><span style="color:#e6db74">false       # 手动提交</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>当内存接近爆满时，消费者处理 2000 条消息变得越来越慢，从正常的 8~10 秒逐渐拉长到几十秒甚至超出一分钟。更致命的是 Full GC 停顿时消费者线程被挂起：</p>
+<ul>
+<li>GC 停顿 15 秒 → 心跳线程无法发送 heartbeat → <code>session.timeout.ms</code> 30 秒内没收到心跳 → Group Coordinator 认为消费者挂掉 → 触发 Rebalance</li>
+<li>Rebalance 完成后分区重新分配 → 消费者重新开始 poll，又拉回 2000 条消息 → 处理中又触发 Full GC → 心跳又超时 → 又开始新一轮 Rebalance</li>
+</ul>
+<p>这就形成了&quot;消费 → Full GC → 心跳超时 → Rebalance → 重新消费 → Full GC&quot;的死循环，<strong>每次 Rebalance 期间所有 30 个分区都停止消费，而生产者持续写入</strong>，Lag 自然就爆炸式增长。</p>
+<h3 id="第四步确认是否有新增城市维度导致数据膨胀"><a href="#%e7%ac%ac%e5%9b%9b%e6%ad%a5%e7%a1%ae%e8%ae%a4%e6%98%af%e5%90%a6%e6%9c%89%e6%96%b0%e5%a2%9e%e5%9f%8e%e5%b8%82%e7%bb%b4%e5%ba%a6%e5%af%bc%e8%87%b4%e6%95%b0%e6%8d%ae%e8%86%a8%e8%83%80" class="header-anchor"></a>第四步：确认是否有新增城市维度导致数据膨胀
+</h3><p>查 ClickHouse 看看 <code>cityAmountMap</code> 到底存了多少键：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#66d9ef">SELECT</span> 
+</span></span><span style="display:flex;"><span>    toDate(event_time) <span style="color:#66d9ef">AS</span> dt,
+</span></span><span style="display:flex;"><span>    uniqExact(city) <span style="color:#66d9ef">AS</span> city_count
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">FROM</span> order_status_change 
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">WHERE</span> dt <span style="color:#f92672">&gt;=</span> <span style="color:#e6db74">&#39;2026-06-01&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">GROUP</span> <span style="color:#66d9ef">BY</span> dt
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">ORDER</span> <span style="color:#66d9ef">BY</span> dt <span style="color:#66d9ef">DESC</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">LIMIT</span> <span style="color:#ae81ff">10</span>;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>结果发现 6 月初城市维度才 800 多个，最近因为业务扩展到下沉市场 + 拆分区县级行政编码，已经膨胀到了 3400+ 个维度，每个维度的 <code>BigDecimal</code> 对象体积也在持续增长。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><h3 id="紧急止血凌晨-0330-执行"><a href="#%e7%b4%a7%e6%80%a5%e6%ad%a2%e8%a1%80%e5%87%8c%e6%99%a8-0330-%e6%89%a7%e8%a1%8c" class="header-anchor"></a>紧急止血（凌晨 03:30 执行）
+</h3><p><strong>1. 重启消费者并降低单批拉取量</strong></p>
+<p>由于代码修复需要走 CI/CD 流程，先通过环境变量降低 <code>max.poll.records</code> 来快速止血：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 修改 Deployment 环境变量</span>
+</span></span><span style="display:flex;"><span>kubectl set env deployment/order-realtime-consumer <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  KAFKA_MAX_POLL_RECORDS<span style="color:#f92672">=</span><span style="color:#ae81ff">500</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 滚动重启</span>
+</span></span><span style="display:flex;"><span>kubectl rollout restart deployment/order-realtime-consumer
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>500 条消息处理完大约 3~5 秒，即使有 Full GC 停顿也不会轻易超过 <code>max.poll.interval.ms</code> 的 5 分钟上限，Rebalance 旋涡被打破。</p>
+<p><strong>2. 临时调整 session.timeout.ms</strong></p>
+<p>同时把 <code>session.timeout.ms</code> 从 30s 上调到 60s，给 GC 停顿留出缓冲空间：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-properties" data-lang="properties"><span style="display:flex;"><span><span style="color:#a6e22e">session.timeout.ms</span><span style="color:#f92672">=</span><span style="color:#e6db74">60000</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">max.poll.records</span><span style="color:#f92672">=</span><span style="color:#e6db74">500</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>重启后，Consumer Lag 曲线在 03:42 开始回落，到 04:12 恢复正常水平。</p>
+<h3 id="根治方案当天上午完成"><a href="#%e6%a0%b9%e6%b2%bb%e6%96%b9%e6%a1%88%e5%bd%93%e5%a4%a9%e4%b8%8a%e5%8d%88%e5%ae%8c%e6%88%90" class="header-anchor"></a>根治方案（当天上午完成）
+</h3><p><strong>1. 修复内存泄漏代码</strong></p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">OrderEventAggregator</span> {
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 使用有上限的 LRU Map</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> Map<span style="color:#f92672">&lt;</span>String, BigDecimal<span style="color:#f92672">&gt;</span> cityAmountMap <span style="color:#f92672">=</span> 
+</span></span><span style="display:flex;"><span>        Collections.<span style="color:#a6e22e">synchronizedMap</span>(<span style="color:#66d9ef">new</span> LinkedHashMap<span style="color:#f92672">&lt;</span>String, BigDecimal<span style="color:#f92672">&gt;</span>(16, 0.<span style="color:#a6e22e">75f</span>, <span style="color:#66d9ef">true</span>) {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">@Override</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">protected</span> <span style="color:#66d9ef">boolean</span> <span style="color:#a6e22e">removeEldestEntry</span>(Map.<span style="color:#a6e22e">Entry</span><span style="color:#f92672">&lt;</span>String, BigDecimal<span style="color:#f92672">&gt;</span> eldest) {
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">return</span> size() <span style="color:#f92672">&gt;</span> 5000;  <span style="color:#75715e">// 最多保留 5000 个城市维度</span>
+</span></span><span style="display:flex;"><span>            }
+</span></span><span style="display:flex;"><span>        });
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">aggregateByCity</span>(OrderEvent event) {
+</span></span><span style="display:flex;"><span>        String city <span style="color:#f92672">=</span> event.<span style="color:#a6e22e">getCity</span>();
+</span></span><span style="display:flex;"><span>        BigDecimal amount <span style="color:#f92672">=</span> event.<span style="color:#a6e22e">getAmount</span>();
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>        cityAmountMap.<span style="color:#a6e22e">merge</span>(city, amount, BigDecimal::add);
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (batchCount <span style="color:#f92672">&gt;=</span> batchSize) {
+</span></span><span style="display:flex;"><span>            writeToClickHouse(<span style="color:#66d9ef">new</span> HashMap<span style="color:#f92672">&lt;&gt;</span>(cityAmountMap));
+</span></span><span style="display:flex;"><span>            cityAmountMap.<span style="color:#a6e22e">clear</span>();  <span style="color:#75715e">// 关键修复：写入后清空</span>
+</span></span><span style="display:flex;"><span>            batchCount <span style="color:#f92672">=</span> 0;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>两处改动：</p>
+<ul>
+<li>用 <code>LinkedHashMap</code> + <code>removeEldestEntry</code> 增加容量上限，防止无限膨胀</li>
+<li>每批写完 ClickHouse 后显式调用 <code>clear()</code> 清空 Map</li>
+</ul>
+<p><strong>2. 优化 Kafka Consumer 参数</strong></p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-properties" data-lang="properties"><span style="display:flex;"><span><span style="color:#75715e"># 推荐的生产配置</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">max.poll.records</span><span style="color:#f92672">=</span><span style="color:#e6db74">500                   # 降低单批拉取量，加快处理速度</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">max.poll.interval.ms</span><span style="color:#f92672">=</span><span style="color:#e6db74">600000            # 提升到 10 分钟，给 GC 兜底</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">session.timeout.ms</span><span style="color:#f92672">=</span><span style="color:#e6db74">60000               # 60 秒心跳超时</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">heartbeat.interval.ms</span><span style="color:#f92672">=</span><span style="color:#e6db74">10000            # 10 秒心跳间隔</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">max.partition.fetch.bytes</span><span style="color:#f92672">=</span><span style="color:#e6db74">10485760     # 10MB 每分区拉取上限</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">enable.auto.commit</span><span style="color:#f92672">=</span><span style="color:#e6db74">false               # 保持手动提交</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>关键调整逻辑：</p>
+<ul>
+<li><code>max.poll.records</code> 从 2000 降到 500：减少单批处理时间，避免卡在 <code>poll()</code> 处理块内</li>
+<li><code>max.poll.interval.ms</code> 从 300s 上调到 600s：即使 GC 停顿也能留出足够的时间窗口</li>
+<li><code>session.timeout.ms</code> 从 30s 上调到 60s：给 GC 引起的短暂心跳丢失留出容忍度</li>
+</ul>
+<p><strong>3. 增加 JVM 监控和 GC 告警</strong></p>
+<p>在 Prometheus 中补充了 JVM 相关告警规则：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">groups</span>:
+</span></span><span style="display:flex;"><span>  - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">kafka-consumer-jvm</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">rules</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">alert</span>: <span style="color:#ae81ff">ConsumerHighHeapUsage</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">expr</span>: <span style="color:#ae81ff">jvm_memory_used_bytes{area=&#34;heap&#34;} / jvm_memory_max_bytes{area=&#34;heap&#34;} &gt; 0.85</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">for</span>: <span style="color:#ae81ff">5m</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">labels</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">severity</span>: <span style="color:#ae81ff">warning</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">annotations</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">summary</span>: <span style="color:#e6db74">&#34;Consumer {{ $labels.pod }} 堆内存使用率超过 85%&#34;</span>
+</span></span><span style="display:flex;"><span>          
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">alert</span>: <span style="color:#ae81ff">ConsumerFrequentFullGC</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">expr</span>: <span style="color:#ae81ff">rate(jvm_gc_pause_seconds_count{action=&#34;end of major GC&#34;}[5m]) &gt; 2</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">for</span>: <span style="color:#ae81ff">5m</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">labels</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">severity</span>: <span style="color:#ae81ff">critical</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">annotations</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">summary</span>: <span style="color:#e6db74">&#34;Consumer {{ $labels.pod }} Full GC 频率异常（&gt;2次/5min）&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>这次事故表面上是 Kafka Rebalance 风暴导致消费延迟，但本质上有两层根因：</p>
+<p><strong>直接原因</strong>：<code>OrderEventAggregator</code> 中的 <code>cityAmountMap</code> 缺少清理机制，随着业务城市维度增长，Map 中累积的数据量超过 JVM 堆上限，触发频繁 Full GC。Full GC 停顿导致消费者心跳超时，触发 Rebalance，而 Rebalance 期间消费者被踢出后重新加入又会拉取新一批消息继续触发 GC，形成恶性循环。</p>
+<p><strong>配置层面</strong>：<code>max.poll.records=2000</code> 与 <code>session.timeout.ms=30000</code> 的组合过于激进。当消费者处理能力因 GC 下降时，2000 条消息的处理时间远超预期，而 30 秒的心跳超时没有给 GC 停顿留出任何缓冲空间。</p>
+<p><strong>流程层面</strong>：代码中没有对 Map/Set/List 等集合型成员变量做容量上限保护，Code Review 时只关注了业务逻辑正确性，没有关注资源使用风险。同时 JVM 堆内存使用率一直偏高但没有告警，属于监控盲区。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><p><strong>1. 代码规范层面</strong></p>
+<ul>
+<li>所有有状态的 Bean（如 Aggregator/Accumulator/Collector）中使用的集合类成员变量必须设置容量上限或显式清理逻辑</li>
+<li>Code Review Checklist 增加&quot;资源泄露检查&quot;专项：集合类是否有限制、流/连接是否正确关闭、本地缓存是否有过期策略</li>
+</ul>
+<p><strong>2. 配置规范层面</strong></p>
+<ul>
+<li>制定 Kafka Consumer 参数配置基准：
+<ul>
+<li><code>max.poll.records</code> 建议 200~500（视单条消息处理复杂度调整）</li>
+<li><code>session.timeout.ms</code> 至少为 GC 预期停顿的 3 倍以上</li>
+<li><code>max.poll.interval.ms</code> 至少为单批最大处理时间的 2 倍</li>
+</ul>
+</li>
+<li>所有 Consumer Group 上线前须通过配置审查</li>
+</ul>
+<p><strong>3. 监控层面</strong></p>
+<ul>
+<li>对所有 Kafka Consumer Pod 补充 JVM 堆内存 / GC 频率 / GC 耗时的 Prometheus 监控</li>
+<li>Consumer Lag 告警阈值从当前的 100 万条下调到 5 万条，更早发现消费异常</li>
+<li>新增 Rebalance 频率告警：15 分钟内超过 3 次 Rebalance 即告警</li>
+</ul>
+<p><strong>4. 测试层面</strong></p>
+<ul>
+<li>在 CI 流水线中增加消费者压测步骤：用生产流量的 10 倍速率灌入测试 Topic，观察消费者内存增长曲线</li>
+<li>跑 24 小时长期稳定性测试，观察内存是否持续上涨</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这次故障给我最大的教训是：<strong>Kafka 消费者不只是消息处理逻辑，更是一个需要精细调校的分布式组件</strong>。</p>
+<p>三个看似独立的问题——内存泄漏、不合理的 Consumer 参数、缺失的 JVM 监控——在凌晨 02:48 不约而同地交汇在一起，形成了一个从内存逐步溢出到集群级消费瘫痪的连锁反应。</p>
+<p>过往我们的关注点总是在 Consumer Lag 这个结果指标上，当 Lag 飙升时第一反应是&quot;是不是生产者突发流量&quot;。但这次事故说明，消费端的处理能力衰减同样是导致 Lag 的重要原因，而这种衰减往往是渐进式的——内存泄漏不是一瞬间发生的，而是日积月累的，直到某个临界点被突破，所有预警信号同时出现。</p>
+<p>运维同学在接入 Kafka 时，Consumer 的参数配置不应该只抄一个&quot;常见配置&quot;就上线，而应该根据自己的消息处理逻辑做针对性调优。尤其是 <code>max.poll.records</code>、<code>session.timeout.ms</code>、<code>max.poll.interval.ms</code> 这三个参数的关系一定要理解透——它们共同决定了消费者在处理能力波动时是会触发 Rebalance 还是能自我恢复。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/kafka/">Kafka</a>
+        
+            <a href="/tags/rebalance/">Rebalance</a>
+        
+            <a href="/tags/consumer-group/">Consumer Group</a>
+        
+            <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/">服务运维</a>
+        
+            <a href="/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/">消息队列</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">Related content</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/eeb9b3c5/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次MySQL主从同步因大事务延迟导致订单数据不一致的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/671a045a/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次SSL证书过期导致内网HTTPS服务全面中断的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/9eb92141/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次Docker容器OOM引发的服务雪崩排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/81929d4d/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次K8s节点磁盘压力导致Pod批量驱逐的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/61346c4a/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次Redis内存溢出导致缓存服务全部失效的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
+        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.1ff1e5fdc4e178ed422e50aa407526dc552f26342d729343fded19416194382c.js" defer></script>
+
+
+    </body>
+</html>

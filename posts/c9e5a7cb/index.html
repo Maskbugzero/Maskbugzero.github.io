@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="企业办公网突发大面积断网，排查发现DHCP地址池被大量非法设备耗尽，通过端口安全与ACL策略彻底根治">
+<title>一次DHCP地址池耗尽导致大面积断网的排查实录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/c9e5a7cb/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次DHCP地址池耗尽导致大面积断网的排查实录">
+<meta property='og:description' content="企业办公网突发大面积断网，排查发现DHCP地址池被大量非法设备耗尽，通过端口安全与ACL策略彻底根治">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/c9e5a7cb/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='DHCP' /><meta property='article:tag' content='网络运维' /><meta property='article:tag' content='VLAN' /><meta property='article:tag' content='交换机' /><meta property='article:tag' content='端口安全' /><meta property='article:published_time' content='2025-03-27T08:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-06-20T08:00:00&#43;00:00'/>
+<meta name="twitter:title" content="一次DHCP地址池耗尽导致大面积断网的排查实录">
+<meta name="twitter:description" content="企业办公网突发大面积断网，排查发现DHCP地址池被大量非法设备耗尽，通过端口安全与ACL策略彻底根治">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column compact"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="images/touxiang.jpg" 
+                        width=""
+                        height=""
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description"></h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/post' >
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>Dark Mode</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
+                网络运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/c9e5a7cb/">一次DHCP地址池耗尽导致大面积断网的排查实录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            企业办公网突发大面积断网，排查发现DHCP地址池被大量非法设备耗尽，通过端口安全与ACL策略彻底根治
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2025-03-27T08:00:00Z'>Thursday, March 27, 2025</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        5 minutes read
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>周一早上 9 点，刚到办公室坐下，内部沟通群里就开始炸了——整层楼的员工纷纷反馈&quot;连不上网&quot;&ldquo;网页打不开&quot;&ldquo;钉钉掉线&rdquo;。我们公司办公区大约 200 人，分布在两个楼层，通过核心交换机连接到上联防火墙出口。网络拓扑相对简单：核心交换机做 DHCP Server，每个 VLAN 对应一个子网，地址池按楼层划分。</p>
+<p>我作为网络运维负责人，第一时间意识到这不是个别用户的问题，而是大面积故障。好在服务器区域使用的是静态 IP，不受 DHCP 影响，核心业务系统还在正常运行。但办公网的瘫痪意味着 200 人无法工作，紧急程度属于 P1 级别——必须 30 分钟内恢复。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>用户反馈的具体表现如下：</p>
+<ol>
+<li><strong>新接入设备无法获取 IP</strong>：部分刚开机或重新连接的电脑显示&quot;正在获取网络地址&rdquo;，持续等待后最终提示&quot;无 Internet 连接&quot;，<code>ipconfig /all</code> 显示 IP 为 0.0.0.0。</li>
+<li><strong>已在线设备部分正常</strong>：之前已经拿到 IP 且租期未过期的设备暂时还能上网，但网络明显变慢， ping 内网网关偶尔出现 50-200ms 的异常延迟。</li>
+<li><strong>DHCP 请求超时</strong>：在受影响的终端上抓包，可以看到 DHCP Discover 包正常发出，但始终没有收到 DHCP Offer 回应。</li>
+</ol>
+<p>关键信息：</p>
+<ul>
+<li>核心交换机（华为 S5735-L48T4X）上配置了 VLAN 10（一楼）和 VLAN 20（二楼）的 DHCP 地址池</li>
+<li>VLAN 10 地址池：192.168.10.100 - 192.168.10.250，共 151 个地址</li>
+<li>VLAN 20 地址池：192.168.20.100 - 192.168.20.250，共 151 个地址</li>
+<li>楼层实际办公电脑数量：一楼约 90 台，二楼约 110 台</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="第一步确认-dhcp-服务状态"><a href="#%e7%ac%ac%e4%b8%80%e6%ad%a5%e7%a1%ae%e8%ae%a4-dhcp-%e6%9c%8d%e5%8a%a1%e7%8a%b6%e6%80%81" class="header-anchor"></a>第一步：确认 DHCP 服务状态
+</h3><p>登录核心交换机，首先检查 DHCP Server 是否正常运行：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>&lt;HX-Switch&gt; display dhcp server statistics
+</span></span><span style="display:flex;"><span>  DHCP Server Statistics:
+</span></span><span style="display:flex;"><span>    Request Received     : 4238
+</span></span><span style="display:flex;"><span>    Offer Sent           : 151
+</span></span><span style="display:flex;"><span>    Ack Sent             : 151
+</span></span><span style="display:flex;"><span>    Discover Received    : 4087
+</span></span><span style="display:flex;"><span>    Offer Failed         : 3936
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>关键发现：<strong>Offer Failed 达 3936 次！</strong> 这意味着交换机收到了大量 DHCP Discover 请求，但无法回复 Offer。这几乎可以确定是地址池出了问题。</p>
+<h3 id="第二步检查地址池使用情况"><a href="#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e6%a3%80%e6%9f%a5%e5%9c%b0%e5%9d%80%e6%b1%a0%e4%bd%bf%e7%94%a8%e6%83%85%e5%86%b5" class="header-anchor"></a>第二步：检查地址池使用情况
+</h3><p>继续查看地址池的分配状态：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>&lt;HX-Switch&gt; display dhcp server ip-in-use pool vlan10
+</span></span><span style="display:flex;"><span>  IP Address       Hardware Address   Lease Expired   Status
+</span></span><span style="display:flex;"><span>  192.168.10.100   00e0-4c68-01a2    2026/06/20 18:00  Used
+</span></span><span style="display:flex;"><span>  192.168.10.101   00e0-4c68-03b5    2026/06/20 18:00  Used
+</span></span><span style="display:flex;"><span>  ...（省略中间）
+</span></span><span style="display:flex;"><span>  192.168.10.250   a860-b117-55c3    2026/06/20 18:00  Used
+</span></span><span style="display:flex;"><span>  Total : 151    Used : 151    Idle : 0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>&lt;HX-Switch&gt; display dhcp server ip-in-use pool vlan20
+</span></span><span style="display:flex;"><span>  Total : 151    Used : 151    Idle : 0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>地址池 100% 占用，零空闲！</strong> VLAN 10 和 VLAN 20 的 302 个地址全部被分配。但实际办公电脑只有约 200 台，多出来的 100 多个地址被谁占走了？</p>
+<h3 id="第三步分析-dhcp-租约表"><a href="#%e7%ac%ac%e4%b8%89%e6%ad%a5%e5%88%86%e6%9e%90-dhcp-%e7%a7%9f%e7%ba%a6%e8%a1%a8" class="header-anchor"></a>第三步：分析 DHCP 租约表
+</h3><p>导出完整租约表进行详细分析。我用 Python 脚本处理交换机输出的 MAC-IP 映射：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>&lt;HX-Switch&gt; display dhcp server ip-in-use pool vlan10 all
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>拿到全部 151 条记录后，我重点关注 MAC 地址的前缀（OUI），用来识别设备类型：</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>MAC 前缀</th>
+          <th>设备类型</th>
+          <th>数量</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>00e0-4c</td>
+          <td>Realtek（PC 网卡）</td>
+          <td>68</td>
+      </tr>
+      <tr>
+          <td>a860-b1</td>
+          <td>Apple（iPhone/Mac）</td>
+          <td>42</td>
+      </tr>
+      <tr>
+          <td>dc:a6:32</td>
+          <td>Raspberry Pi</td>
+          <td>12</td>
+      </tr>
+      <tr>
+          <td>88:15:44</td>
+          <td>智能家居/IoT 设备</td>
+          <td>15</td>
+      </tr>
+      <tr>
+          <td>ac:de:48</td>
+          <td>私有 MAC（随机化）</td>
+          <td>14</td>
+      </tr>
+  </tbody>
+</table></div>
+<p>发现了！<strong>42 台 iPhone + 15 台 IoT 设备 + 12 台 Raspberry Pi + 14 台随机化 MAC 设备 = 83 台非办公设备</strong>，它们占用了大量 DHCP 地址。这些是员工个人手机、测试设备以及不明 IoT 设备。</p>
+<p>VLAN 20 的情况更严重：二楼有 110 台办公电脑，地址池只有 151 个，被 48 台手机和一堆 IoT 设备挤占后，留给办公电脑的只有不到 100 个——根本不够用。</p>
+<h3 id="第四步定位非法设备的接入端口"><a href="#%e7%ac%ac%e5%9b%9b%e6%ad%a5%e5%ae%9a%e4%bd%8d%e9%9d%9e%e6%b3%95%e8%ae%be%e5%a4%87%e7%9a%84%e6%8e%a5%e5%85%a5%e7%ab%af%e5%8f%a3" class="header-anchor"></a>第四步：定位非法设备的接入端口
+</h3><p>接下来需要找到这些非办公设备是从哪些端口接入的。在交换机上查询 MAC 地址表：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>&lt;HX-Switch&gt; display mac-address dynamic vlan 10
+</span></span><span style="display:flex;"><span>  MAC Address      VLAN  Port          Type
+</span></span><span style="display:flex;"><span>  a860-b117-55c3   10    GE0/0/15     Dynamic
+</span></span><span style="display:flex;"><span>  a860-b117-66d4   10    GE0/0/15     Dynamic
+</span></span><span style="display:flex;"><span>  a860-b117-78e1   10    GE0/0/15     Dynamic
+</span></span><span style="display:flex;"><span>  ...（多个 Apple MAC 均从 GE0/0/15 学习到）
+</span></span><span style="display:flex;"><span>  dc:a6-32-01-ab   10    GE0/0/22     Dynamic
+</span></span><span style="display:flex;"><span>  dc:a6-32-01-cd   10    GE0/0/22     Dynamic
+</span></span><span style="display:flex;"><span>  88:15:44-xx      10    GE0/0/28     Dynamic
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>发现规律：</p>
+<ul>
+<li><strong>GE0/0/15</strong>：会议室区域的大屏和员工手机大量接入（一个端口下挂 AP，AP 下连接了数十个无线设备）</li>
+<li><strong>GE0/0/22</strong>：研发测试区的交换机下联了 12 台 Raspberry Pi</li>
+<li><strong>GE0/0/28</strong>：茶水间区域的 IoT 设备（智能灯控、温湿度传感器等）</li>
+</ul>
+<p>根本问题很清楚了：<strong>无线 AP 没做 MAC 过滤，任何人都可以用手机连上办公 Wi-Fi 拿到 IP；研发区随意接入测试设备；IoT 设备也混在办公 VLAN 里</strong>。</p>
+<h3 id="第五步查看-dhcp-租期配置"><a href="#%e7%ac%ac%e4%ba%94%e6%ad%a5%e6%9f%a5%e7%9c%8b-dhcp-%e7%a7%9f%e6%9c%9f%e9%85%8d%e7%bd%ae" class="header-anchor"></a>第五步：查看 DHCP 租期配置
+</h3><p>再看一下租期设置：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>&lt;HX-Switch&gt; display dhcp server pool vlan10
+</span></span><span style="display:flex;"><span>  Pool Name      : vlan10
+</span></span><span style="display:flex;"><span>  Lease Day      : 1    Hour : 0    Minute : 0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>租期 1 天！</strong> 手机连上 Wi-Fi 后拿到的 IP 要 24 小时才会过期释放，即使手机离开了网络，地址也一直被占着。这进一步加剧了地址池耗尽的问题。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><h3 id="紧急恢复5-分钟内实施"><a href="#%e7%b4%a7%e6%80%a5%e6%81%a2%e5%a4%8d5-%e5%88%86%e9%92%9f%e5%86%85%e5%ae%9e%e6%96%bd" class="header-anchor"></a>紧急恢复（5 分钟内实施）
+</h3><p>第一步：<strong>清除非法设备的 DHCP 租约</strong>，立即释放被占用的地址：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>&lt;HX-Switch&gt; system-view
+</span></span><span style="display:flex;"><span># 批量释放非办公MAC的租约
+</span></span><span style="display:flex;"><span>&lt;HX-Switch&gt; reset dhcp server ip-in-use mac-address a860-b117-55c3 pool vlan10
+</span></span><span style="display:flex;"><span>&lt;HX-Switch&gt; reset dhcp server ip-in-use mac-address a860-b117-66d4 pool vlan10
+</span></span><span style="display:flex;"><span># ...（按MAC前缀批量清除所有Apple/iOS设备的租约）
+</span></span><span style="display:flex;"><span>&lt;HX-Switch&gt; reset dhcp server ip-in-use pool vlan10 conflict
+</span></span><span style="display:flex;"><span># 清除冲突地址
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>由于手动一条条清太慢，我用了更高效的方法——<strong>缩短租期到 1 小时</strong>，让所有现有租约快速过期：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>&lt;HX-Switch&gt; dhcp server ip-pool vlan10
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-vlan10&gt; lease day 0 hour 1 minute 0
+</span></span><span style="display:flex;"><span>&lt;HX-Switch&gt; dhcp server ip-pool vlan20
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-vlan20&gt; lease day 0 hour 1 minute 0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这样 1 小时后所有设备的租约都会到期需要重新续租，到那时我们再通过端口安全策略拦截非法设备。</p>
+<p>第二步：<strong>临时扩大地址池</strong>，缓解当前压力：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>&lt;HX-Switch&gt; dhcp server ip-pool vlan10
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-vlan10&gt; network 192.168.10.0 mask 255.255.254.0
+</span></span><span style="display:flex;"><span># 地址范围从 .100-.250 扩大到 .1-.510（实际可用约 500）
+</span></span><span style="display:flex;"><span>&lt;HX-Switch&gt; dhcp server ip-pool vlan20
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-vlan20&gt; network 192.168.20.0 mask 255.255.254.0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>将子网掩码从 /24 改为 /23，地址池翻倍，确保即使有手机接入也不会耗尽。</p>
+
+    <blockquote>
+        <p>注意：扩大子网后需要同步更新上联防火墙的路由和 NAT 规则。</p>
+
+    </blockquote>
+<p>约 3 分钟后，用户开始陆续恢复网络连接。紧急恢复完成。</p>
+<h3 id="根治方案当天下午实施"><a href="#%e6%a0%b9%e6%b2%bb%e6%96%b9%e6%a1%88%e5%bd%93%e5%a4%a9%e4%b8%8b%e5%8d%88%e5%ae%9e%e6%96%bd" class="header-anchor"></a>根治方案（当天下午实施）
+</h3><p><strong>1. VLAN 隔离——IoT 和访客设备独立网段</strong></p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>&lt;HX-Switch&gt; vlan 30  # IoT专用VLAN
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-vlan30&gt; dhcp server ip-pool iot
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-iot&gt; network 192.168.30.0 mask 255.255.255.0
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-iot&gt; lease day 0 hour 0 minute 30  # IoT设备租期30分钟
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-iot&gt; gateway-list 192.168.30.1
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>&lt;HX-Switch&gt; vlan 40  # 访客Wi-Fi VLAN
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-vlan40&gt; dhcp server ip-pool guest
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-guest&gt; network 192.168.40.0 mask 255.255.255.0
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-guest&gt; lease day 0 hour 2 minute 0  # 访客租期2小时
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-guest&gt; gateway-list 192.168.40.1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>无线 AP 配置双 SSID：<code>Office-WiFi</code>（仅办公设备，绑定 VLAN 10/20）和 <code>Guest-WiFi</code>（访客/手机，绑定 VLAN 40），通过 802.1X 认证区分合法办公设备。</p>
+<p><strong>2. 端口安全——限制接入设备数量</strong></p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>&lt;HX-Switch&gt; interface GE0/0/15  # 会议室端口
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-GE0/0/15&gt; port-security enable
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-GE0/0/15&gt; port-security max-mac-num 5  # 最多5台设备
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-GE0/0/15&gt; port-security protect-action shutdown  # 超限则关闭端口
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>&lt;HX-Switch&gt; interface GE0/0/22  # 研发测试区
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-GE0/0/22&gt; port-security enable
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-GE0/0/22&gt; port-security max-mac-num 20  # 研发区允许较多设备
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-GE0/0/22&gt; port-security protect-action restrict  # 超限仅丢弃新MAC
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>3. DHCP 租期优化</strong></p>
+<ul>
+<li>办工 VLAN：租期从 1 天调整为 <strong>8 小时</strong>（足够一个工作日，下班后地址自动释放）</li>
+<li>IoT VLAN：租期 <strong>30 分钟</strong>（IoT 设备重启频繁，短租期避免地址浪费）</li>
+<li>访客 VLAN：租期 <strong>2 小时</strong>（访客停留时间有限）</li>
+</ul>
+<p><strong>4. DHCP Snooping 防护</strong></p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>&lt;HX-Switch&gt; dhcp snooping enable
+</span></span><span style="display:flex;"><span>&lt;HX-Switch&gt; vlan 10
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-vlan10&gt; dhcp snooping enable
+</span></span><span style="display:flex;"><span>&lt;HX-Switch&gt; interface GE0/0/1  # 上联口（信任口）
+</span></span><span style="display:flex;"><span>&lt;HX-Switch-GE0/0/1&gt; dhcp snooping trust
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>防止非法 DHCP Server 干扰，同时记录 DHCP 绑定表便于审计。</p>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>问题的根本原因有三层：</p>
+<ol>
+<li>
+<p><strong>网络架构设计缺陷</strong>：所有设备（办公电脑、手机、IoT、测试设备）混在同一个 VLAN 里，没有按设备类型做网络隔离。地址池按&quot;办公电脑数量&quot;规划，完全忽略了无线 AP 下挂的手机和 IoT 设备。</p>
+</li>
+<li>
+<p><strong>DHCP 租期过长</strong>：1 天的租期导致设备断开连接后 IP 仍然被占用长达 24 小时。手机这种高流动性设备（连上 Wi-Fi 就拿 IP，离开后 IP 一直不释放）是地址池耗尽的最大推手。</p>
+</li>
+<li>
+<p><strong>无线网络缺乏准入控制</strong>：办公 Wi-Fi 无认证无过滤，任何人的手机都可以随意接入，等于给 DHCP 地址池开了一个无底洞。</p>
+</li>
+</ol>
+<p>三层因素叠加：架构上没有隔离 → 准入上没有限制 → 租期上没有优化 → 地址池被挤爆。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><p>基于这次故障，我们制定了以下长期预防措施：</p>
+<p><strong>1. 定期巡检 DHCP 地址池利用率</strong></p>
+<p>编写巡检脚本，每小时采集地址池利用率并推送监控：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">import</span> paramiko
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> re
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">check_dhcp_pool</span>(switch_ip, pool_name):
+</span></span><span style="display:flex;"><span>    ssh <span style="color:#f92672">=</span> paramiko<span style="color:#f92672">.</span>SSHClient()
+</span></span><span style="display:flex;"><span>    ssh<span style="color:#f92672">.</span>set_missing_host_key_policy(paramiko<span style="color:#f92672">.</span>AutoAddPolicy())
+</span></span><span style="display:flex;"><span>    ssh<span style="color:#f92672">.</span>connect(switch_ip, username<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;admin&#39;</span>, password<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;xxx&#39;</span>)
+</span></span><span style="display:flex;"><span>    cmd <span style="color:#f92672">=</span> <span style="color:#e6db74">f</span><span style="color:#e6db74">&#39;display dhcp server ip-in-use pool </span><span style="color:#e6db74">{</span>pool_name<span style="color:#e6db74">}</span><span style="color:#e6db74">&#39;</span>
+</span></span><span style="display:flex;"><span>    output <span style="color:#f92672">=</span> ssh<span style="color:#f92672">.</span>exec_command(cmd)[<span style="color:#ae81ff">1</span>]<span style="color:#f92672">.</span>read()<span style="color:#f92672">.</span>decode()
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># 解析 Total / Used / Idle</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">match</span> <span style="color:#f92672">=</span> re<span style="color:#f92672">.</span>search(<span style="color:#e6db74">r</span><span style="color:#e6db74">&#39;Total\s*:\s*(\d+)\s*Used\s*:\s*(\d+)\s*Idle\s*:\s*(\d+)&#39;</span>, output)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">match</span>:
+</span></span><span style="display:flex;"><span>        total, used, idle <span style="color:#f92672">=</span> int(<span style="color:#66d9ef">match</span><span style="color:#f92672">.</span>group(<span style="color:#ae81ff">1</span>)), int(<span style="color:#66d9ef">match</span><span style="color:#f92672">.</span>group(<span style="color:#ae81ff">2</span>)), int(<span style="color:#66d9ef">match</span><span style="color:#f92672">.</span>group(<span style="color:#ae81ff">3</span>))
+</span></span><span style="display:flex;"><span>        utilization <span style="color:#f92672">=</span> used <span style="color:#f92672">/</span> total <span style="color:#f92672">*</span> <span style="color:#ae81ff">100</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> utilization <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">85</span>:
+</span></span><span style="display:flex;"><span>            send_alert(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#39;DHCP池 </span><span style="color:#e6db74">{</span>pool_name<span style="color:#e6db74">}</span><span style="color:#e6db74"> 利用率 </span><span style="color:#e6db74">{</span>utilization<span style="color:#e6db74">:</span><span style="color:#e6db74">.1f</span><span style="color:#e6db74">}</span><span style="color:#e6db74">%，空闲仅 </span><span style="color:#e6db74">{</span>idle<span style="color:#e6db74">}</span><span style="color:#e6db74"> 个&#39;</span>)
+</span></span><span style="display:flex;"><span>    ssh<span style="color:#f92672">.</span>close()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 定时巡检所有地址池</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> pool <span style="color:#f92672">in</span> [<span style="color:#e6db74">&#39;vlan10&#39;</span>, <span style="color:#e6db74">&#39;vlan20&#39;</span>, <span style="color:#e6db74">&#39;iot&#39;</span>, <span style="color:#e6db74">&#39;guest&#39;</span>]:
+</span></span><span style="display:flex;"><span>    check_dhcp_pool(<span style="color:#e6db74">&#39;10.0.0.1&#39;</span>, pool)
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>2. VLAN 规划标准化</strong></p>
+<p>新建网络区域必须遵循 VLAN 隔离原则：</p>
+<ul>
+<li>办工设备 VLAN：仅允许通过 802.1X 认证的设备接入</li>
+<li>IoT 设备 VLAN：单独隔离，ACL 限制只能访问特定服务器</li>
+<li>访客 VLAN：独立 SSID，ACL 限制只能访问 Internet，禁止访问内网资源</li>
+</ul>
+<p><strong>3. 地址池容量预留</strong></p>
+<p>地址池规划时预留 <strong>50% 以上冗余</strong>。例如 200 台办公设备，地址池至少 300 个地址。同时预留一个备选子网，在紧急扩容时可快速启用。</p>
+<p><strong>4. 无线网络准入强化</strong></p>
+<ul>
+<li>办工 Wi-Fi 启用 802.1X 企业认证，绑定 AD 域账号</li>
+<li>访客 Wi-Fi 启用 Web 认证（短信验证码或临时账号）</li>
+<li>定期审计无线 AP 的关联终端列表，清理异常设备</li>
+</ul>
+<p><strong>5. 建立变更审批流程</strong></p>
+<p>任何人接入非办公设备（测试服务器、IoT 设备等）必须提前提交网络变更申请，运维团队评估 VLAN 归属和地址池容量后才允许接入。</p>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这次故障从发现到紧急恢复用了约 15 分钟，根治方案在当天下午完成。最大的教训是：<strong>网络规划不能只看&quot;有多少台电脑&quot;，要看&quot;有多少台设备会连上来&quot;</strong>。</p>
+<p>在移动办公时代，每个员工至少有一台手机会连 Wi-Fi，加上各种 IoT 设备和测试设备，实际接入数往往是办公电脑数的 1.5-2 倍。如果地址池按电脑数来规划，必然会被挤爆。</p>
+<p>另一个关键认知是：<strong>DHCP 租期不是越大越好</strong>。长租期在设备稳定的场景（服务器、固定工位）是好实践，但在高流动性场景（手机、访客）就是灾难。不同类型的设备要用不同的租期策略。</p>
+<p>最后，<strong>网络隔离是最基本的防护</strong>——把办公、IoT、访客分到不同 VLAN，不仅仅是为了安全，也是为了资源管理。当你发现一个 VLAN 的地址池快满时，至少不会拖垮其他 VLAN 的正常设备。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/dhcp/">DHCP</a>
+        
+            <a href="/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/">网络运维</a>
+        
+            <a href="/tags/vlan/">VLAN</a>
+        
+            <a href="/tags/%E4%BA%A4%E6%8D%A2%E6%9C%BA/">交换机</a>
+        
+            <a href="/tags/%E7%AB%AF%E5%8F%A3%E5%AE%89%E5%85%A8/">端口安全</a>
+        
+    </section>
+
+
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            Last updated on Saturday, June 20, 2026
+        </span>
+    </section></footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">Related content</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/a5219903/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次核心交换机STP风暴导致全楼网络瘫痪的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/750c6021/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次办公区无线网络间歇性断连的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
+        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.1ff1e5fdc4e178ed422e50aa407526dc552f26342d729343fded19416194382c.js" defer></script>
+
+
+    </body>
+</html>

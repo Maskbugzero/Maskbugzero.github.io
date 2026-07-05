@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content=">-">
+<title>一次GitLab CI Runner卡死导致生产部署流水线全停的排查实录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/1b83a967/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次GitLab CI Runner卡死导致生产部署流水线全停的排查实录">
+<meta property='og:description' content=">-">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/1b83a967/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='GitLab' /><meta property='article:tag' content='CI/CD' /><meta property='article:tag' content='Runner' /><meta property='article:tag' content='服务运维' /><meta property='article:tag' content='DevOps' /><meta property='article:published_time' content='2026-06-27T16:09:09&#43;00:00'/><meta property='article:modified_time' content='2026-06-27T16:09:09&#43;00:00'/>
+<meta name="twitter:title" content="一次GitLab CI Runner卡死导致生产部署流水线全停的排查实录">
+<meta name="twitter:description" content=">-">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column compact"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="images/touxiang.jpg" 
+                        width=""
+                        height=""
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description"></h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/post' >
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>Dark Mode</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/1b83a967/">一次GitLab CI Runner卡死导致生产部署流水线全停的排查实录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            &gt;-
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-06-27T16:09:09Z'>Saturday, June 27, 2026</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        7 minutes read
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+
+    <section class="article-content">
+    
+    
+    <h1 id="一次gitlab-ci-runner卡死导致生产部署流水线全停的排查实录"><a href="#%e4%b8%80%e6%ac%a1gitlab-ci-runner%e5%8d%a1%e6%ad%bb%e5%af%bc%e8%87%b4%e7%94%9f%e4%ba%a7%e9%83%a8%e7%bd%b2%e6%b5%81%e6%b0%b4%e7%ba%bf%e5%85%a8%e5%81%9c%e7%9a%84%e6%8e%92%e6%9f%a5%e5%ae%9e%e5%bd%95" class="header-anchor"></a>一次GitLab CI Runner卡死导致生产部署流水线全停的排查实录
+</h1><h2 id="一问题背景"><a href="#%e4%b8%80%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>一、问题背景
+</h2><p>下午两点十五分，我正坐在工位上整理上午的网络变更文档，钉钉群里突然炸开了一连串告警信息。运维总监@我说：&ldquo;线上部署流水线全挂了，研发提交了 7 个 Merge Request 等着合并发布，紧急发布也被卡住了，抓紧处理！&ldquo;这是我们最核心的生产部署链路——从代码合并到镜像构建再到 K8s 滚动发布，全部跑在自建的 GitLab CI 上。一旦停摆，研发一天的工作量就没法上线。</p>
+<p>我们公司自建了一套 GitLab（社区版 15.8.0）做代码托管，CI 部分使用了 3 台自建 Runner（其中 2 台是共享 Runner，1 台是项目级 Runner），部署在机房内部，配置是 4 核 8G 的虚拟机。平时每天大约跑 200~300 个 Pipeline，主要场景包括 Java 后端服务构建、Node 前端构建、Docker 镜像打包和 Helm Chart 同步等。系统从上线以来一直很稳定，从未出现过这么严重的全停故障。</p>
+<p>紧急程度 P0——这意味着研发部门所有人在下班前都没办法发布代码，且因为关联到生产环境，可能影响晚上的业务运营。务必在 30 分钟内恢复。</p>
+<h2 id="二故障现象"><a href="#%e4%ba%8c%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>二、故障现象
+</h2><h3 id="21-现象一pipeline-任务全部-pending"><a href="#21-%e7%8e%b0%e8%b1%a1%e4%b8%80pipeline-%e4%bb%bb%e5%8a%a1%e5%85%a8%e9%83%a8-pending" class="header-anchor"></a>2.1 现象一：Pipeline 任务全部 pending
+</h3><p>登录 GitLab Web UI 查看，<strong>所有 Pipeline 的 Job 状态全部是 <code>pending</code>（黄色圆圈）</strong>，没有运行中的任务，也没有任何报错信息。我打开了几个 Job 的详情页，看到页面显示：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>This job is stuck, because you have no active runners online
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>但诡异的是，GitLab 的 Admin → Runners 页面里，这 3 台 Runner 的状态都是 <strong>绿色的&quot;绿点&rdquo;</strong>，并没有显示&quot;never contacted&quot;或者&quot;paused&rdquo;。</p>
+<h3 id="22-现象二runner-进程-cpu-100-占用"><a href="#22-%e7%8e%b0%e8%b1%a1%e4%ba%8crunner-%e8%bf%9b%e7%a8%8b-cpu-100-%e5%8d%a0%e7%94%a8" class="header-anchor"></a>2.2 现象二：Runner 进程 CPU 100% 占用
+</h3><p>SSH 到 Runner 机器（10.20.30.51）上执行 <code>top</code>：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-gdscript3" data-lang="gdscript3"><span style="display:flex;"><span>top <span style="color:#f92672">-</span> <span style="color:#ae81ff">14</span>:<span style="color:#ae81ff">18</span>:<span style="color:#ae81ff">21</span> up <span style="color:#ae81ff">42</span> days,  <span style="color:#ae81ff">3</span> users,  load average: <span style="color:#ae81ff">31.27</span>, <span style="color:#ae81ff">28.95</span>, <span style="color:#ae81ff">26.13</span>
+</span></span><span style="display:flex;"><span>Tasks: <span style="color:#ae81ff">247</span> total,   <span style="color:#ae81ff">3</span> running, <span style="color:#ae81ff">244</span> sleeping
+</span></span><span style="display:flex;"><span><span style="color:#f92672">%</span>Cpu(s): <span style="color:#ae81ff">99.3</span> us,  <span style="color:#ae81ff">0.4</span> sy,  <span style="color:#ae81ff">0.0</span> ni,  <span style="color:#ae81ff">0.3</span> id,  <span style="color:#ae81ff">0.0</span> wa,  <span style="color:#ae81ff">0.0</span> hi,  <span style="color:#ae81ff">0.0</span> si
+</span></span><span style="display:flex;"><span>KiB Mem :  <span style="color:#ae81ff">8009532</span> total,  <span style="color:#ae81ff">2145720</span> free,  <span style="color:#ae81ff">4883216</span> used,   <span style="color:#ae81ff">980596</span> buff<span style="color:#f92672">/</span>cache
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  PID USER      PR  NI    VIRT    RES  RES  SHR S  <span style="color:#f92672">%</span>CPU <span style="color:#f92672">%</span>MEM     TIME<span style="color:#f92672">+</span> COMMAND
+</span></span><span style="display:flex;"><span> <span style="color:#ae81ff">8721</span> gitlab<span style="color:#f92672">-</span>r  <span style="color:#ae81ff">20</span>   <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">3821044</span> <span style="color:#ae81ff">4.6</span>g  <span style="color:#ae81ff">4.6</span>g  <span style="color:#ae81ff">12</span>m R  <span style="color:#ae81ff">98.7</span> <span style="color:#ae81ff">59.2</span>   <span style="color:#ae81ff">1438</span>:<span style="color:#ae81ff">22</span> gitlab<span style="color:#f92672">-</span>runner
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">24109</span> gitlab<span style="color:#f92672">-</span>r  <span style="color:#ae81ff">20</span>   <span style="color:#ae81ff">0</span>  <span style="color:#ae81ff">412180</span>  <span style="color:#ae81ff">31872</span>  <span style="color:#ae81ff">31872</span>  <span style="color:#ae81ff">4248</span> S   <span style="color:#ae81ff">1.3</span>  <span style="color:#ae81ff">0.4</span>   <span style="color:#ae81ff">0</span>:<span style="color:#ae81ff">00.23</span> gitlab<span style="color:#f92672">-</span>runner
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">24110</span> gitlab<span style="color:#f92672">-</span>r  <span style="color:#ae81ff">20</span>   <span style="color:#ae81ff">0</span>  <span style="color:#ae81ff">412180</span>  <span style="color:#ae81ff">31744</span>  <span style="color:#ae81ff">31744</span>  <span style="color:#ae81ff">4244</span> S   <span style="color:#ae81ff">1.0</span>  <span style="color:#ae81ff">0.4</span>   <span style="color:#ae81ff">0</span>:<span style="color:#ae81ff">00.19</span> gitlab<span style="color:#f92672">-</span>runner
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以看到 <code>gitlab-runner</code> 进程 CPU 占用 98.7%，内存吃掉了 4.6G（总共才 8G），<strong>load average 飙到了 31</strong>，但实际只有 1 个进程在真正吃 CPU。系统的 <code>free</code> 内存显示还有 2.1G，磁盘也没满。</p>
+<h3 id="23-现象三日志显示连接数异常"><a href="#23-%e7%8e%b0%e8%b1%a1%e4%b8%89%e6%97%a5%e5%bf%97%e6%98%be%e7%a4%ba%e8%bf%9e%e6%8e%a5%e6%95%b0%e5%bc%82%e5%b8%b8" class="header-anchor"></a>2.3 现象三：日志显示连接数异常
+</h3><p>查看 Runner 的日志（<code>/var/log/gitlab-runner/gitlab-runner.log</code>），看到大量重复告警：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>ERRO[0145] Failed to process job                           builds=37 duration=12.4s err=&#34;context canceled&#34;
+</span></span><span style="display:flex;"><span>WARN[0145] Job&#39;s log limit reached                          job=4218 limit=4194304
+</span></span><span style="display:flex;"><span>ERRO[0148] Failed to request job                           status=500 Job request timed out
+</span></span><span style="display:flex;"><span>WARN[0152] Runner lost contact with GitLab server          runner=xxxxxx
+</span></span><span style="display:flex;"><span>ERRO[0156] Failed to process runner                       accepts=0 builds=0
+</span></span><span style="display:flex;"><span>ERRO[0158] Runner is not healthy                          cpu_usage=98.7% memory_usage=59.2%
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>关键报错</strong>：<code>Failed to request job status=500 Job request timed out</code>——Runner 在向 GitLab Server 拉取 Job 的时候出现超时。也就是说，Runner 没有真正&quot;死掉&quot;，而是处于一种&quot;假活&quot;状态：进程在、端口在，但拿不到新任务。</p>
+<h2 id="三排查过程"><a href="#%e4%b8%89%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>三、排查过程
+</h2><h3 id="31-第一步检查-runner-与-gitlab-server-的连通性"><a href="#31-%e7%ac%ac%e4%b8%80%e6%ad%a5%e6%a3%80%e6%9f%a5-runner-%e4%b8%8e-gitlab-server-%e7%9a%84%e8%bf%9e%e9%80%9a%e6%80%a7" class="header-anchor"></a>3.1 第一步：检查 Runner 与 GitLab Server 的连通性
+</h3><p>先排除网络层问题。从 Runner 机器 ping 和 curl GitLab Server：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ ping -c <span style="color:#ae81ff">4</span> gitlab.example.com
+</span></span><span style="display:flex;"><span>PING gitlab.example.com <span style="color:#f92672">(</span>10.20.30.10<span style="color:#f92672">)</span>: <span style="color:#ae81ff">56</span> data bytes
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">64</span> bytes from 10.20.30.10: icmp_seq<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> ttl<span style="color:#f92672">=</span><span style="color:#ae81ff">64</span> time<span style="color:#f92672">=</span>0.124 ms
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">64</span> bytes from 10.20.30.10: icmp_seq<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> ttl<span style="color:#f92672">=</span><span style="color:#ae81ff">64</span> time<span style="color:#f92672">=</span>0.131 ms
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">64</span> bytes from 10.20.30.10: icmp_seq<span style="color:#f92672">=</span><span style="color:#ae81ff">2</span> ttl<span style="color:#f92672">=</span><span style="color:#ae81ff">64</span> time<span style="color:#f92672">=</span>0.118 ms
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">64</span> bytes from 10.20.30.10: icmp_seq<span style="color:#f92672">=</span><span style="color:#ae81ff">3</span> ttl<span style="color:#f92672">=</span><span style="color:#ae81ff">64</span> time<span style="color:#f92672">=</span>0.121 ms
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>$ curl -v http://gitlab.example.com/-/health
+</span></span><span style="display:flex;"><span>&lt; HTTP/1.1 <span style="color:#ae81ff">200</span> OK
+</span></span><span style="display:flex;"><span><span style="color:#f92672">{</span><span style="color:#e6db74">&#34;status&#34;</span>:<span style="color:#e6db74">&#34;ok&#34;</span><span style="color:#f92672">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>网络通畅，GitLab Server 健康检查通过。问题不在网络层。</p>
+<h3 id="32-第二步重启-runner-服务试试"><a href="#32-%e7%ac%ac%e4%ba%8c%e6%ad%a5%e9%87%8d%e5%90%af-runner-%e6%9c%8d%e5%8a%a1%e8%af%95%e8%af%95" class="header-anchor"></a>3.2 第二步：重启 Runner 服务试试
+</h3><p>既然 CPU 100%，第一直觉是 Runner 内部出问题。先尝试软重启：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ sudo gitlab-runner stop
+</span></span><span style="display:flex;"><span>$ sudo gitlab-runner start
+</span></span><span style="display:flex;"><span>$ sudo gitlab-runner status
+</span></span><span style="display:flex;"><span>gitlab-runner: Service is running!
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>重启后查看 <code>top</code>，CPU 占用<strong>短暂降到了 5%</strong>，load average 也开始回落。我以为问题解决了，结果<strong>不到 2 分钟，CPU 又飙回了 100%</strong>。这说明重启只是暂时缓解，根因没有解除。</p>
+<h3 id="33-第三步抓-runner-的-goroutine-栈"><a href="#33-%e7%ac%ac%e4%b8%89%e6%ad%a5%e6%8a%93-runner-%e7%9a%84-goroutine-%e6%a0%88" class="header-anchor"></a>3.3 第三步：抓 Runner 的 Goroutine 栈
+</h3><p>GitLab Runner 是用 Go 写的，CPU 100% 一定是某个 goroutine 死循环或者阻塞。给它发 SIGQUIT 让它 dump goroutine 栈：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ sudo kill -QUIT <span style="color:#ae81ff">8721</span>
+</span></span><span style="display:flex;"><span>$ ls -lh /var/log/gitlab-runner/
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#ae81ff">1</span> root root 23M Jun <span style="color:#ae81ff">27</span> 14:25 gitlab-runner.log
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#ae81ff">1</span> root root 8.2M Jun <span style="color:#ae81ff">27</span> 14:25 stacktrace-20260627-1425.log
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>打开 <code>stacktrace-20260627-1425.log</code>，这是一个 8.2MB 的文本文件，里面有几十万个 goroutine。我用文本编辑器打开后搜索 &ldquo;JobRequest&rdquo;，看到有大量重复的 goroutine：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>goroutine 1423857 [running]:
+</span></span><span style="display:flex;"><span>runtime/internal/syscall.Syscall6(...)
+</span></span><span style="display:flex;"><span>  github.com/aymerick/douceur/parser.parseDeclaration(0xc00a4d2000, 0xc0007e6000, 0x400, 0x400, 0xc00a4d2000, 0x400)
+</span></span><span style="display:flex;"><span>  github.com/aymerick/douceur/parser.parseRule(0xc00a4d2000, 0xc00a4d2000, 0x400, 0x400, 0x4, 0x0)
+</span></span><span style="display:flex;"><span>  github.com/aymerick/douceur/parser.Parse(0xc00a4d2000, 0x4, 0xc00a4d2000, 0x400, 0x4, 0x0, 0x0, 0x0)
+</span></span><span style="display:flex;"><span>  github.com/aymerick/douceur/css.Parse(0xc00a4d2000, 0x4, 0x0, 0xc00a4d2000, 0x4, 0x0, 0x0, 0x0)
+</span></span><span style="display:flex;"><span>  ...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>虽然大部分栈都是 <code>douceur</code> 这个 CSS 解析库在干重活（<strong>巨量的 CSS 解析 goroutine 阻塞</strong>），但这不是根因。<strong>真正的问题在别处</strong>。我继续往下翻，发现关键信息：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>goroutine 1 [running]:
+</span></span><span style="display:flex;"><span>main.runWait()
+</span></span><span style="display:flex;"><span>  /go/src/gitlab.com/gitlab-org/gitlab-runner/cmd/gitlab-runner/main.go:108
+</span></span><span style="display:flex;"><span>runtime.gopark(...)
+</span></span><span style="display:flex;"><span>runtime.selectnbrecv(...)
+</span></span><span style="display:flex;"><span>main.(*Runner).requestJob(0xc0001ce000)
+</span></span><span style="display:flex;"><span>  /go/src/gitlab.com/gitlab-org/gitlab-runner/runner.go:312
+</span></span><span style="display:flex;"><span>main.(*Runner).requestJob(0xc0001ce000)
+</span></span><span style="display:flex;"><span>  /go/src/gitlab.com/gitlab-org/gitlab-runner/runner.go:412
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>关键信息</strong>：在 requestJob 函数的 for 循环里<strong>累积了大量残留状态</strong>。继续翻看代码，我意识到问题可能与 Runner 工作目录里堆积了大量未清理的 Job 有关。</p>
+<h3 id="34-第四步检查-builds-目录"><a href="#34-%e7%ac%ac%e5%9b%9b%e6%ad%a5%e6%a3%80%e6%9f%a5-builds-%e7%9b%ae%e5%bd%95" class="header-anchor"></a>3.4 第四步：检查 builds 目录
+</h3><p>GitLab Runner 默认会在 <code>/var/lib/gitlab-runner/builds/</code> 下为每个 Job 创建一个工作目录。Job 完成后，目录理论上应该自动清理。但查看：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ sudo ls /var/lib/gitlab-runner/builds/ | wc -l
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">237</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>$ sudo du -sh /var/lib/gitlab-runner/builds/
+</span></span><span style="display:flex;"><span>78G    /var/lib/gitlab-runner/builds/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>**237 个 Job 目录，78G 磁盘占用！**这些目录有的是 2 个月前留下的。怪不得内存吃紧、CPU 打满——Runner 启动时会扫描所有这些目录，尝试加载历史 Job 状态做清理。</p>
+<p>继续翻看 <code>config.toml</code>：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-toml" data-lang="toml"><span style="display:flex;"><span><span style="color:#a6e22e">concurrent</span> = <span style="color:#ae81ff">4</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">check_interval</span> = <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>[[<span style="color:#a6e22e">runners</span>]]
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">name</span> = <span style="color:#e6db74">&#34;shared-runner-01&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">url</span> = <span style="color:#e6db74">&#34;http://gitlab.example.com/&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">token</span> = <span style="color:#e6db74">&#34;glrt-xxxxxxxx&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">executor</span> = <span style="color:#e6db74">&#34;docker&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">builds_dir</span> = <span style="color:#e6db74">&#34;/var/lib/gitlab-runner/builds&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">cache_dir</span> = <span style="color:#e6db74">&#34;/var/lib/gitlab-runner/cache&#34;</span>
+</span></span><span style="display:flex;"><span>  [<span style="color:#a6e22e">runners</span>.<span style="color:#a6e22e">docker</span>]
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">pull_policy</span> = <span style="color:#e6db74">&#34;if-not-present&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">privileged</span> = <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">volumes</span> = [<span style="color:#e6db74">&#34;/cache&#34;</span>]
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">shm_size</span> = <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>  [<span style="color:#a6e22e">runners</span>.<span style="color:#a6e22e">cache</span>]
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Type</span> = <span style="color:#e6db74">&#34;s3&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Path</span> = <span style="color:#e6db74">&#34;gitlab-ci-cache&#34;</span>
+</span></span><span style="display:flex;"><span>    [<span style="color:#a6e22e">runners</span>.<span style="color:#a6e22e">cache</span>.<span style="color:#a6e22e">s3</span>]
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">ServerAddress</span> = <span style="color:#e6db74">&#34;minio.example.com:9000&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>concurrent = 4</code> 表示这台 Runner 最多同时跑 4 个 Job。但日志里显示 <code>builds=37</code>——<strong>说明有 37 个 Job 处于&quot;已请求但未完成&quot;的状态</strong>！也就是说，Runner 内部的状态机和磁盘上的 Job 目录<strong>完全对不上</strong>。</p>
+<h3 id="35-第五步查-sentry-找到已知-bug"><a href="#35-%e7%ac%ac%e4%ba%94%e6%ad%a5%e6%9f%a5-sentry-%e6%89%be%e5%88%b0%e5%b7%b2%e7%9f%a5-bug" class="header-anchor"></a>3.5 第五步：查 Sentry 找到已知 Bug
+</h3><p>继续翻 Runner 的日志，看到一条关键的 Warning：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>WARN[0234] Runner         builds=37 limit=4
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这是来自 Runner 自身的健康检查日志。我去 GitLab 官方 Issue 搜索 <code>builds=37 limit=4</code>，发现这是一个 <strong>GitLab Runner 15.5 ~ 15.10 之间的已知 Bug</strong>（issue 编号 #27895）。核心问题：</p>
+<ol>
+<li>Runner 进程会维护一个内存中的 <code>builds map</code>，记录所有正在运行的 Job 状态。</li>
+<li>当 Runner 与 GitLab Server 通信超时或网络抖动时，<strong>部分 Job 会被标记为&quot;已 unregister&quot;但 builds map 中并未真正删除</strong>。</li>
+<li>这个 map 没有 LRU 或者 TTL 清理机制，导致<strong>残留对象会一直累积</strong>。</li>
+<li>当残留 Job 数量接近或者超过 <code>concurrent</code> 配置值时，<strong>Runner 内部的 jobSlot 信号量被永久占满，新的 JobRequest 永远拿不到 slot</strong>。</li>
+<li>表现为：Runner 进程 CPU 100%、新的 Job 全部 pending、JobRequest 超时。</li>
+</ol>
+<p>我们的 3 台 Runner 全部是 15.8.0 版本，<strong>全部中招</strong>。</p>
+<h2 id="四解决方案"><a href="#%e5%9b%9b%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>四、解决方案
+</h2><h3 id="41-紧急止血清空-builds-目录--升级版本"><a href="#41-%e7%b4%a7%e6%80%a5%e6%ad%a2%e8%a1%80%e6%b8%85%e7%a9%ba-builds-%e7%9b%ae%e5%bd%95--%e5%8d%87%e7%ba%a7%e7%89%88%e6%9c%ac" class="header-anchor"></a>4.1 紧急止血：清空 builds 目录 + 升级版本
+</h3><p>由于这是已知 Bug，<strong>单纯的清目录只能解决一部分问题，必须升级 Runner</strong>。执行：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 1. 停止所有 Runner</span>
+</span></span><span style="display:flex;"><span>sudo gitlab-runner stop
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 2. 备份并清空 builds 目录（保留 cache 目录）</span>
+</span></span><span style="display:flex;"><span>sudo mv /var/lib/gitlab-runner/builds /var/lib/gitlab-runner/builds.bak.20260627
+</span></span><span style="display:flex;"><span>sudo mkdir -p /var/lib/gitlab-runner/builds
+</span></span><span style="display:flex;"><span>sudo chown -R gitlab-runner:gitlab-runner /var/lib/gitlab-runner/builds
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 3. 升级到 15.11.2（修复 Bug 的版本）</span>
+</span></span><span style="display:flex;"><span>curl -LJO <span style="color:#e6db74">&#34;https://packages.gitlab.com/runner/gitlab-runner/packages/debian/bookworm/gitlab-runner_15.11.2_amd64.deb/download.deb&#34;</span>
+</span></span><span style="display:flex;"><span>sudo dpkg -i gitlab-runner_15.11.2_amd64.deb
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 4. 启动新版本</span>
+</span></span><span style="display:flex;"><span>sudo gitlab-runner start
+</span></span><span style="display:flex;"><span>sudo gitlab-runner verify --delete  <span style="color:#75715e"># 删除已 unregister 的 runner 缓存</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>升级完成后，CPU 立即降回 5% 以下，<strong>新提交的 Pipeline 在 30 秒内开始正常运行</strong>。<code>builds=</code> 日志恢复正常值 <code>0</code>。</p>
+<p><strong>全部 3 台 Runner 重复上述操作后，部署流水线完全恢复。</strong></p>
+<h3 id="42-调优-runner-配置"><a href="#42-%e8%b0%83%e4%bc%98-runner-%e9%85%8d%e7%bd%ae" class="header-anchor"></a>4.2 调优 Runner 配置
+</h3><p>修改 <code>/etc/gitlab-runner/config.toml</code>，做几项关键调优：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-toml" data-lang="toml"><span style="display:flex;"><span><span style="color:#a6e22e">concurrent</span> = <span style="color:#ae81ff">4</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">check_interval</span> = <span style="color:#ae81ff">5</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">log_level</span> = <span style="color:#e6db74">&#34;info&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>[[<span style="color:#a6e22e">runners</span>]]
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">name</span> = <span style="color:#e6db74">&#34;shared-runner-01&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">url</span> = <span style="color:#e6db74">&#34;http://gitlab.example.com/&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">token</span> = <span style="color:#e6db74">&#34;glrt-xxxxxxxx&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">executor</span> = <span style="color:#e6db74">&#34;docker&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">builds_dir</span> = <span style="color:#e6db74">&#34;/var/lib/gitlab-runner/builds&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">cache_dir</span> = <span style="color:#e6db74">&#34;/var/lib/gitlab-runner/cache&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># 增加 Job 超时保护</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">environment</span> = [<span style="color:#e6db74">&#34;GIT_CLEANUP=false&#34;</span>]
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">pre_cleanup_script</span> = <span style="color:#e6db74">&#34;docker system prune -af --volumes --filter &#39;until=24h&#39;&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">post_cleanup_script</span> = <span style="color:#e6db74">&#34;docker system prune -af --volumes --filter &#39;until=1h&#39;&#34;</span>
+</span></span><span style="display:flex;"><span>  [<span style="color:#a6e22e">runners</span>.<span style="color:#a6e22e">docker</span>]
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">pull_policy</span> = <span style="color:#e6db74">&#34;if-not-present&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">privileged</span> = <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">volumes</span> = [<span style="color:#e6db74">&#34;/cache&#34;</span>]
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">shm_size</span> = <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">network_mode</span> = <span style="color:#e6db74">&#34;bridge&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># 限制 Docker 容器资源，避免某个 Job 吃光资源</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">mem_limit</span> = <span style="color:#e6db74">&#34;2g&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">mem_swap_limit</span> = <span style="color:#e6db74">&#34;2g&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cpu_limit</span> = <span style="color:#e6db74">&#34;1.5&#34;</span>
+</span></span><span style="display:flex;"><span>  [<span style="color:#a6e22e">runners</span>.<span style="color:#a6e22e">cache</span>]
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Type</span> = <span style="color:#e6db74">&#34;s3&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Path</span> = <span style="color:#e6db74">&#34;gitlab-ci-cache&#34;</span>
+</span></span><span style="display:flex;"><span>    [<span style="color:#a6e22e">runners</span>.<span style="color:#a6e22e">cache</span>.<span style="color:#a6e22e">s3</span>]
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">ServerAddress</span> = <span style="color:#e6db74">&#34;minio.example.com:9000&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>关键点：</p>
+<ul>
+<li><strong><code>check_interval = 5</code></strong>：每 5 秒检查一次 Job 状态，比默认值（0）更容易发现问题。</li>
+<li><strong><code>pre_cleanup_script</code></strong>：每个 Job 开始前清理 24 小时前的 Docker 资源。</li>
+<li><strong><code>post_cleanup_script</code></strong>：每个 Job 结束后清理 1 小时前的 Docker 资源。</li>
+<li><strong><code>mem_limit / mem_swap_limit / cpu_limit</code></strong>：防止单 Job 资源失控。</li>
+</ul>
+<h3 id="43-加监控告警"><a href="#43-%e5%8a%a0%e7%9b%91%e6%8e%a7%e5%91%8a%e8%ad%a6" class="header-anchor"></a>4.3 加监控告警
+</h3><p>在 Prometheus 监控里加上 GitLab Runner 的关键指标：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#75715e"># prometheus.yml</span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">job_name</span>: <span style="color:#e6db74">&#39;gitlab-runner&#39;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">static_configs</span>:
+</span></span><span style="display:flex;"><span>    - <span style="color:#f92672">targets</span>: [<span style="color:#e6db74">&#39;10.20.30.51:9252&#39;</span>, <span style="color:#e6db74">&#39;10.20.30.52:9252&#39;</span>, <span style="color:#e6db74">&#39;10.20.30.53:9252&#39;</span>]
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>监控的关键指标：</p>
+<ul>
+<li><code>runner_concurrent_limit</code>：配置的并发数。</li>
+<li><code>runner_limit_used</code>：当前在用的并发数（<strong>接近 limit 时应告警</strong>）。</li>
+<li><code>gitlab_runner_jobs_total</code>：Job 总数。</li>
+<li><code>process_cpu_seconds_total</code>：Runner 进程 CPU 使用。</li>
+<li><code>process_resident_memory_bytes</code>：Runner 进程内存。</li>
+</ul>
+<p>在 Grafana 里配置告警规则：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-promql" data-lang="promql"><span style="display:flex;"><span><span style="color:#75715e"># CPU 持续 5 分钟 &gt; 80%</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">100</span> <span style="color:#f92672">-</span> <span style="color:#f92672">(</span><span style="color:#66d9ef">avg</span> <span style="color:#66d9ef">by</span><span style="color:#f92672">(</span>instance<span style="color:#f92672">)</span> <span style="color:#f92672">(</span><span style="color:#66d9ef">rate</span><span style="color:#f92672">(</span>node_cpu_seconds_total{mode<span style="color:#f92672">=</span>&#34;<span style="color:#e6db74">idle</span>&#34;}[<span style="color:#e6db74">5m</span>]<span style="color:#f92672">))</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">100</span><span style="color:#f92672">)</span> <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">80</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># builds 数量异常（&gt; concurrent 的 1.5 倍）</span>
+</span></span><span style="display:flex;"><span>runner_jobs_active <span style="color:#f92672">&gt;</span> <span style="color:#f92672">(</span>runner_concurrent_limit <span style="color:#f92672">*</span> <span style="color:#ae81ff">1.5</span><span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 健康检查失败</span>
+</span></span><span style="display:flex;"><span>up{job<span style="color:#f92672">=</span>&#34;<span style="color:#e6db74">gitlab-runner</span>&#34;} <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="44-加自动清理-cron"><a href="#44-%e5%8a%a0%e8%87%aa%e5%8a%a8%e6%b8%85%e7%90%86-cron" class="header-anchor"></a>4.4 加自动清理 Cron
+</h3><p>为了防止 builds 目录再次无限膨胀，加一个 cron：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># /etc/cron.daily/gitlab-runner-cleanup</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#!/bin/bash</span>
+</span></span><span style="display:flex;"><span>BUILD_DIR<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;/var/lib/gitlab-runner/builds&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 只删除 7 天前且非活跃的目录</span>
+</span></span><span style="display:flex;"><span>find <span style="color:#e6db74">&#34;</span>$BUILD_DIR<span style="color:#e6db74">&#34;</span> -maxdepth <span style="color:#ae81ff">2</span> -type d -mtime +7 -exec rm -rf <span style="color:#f92672">{}</span> + 2&gt;/dev/null
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 清理孤儿 Docker 容器</span>
+</span></span><span style="display:flex;"><span>docker container prune -f --filter <span style="color:#e6db74">&#34;until=24h&#34;</span> 2&gt;/dev/null
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 清理大体积 build cache</span>
+</span></span><span style="display:flex;"><span>docker builder prune -f --filter <span style="color:#e6db74">&#34;until=48h&#34;</span> --keep-storage<span style="color:#f92672">=</span>10GB 2&gt;/dev/null
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="五根因分析"><a href="#%e4%ba%94%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>五、根因分析
+</h2><p>本次故障的根本原因有两个层面：</p>
+<p><strong>直接原因</strong>：GitLab Runner 15.5~15.10 版本存在已知 Bug（issue #27895），Runner 内部 <code>builds map</code> 在 Job 状态异常时不会自动清理，导致<strong>残留对象无限累积</strong>。当残留数量超过 <code>concurrent</code> 配置值时，jobSlot 信号量被永久占满，新 JobRequest 永远拿不到 slot，从而引发 CPU 100% 和 JobRequest 超时。</p>
+<p><strong>间接原因</strong>：</p>
+<ol>
+<li><strong>缺乏 builds 目录的定期清理机制</strong>：GitLab Runner 本身不保证历史 Job 目录一定能被清理，必须有外部脚本兜底。</li>
+<li><strong>没有针对 Runner 自身状态的监控告警</strong>：CPU/内存/并发使用率无任何监控，<strong>故障积累 2 个月才被察觉</strong>。</li>
+<li><strong>Runner 版本长期未升级</strong>：社区版 Runner 升级对业务无影响，但运维团队未建立定期升级机制，错过 5 个 Bug 修复版本。</li>
+</ol>
+<h2 id="六预防措施"><a href="#%e5%85%ad%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>六、预防措施
+</h2><p>为了避免类似问题再次发生，我们做了如下改进：</p>
+<ol>
+<li>
+<p><strong>建立 Runner 版本升级 SOP</strong>：每季度（3/6/9/12 月）评估 Runner 新版本，根据官方 Release Notes 决定是否升级。升级前在测试 Runner 上跑一遍冒烟测试。</p>
+</li>
+<li>
+<p><strong>builds 目录自动清理</strong>：增加 cron 每天清理超过 7 天的历史 Job 目录，超过 50GB 立即告警。</p>
+</li>
+<li>
+<p><strong>健康检查多维度监控</strong>：CPU、内存、builds 数量、jobSlot 占用率、JobRequest 失败率 5 个维度全部纳入监控。<strong>关键指标持续 3 分钟异常即触发 P2 告警</strong>。</p>
+</li>
+<li>
+<p><strong>Runner 容量规划</strong>：原来 4 核 8G 跑 4 并发捉襟见肘（高峰期 CPU 经常 60%+），扩容到 8 核 16G 跑 6 并发，预留 50% 余量。</p>
+</li>
+<li>
+<p><strong>CI 任务 Quota 机制</strong>：在 GitLab 项目级别配置 <code>pipeline_triggers</code> 限速，避免研发短时间大量提交触发雪崩。</p>
+</li>
+<li>
+<p><strong>建立 Runner 故障 Runbook</strong>：将本次排查过程整理为内部 Runbook，<strong>SRE 团队 7×24 共享，新人入职必读</strong>。</p>
+</li>
+</ol>
+<h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
+</h2><p>这次故障的教训很深刻：</p>
+<ul>
+<li><strong>版本升级不能忽视</strong>：GitLab Runner 这类基础设施软件，官方版本迭代很快，<strong>每 1~2 个版本就有重要 Bug 修复</strong>。运维团队必须建立主动跟踪机制，而不是等到出事才升级。</li>
+<li><strong>状态泄漏是分布式组件的通病</strong>：任何带&quot;内置状态机 + 外部存储&quot;的服务（Runner、Agent、Worker），都必须有<strong>外部状态对账机制</strong>。我们缺少 builds 目录的定期清理，本质上是<strong>信任了组件内部的清理逻辑，而没有做兜底</strong>。</li>
+<li><strong>监控告警要前置</strong>：CPU 100% 是故障的&quot;果&quot;，不是&quot;因&quot;。真正该监控的是<strong>早期信号</strong>——builds 数量、jobSlot 占用率、JobRequest 失败率。如果这些指标 2 个月前就告警，我们有充足的时间优雅处理。</li>
+<li><strong>应急操作要分级</strong>：本次紧急止血时&quot;清空 builds 目录&quot;是有风险的（可能丢失正在运行的 Job），幸亏我们是在业务低谷期操作。<strong>生产环境操作前，务必先评估&quot;破坏半径&quot;</strong>。</li>
+</ul>
+<p>CI/CD 是研发的生命线，保障它的稳定性是 SRE 团队的核心职责。下次遇到类似问题，第一时间定位到 Bug 版本和 Issue，比盲目重启有效得多。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/gitlab/">GitLab</a>
+        
+            <a href="/tags/ci/cd/">CI/CD</a>
+        
+            <a href="/tags/runner/">Runner</a>
+        
+            <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/">服务运维</a>
+        
+            <a href="/tags/devops/">DevOps</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">Related content</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/4c970ef4/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次Linux服务器文件系统inode耗尽导致磁盘有空间却无法写入的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/d8bfb5f0/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次Kafka消费者Rebalance风暴导致业务数据延迟2小时的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/eeb9b3c5/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次MySQL主从同步因大事务延迟导致订单数据不一致的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/671a045a/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次SSL证书过期导致内网HTTPS服务全面中断的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/9eb92141/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次Docker容器OOM引发的服务雪崩排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
+        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.1ff1e5fdc4e178ed422e50aa407526dc552f26342d729343fded19416194382c.js" defer></script>
+
+
+    </body>
+</html>

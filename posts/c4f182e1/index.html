@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="一个关于STM32+ESP8266+DHT11的家庭气象站。">
+<title>基于STM32的家庭气象站</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/c4f182e1/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="基于STM32的家庭气象站">
+<meta property='og:description' content="一个关于STM32+ESP8266+DHT11的家庭气象站。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/c4f182e1/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='STM32' /><meta property='article:published_time' content='2021-06-20T06:34:54&#43;00:00'/><meta property='article:modified_time' content='2021-06-20T06:34:54&#43;00:00'/>
+<meta name="twitter:title" content="基于STM32的家庭气象站">
+<meta name="twitter:description" content="一个关于STM32+ESP8266+DHT11的家庭气象站。">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column compact"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="images/touxiang.jpg" 
+                        width=""
+                        height=""
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description"></h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/post' >
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>Dark Mode</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/stm32/" style="background-color: hsl(160, 60%, 84%); color: hsl(160, 60%, 15%);">
+                STM32
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/" style="background-color: hsl(156, 60%, 84%); color: hsl(156, 60%, 15%);">
+                嵌入式
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/c4f182e1/">基于STM32的家庭气象站</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            一个关于STM32&#43;ESP8266&#43;DHT11的家庭气象站。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2021-06-20T06:34:54Z'>Sunday, June 20, 2021</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        4 minutes read
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="项目地址"><a href="#%e9%a1%b9%e7%9b%ae%e5%9c%b0%e5%9d%80" class="header-anchor"></a>项目地址
+</h2><p><a class="link" href="https://github.com/Maskbugzero/ESP8266-Weather-2021"  target="_blank" rel="noopener"
+    >Maskbugzero/ESP8266-Weather-2021</a></p>
+<p>一个关于STM32+ESP8266+DHT11的家庭气象站。</p>
+<h2 id="硬件资源"><a href="#%e7%a1%ac%e4%bb%b6%e8%b5%84%e6%ba%90" class="header-anchor"></a>硬件资源
+</h2><ol>
+<li>战舰V3\精英STM32F103开发板</li>
+<li>ALIENTEK 2.8/3.5/4.3/7寸TFTLCD模块(通过FSMC驱动.FSMC_NE4接LCD片选/A10接RS)</li>
+<li>按键KEY0(PE4)/KEY1(PE3)/KEY_UP(PA0.也称之为WK_UP)</li>
+<li>ESP8266-12S WIFI模块1个</li>
+<li>DHT11模块1个</li>
+</ol>
+<h2 id="实现功能"><a href="#%e5%ae%9e%e7%8e%b0%e5%8a%9f%e8%83%bd" class="header-anchor"></a>实现功能
+</h2><ol>
+<li>微信小程序配网</li>
+<li>室内温湿度测量及显示</li>
+<li>室外天气数据获取及显示</li>
+<li>时间显示及网络校准</li>
+</ol>
+<h2 id="连接方式"><a href="#%e8%bf%9e%e6%8e%a5%e6%96%b9%e5%bc%8f" class="header-anchor"></a>连接方式
+</h2><ul>
+<li>模块与带有无线网卡的电脑或其他wifi设备连接：采用wifi连接</li>
+<li>模块与开发板连接：TTL串口方式</li>
+</ul>
+<h3 id="atk-esp8266-wifi模块与精英板连接方式"><a href="#atk-esp8266-wifi%e6%a8%a1%e5%9d%97%e4%b8%8e%e7%b2%be%e8%8b%b1%e6%9d%bf%e8%bf%9e%e6%8e%a5%e6%96%b9%e5%bc%8f" class="header-anchor"></a>ATK-ESP8266 WIFI模块与精英板连接方式
+</h3><p>TXD&lt;&mdash;&mdash;&mdash;&mdash;&gt;PB11</p>
+<p>RXD&lt;&mdash;&mdash;&mdash;&mdash;&gt;PB10</p>
+<p>GND&lt;&mdash;&mdash;&mdash;&mdash;&gt;GND</p>
+<p>VCC&lt;&mdash;&mdash;&mdash;&mdash;&gt;3.3V\5V</p>
+<h3 id="dht11模块与精英板连接方式"><a href="#dht11%e6%a8%a1%e5%9d%97%e4%b8%8e%e7%b2%be%e8%8b%b1%e6%9d%bf%e8%bf%9e%e6%8e%a5%e6%96%b9%e5%bc%8f" class="header-anchor"></a>DHT11模块与精英板连接方式
+</h3><p>Data&lt;&mdash;&mdash;&mdash;&mdash;&gt;PE11</p>
+<h2 id="主要代码"><a href="#%e4%b8%bb%e8%a6%81%e4%bb%a3%e7%a0%81" class="header-anchor"></a>主要代码
+</h2><h3 id="外设初始化"><a href="#%e5%a4%96%e8%ae%be%e5%88%9d%e5%a7%8b%e5%8c%96" class="header-anchor"></a>外设初始化
+</h3><p>初始化外设时，若DHT11工作不正常则显示屏无法正常显示。</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-c" data-lang="c"><span style="display:flex;"><span> 	<span style="color:#a6e22e">LED_Init</span>();		  			<span style="color:#75715e">//初始化与LED连接的硬件接口
+</span></span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">KEY_Init</span>();					<span style="color:#75715e">//初始化按键
+</span></span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">LCD_Init</span>();			   		<span style="color:#75715e">//初始化LCD   
+</span></span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">RTC_Init</span>();
+</span></span><span style="display:flex;"><span> 	<span style="color:#66d9ef">while</span>(<span style="color:#a6e22e">DHT11_Init</span>())	<span style="color:#75715e">//DHT11初始化	
+</span></span></span><span style="display:flex;"><span>	{
+</span></span><span style="display:flex;"><span>	  <span style="color:#a6e22e">printf</span>(<span style="color:#e6db74">&#34;DHT11 出错！</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#34;</span>);
+</span></span><span style="display:flex;"><span> 		<span style="color:#a6e22e">delay_ms</span>(<span style="color:#ae81ff">200</span>);
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">W25QXX_Init</span>();				<span style="color:#75715e">//初始化W25Q128
+</span></span></span><span style="display:flex;"><span>	tp_dev.<span style="color:#a6e22e">init</span>();				<span style="color:#75715e">//初始化触摸屏
+</span></span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">usart3_init</span>(<span style="color:#ae81ff">115200</span>);		<span style="color:#75715e">//初始化串口3 
+</span></span></span><span style="display:flex;"><span> 	<span style="color:#a6e22e">my_mem_init</span>(SRAMIN);		<span style="color:#75715e">//初始化内部内存池
+</span></span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">exfuns_init</span>();				<span style="color:#75715e">//为fatfs相关变量申请内存  
+</span></span></span><span style="display:flex;"><span> 	<span style="color:#a6e22e">f_mount</span>(fs[<span style="color:#ae81ff">0</span>],<span style="color:#e6db74">&#34;0:&#34;</span>,<span style="color:#ae81ff">1</span>); 		<span style="color:#75715e">//挂载SD卡 
+</span></span></span><span style="display:flex;"><span> 	<span style="color:#a6e22e">f_mount</span>(fs[<span style="color:#ae81ff">1</span>],<span style="color:#e6db74">&#34;1:&#34;</span>,<span style="color:#ae81ff">1</span>); 		<span style="color:#75715e">//挂载FLASH.
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="微信小程序配网"><a href="#%e5%be%ae%e4%bf%a1%e5%b0%8f%e7%a8%8b%e5%ba%8f%e9%85%8d%e7%bd%91" class="header-anchor"></a>微信小程序配网
+</h3><p><img alt="微信小程序配网" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/img/1691390698393.webp"></p>
+<p>源码：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#75715e">//一键配网设置
+</span></span></span><span style="display:flex;"><span>u8 <span style="color:#a6e22e">atk_8266_wifi_config</span>(<span style="color:#66d9ef">void</span>)
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">int</span> i;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">while</span>(<span style="color:#a6e22e">atk_8266_send_cmd</span>(<span style="color:#e6db74">&#34;AT&#34;</span>,<span style="color:#e6db74">&#34;OK&#34;</span>,<span style="color:#ae81ff">20</span>))<span style="color:#75715e">//检查WIFI模块是否在线
+</span></span></span><span style="display:flex;"><span>	{
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">atk_8266_quit_trans</span>();<span style="color:#75715e">//退出透传
+</span></span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">atk_8266_send_cmd</span>(<span style="color:#e6db74">&#34;AT+CIPMODE=0&#34;</span>,<span style="color:#e6db74">&#34;OK&#34;</span>,<span style="color:#ae81ff">200</span>);  <span style="color:#75715e">//关闭透传模式	
+</span></span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">printf</span>(<span style="color:#e6db74">&#34;未检测到模块!!!&#34;</span>);
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">delay_ms</span>(<span style="color:#ae81ff">800</span>);
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">printf</span>(<span style="color:#e6db74">&#34;尝试连接模块...&#34;</span>); 
+</span></span><span style="display:flex;"><span>	} 
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">u3_printf</span>(<span style="color:#e6db74">&#34;AT+RESTORE&#34;</span>);		<span style="color:#75715e">//恢复出厂设置
+</span></span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">delay_ms</span>(<span style="color:#ae81ff">1000</span>);      <span style="color:#75715e">//延时3S等待恢复成功
+</span></span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">delay_ms</span>(<span style="color:#ae81ff">1000</span>);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">delay_ms</span>(<span style="color:#ae81ff">1000</span>);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">printf</span>(<span style="color:#e6db74">&#34;恢复出厂设置完成&#34;</span>); 
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">atk_8266_send_cmd</span>(<span style="color:#e6db74">&#34;AT+RST&#34;</span>,<span style="color:#e6db74">&#34;OK&#34;</span>,<span style="color:#ae81ff">20</span>);		<span style="color:#75715e">//软重启
+</span></span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">delay_ms</span>(<span style="color:#ae81ff">1000</span>);         <span style="color:#75715e">//延时3S等待重启成功
+</span></span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">delay_ms</span>(<span style="color:#ae81ff">1000</span>);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">delay_ms</span>(<span style="color:#ae81ff">1000</span>);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">delay_ms</span>(<span style="color:#ae81ff">1000</span>);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">printf</span>(<span style="color:#e6db74">&#34;软重启完成&#34;</span>);
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">while</span>(<span style="color:#a6e22e">atk_8266_send_cmd</span>(<span style="color:#e6db74">&#34;ATE0&#34;</span>,<span style="color:#e6db74">&#34;OK&#34;</span>,<span style="color:#ae81ff">20</span>));<span style="color:#75715e">//关闭回显
+</span></span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">atk_8266_send_cmd</span>(<span style="color:#e6db74">&#34;AT+CWMODE=1&#34;</span>,<span style="color:#e6db74">&#34;OK&#34;</span>,<span style="color:#ae81ff">50</span>);		<span style="color:#75715e">//设置WIFI STA模式
+</span></span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">atk_8266_send_cmd</span>(<span style="color:#e6db74">&#34;AT+CWAUTOCONN=1&#34;</span>,<span style="color:#e6db74">&#34;OK&#34;</span>,<span style="color:#ae81ff">20</span>);   <span style="color:#75715e">//使能上电自动连接AP
+</span></span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">delay_ms</span>(<span style="color:#ae81ff">300</span>);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">atk_8266_send_cmd</span>(<span style="color:#e6db74">&#34;AT+CWSTARTSMART=3&#34;</span>,<span style="color:#e6db74">&#34;OK&#34;</span>,<span style="color:#ae81ff">20</span>);		<span style="color:#75715e">//支持ESP-Touch和Airkiss智能配网
+</span></span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">printf</span>(<span style="color:#e6db74">&#34;智能配网已开启  等待30s</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#34;</span>);
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">while</span>(i<span style="color:#f92672">&lt;=</span><span style="color:#ae81ff">30</span>)
+</span></span><span style="display:flex;"><span>	{
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">delay_ms</span>(<span style="color:#ae81ff">1000</span>);     <span style="color:#75715e">//延时30S等待配网成功
+</span></span></span><span style="display:flex;"><span>	i<span style="color:#f92672">++</span>;
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//	while(atk_8266_check_cmd(&#34;smartconfig connected wifi&#34;));					//连接目标路由器,并且获得IP
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//	delay_ms(300);
+</span></span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">atk_8266_send_cmd</span>(<span style="color:#e6db74">&#34;AT+CWSTOPSMART&#34;</span>,<span style="color:#e6db74">&#34;OK&#34;</span>,<span style="color:#ae81ff">20</span>);		<span style="color:#75715e">//释放快连所占的内存
+</span></span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="数据解析"><a href="#%e6%95%b0%e6%8d%ae%e8%a7%a3%e6%9e%90" class="header-anchor"></a>数据解析
+</h3><p><img alt="数据解析流程图" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/img/1691390827824.webp"></p>
+<h4 id="天气数据"><a href="#%e5%a4%a9%e6%b0%94%e6%95%b0%e6%8d%ae" class="header-anchor"></a>天气数据
+</h4><p>源码：（以当天天气数据为例，近3天天气数据类似)</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 28
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 29
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 30
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 31
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 32
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 33
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 34
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 35
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 36
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 37
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 38
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 39
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 40
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 41
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 42
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 43
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 44
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 45
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 46
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 47
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 48
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 49
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 50
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 51
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 52
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 53
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 54
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 55
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 56
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 57
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 58
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 59
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 60
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 61
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 62
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 63
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 64
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 65
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 66
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 67
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 68
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 69
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 70
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 71
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 72
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 73
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 74
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 75
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 76
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 77
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 78
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 79
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 80
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 81
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 82
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 83
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 84
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 85
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 86
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 87
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 88
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 89
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 90
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 91
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 92
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 93
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 94
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 95
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 96
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 97
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 98
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 99
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">100
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">101
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">102
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">103
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">104
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">105
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">106
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">107
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">108
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">109
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">110
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">111
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">112
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">113
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">114
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">115
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">116
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">117
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">118
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">119
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">120
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">121
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">122
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">123
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">124
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">125
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">126
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">127
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">128
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">129
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">130
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">131
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#75715e">//解析当前天气
+</span></span></span><span style="display:flex;"><span>u8 <span style="color:#a6e22e">parse_now_weather</span>(<span style="color:#66d9ef">void</span>)
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>	cJSON <span style="color:#f92672">*</span>root;
+</span></span><span style="display:flex;"><span>	cJSON <span style="color:#f92672">*</span>pSub;
+</span></span><span style="display:flex;"><span>	cJSON <span style="color:#f92672">*</span>arrayItem;
+</span></span><span style="display:flex;"><span>	cJSON <span style="color:#f92672">*</span>pItem;
+</span></span><span style="display:flex;"><span>	cJSON <span style="color:#f92672">*</span>pSubItem;
+</span></span><span style="display:flex;"><span>	cJSON <span style="color:#f92672">*</span>pChildItem;
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>pr,<span style="color:#f92672">*</span>utf8str,<span style="color:#f92672">*</span>gbkstr;
+</span></span><span style="display:flex;"><span>	u8 size <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">int</span> len;
+</span></span><span style="display:flex;"><span>	u8 res;
+</span></span><span style="display:flex;"><span>	u8 temperature;
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	root <span style="color:#f92672">=</span> <span style="color:#a6e22e">mymalloc</span>(SRAMIN,<span style="color:#66d9ef">sizeof</span>(cJSON));
+</span></span><span style="display:flex;"><span>	pSub <span style="color:#f92672">=</span> <span style="color:#a6e22e">mymalloc</span>(SRAMIN,<span style="color:#66d9ef">sizeof</span>(cJSON));
+</span></span><span style="display:flex;"><span>	pItem <span style="color:#f92672">=</span> <span style="color:#a6e22e">mymalloc</span>(SRAMIN,<span style="color:#66d9ef">sizeof</span>(cJSON));
+</span></span><span style="display:flex;"><span>	pSubItem <span style="color:#f92672">=</span> <span style="color:#a6e22e">mymalloc</span>(SRAMIN,<span style="color:#66d9ef">sizeof</span>(cJSON));
+</span></span><span style="display:flex;"><span>	pChildItem <span style="color:#f92672">=</span> <span style="color:#a6e22e">mymalloc</span>(SRAMIN,<span style="color:#66d9ef">sizeof</span>(cJSON));
+</span></span><span style="display:flex;"><span>	arrayItem <span style="color:#f92672">=</span> <span style="color:#a6e22e">mymalloc</span>(SRAMIN,<span style="color:#66d9ef">sizeof</span>(cJSON));
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	pr <span style="color:#f92672">=</span> <span style="color:#a6e22e">mymalloc</span>(SRAMIN,<span style="color:#ae81ff">1000</span>);
+</span></span><span style="display:flex;"><span>	utf8str <span style="color:#f92672">=</span> <span style="color:#a6e22e">mymalloc</span>(SRAMIN,<span style="color:#ae81ff">50</span>);
+</span></span><span style="display:flex;"><span>	gbkstr <span style="color:#f92672">=</span> <span style="color:#a6e22e">mymalloc</span>(SRAMIN,<span style="color:#ae81ff">50</span>);
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">memset</span>(pr,<span style="color:#ae81ff">0</span>,<span style="color:#ae81ff">1000</span>);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">memset</span>(gbkstr,<span style="color:#ae81ff">0</span>,<span style="color:#ae81ff">50</span>);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">memset</span>(utf8str,<span style="color:#ae81ff">0</span>,<span style="color:#ae81ff">50</span>);
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	file <span style="color:#f92672">=</span> <span style="color:#a6e22e">mymalloc</span>(SRAMIN,<span style="color:#66d9ef">sizeof</span>(FIL));
+</span></span><span style="display:flex;"><span>	res<span style="color:#f92672">=</span><span style="color:#a6e22e">f_open</span>(file,(<span style="color:#66d9ef">const</span> TCHAR<span style="color:#f92672">*</span>)APP_ASCII_5427,FA_READ);<span style="color:#75715e">//打开文件
+</span></span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span>(res<span style="color:#f92672">==</span>FR_OK)
+</span></span><span style="display:flex;"><span>	{
+</span></span><span style="display:flex;"><span>		asc2_5427 <span style="color:#f92672">=</span> <span style="color:#a6e22e">mymalloc</span>(SRAMIN,file<span style="color:#f92672">-&gt;</span>fsize);
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span>(asc2_5427 <span style="color:#f92672">!=</span> NULL)
+</span></span><span style="display:flex;"><span>		{
+</span></span><span style="display:flex;"><span>			res <span style="color:#f92672">=</span> <span style="color:#a6e22e">f_read</span>(file,asc2_5427,file<span style="color:#f92672">-&gt;</span>fsize,<span style="color:#f92672">&amp;</span>br);
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">f_close</span>(file);
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">printf</span>(<span style="color:#e6db74">&#34;jieshou-&gt;1dayjson = %s</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#34;</span>,USART3_RX_BUF);
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	root <span style="color:#f92672">=</span> <span style="color:#a6e22e">cJSON_Parse</span>((<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span>)USART3_RX_BUF);
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span>(root <span style="color:#f92672">!=</span> NULL)
+</span></span><span style="display:flex;"><span>	{
+</span></span><span style="display:flex;"><span>		pSub <span style="color:#f92672">=</span> <span style="color:#a6e22e">cJSON_GetObjectItem</span>(root,<span style="color:#e6db74">&#34;results&#34;</span>);
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span>(pSub <span style="color:#f92672">!=</span> NULL)
+</span></span><span style="display:flex;"><span>		{
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//			size = cJSON_GetArraySize(pSub);
+</span></span></span><span style="display:flex;"><span>			arrayItem <span style="color:#f92672">=</span> <span style="color:#a6e22e">cJSON_GetArrayItem</span>(pSub,<span style="color:#ae81ff">0</span>);  
+</span></span><span style="display:flex;"><span>			pr <span style="color:#f92672">=</span> <span style="color:#a6e22e">cJSON_Print</span>(arrayItem);   <span style="color:#75715e">//获取jsom数组
+</span></span></span><span style="display:flex;"><span>			pItem <span style="color:#f92672">=</span> <span style="color:#a6e22e">cJSON_Parse</span>(pr);       <span style="color:#75715e">//对数组，进行升级。
+</span></span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">if</span>(pItem <span style="color:#f92672">!=</span> NULL)
+</span></span><span style="display:flex;"><span>			{
+</span></span><span style="display:flex;"><span>				pSubItem <span style="color:#f92672">=</span> <span style="color:#a6e22e">cJSON_GetObjectItem</span>(pItem,<span style="color:#e6db74">&#34;location&#34;</span>);
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">if</span>(pSubItem <span style="color:#f92672">!=</span> NULL)
+</span></span><span style="display:flex;"><span>				{
+</span></span><span style="display:flex;"><span>					pChildItem <span style="color:#f92672">=</span> <span style="color:#a6e22e">cJSON_GetObjectItem</span>(pSubItem,<span style="color:#e6db74">&#34;name&#34;</span>);
+</span></span><span style="display:flex;"><span>					<span style="color:#66d9ef">if</span>(pChildItem <span style="color:#f92672">!=</span> NULL)
+</span></span><span style="display:flex;"><span>					{
+</span></span><span style="display:flex;"><span>						utf8str <span style="color:#f92672">=</span> pChildItem<span style="color:#f92672">-&gt;</span>valuestring;
+</span></span><span style="display:flex;"><span>						<span style="color:#a6e22e">SwitchToGbk</span>((<span style="color:#66d9ef">const</span> u8<span style="color:#f92672">*</span>)utf8str,<span style="color:#a6e22e">strlen</span>(utf8str),(u8 <span style="color:#f92672">*</span>)gbkstr,<span style="color:#f92672">&amp;</span>len);  <span style="color:#75715e">//获取城市名称转换为gbk文件
+</span></span></span><span style="display:flex;"><span>						<span style="color:#a6e22e">Show_Str</span>(<span style="color:#ae81ff">0</span>,<span style="color:#ae81ff">0</span>,lcddev.width,lcddev.height,(u8 <span style="color:#f92672">*</span>)gbkstr,<span style="color:#ae81ff">16</span>,<span style="color:#ae81ff">0</span>);         <span style="color:#75715e">//显示城市名称。
+</span></span></span><span style="display:flex;"><span>					}
+</span></span><span style="display:flex;"><span>				}
+</span></span><span style="display:flex;"><span>				
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">memset</span>(utf8str,<span style="color:#ae81ff">0</span>,<span style="color:#ae81ff">50</span>); <span style="color:#75715e">//解决阴华
+</span></span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">memset</span>(gbkstr,<span style="color:#ae81ff">0</span>,<span style="color:#ae81ff">50</span>);
+</span></span><span style="display:flex;"><span>				
+</span></span><span style="display:flex;"><span>				pSubItem <span style="color:#f92672">=</span> <span style="color:#a6e22e">cJSON_GetObjectItem</span>(pItem,<span style="color:#e6db74">&#34;now&#34;</span>);
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">if</span>(pSubItem <span style="color:#f92672">!=</span> NULL)
+</span></span><span style="display:flex;"><span>				{
+</span></span><span style="display:flex;"><span>					pChildItem <span style="color:#f92672">=</span> <span style="color:#a6e22e">cJSON_GetObjectItem</span>(pSubItem,<span style="color:#e6db74">&#34;text&#34;</span>);  <span style="color:#75715e">//获取天气信息。多云
+</span></span></span><span style="display:flex;"><span>					<span style="color:#66d9ef">if</span>(pChildItem <span style="color:#f92672">!=</span> NULL)
+</span></span><span style="display:flex;"><span>					{
+</span></span><span style="display:flex;"><span>						utf8str <span style="color:#f92672">=</span> pChildItem<span style="color:#f92672">-&gt;</span>valuestring;
+</span></span><span style="display:flex;"><span>						<span style="color:#a6e22e">SwitchToGbk</span>((<span style="color:#66d9ef">const</span> u8<span style="color:#f92672">*</span>)utf8str,<span style="color:#a6e22e">strlen</span>(utf8str),(u8 <span style="color:#f92672">*</span>)gbkstr,<span style="color:#f92672">&amp;</span>len);
+</span></span><span style="display:flex;"><span>						<span style="color:#a6e22e">Show_Str</span>(<span style="color:#ae81ff">220</span>,<span style="color:#ae81ff">25</span>,lcddev.width,lcddev.height,(u8 <span style="color:#f92672">*</span>)gbkstr,<span style="color:#ae81ff">16</span>,<span style="color:#ae81ff">0</span>);  <span style="color:#75715e">//显示多云
+</span></span></span><span style="display:flex;"><span>					}
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">memset</span>(utf8str,<span style="color:#ae81ff">0</span>,<span style="color:#ae81ff">50</span>);
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">memset</span>(gbkstr,<span style="color:#ae81ff">0</span>,<span style="color:#ae81ff">50</span>);
+</span></span><span style="display:flex;"><span>					
+</span></span><span style="display:flex;"><span>					pChildItem <span style="color:#f92672">=</span> <span style="color:#a6e22e">cJSON_GetObjectItem</span>(pSubItem,<span style="color:#e6db74">&#34;code&#34;</span>);              <span style="color:#75715e">//获取气象代码
+</span></span></span><span style="display:flex;"><span>					<span style="color:#66d9ef">if</span>(pChildItem <span style="color:#f92672">!=</span> NULL)
+</span></span><span style="display:flex;"><span>					{
+</span></span><span style="display:flex;"><span>						gbkstr <span style="color:#f92672">=</span> pChildItem<span style="color:#f92672">-&gt;</span>valuestring;
+</span></span><span style="display:flex;"><span>						<span style="color:#a6e22e">show_weather_icon</span>((u8 <span style="color:#f92672">*</span>)gbkstr,<span style="color:#ae81ff">0</span>);                           <span style="color:#75715e">//根据气象代码，更新图片
+</span></span></span><span style="display:flex;"><span>					}
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">memset</span>(gbkstr,<span style="color:#ae81ff">0</span>,<span style="color:#ae81ff">50</span>);
+</span></span><span style="display:flex;"><span>					
+</span></span><span style="display:flex;"><span>					pChildItem <span style="color:#f92672">=</span> <span style="color:#a6e22e">cJSON_GetObjectItem</span>(pSubItem,<span style="color:#e6db74">&#34;temperature&#34;</span>);     <span style="color:#75715e">//获取温度信息
+</span></span></span><span style="display:flex;"><span>					<span style="color:#66d9ef">if</span>(pChildItem <span style="color:#f92672">!=</span> NULL)
+</span></span><span style="display:flex;"><span>					{
+</span></span><span style="display:flex;"><span>						gbkstr <span style="color:#f92672">=</span> pChildItem<span style="color:#f92672">-&gt;</span>valuestring;
+</span></span><span style="display:flex;"><span>						temperature <span style="color:#f92672">=</span> <span style="color:#a6e22e">str2int</span>((u8 <span style="color:#f92672">*</span>)gbkstr);
+</span></span><span style="display:flex;"><span>						<span style="color:#a6e22e">gui_show_num</span>(<span style="color:#ae81ff">140</span>,<span style="color:#ae81ff">22</span>,<span style="color:#ae81ff">2</span>,RED,<span style="color:#ae81ff">54</span>,temperature,<span style="color:#ae81ff">0x80</span>);
+</span></span><span style="display:flex;"><span>						<span style="color:#a6e22e">printf</span>(<span style="color:#e6db74">&#34;wendu = %d</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#34;</span>,temperature);
+</span></span><span style="display:flex;"><span>					}
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>		
+</span></span><span style="display:flex;"><span>			pSubItem <span style="color:#f92672">=</span> <span style="color:#a6e22e">cJSON_GetObjectItem</span>(pItem,<span style="color:#e6db74">&#34;last_updated&#34;</span>);
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">if</span>(pSubItem <span style="color:#f92672">!=</span> NULL)		
+</span></span><span style="display:flex;"><span>				{
+</span></span><span style="display:flex;"><span>				    gbkstr <span style="color:#f92672">=</span>pSubItem<span style="color:#f92672">-&gt;</span>valuestring;
+</span></span><span style="display:flex;"><span>					
+</span></span><span style="display:flex;"><span>					 <span style="color:#a6e22e">LCD_ShowString</span>(<span style="color:#ae81ff">0</span>,<span style="color:#ae81ff">92</span>,<span style="color:#ae81ff">200</span>,<span style="color:#ae81ff">20</span>,<span style="color:#ae81ff">12</span>,(u8<span style="color:#f92672">*</span>)gbkstr);
+</span></span><span style="display:flex;"><span>					 <span style="color:#a6e22e">printf</span>(<span style="color:#e6db74">&#34;1day_updata_time = %s</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#34;</span>,(u8<span style="color:#f92672">*</span>)gbkstr);
+</span></span><span style="display:flex;"><span>				}
+</span></span><span style="display:flex;"><span>			
+</span></span><span style="display:flex;"><span>			
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">cJSON_Delete</span>(pItem);
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">cJSON_Delete</span>(root);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">myfree</span>(SRAMIN,root);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">myfree</span>(SRAMIN,pSub);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">myfree</span>(SRAMIN,pItem);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">myfree</span>(SRAMIN,pSubItem);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">myfree</span>(SRAMIN,pChildItem);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">myfree</span>(SRAMIN,arrayItem);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">myfree</span>(SRAMIN,pr);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">myfree</span>(SRAMIN,utf8str);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">myfree</span>(SRAMIN,gbkstr);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">myfree</span>(SRAMIN,file);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">myfree</span>(SRAMIN,asc2_5427);
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="时间数据获取和校准"><a href="#%e6%97%b6%e9%97%b4%e6%95%b0%e6%8d%ae%e8%8e%b7%e5%8f%96%e5%92%8c%e6%a0%a1%e5%87%86" class="header-anchor"></a>时间数据获取和校准
+</h4><p>源码:</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">43
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">44
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">45
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">46
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">47
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">48
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">49
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">50
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">51
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">52
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">53
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">54
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">55
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">56
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">57
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">58
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">59
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">60
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">61
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">62
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">63
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>u8 <span style="color:#a6e22e">get_beijing_time</span>(<span style="color:#66d9ef">void</span>)
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>	u8 <span style="color:#f92672">*</span>p;
+</span></span><span style="display:flex;"><span>	u8 res;
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	u8 <span style="color:#f92672">*</span>resp;
+</span></span><span style="display:flex;"><span>	u8 <span style="color:#f92672">*</span>p_end;
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//	u8 ipbuf[16]; 	//IP缓存
+</span></span></span><span style="display:flex;"><span>	p<span style="color:#f92672">=</span><span style="color:#a6e22e">mymalloc</span>(SRAMIN,<span style="color:#ae81ff">40</span>);							<span style="color:#75715e">//申请40字节内存
+</span></span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">sprintf</span>((<span style="color:#66d9ef">char</span><span style="color:#f92672">*</span>)p,<span style="color:#e6db74">&#34;AT+CIPSTART=</span><span style="color:#ae81ff">\&#34;</span><span style="color:#e6db74">TCP</span><span style="color:#ae81ff">\&#34;</span><span style="color:#e6db74">,</span><span style="color:#ae81ff">\&#34;</span><span style="color:#e6db74">%s</span><span style="color:#ae81ff">\&#34;</span><span style="color:#e6db74">,%s&#34;</span>,TIME_SERVERIP,TIME_PORTNUM);    <span style="color:#75715e">//配置目标TCP服务器
+</span></span></span><span style="display:flex;"><span>	res <span style="color:#f92672">=</span> <span style="color:#a6e22e">atk_8266_send_cmd</span>(p,<span style="color:#e6db74">&#34;OK&#34;</span>,<span style="color:#ae81ff">200</span>);<span style="color:#75715e">//连接到目标TCP服务器
+</span></span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span>(res<span style="color:#f92672">==</span><span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>	{
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">myfree</span>(SRAMIN,p);
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">delay_ms</span>(<span style="color:#ae81ff">300</span>);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">atk_8266_send_cmd</span>(<span style="color:#e6db74">&#34;AT+CIPMODE=1&#34;</span>,<span style="color:#e6db74">&#34;OK&#34;</span>,<span style="color:#ae81ff">100</span>);      <span style="color:#75715e">//传输模式为：透传	
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//	atk_8266_get_wanip(ipbuf);//获取WAN IP
+</span></span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	USART3_RX_STA<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">atk_8266_send_cmd</span>(<span style="color:#e6db74">&#34;AT+CIPSEND&#34;</span>,<span style="color:#e6db74">&#34;OK&#34;</span>,<span style="color:#ae81ff">100</span>);         <span style="color:#75715e">//开始透传
+</span></span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">printf</span>(<span style="color:#e6db74">&#34;start trans...</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#34;</span>);
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">u3_printf</span>(<span style="color:#e6db74">&#34;GET http://api.k780.com/?app=life.time&amp;appkey=58173&amp;sign=4e67ab8533b30580e584c8b9f0a6cc50&amp;format=json</span><span style="color:#ae81ff">\n\n</span><span style="color:#e6db74">&#34;</span>);	
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">delay_ms</span>(<span style="color:#ae81ff">20</span>);<span style="color:#75715e">//延时20ms返回的是指令发送成功的状态
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//	atk_8266_at_response(1);
+</span></span></span><span style="display:flex;"><span>	USART3_RX_STA<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;	<span style="color:#75715e">//清零串口3数据
+</span></span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">delay_ms</span>(<span style="color:#ae81ff">1000</span>);
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//	atk_8266_at_response(0);
+</span></span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span>(USART3_RX_STA<span style="color:#f92672">&amp;</span><span style="color:#ae81ff">0</span>X8000)		<span style="color:#75715e">//此时再次接到一次数据，为时间的数据
+</span></span></span><span style="display:flex;"><span>	{ 
+</span></span><span style="display:flex;"><span>		USART3_RX_BUF[USART3_RX_STA<span style="color:#f92672">&amp;</span><span style="color:#ae81ff">0</span>X7FFF]<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;<span style="color:#75715e">//添加结束符
+</span></span></span><span style="display:flex;"><span>	} 
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>             resp<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;datetime_2&#34;</span>;
+</span></span><span style="display:flex;"><span>             p_end <span style="color:#f92672">=</span> (u8<span style="color:#f92672">*</span>)<span style="color:#a6e22e">strstr</span>((<span style="color:#66d9ef">char</span><span style="color:#f92672">*</span>)USART3_RX_BUF,(<span style="color:#66d9ef">char</span><span style="color:#f92672">*</span>)resp);
+</span></span><span style="display:flex;"><span>						 p <span style="color:#f92672">=</span> p_end<span style="color:#f92672">-</span><span style="color:#ae81ff">11</span>; <span style="color:#75715e">//确定串口数据中时间的起止位，如&#34;datetime_1&#34;:&#34;2021-03-31 20:09:07&#34;,&#34;datetime_2&#34;:&#34;2021 中
+</span></span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>					   nwt.hour <span style="color:#f92672">=</span> ((<span style="color:#f92672">*</span>p <span style="color:#f92672">-</span> <span style="color:#ae81ff">0x30</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">10</span> <span style="color:#f92672">+</span> (<span style="color:#f92672">*</span>(p<span style="color:#f92672">+</span><span style="color:#ae81ff">1</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">0x30</span>));			      
+</span></span><span style="display:flex;"><span>					   nwt.min <span style="color:#f92672">=</span> ((<span style="color:#f92672">*</span>(p<span style="color:#f92672">+</span><span style="color:#ae81ff">3</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">0x30</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">10</span> <span style="color:#f92672">+</span> (<span style="color:#f92672">*</span>(p<span style="color:#f92672">+</span><span style="color:#ae81ff">4</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">0x30</span>));
+</span></span><span style="display:flex;"><span>					   nwt.sec <span style="color:#f92672">=</span> ((<span style="color:#f92672">*</span>(p<span style="color:#f92672">+</span><span style="color:#ae81ff">6</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">0x30</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">10</span> <span style="color:#f92672">+</span> (<span style="color:#f92672">*</span>(p<span style="color:#f92672">+</span><span style="color:#ae81ff">7</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">0x30</span>));
+</span></span><span style="display:flex;"><span>					
+</span></span><span style="display:flex;"><span>					   nwt.year <span style="color:#f92672">=</span> ((<span style="color:#f92672">*</span>(p<span style="color:#f92672">-</span><span style="color:#ae81ff">11</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">0x30</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">1000</span> <span style="color:#f92672">+</span> (<span style="color:#f92672">*</span>(p<span style="color:#f92672">-</span><span style="color:#ae81ff">10</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">0x30</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">100</span><span style="color:#f92672">+</span> (<span style="color:#f92672">*</span>(p<span style="color:#f92672">-</span><span style="color:#ae81ff">9</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">0x30</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">10</span><span style="color:#f92672">+</span> (<span style="color:#f92672">*</span>(p<span style="color:#f92672">-</span><span style="color:#ae81ff">8</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">0x30</span>)); 
+</span></span><span style="display:flex;"><span>					   nwt.month <span style="color:#f92672">=</span> ((<span style="color:#f92672">*</span>(p<span style="color:#f92672">-</span><span style="color:#ae81ff">6</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">0x30</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">10</span> <span style="color:#f92672">+</span> (<span style="color:#f92672">*</span>(p<span style="color:#f92672">-</span><span style="color:#ae81ff">5</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">0x30</span>));
+</span></span><span style="display:flex;"><span>					   nwt.date <span style="color:#f92672">=</span> ((<span style="color:#f92672">*</span>(p<span style="color:#f92672">-</span><span style="color:#ae81ff">3</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">0x30</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">10</span> <span style="color:#f92672">+</span> (<span style="color:#f92672">*</span>(p<span style="color:#f92672">-</span><span style="color:#ae81ff">2</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">0x30</span>));
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//使用指针方法获取时分秒年月日 				
+</span></span></span><span style="display:flex;"><span>					   <span style="color:#a6e22e">RTC_Set</span>(nwt.year,nwt.month ,nwt.date ,nwt.hour ,nwt.min,nwt.sec); <span style="color:#75715e">//使用RTC函数设置时间  
+</span></span></span><span style="display:flex;"><span>					
+</span></span><span style="display:flex;"><span>					   <span style="color:#a6e22e">printf</span>(<span style="color:#e6db74">&#34;nwt.year = %d</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#34;</span>,nwt.year);
+</span></span><span style="display:flex;"><span>					   <span style="color:#a6e22e">printf</span>(<span style="color:#e6db74">&#34;nwt.month = %d</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#34;</span>,nwt.month);
+</span></span><span style="display:flex;"><span>					   <span style="color:#a6e22e">printf</span>(<span style="color:#e6db74">&#34;nwt.date = %d</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#34;</span>,nwt.date);
+</span></span><span style="display:flex;"><span>					   <span style="color:#a6e22e">printf</span>(<span style="color:#e6db74">&#34;nwt.hour = %d</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#34;</span>,nwt.hour);
+</span></span><span style="display:flex;"><span>					   <span style="color:#a6e22e">printf</span>(<span style="color:#e6db74">&#34;nwt.min = %d</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#34;</span>,nwt.min);
+</span></span><span style="display:flex;"><span>					   <span style="color:#a6e22e">printf</span>(<span style="color:#e6db74">&#34;nwt.sec = %d</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#34;</span>,nwt.sec);
+</span></span><span style="display:flex;"><span>	 <span style="color:#75715e">//		打印时分秒年月日数据
+</span></span></span><span style="display:flex;"><span>     <span style="color:#75715e">//		parse_now_time();//	Cjson方法解析时间数据
+</span></span></span><span style="display:flex;"><span>		
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">atk_8266_quit_trans</span>();<span style="color:#75715e">//退出透传
+</span></span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">atk_8266_send_cmd</span>(<span style="color:#e6db74">&#34;AT+CIPCLOSE&#34;</span>,<span style="color:#e6db74">&#34;OK&#34;</span>,<span style="color:#ae81ff">50</span>);         <span style="color:#75715e">//关闭连接
+</span></span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">myfree</span>(SRAMIN,p);
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="实验现象"><a href="#%e5%ae%9e%e9%aa%8c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>实验现象
+</h2><p><img alt="微信配网实物图" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/img/1691390867299.webp"></p>
+<p><img alt="综合调试串口" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/img/1691390882416.webp"></p>
+<p><img alt="硬件实物图" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/img/1691390899895.webp"></p>
+<h2 id="注意事项"><a href="#%e6%b3%a8%e6%84%8f%e4%ba%8b%e9%a1%b9" class="header-anchor"></a>注意事项
+</h2><ol>
+<li>4.3寸和7寸屏需要比较大电流,USB供电可能不足,请用外部电源适配器(推荐外接12V 1A电源)。</li>
+<li>本例程在LCD_Init函数里面(在ILI93xx.c),用到了printf,如果不初始化串口1,将导致液晶无法显示!!</li>
+<li>字库更新时,需自备标准SD卡一张(即大卡,也可以用TF卡+卡套)，并拷贝光盘:SD卡根目录文件里面的所有内容到SD卡根目录,然后将SD卡插到开发板。</li>
+<li>对于战舰V3开发板,P8需要用跳线短接:PB10(TX)与GBC_RX，PB11(RX)与GBC_TX。</li>
+<li>如果触摸屏不准，请按住KEY0不放，然后按复位，松开复位，进入触摸屏校准。此时松开KEY0，执行校准，即可对屏幕进行校准。</li>
+</ol>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/stm32/">STM32</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">Related content</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/f691db9d/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">基于STM32的空气质量检测仪</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
+        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.1ff1e5fdc4e178ed422e50aa407526dc552f26342d729343fded19416194382c.js" defer></script>
+
+
+    </body>
+</html>

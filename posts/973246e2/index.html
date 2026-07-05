@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="使用AutoHotkey v2.0结合DD驱动实现的按键连发工具，支持录制按键、多键复选、间隔可调，带GUI界面，适配反作弊检测场景。">
+<title>AHK实现DD驱动按键连发（v2.0 GUI版）</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/973246e2/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="AHK实现DD驱动按键连发（v2.0 GUI版）">
+<meta property='og:description' content="使用AutoHotkey v2.0结合DD驱动实现的按键连发工具，支持录制按键、多键复选、间隔可调，带GUI界面，适配反作弊检测场景。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/973246e2/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='AHK' /><meta property='article:tag' content='DD' /><meta property='article:tag' content='按键连发' /><meta property='article:tag' content='游戏工具' /><meta property='article:published_time' content='2021-08-27T08:13:21&#43;00:00'/><meta property='article:modified_time' content='2026-06-20T14:40:00&#43;00:00'/>
+<meta name="twitter:title" content="AHK实现DD驱动按键连发（v2.0 GUI版）">
+<meta name="twitter:description" content="使用AutoHotkey v2.0结合DD驱动实现的按键连发工具，支持录制按键、多键复选、间隔可调，带GUI界面，适配反作弊检测场景。">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column compact"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="images/touxiang.jpg" 
+                        width=""
+                        height=""
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description"></h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/post' >
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>Dark Mode</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/ahk/" style="background-color: hsl(77, 60%, 84%); color: hsl(77, 60%, 15%);">
+                AHK
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%8A%80%E5%B7%A7/" style="background-color: hsl(208, 60%, 84%); color: hsl(208, 60%, 15%);">
+                技巧
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/973246e2/">AHK实现DD驱动按键连发（v2.0 GUI版）</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            使用AutoHotkey v2.0结合DD驱动实现的按键连发工具，支持录制按键、多键复选、间隔可调，带GUI界面，适配反作弊检测场景。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2021-08-27T08:13:21Z'>Friday, August 27, 2021</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        8 minutes read
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="前言"><a href="#%e5%89%8d%e8%a8%80" class="header-anchor"></a>前言
+</h2><p>早在 2021 年就写过一个基于 AHK + DD 驱动的按键连发脚本，当时的版本很简陋——硬编码按键码、固定的间隔、没有任何界面，纯粹是&quot;能用就行&quot;的水平。最近抽空用 <strong>AutoHotkey v2.0</strong> 全面重写了它，加入了 GUI 界面、按键录制、配置保存等功能，同时也针对反作弊检测做了优化。</p>
+<p>如果你不熟悉 DD 驱动：它是一个硬件级的键鼠模拟驱动，走的是内核层的模拟路径，比 AHK 原生的 <code>Send</code> / <code>ControlSend</code> 更底层，某些游戏或软件只认 DD 驱动的模拟输入。</p>
+<h2 id="功能概览"><a href="#%e5%8a%9f%e8%83%bd%e6%a6%82%e8%a7%88" class="header-anchor"></a>功能概览
+</h2><div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>功能</th>
+          <th>说明</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>GUI 界面</td>
+          <td>告别纯脚本，可视化操作</td>
+      </tr>
+      <tr>
+          <td>按键录制</td>
+          <td>按一个键即可添加到连发列表，不用查码表</td>
+      </tr>
+      <tr>
+          <td>多键连发</td>
+          <td>支持勾选多个按键同时连发</td>
+      </tr>
+      <tr>
+          <td>鼠标支持</td>
+          <td>支持左键、右键、中键连发</td>
+      </tr>
+      <tr>
+          <td>间隔可调</td>
+          <td>1~9999ms 自由设置</td>
+      </tr>
+      <tr>
+          <td>随机抖动</td>
+          <td>30% 随机延迟，对抗反作弊检测</td>
+      </tr>
+      <tr>
+          <td>配置持久化</td>
+          <td>自动保存到 <code>config.ini</code>，重启保留设置</td>
+      </tr>
+      <tr>
+          <td>管理员权限</td>
+          <td>自动检测并提权</td>
+      </tr>
+  </tbody>
+</table></div>
+<h2 id="实现细节"><a href="#%e5%ae%9e%e7%8e%b0%e7%bb%86%e8%8a%82" class="header-anchor"></a>实现细节
+</h2><h3 id="1-管理员权限检查"><a href="#1-%e7%ae%a1%e7%90%86%e5%91%98%e6%9d%83%e9%99%90%e6%a3%80%e6%9f%a5" class="header-anchor"></a>1. 管理员权限检查
+</h3><p>DD 驱动需要管理员权限才能加载，脚本启动时自动检测：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ahk" data-lang="ahk"><span style="display:flex;"><span>if <span style="color:#f92672">!</span>A_IsAdmin {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    Run(&#39;<span style="color:#f92672">*</span>RunAs <span style="color:#e6db74">&#34;&#39; A_ScriptFullPath &#39;&#34;</span>&#39;)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    ExitApp()<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>}<span style="color:#960050;background-color:#1e0010">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果没有管理员权限，自动以管理员身份重新启动自身。</p>
+<h3 id="2-完整的-dd-键码映射表"><a href="#2-%e5%ae%8c%e6%95%b4%e7%9a%84-dd-%e9%94%ae%e7%a0%81%e6%98%a0%e5%b0%84%e8%a1%a8" class="header-anchor"></a>2. 完整的 DD 键码映射表
+</h3><p>初版脚本只硬编码了一个 <code>502</code>（x 键），新版建立了完整的键盘 + 鼠标码表：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ahk" data-lang="ahk"><span style="display:flex;"><span>DD_KEY_MAP <span style="color:#f92672">:=</span> Map(<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;escape&#34;</span>, <span style="color:#ae81ff">100</span>, <span style="color:#e6db74">&#34;f1&#34;</span>, <span style="color:#ae81ff">101</span>, <span style="color:#e6db74">&#34;f2&#34;</span>, <span style="color:#ae81ff">102</span>, <span style="color:#f92672">...</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;q&#34;</span>, <span style="color:#ae81ff">301</span>, <span style="color:#e6db74">&#34;w&#34;</span>, <span style="color:#ae81ff">302</span>, <span style="color:#e6db74">&#34;e&#34;</span>, <span style="color:#ae81ff">303</span>, <span style="color:#f92672">...</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;a&#34;</span>, <span style="color:#ae81ff">401</span>, <span style="color:#e6db74">&#34;s&#34;</span>, <span style="color:#ae81ff">402</span>, <span style="color:#e6db74">&#34;d&#34;</span>, <span style="color:#ae81ff">403</span>, <span style="color:#f92672">...</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;z&#34;</span>, <span style="color:#ae81ff">501</span>, <span style="color:#e6db74">&#34;x&#34;</span>, <span style="color:#ae81ff">502</span>, <span style="color:#e6db74">&#34;c&#34;</span>, <span style="color:#ae81ff">503</span>, <span style="color:#f92672">...</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;lb&#34;</span>, <span style="color:#ae81ff">1</span>, <span style="color:#e6db74">&#34;rb&#34;</span>, <span style="color:#ae81ff">4</span>, <span style="color:#e6db74">&#34;mid&#34;</span>, <span style="color:#ae81ff">16</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>这样用户按任何键都能被正确识别和模拟，不需要手动查码表。</p>
+<h3 id="3-直接加载-dddll"><a href="#3-%e7%9b%b4%e6%8e%a5%e5%8a%a0%e8%bd%bd-dddll" class="header-anchor"></a>3. 直接加载 DD.dll
+</h3><p>废弃了旧版的 <code>Class_DD.ahk</code> 封装，直接通过 <code>DllCall</code> 加载 DLL：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ahk" data-lang="ahk"><span style="display:flex;"><span>DLL_PATH <span style="color:#f92672">:=</span> A_ScriptDir <span style="color:#e6db74">&#34;\DD.dll&#34;</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>hModule <span style="color:#f92672">:=</span> <span style="color:#a6e22e">DllCall</span>(<span style="color:#e6db74">&#34;LoadLibrary&#34;</span>, <span style="color:#e6db74">&#34;Str&#34;</span>, DLL_PATH, <span style="color:#e6db74">&#34;Ptr&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>pDD_key <span style="color:#f92672">:=</span> <span style="color:#a6e22e">DllCall</span>(<span style="color:#e6db74">&#34;GetProcAddress&#34;</span>, <span style="color:#e6db74">&#34;Ptr&#34;</span>, hModule, <span style="color:#e6db74">&#34;AStr&#34;</span>, <span style="color:#e6db74">&#34;DD_key&#34;</span>, <span style="color:#e6db74">&#34;Ptr&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>pDD_btn <span style="color:#f92672">:=</span> <span style="color:#a6e22e">DllCall</span>(<span style="color:#e6db74">&#34;GetProcAddress&#34;</span>, <span style="color:#e6db74">&#34;Ptr&#34;</span>, hModule, <span style="color:#e6db74">&#34;AStr&#34;</span>, <span style="color:#e6db74">&#34;DD_btn&#34;</span>, <span style="color:#e6db74">&#34;Ptr&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#a6e22e">DllCall</span>(pDD_btn, <span style="color:#e6db74">&#34;Int&#34;</span>, <span style="color:#ae81ff">0</span>)<span style="color:#75715e">  ; 初始化驱动</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>这样做的好处：</p>
+<ul>
+<li>不需要额外的 <code>Class_DD.ahk</code> 文件</li>
+<li>加载过程完全可控</li>
+<li>加载失败时有明确的错误提示</li>
+</ul>
+<h3 id="4-gui-界面设计"><a href="#4-gui-%e7%95%8c%e9%9d%a2%e8%ae%be%e8%ae%a1" class="header-anchor"></a>4. GUI 界面设计
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ahk" data-lang="ahk"><span style="display:flex;"><span>MyGui <span style="color:#f92672">:=</span> Gui(, <span style="color:#e6db74">&#34;AHK连发&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>MyGui<span style="color:#f92672">.</span>SetFont(<span style="color:#e6db74">&#34;s10&#34;</span>, <span style="color:#e6db74">&#34;Microsoft YaHei&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>界面包含几个核心区域：</p>
+<ul>
+<li><strong>间隔设置</strong>：输入框，单位毫秒，默认 200ms</li>
+<li><strong>按键管理</strong>：录制按钮 + 一键添加左右键 + 清空</li>
+<li><strong>按键列表</strong>：带勾选框的 ListView，打勾即参与连发</li>
+<li><strong>启动/停止按钮</strong>：大号醒目按钮，红色表示运行中</li>
+</ul>
+<p>![界面区域说明](GUI 界面分为间隔设置区、按键管理区、按键列表区、启停控制区四个区域。)</p>
+<h3 id="5-按键录制功能"><a href="#5-%e6%8c%89%e9%94%ae%e5%bd%95%e5%88%b6%e5%8a%9f%e8%83%bd" class="header-anchor"></a>5. 按键录制功能
+</h3><p>这是体验提升最大的功能。旧版要手动改代码改键码，新版直接按一下就行：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ahk" data-lang="ahk"><span style="display:flex;"><span>StartRecord(<span style="color:#f92672">*</span>) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    BtnRec<span style="color:#f92672">.</span>Text <span style="color:#f92672">:=</span> <span style="color:#e6db74">&#34;请按键...&#34;</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    ih <span style="color:#f92672">:=</span> InputHook(<span style="color:#e6db74">&#34;L1 M T3&#34;</span>)<span style="color:#75715e">   ; 监听一个按键，超时3秒</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    ih<span style="color:#f92672">.</span>KeyOpt(<span style="color:#e6db74">&#34;{All}&#34;</span>, <span style="color:#e6db74">&#34;E&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    ih<span style="color:#f92672">.</span>Start()<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    ih<span style="color:#f92672">.</span>Wait()<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    keyName <span style="color:#f92672">:=</span> StrLower(ih<span style="color:#f92672">.</span>EndKey <span style="color:#f92672">?</span> ih<span style="color:#f92672">.</span>EndKey <span style="color:#f92672">:</span> ih<span style="color:#f92672">.</span>Input)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    if DD_KEY_MAP<span style="color:#f92672">.</span>Has(keyName) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        AddKeyItem(keyName)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    } else {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        ToolTip <span style="color:#e6db74">&#34;未定义按键: &#34;</span> keyName<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>}<span style="color:#960050;background-color:#1e0010">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>使用 <code>InputHook</code> 拦截下一次按键，查码表后自动添加到列表。超时 3 秒无操作自动取消。</p>
+<h3 id="6-反作弊检测对策随机抖动"><a href="#6-%e5%8f%8d%e4%bd%9c%e5%bc%8a%e6%a3%80%e6%b5%8b%e5%af%b9%e7%ad%96%e9%9a%8f%e6%9c%ba%e6%8a%96%e5%8a%a8" class="header-anchor"></a>6. 反作弊检测对策——随机抖动
+</h3><p>很多游戏的 anti-cheat 会检测固定间隔的输入模式。新版加入了 <strong>30% 随机抖动</strong>：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ahk" data-lang="ahk"><span style="display:flex;"><span>ScheduleNext() {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    interval <span style="color:#f92672">:=</span> IsNumber(EditMs<span style="color:#f92672">.</span>Value) <span style="color:#f92672">?</span> Integer(EditMs<span style="color:#f92672">.</span>Value) <span style="color:#f92672">:</span> <span style="color:#ae81ff">200</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    jitter <span style="color:#f92672">:=</span> Random(<span style="color:#f92672">-</span>interval <span style="color:#f92672">*</span> <span style="color:#ae81ff">0.3</span>, interval <span style="color:#f92672">*</span> <span style="color:#ae81ff">0.3</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    delay <span style="color:#f92672">:=</span> Max(<span style="color:#ae81ff">10</span>, interval <span style="color:#f92672">+</span> jitter)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    SetTimer(WorkLoop, <span style="color:#f92672">-</span>delay)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>}<span style="color:#960050;background-color:#1e0010">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>举例：设置 200ms 间隔，实际范围是 <strong>140~260ms</strong> 之间的随机值。每次触发间隔都不同，有效避免被固定模式检测抓包。</p>
+<h3 id="7-鼠标按键支持"><a href="#7-%e9%bc%a0%e6%a0%87%e6%8c%89%e9%94%ae%e6%94%af%e6%8c%81" class="header-anchor"></a>7. 鼠标按键支持
+</h3><p>DD 驱动对鼠标按键的处理与键盘不同——键盘用 <code>DD_key</code>，鼠标用 <code>DD_btn</code>：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ahk" data-lang="ahk"><span style="display:flex;"><span>if (itemName <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;lb&#34;</span> <span style="color:#f92672">||</span> itemName <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;rb&#34;</span> <span style="color:#f92672">||</span> itemName <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;mid&#34;</span>) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">DllCall</span>(pDD_btn, <span style="color:#e6db74">&#34;Int&#34;</span>, code)<span style="color:#75715e">       ; 按下</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    Sleep <span style="color:#ae81ff">10</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">DllCall</span>(pDD_btn, <span style="color:#e6db74">&#34;Int&#34;</span>, code <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span>)<span style="color:#75715e">   ; 释放</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>} else {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">DllCall</span>(pDD_key, <span style="color:#e6db74">&#34;Int&#34;</span>, code, <span style="color:#e6db74">&#34;Int&#34;</span>, <span style="color:#ae81ff">1</span>)<span style="color:#75715e">   ; 按下</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    Sleep <span style="color:#ae81ff">10</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">DllCall</span>(pDD_key, <span style="color:#e6db74">&#34;Int&#34;</span>, code, <span style="color:#e6db74">&#34;Int&#34;</span>, <span style="color:#ae81ff">2</span>)<span style="color:#75715e">   ; 释放</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>}<span style="color:#960050;background-color:#1e0010">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>DD 鼠标的释放码是按下码的 <strong>2 倍</strong>（例如左键按下=1，释放=2）。</p>
+<h3 id="8-配置持久化"><a href="#8-%e9%85%8d%e7%bd%ae%e6%8c%81%e4%b9%85%e5%8c%96" class="header-anchor"></a>8. 配置持久化
+</h3><p>使用 INI 文件保存设置，重启脚本自动恢复：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ahk" data-lang="ahk"><span style="display:flex;"><span>SaveConfig() {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    IniWrite(EditMs<span style="color:#f92672">.</span>Value, CONFIG_PATH, <span style="color:#e6db74">&#34;Settings&#34;</span>, <span style="color:#e6db74">&#34;Interval&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    keyStr <span style="color:#f92672">:=</span> <span style="color:#e6db74">&#34;&#34;</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    Loop LV<span style="color:#f92672">.</span>GetCount() {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        name <span style="color:#f92672">:=</span> LV<span style="color:#f92672">.</span>GetText(A_Index, <span style="color:#ae81ff">2</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        state <span style="color:#f92672">:=</span> LV<span style="color:#f92672">.</span>GetNext(A_Index <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>, <span style="color:#e6db74">&#34;Checked&#34;</span>) <span style="color:#f92672">?</span> <span style="color:#e6db74">&#34;1&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;0&#34;</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        keyStr <span style="color:#f92672">.=</span> name <span style="color:#e6db74">&#34;:&#34;</span> state <span style="color:#e6db74">&#34;,&#34;</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    IniWrite(<span style="color:#a6e22e">RTrim</span>(keyStr, <span style="color:#e6db74">&#34;,&#34;</span>), CONFIG_PATH, <span style="color:#e6db74">&#34;Settings&#34;</span>, <span style="color:#e6db74">&#34;Keys&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>}<span style="color:#960050;background-color:#1e0010">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>保存格式示例（<code>config.ini</code>）：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ini" data-lang="ini"><span style="display:flex;"><span><span style="color:#66d9ef">[Settings]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Interval</span><span style="color:#f92672">=</span><span style="color:#e6db74">200</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Keys</span><span style="color:#f92672">=</span><span style="color:#e6db74">x:1,c:1,lb:0,rb:1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="9-热键"><a href="#9-%e7%83%ad%e9%94%ae" class="header-anchor"></a>9. 热键
+</h3><div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>热键</th>
+          <th>功能</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>`（反引号，SC029）</td>
+          <td>启动/停止连发</td>
+      </tr>
+      <tr>
+          <td>F12</td>
+          <td>彻底退出脚本</td>
+      </tr>
+  </tbody>
+</table></div>
+<p>反引号键放在 ESC 下面，方便左手操作，不影响正常打字。</p>
+<h2 id="完整源码"><a href="#%e5%ae%8c%e6%95%b4%e6%ba%90%e7%a0%81" class="header-anchor"></a>完整源码
+</h2><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 28
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 29
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 30
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 31
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 32
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 33
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 34
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 35
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 36
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 37
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 38
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 39
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 40
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 41
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 42
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 43
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 44
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 45
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 46
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 47
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 48
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 49
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 50
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 51
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 52
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 53
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 54
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 55
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 56
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 57
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 58
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 59
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 60
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 61
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 62
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 63
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 64
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 65
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 66
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 67
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 68
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 69
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 70
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 71
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 72
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 73
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 74
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 75
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 76
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 77
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 78
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 79
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 80
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 81
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 82
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 83
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 84
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 85
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 86
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 87
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 88
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 89
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 90
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 91
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 92
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 93
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 94
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 95
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 96
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 97
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 98
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 99
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">100
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">101
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">102
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">103
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">104
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">105
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">106
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">107
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">108
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">109
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">110
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">111
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">112
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">113
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">114
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">115
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">116
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">117
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">118
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">119
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">120
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">121
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">122
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">123
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">124
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">125
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">126
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">127
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">128
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">129
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">130
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">131
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">132
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">133
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">134
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">135
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">136
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">137
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">138
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">139
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">140
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">141
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">142
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">143
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">144
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">145
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">146
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">147
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">148
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">149
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">150
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">151
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">152
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">153
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">154
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">155
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">156
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">157
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">158
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">159
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">160
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">161
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">162
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">163
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">164
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">165
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">166
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">167
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">168
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">169
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">170
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">171
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">172
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">173
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">174
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">175
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">176
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">177
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">178
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">179
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">180
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">181
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">182
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">183
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">184
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">185
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">186
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">187
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">188
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">189
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">190
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">191
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">192
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">193
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">194
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">195
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">196
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">197
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">198
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">199
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">200
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">201
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">202
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">203
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">204
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">205
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">206
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">207
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">208
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">209
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">210
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">211
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">212
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">213
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">214
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">215
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">216
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">217
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">218
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">219
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">220
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">221
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">222
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">223
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">224
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">225
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">226
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">227
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">228
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">229
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">230
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">231
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">232
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">233
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">234
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">235
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">236
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">237
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">238
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">239
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">240
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">241
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">242
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">243
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">244
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">245
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">246
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">247
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">248
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ahk" data-lang="ahk"><span style="display:flex;"><span>#Requires AutoHotkey v2<span style="color:#f92672">.</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>#SingleInstance Force<span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">; =========================
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">; 1. 管理员权限检查
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">; =========================</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>if <span style="color:#f92672">!</span>A_IsAdmin {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    Run(&#39;<span style="color:#f92672">*</span>RunAs <span style="color:#e6db74">&#34;&#39; A_ScriptFullPath &#39;&#34;</span>&#39;)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    ExitApp()<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>}<span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">; =========================
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">; 2. 码表定义
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">; =========================</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>DD_KEY_MAP <span style="color:#f92672">:=</span> Map(<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;escape&#34;</span>, <span style="color:#ae81ff">100</span>, <span style="color:#e6db74">&#34;f1&#34;</span>, <span style="color:#ae81ff">101</span>, <span style="color:#e6db74">&#34;f2&#34;</span>, <span style="color:#ae81ff">102</span>, <span style="color:#e6db74">&#34;f3&#34;</span>, <span style="color:#ae81ff">103</span>, <span style="color:#e6db74">&#34;f4&#34;</span>, <span style="color:#ae81ff">104</span>, <span style="color:#e6db74">&#34;f5&#34;</span>, <span style="color:#ae81ff">105</span>, <span style="color:#e6db74">&#34;f6&#34;</span>, <span style="color:#ae81ff">106</span>, <span style="color:#e6db74">&#34;f7&#34;</span>, <span style="color:#ae81ff">107</span>, <span style="color:#e6db74">&#34;f8&#34;</span>, <span style="color:#ae81ff">108</span>, <span style="color:#e6db74">&#34;f9&#34;</span>, <span style="color:#ae81ff">109</span>, <span style="color:#e6db74">&#34;f10&#34;</span>, <span style="color:#ae81ff">110</span>, <span style="color:#e6db74">&#34;f11&#34;</span>, <span style="color:#ae81ff">111</span>, <span style="color:#e6db74">&#34;f12&#34;</span>, <span style="color:#ae81ff">112</span>,<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">``</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">200</span>, <span style="color:#e6db74">&#34;1&#34;</span>, <span style="color:#ae81ff">201</span>, <span style="color:#e6db74">&#34;2&#34;</span>, <span style="color:#ae81ff">202</span>, <span style="color:#e6db74">&#34;3&#34;</span>, <span style="color:#ae81ff">203</span>, <span style="color:#e6db74">&#34;4&#34;</span>, <span style="color:#ae81ff">204</span>, <span style="color:#e6db74">&#34;5&#34;</span>, <span style="color:#ae81ff">205</span>, <span style="color:#e6db74">&#34;6&#34;</span>, <span style="color:#ae81ff">206</span>, <span style="color:#e6db74">&#34;7&#34;</span>, <span style="color:#ae81ff">207</span>, <span style="color:#e6db74">&#34;8&#34;</span>, <span style="color:#ae81ff">208</span>, <span style="color:#e6db74">&#34;9&#34;</span>, <span style="color:#ae81ff">209</span>, <span style="color:#e6db74">&#34;0&#34;</span>, <span style="color:#ae81ff">210</span>, <span style="color:#e6db74">&#34;-&#34;</span>, <span style="color:#ae81ff">211</span>, <span style="color:#e6db74">&#34;=&#34;</span>, <span style="color:#ae81ff">212</span>, <span style="color:#e6db74">&#34;\&#34;</span>, <span style="color:#ae81ff">213</span>, <span style="color:#e6db74">&#34;backspace&#34;</span>, <span style="color:#ae81ff">214</span>,<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;tab&#34;</span>, <span style="color:#ae81ff">300</span>, <span style="color:#e6db74">&#34;q&#34;</span>, <span style="color:#ae81ff">301</span>, <span style="color:#e6db74">&#34;w&#34;</span>, <span style="color:#ae81ff">302</span>, <span style="color:#e6db74">&#34;e&#34;</span>, <span style="color:#ae81ff">303</span>, <span style="color:#e6db74">&#34;r&#34;</span>, <span style="color:#ae81ff">304</span>, <span style="color:#e6db74">&#34;t&#34;</span>, <span style="color:#ae81ff">305</span>, <span style="color:#e6db74">&#34;y&#34;</span>, <span style="color:#ae81ff">306</span>, <span style="color:#e6db74">&#34;u&#34;</span>, <span style="color:#ae81ff">307</span>, <span style="color:#e6db74">&#34;i&#34;</span>, <span style="color:#ae81ff">308</span>, <span style="color:#e6db74">&#34;o&#34;</span>, <span style="color:#ae81ff">309</span>, <span style="color:#e6db74">&#34;p&#34;</span>, <span style="color:#ae81ff">310</span>, <span style="color:#e6db74">&#34;[&#34;</span>, <span style="color:#ae81ff">311</span>, <span style="color:#e6db74">&#34;]&#34;</span>, <span style="color:#ae81ff">312</span>, <span style="color:#e6db74">&#34;enter&#34;</span>, <span style="color:#ae81ff">313</span>,<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;capslock&#34;</span>, <span style="color:#ae81ff">400</span>, <span style="color:#e6db74">&#34;a&#34;</span>, <span style="color:#ae81ff">401</span>, <span style="color:#e6db74">&#34;s&#34;</span>, <span style="color:#ae81ff">402</span>, <span style="color:#e6db74">&#34;d&#34;</span>, <span style="color:#ae81ff">403</span>, <span style="color:#e6db74">&#34;f&#34;</span>, <span style="color:#ae81ff">404</span>, <span style="color:#e6db74">&#34;g&#34;</span>, <span style="color:#ae81ff">405</span>, <span style="color:#e6db74">&#34;h&#34;</span>, <span style="color:#ae81ff">406</span>, <span style="color:#e6db74">&#34;j&#34;</span>, <span style="color:#ae81ff">407</span>, <span style="color:#e6db74">&#34;k&#34;</span>, <span style="color:#ae81ff">408</span>, <span style="color:#e6db74">&#34;l&#34;</span>, <span style="color:#ae81ff">409</span>, <span style="color:#e6db74">&#34;;&#34;</span>, <span style="color:#ae81ff">410</span>, <span style="color:#e6db74">&#34;&#39;&#34;</span>, <span style="color:#ae81ff">411</span>,<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;lshift&#34;</span>, <span style="color:#ae81ff">500</span>, <span style="color:#e6db74">&#34;z&#34;</span>, <span style="color:#ae81ff">501</span>, <span style="color:#e6db74">&#34;x&#34;</span>, <span style="color:#ae81ff">502</span>, <span style="color:#e6db74">&#34;c&#34;</span>, <span style="color:#ae81ff">503</span>, <span style="color:#e6db74">&#34;v&#34;</span>, <span style="color:#ae81ff">504</span>, <span style="color:#e6db74">&#34;b&#34;</span>, <span style="color:#ae81ff">505</span>, <span style="color:#e6db74">&#34;n&#34;</span>, <span style="color:#ae81ff">506</span>, <span style="color:#e6db74">&#34;m&#34;</span>, <span style="color:#ae81ff">507</span>, <span style="color:#e6db74">&#34;,&#34;</span>, <span style="color:#ae81ff">508</span>, <span style="color:#e6db74">&#34;.&#34;</span>, <span style="color:#ae81ff">509</span>, <span style="color:#e6db74">&#34;/&#34;</span>, <span style="color:#ae81ff">510</span>, <span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;lctrl&#34;</span>, <span style="color:#ae81ff">600</span>, <span style="color:#e6db74">&#34;lwin&#34;</span>, <span style="color:#ae81ff">601</span>, <span style="color:#e6db74">&#34;lalt&#34;</span>, <span style="color:#ae81ff">602</span>, <span style="color:#e6db74">&#34;space&#34;</span>, <span style="color:#ae81ff">603</span>,<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;up&#34;</span>, <span style="color:#ae81ff">709</span>, <span style="color:#e6db74">&#34;left&#34;</span>, <span style="color:#ae81ff">710</span>, <span style="color:#e6db74">&#34;down&#34;</span>, <span style="color:#ae81ff">711</span>, <span style="color:#e6db74">&#34;right&#34;</span>, <span style="color:#ae81ff">712</span>,<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;numpad0&#34;</span>, <span style="color:#ae81ff">800</span>, <span style="color:#e6db74">&#34;numpad1&#34;</span>, <span style="color:#ae81ff">801</span>, <span style="color:#e6db74">&#34;numpad2&#34;</span>, <span style="color:#ae81ff">802</span>, <span style="color:#e6db74">&#34;numpad3&#34;</span>, <span style="color:#ae81ff">803</span>, <span style="color:#e6db74">&#34;numpad4&#34;</span>, <span style="color:#ae81ff">804</span>, <span style="color:#e6db74">&#34;numpad5&#34;</span>, <span style="color:#ae81ff">805</span>, <span style="color:#e6db74">&#34;numpad6&#34;</span>, <span style="color:#ae81ff">806</span>, <span style="color:#e6db74">&#34;numpad7&#34;</span>, <span style="color:#ae81ff">807</span>, <span style="color:#e6db74">&#34;numpad8&#34;</span>, <span style="color:#ae81ff">808</span>, <span style="color:#e6db74">&#34;numpad9&#34;</span>, <span style="color:#ae81ff">809</span>,<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;lb&#34;</span>, <span style="color:#ae81ff">1</span>, <span style="color:#e6db74">&#34;rb&#34;</span>, <span style="color:#ae81ff">4</span>, <span style="color:#e6db74">&#34;mid&#34;</span>, <span style="color:#ae81ff">16</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>)<span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">; =========================
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">; 3. 加载 DD 驱动
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">; =========================</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>DLL_PATH <span style="color:#f92672">:=</span> A_ScriptDir <span style="color:#e6db74">&#34;\DD.dll&#34;</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>CONFIG_PATH <span style="color:#f92672">:=</span> A_ScriptDir <span style="color:#e6db74">&#34;\config.ini&#34;</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>if <span style="color:#f92672">!</span><span style="color:#a6e22e">FileExist</span>(DLL_PATH) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    MsgBox <span style="color:#e6db74">&#34;找不到 DD.dll，请确保它与脚本在同一目录下！&#34;</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    ExitApp()<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>}<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>hModule <span style="color:#f92672">:=</span> <span style="color:#a6e22e">DllCall</span>(<span style="color:#e6db74">&#34;LoadLibrary&#34;</span>, <span style="color:#e6db74">&#34;Str&#34;</span>, DLL_PATH, <span style="color:#e6db74">&#34;Ptr&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>if <span style="color:#f92672">!</span>hModule {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    MsgBox <span style="color:#e6db74">&#34;驱动加载失败，可能是架构不匹配或被杀软拦截。&#34;</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    ExitApp()<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>}<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>pDD_key <span style="color:#f92672">:=</span> <span style="color:#a6e22e">DllCall</span>(<span style="color:#e6db74">&#34;GetProcAddress&#34;</span>, <span style="color:#e6db74">&#34;Ptr&#34;</span>, hModule, <span style="color:#e6db74">&#34;AStr&#34;</span>, <span style="color:#e6db74">&#34;DD_key&#34;</span>, <span style="color:#e6db74">&#34;Ptr&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>pDD_btn <span style="color:#f92672">:=</span> <span style="color:#a6e22e">DllCall</span>(<span style="color:#e6db74">&#34;GetProcAddress&#34;</span>, <span style="color:#e6db74">&#34;Ptr&#34;</span>, hModule, <span style="color:#e6db74">&#34;AStr&#34;</span>, <span style="color:#e6db74">&#34;DD_btn&#34;</span>, <span style="color:#e6db74">&#34;Ptr&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#a6e22e">DllCall</span>(pDD_btn, <span style="color:#e6db74">&#34;Int&#34;</span>, <span style="color:#ae81ff">0</span>)<span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">; =========================
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">; 4. UI 界面
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">; =========================</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>MyGui <span style="color:#f92672">:=</span> Gui(, <span style="color:#e6db74">&#34;AHK连发&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>MyGui<span style="color:#f92672">.</span>SetFont(<span style="color:#e6db74">&#34;s10&#34;</span>, <span style="color:#e6db74">&#34;Microsoft YaHei&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>MyGui<span style="color:#f92672">.</span>Add(<span style="color:#e6db74">&#34;Text&#34;</span>, <span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#e6db74">&#34;间隔 (ms):&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>EditMs <span style="color:#f92672">:=</span> MyGui<span style="color:#f92672">.</span>Add(<span style="color:#e6db74">&#34;Edit&#34;</span>, <span style="color:#e6db74">&#34;vInterval x+10 w80&#34;</span>, <span style="color:#e6db74">&#34;200&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>EditMs<span style="color:#f92672">.</span>OnEvent(<span style="color:#e6db74">&#34;Change&#34;</span>, (<span style="color:#f92672">*</span>) <span style="color:#f92672">=&gt;</span> SaveConfig())<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>OpFrame <span style="color:#f92672">:=</span> MyGui<span style="color:#f92672">.</span>Add(<span style="color:#e6db74">&#34;GroupBox&#34;</span>, <span style="color:#e6db74">&#34;xm w280 h60&#34;</span>, <span style="color:#e6db74">&#34;按键管理&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>BtnRec <span style="color:#f92672">:=</span> MyGui<span style="color:#f92672">.</span>Add(<span style="color:#e6db74">&#34;Button&#34;</span>, <span style="color:#e6db74">&#34;xp+10 yp+25 w90&#34;</span>, <span style="color:#e6db74">&#34;录制按键&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>BtnRec<span style="color:#f92672">.</span>OnEvent(<span style="color:#e6db74">&#34;Click&#34;</span>, StartRecord)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>MyGui<span style="color:#f92672">.</span>Add(<span style="color:#e6db74">&#34;Button&#34;</span>, <span style="color:#e6db74">&#34;x+5 w50&#34;</span>, <span style="color:#e6db74">&#34;+左键&#34;</span>)<span style="color:#f92672">.</span>OnEvent(<span style="color:#e6db74">&#34;Click&#34;</span>, (<span style="color:#f92672">*</span>) <span style="color:#f92672">=&gt;</span> AddKeyItem(<span style="color:#e6db74">&#34;lb&#34;</span>))<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>MyGui<span style="color:#f92672">.</span>Add(<span style="color:#e6db74">&#34;Button&#34;</span>, <span style="color:#e6db74">&#34;x+5 w50&#34;</span>, <span style="color:#e6db74">&#34;+右键&#34;</span>)<span style="color:#f92672">.</span>OnEvent(<span style="color:#e6db74">&#34;Click&#34;</span>, (<span style="color:#f92672">*</span>) <span style="color:#f92672">=&gt;</span> AddKeyItem(<span style="color:#e6db74">&#34;rb&#34;</span>))<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>MyGui<span style="color:#f92672">.</span>Add(<span style="color:#e6db74">&#34;Button&#34;</span>, <span style="color:#e6db74">&#34;x+5 w50&#34;</span>, <span style="color:#e6db74">&#34;清空&#34;</span>)<span style="color:#f92672">.</span>OnEvent(<span style="color:#e6db74">&#34;Click&#34;</span>, ClearList)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>LV <span style="color:#f92672">:=</span> MyGui<span style="color:#f92672">.</span>Add(<span style="color:#e6db74">&#34;ListView&#34;</span>, <span style="color:#e6db74">&#34;xm w280 h150 Checked&#34;</span>,[<span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#e6db74">&#34;按键名称&#34;</span>])<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>LV<span style="color:#f92672">.</span>ModifyCol(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">30</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>LV<span style="color:#f92672">.</span>ModifyCol(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">230</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>LV<span style="color:#f92672">.</span>OnEvent(<span style="color:#e6db74">&#34;ItemCheck&#34;</span>, (<span style="color:#f92672">*</span>) <span style="color:#f92672">=&gt;</span> SaveConfig())<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>BtnToggle <span style="color:#f92672">:=</span> MyGui<span style="color:#f92672">.</span>Add(<span style="color:#e6db74">&#34;Button&#34;</span>, <span style="color:#e6db74">&#34;xm w280 h40&#34;</span>, <span style="color:#e6db74">&#34;启动 ( `` )&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>BtnToggle<span style="color:#f92672">.</span>SetFont(<span style="color:#e6db74">&#34;bold s11&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>BtnToggle<span style="color:#f92672">.</span>OnEvent(<span style="color:#e6db74">&#34;Click&#34;</span>, ToggleRunning)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>MyGui<span style="color:#f92672">.</span>Add(<span style="color:#e6db74">&#34;Text&#34;</span>, <span style="color:#e6db74">&#34;xm w280 Center cGray&#34;</span>, <span style="color:#e6db74">&#34;F12 彻底退出&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>MyGui<span style="color:#f92672">.</span>OnEvent(<span style="color:#e6db74">&#34;Close&#34;</span>, (<span style="color:#f92672">*</span>) <span style="color:#f92672">=&gt;</span> ExitApp())<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Global IsRunning <span style="color:#f92672">:=</span> false<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>LoadConfig()<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>MyGui<span style="color:#f92672">.</span>Show()<span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">; =========================
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">; 5. 功能逻辑
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">; =========================</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>StartRecord(<span style="color:#f92672">*</span>) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    BtnRec<span style="color:#f92672">.</span>Text <span style="color:#f92672">:=</span> <span style="color:#e6db74">&#34;请按键...&#34;</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    ih <span style="color:#f92672">:=</span> InputHook(<span style="color:#e6db74">&#34;L1 M T3&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    ih<span style="color:#f92672">.</span>KeyOpt(<span style="color:#e6db74">&#34;{All}&#34;</span>, <span style="color:#e6db74">&#34;E&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    ih<span style="color:#f92672">.</span>Start()<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    ih<span style="color:#f92672">.</span>Wait()<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    keyName <span style="color:#f92672">:=</span> StrLower(ih<span style="color:#f92672">.</span>EndKey <span style="color:#f92672">?</span> ih<span style="color:#f92672">.</span>EndKey <span style="color:#f92672">:</span> ih<span style="color:#f92672">.</span>Input)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    BtnRec<span style="color:#f92672">.</span>Text <span style="color:#f92672">:=</span> <span style="color:#e6db74">&#34;录制按键&#34;</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    if (keyName <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;&#34;</span>) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        return<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    if DD_KEY_MAP<span style="color:#f92672">.</span>Has(keyName) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        AddKeyItem(keyName)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    } else {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        ToolTip <span style="color:#e6db74">&#34;未定义按键: &#34;</span> keyName<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        SetTimer (<span style="color:#f92672">*</span>) <span style="color:#f92672">=&gt;</span> ToolTip(), <span style="color:#f92672">-</span><span style="color:#ae81ff">2000</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>}<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>AddKeyItem(name, enabled <span style="color:#f92672">:=</span> true) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    Loop LV<span style="color:#f92672">.</span>GetCount() {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        if (LV<span style="color:#f92672">.</span>GetText(A_Index, <span style="color:#ae81ff">2</span>) <span style="color:#f92672">==</span> name) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>            return<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    LV<span style="color:#f92672">.</span>Add(enabled <span style="color:#f92672">?</span> <span style="color:#e6db74">&#34;Check&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;-Check&#34;</span>, <span style="color:#e6db74">&#34;&#34;</span>, name)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    SaveConfig()<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>}<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>ClearList(<span style="color:#f92672">*</span>) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    Global IsRunning<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    if (LV<span style="color:#f92672">.</span>GetCount() <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        LV<span style="color:#f92672">.</span>Delete()<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        SaveConfig()<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    if IsRunning {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        ToggleRunning() <span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>}<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>ToggleRunning(<span style="color:#f92672">*</span>) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    Global IsRunning<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    if <span style="color:#f92672">!</span>IsRunning {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        hasChecked <span style="color:#f92672">:=</span> false<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        Loop LV<span style="color:#f92672">.</span>GetCount() {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>            if LV<span style="color:#f92672">.</span>GetNext(A_Index <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>, <span style="color:#e6db74">&#34;Checked&#34;</span>) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>                hasChecked <span style="color:#f92672">:=</span> true<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>                break<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>            }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        <span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        if <span style="color:#f92672">!</span>hasChecked {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>            ToolTip <span style="color:#e6db74">&#34;请先在列表里【打勾】需要连发的按键&#34;</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>            SetTimer (<span style="color:#f92672">*</span>) <span style="color:#f92672">=&gt;</span> ToolTip(), <span style="color:#f92672">-</span><span style="color:#ae81ff">2000</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>            return<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        IsRunning <span style="color:#f92672">:=</span> true<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        BtnToggle<span style="color:#f92672">.</span>Text <span style="color:#f92672">:=</span> <span style="color:#e6db74">&#34;停止 ( `` )&#34;</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        BtnToggle<span style="color:#f92672">.</span>Opt(<span style="color:#e6db74">&#34;cRed&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        <span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        ScheduleNext()<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    } else {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        IsRunning <span style="color:#f92672">:=</span> false<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        BtnToggle<span style="color:#f92672">.</span>Text <span style="color:#f92672">:=</span> <span style="color:#e6db74">&#34;启动 ( `` )&#34;</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        BtnToggle<span style="color:#f92672">.</span>Opt(<span style="color:#e6db74">&#34;cDefault&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        SetTimer(WorkLoop, <span style="color:#ae81ff">0</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>}<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>ScheduleNext() {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    interval <span style="color:#f92672">:=</span> IsNumber(EditMs<span style="color:#f92672">.</span>Value) <span style="color:#f92672">?</span> Integer(EditMs<span style="color:#f92672">.</span>Value) <span style="color:#f92672">:</span> <span style="color:#ae81ff">200</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    jitter <span style="color:#f92672">:=</span> Random(<span style="color:#f92672">-</span>interval <span style="color:#f92672">*</span> <span style="color:#ae81ff">0.3</span>, interval <span style="color:#f92672">*</span> <span style="color:#ae81ff">0.3</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    delay <span style="color:#f92672">:=</span> Max(<span style="color:#ae81ff">10</span>, interval <span style="color:#f92672">+</span> jitter)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    SetTimer(WorkLoop, <span style="color:#f92672">-</span>delay)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>}<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>WorkLoop() {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    Global IsRunning<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    Static inLoop <span style="color:#f92672">:=</span> false<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    if <span style="color:#f92672">!</span>IsRunning <span style="color:#f92672">||</span> inLoop {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        return<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    inLoop <span style="color:#f92672">:=</span> true<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    row <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    Loop {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        row <span style="color:#f92672">:=</span> LV<span style="color:#f92672">.</span>GetNext(row, <span style="color:#e6db74">&#34;Checked&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        if <span style="color:#f92672">!</span>row {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>            break<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>            <span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        itemName <span style="color:#f92672">:=</span> LV<span style="color:#f92672">.</span>GetText(row, <span style="color:#ae81ff">2</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        if <span style="color:#f92672">!</span>DD_KEY_MAP<span style="color:#f92672">.</span>Has(itemName) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>            continue<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>            <span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        code <span style="color:#f92672">:=</span> DD_KEY_MAP[itemName]<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        <span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        if (itemName <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;lb&#34;</span> <span style="color:#f92672">||</span> itemName <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;rb&#34;</span> <span style="color:#f92672">||</span> itemName <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;mid&#34;</span>) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">DllCall</span>(pDD_btn, <span style="color:#e6db74">&#34;Int&#34;</span>, code)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>            Sleep <span style="color:#ae81ff">10</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">DllCall</span>(pDD_btn, <span style="color:#e6db74">&#34;Int&#34;</span>, code <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        } else {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">DllCall</span>(pDD_key, <span style="color:#e6db74">&#34;Int&#34;</span>, code, <span style="color:#e6db74">&#34;Int&#34;</span>, <span style="color:#ae81ff">1</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>            Sleep <span style="color:#ae81ff">10</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">DllCall</span>(pDD_key, <span style="color:#e6db74">&#34;Int&#34;</span>, code, <span style="color:#e6db74">&#34;Int&#34;</span>, <span style="color:#ae81ff">2</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    inLoop <span style="color:#f92672">:=</span> false<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    if IsRunning {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        ScheduleNext()<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>}<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>SaveConfig() {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    if <span style="color:#a6e22e">FileExist</span>(CONFIG_PATH) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        FileDelete(CONFIG_PATH)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    IniWrite(EditMs<span style="color:#f92672">.</span>Value, CONFIG_PATH, <span style="color:#e6db74">&#34;Settings&#34;</span>, <span style="color:#e6db74">&#34;Interval&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    keyStr <span style="color:#f92672">:=</span> <span style="color:#e6db74">&#34;&#34;</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    Loop LV<span style="color:#f92672">.</span>GetCount() {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        name <span style="color:#f92672">:=</span> LV<span style="color:#f92672">.</span>GetText(A_Index, <span style="color:#ae81ff">2</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        state <span style="color:#f92672">:=</span> LV<span style="color:#f92672">.</span>GetNext(A_Index <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>, <span style="color:#e6db74">&#34;Checked&#34;</span>) <span style="color:#f92672">?</span> <span style="color:#e6db74">&#34;1&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;0&#34;</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        keyStr <span style="color:#f92672">.=</span> name <span style="color:#e6db74">&#34;:&#34;</span> state <span style="color:#e6db74">&#34;,&#34;</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    IniWrite(<span style="color:#a6e22e">RTrim</span>(keyStr, <span style="color:#e6db74">&#34;,&#34;</span>), CONFIG_PATH, <span style="color:#e6db74">&#34;Settings&#34;</span>, <span style="color:#e6db74">&#34;Keys&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>}<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>LoadConfig() {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    if <span style="color:#f92672">!</span><span style="color:#a6e22e">FileExist</span>(CONFIG_PATH) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        return<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    <span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    try {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        iv <span style="color:#f92672">:=</span> IniRead(CONFIG_PATH, <span style="color:#e6db74">&#34;Settings&#34;</span>, <span style="color:#e6db74">&#34;Interval&#34;</span>, <span style="color:#e6db74">&#34;200&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        EditMs<span style="color:#f92672">.</span>Value <span style="color:#f92672">:=</span> iv<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        <span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        keysData <span style="color:#f92672">:=</span> IniRead(CONFIG_PATH, <span style="color:#e6db74">&#34;Settings&#34;</span>, <span style="color:#e6db74">&#34;Keys&#34;</span>, <span style="color:#e6db74">&#34;&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        if (keysData <span style="color:#f92672">!=</span> <span style="color:#e6db74">&#34;&#34;</span>) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>            for , item <span style="color:#f92672">in</span> StrSplit(keysData, <span style="color:#e6db74">&#34;,&#34;</span>) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>                if (item <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span>) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>                    continue<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>                }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>                parts <span style="color:#f92672">:=</span> StrSplit(item, <span style="color:#e6db74">&#34;:&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>                if (parts<span style="color:#f92672">.</span>Length <span style="color:#f92672">==</span> <span style="color:#ae81ff">2</span>) {<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>                    AddKeyItem(parts[<span style="color:#ae81ff">1</span>], parts[<span style="color:#ae81ff">2</span>] <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;1&#34;</span>)<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>                }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>            }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>        }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>    }<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>}<span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">; =========================
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">; 6. 热键
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">; =========================</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#f92672">~</span>SC029<span style="color:#f92672">::</span>ToggleRunning()<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span>F12::ExitApp()<span style="color:#960050;background-color:#1e0010">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="新旧版本对比"><a href="#%e6%96%b0%e6%97%a7%e7%89%88%e6%9c%ac%e5%af%b9%e6%af%94" class="header-anchor"></a>新旧版本对比
+</h2><div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>维度</th>
+          <th>旧版 (v1)</th>
+          <th>新版 (v2)</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>AHK 版本</td>
+          <td>v1</td>
+          <td>v2.0</td>
+      </tr>
+      <tr>
+          <td>界面</td>
+          <td>无（纯脚本）</td>
+          <td>GUI 界面</td>
+      </tr>
+      <tr>
+          <td>按键管理</td>
+          <td>硬编码键码</td>
+          <td>录制 + 列表 + 勾选</td>
+      </tr>
+      <tr>
+          <td>支持按键数</td>
+          <td>1 个</td>
+          <td>不限（多键同时）</td>
+      </tr>
+      <tr>
+          <td>鼠标支持</td>
+          <td>不支持</td>
+          <td>左/右/中键</td>
+      </tr>
+      <tr>
+          <td>间隔调节</td>
+          <td>固定 20ms</td>
+          <td>可自定义</td>
+      </tr>
+      <tr>
+          <td>反作弊</td>
+          <td>无</td>
+          <td>30% 随机抖动</td>
+      </tr>
+      <tr>
+          <td>配置保存</td>
+          <td>无</td>
+          <td>INI 持久化</td>
+      </tr>
+      <tr>
+          <td>DD 加载</td>
+          <td>Class_DD.ahk 封装</td>
+          <td>直接 DllCall</td>
+      </tr>
+      <tr>
+          <td>权限处理</td>
+          <td>无</td>
+          <td>自动提权</td>
+      </tr>
+  </tbody>
+</table></div>
+<h2 id="使用方法"><a href="#%e4%bd%bf%e7%94%a8%e6%96%b9%e6%b3%95" class="header-anchor"></a>使用方法
+</h2><ol>
+<li>安装 <strong>AutoHotkey v2.0</strong></li>
+<li>将 <code>DD.dll</code> 放到与脚本同一目录</li>
+<li>双击运行脚本（自动以管理员身份运行）</li>
+<li>GUI 界面中：
+<ul>
+<li>点击「录制按键」然后按一个键，加入列表</li>
+<li>或直接点「+左键」「+右键」添加鼠标按键</li>
+<li>在列表中 <strong>打勾</strong> 需要连发的按键</li>
+<li>设置间隔（默认 200ms）</li>
+</ul>
+</li>
+<li>按反引号键（<code>`</code>，ESC 下面那个）启动/停止连发</li>
+<li>按 F12 退出</li>
+</ol>
+<h2 id="常见问题"><a href="#%e5%b8%b8%e8%a7%81%e9%97%ae%e9%a2%98" class="header-anchor"></a>常见问题
+</h2><p><strong>Q: 提示&quot;找不到 DD.dll&quot;？</strong><br>
+确保 <code>DD.dll</code> 与脚本文件在同一目录下。如果是从别处下载的 DD 驱动，注意区分 32 位 / 64 位版本。</p>
+<p><strong>Q: 驱动加载失败？</strong><br>
+通常是杀毒软件拦截了 DD.dll。将脚本目录添加到杀软白名单，或临时关闭杀软后再试。</p>
+<p><strong>Q: 游戏里没反应？</strong><br>
+部分游戏的反作弊系统会拦截 DD 驱动。确认游戏是否允许硬件级模拟输入。</p>
+<p><strong>Q: 想换个启动热键？</strong><br>
+修改最后一行 <code>~SC029::ToggleRunning()</code> —— <code>SC029</code> 是反引号键的扫描码。改为 <code>~F8::ToggleRunning()</code> 就是 F8 键启动。</p>
+<h2 id="项目地址"><a href="#%e9%a1%b9%e7%9b%ae%e5%9c%b0%e5%9d%80" class="header-anchor"></a>项目地址
+</h2><ul>
+<li><a class="link" href="https://www.autohotkey.com/"  target="_blank" rel="noopener"
+    >AutoHotkey 官网</a></li>
+<li>脚本源码：见上方完整源码区域</li>
+</ul>
+<hr>
+<p><strong>更新于 2026-06-20</strong>：从 AHK v1 纯脚本全面升级为 AHK v2.0 GUI 版本。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/ahk/">AHK</a>
+        
+            <a href="/tags/dd/">DD</a>
+        
+            <a href="/tags/%E6%8C%89%E9%94%AE%E8%BF%9E%E5%8F%91/">按键连发</a>
+        
+            <a href="/tags/%E6%B8%B8%E6%88%8F%E5%B7%A5%E5%85%B7/">游戏工具</a>
+        
+    </section>
+
+
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            Last updated on Saturday, June 20, 2026
+        </span>
+    </section></footer>
+
+
+    
+</article>
+
+    
+
+    
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
+        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.1ff1e5fdc4e178ed422e50aa407526dc552f26342d729343fded19416194382c.js" defer></script>
+
+
+    </body>
+</html>
