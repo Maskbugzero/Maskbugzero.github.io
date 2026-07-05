@@ -19,6 +19,8 @@
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='GitLab' /><meta property='article:tag' content='CI/CD' /><meta property='article:tag' content='Runner' /><meta property='article:tag' content='服务运维' /><meta property='article:tag' content='DevOps' /><meta property='article:published_time' content='2026-06-27T16:09:09&#43;00:00'/><meta property='article:modified_time' content='2026-06-27T16:09:09&#43;00:00'/>
 <meta name="twitter:title" content="一次GitLab CI Runner卡死导致生产部署流水线全停的排查实录">
 <meta name="twitter:description" content=">-">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
     </head>
     <body class="
     article-page
@@ -45,8 +47,8 @@
         }
     })();
 </script>
-<div class="container main-container flex on-phone--column compact"><aside class="sidebar left-sidebar sticky ">
-    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="">
         <span class="hamburger-box">
             <span class="hamburger-inner"></span>
         </span>
@@ -55,9 +57,9 @@
     <header>
         <figure class="site-avatar">
                 <a href="/">
-                    <img src="images/touxiang.jpg" 
-                        width=""
-                        height=""
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
                         class="site-logo"
                         loading="lazy"
                         alt="Avatar">
@@ -126,7 +128,7 @@
 
 
 
-                        <span>Dark Mode</span>
+                        <span></span>
                     </li>
                 
             </ol>
@@ -134,7 +136,67 @@
     </ol>
 </aside>
 
-    
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title"></h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a>
+      <ul>
+        <li><a href="#21-现象一pipeline-任务全部-pending">2.1 现象一：Pipeline 任务全部 pending</a></li>
+        <li><a href="#22-现象二runner-进程-cpu-100-占用">2.2 现象二：Runner 进程 CPU 100% 占用</a></li>
+        <li><a href="#23-现象三日志显示连接数异常">2.3 现象三：日志显示连接数异常</a></li>
+      </ul>
+    </li>
+    <li><a href="#三排查过程">三、排查过程</a>
+      <ul>
+        <li><a href="#31-第一步检查-runner-与-gitlab-server-的连通性">3.1 第一步：检查 Runner 与 GitLab Server 的连通性</a></li>
+        <li><a href="#32-第二步重启-runner-服务试试">3.2 第二步：重启 Runner 服务试试</a></li>
+        <li><a href="#33-第三步抓-runner-的-goroutine-栈">3.3 第三步：抓 Runner 的 Goroutine 栈</a></li>
+        <li><a href="#34-第四步检查-builds-目录">3.4 第四步：检查 builds 目录</a></li>
+        <li><a href="#35-第五步查-sentry-找到已知-bug">3.5 第五步：查 Sentry 找到已知 Bug</a></li>
+      </ul>
+    </li>
+    <li><a href="#四解决方案">四、解决方案</a>
+      <ul>
+        <li><a href="#41-紧急止血清空-builds-目录--升级版本">4.1 紧急止血：清空 builds 目录 + 升级版本</a></li>
+        <li><a href="#42-调优-runner-配置">4.2 调优 Runner 配置</a></li>
+        <li><a href="#43-加监控告警">4.3 加监控告警</a></li>
+        <li><a href="#44-加自动清理-cron">4.4 加自动清理 Cron</a></li>
+      </ul>
+    </li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
 
             <main class="main full-width">
     <article class="main-article">
@@ -206,7 +268,7 @@
 
 
                     <time class="article-time--reading">
-                        7 minutes read
+                        
                     </time>
                 
             </div>
@@ -221,6 +283,51 @@
 
 </header>
 
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span></span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a>
+      <ul>
+        <li><a href="#21-现象一pipeline-任务全部-pending">2.1 现象一：Pipeline 任务全部 pending</a></li>
+        <li><a href="#22-现象二runner-进程-cpu-100-占用">2.2 现象二：Runner 进程 CPU 100% 占用</a></li>
+        <li><a href="#23-现象三日志显示连接数异常">2.3 现象三：日志显示连接数异常</a></li>
+      </ul>
+    </li>
+    <li><a href="#三排查过程">三、排查过程</a>
+      <ul>
+        <li><a href="#31-第一步检查-runner-与-gitlab-server-的连通性">3.1 第一步：检查 Runner 与 GitLab Server 的连通性</a></li>
+        <li><a href="#32-第二步重启-runner-服务试试">3.2 第二步：重启 Runner 服务试试</a></li>
+        <li><a href="#33-第三步抓-runner-的-goroutine-栈">3.3 第三步：抓 Runner 的 Goroutine 栈</a></li>
+        <li><a href="#34-第四步检查-builds-目录">3.4 第四步：检查 builds 目录</a></li>
+        <li><a href="#35-第五步查-sentry-找到已知-bug">3.5 第五步：查 Sentry 找到已知 Bug</a></li>
+      </ul>
+    </li>
+    <li><a href="#四解决方案">四、解决方案</a>
+      <ul>
+        <li><a href="#41-紧急止血清空-builds-目录--升级版本">4.1 紧急止血：清空 builds 目录 + 升级版本</a></li>
+        <li><a href="#42-调优-runner-配置">4.2 调优 Runner 配置</a></li>
+        <li><a href="#43-加监控告警">4.3 加监控告警</a></li>
+        <li><a href="#44-加自动清理-cron">4.4 加自动清理 Cron</a></li>
+      </ul>
+    </li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
     
 
     <section class="article-content">
@@ -748,7 +855,7 @@
     
 
 <aside>
-    <h2 class="section-title">Related content</h2>
+    <h2 class="section-title"></h2>
     <div class="subsection-list">
         <div class="article-list--tile">
             
@@ -848,8 +955,8 @@
     </section>
     
     <section class="powerby">
-        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
-        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+         <br />
+        
     </section>
 </footer>
 
@@ -889,7 +996,7 @@
             </main>
         </div>
         
-<script type="text/javascript" src="/ts/main.1ff1e5fdc4e178ed422e50aa407526dc552f26342d729343fded19416194382c.js" defer></script>
+<script type="text/javascript" src="/ts/main.d00997a2f4a6ce525f496da0c3ae6ad392b0468b8a9024f23309fdfc75c67a35.js" defer></script>
 
 
     </body>

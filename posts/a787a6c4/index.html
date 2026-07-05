@@ -19,6 +19,8 @@
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='AD域控' /><meta property='article:tag' content='GPO' /><meta property='article:tag' content='桌面运维' /><meta property='article:tag' content='DFS复制' /><meta property='article:tag' content='组策略' /><meta property='article:published_time' content='2024-12-10T09:00:00&#43;00:00'/><meta property='article:modified_time' content='2024-12-10T09:00:00&#43;00:00'/>
 <meta name="twitter:title" content="一次AD域控GPO策略推送失败导致终端安全基线不生效的排查实录">
 <meta name="twitter:description" content=">-">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
     </head>
     <body class="
     article-page
@@ -45,8 +47,8 @@
         }
     })();
 </script>
-<div class="container main-container flex on-phone--column compact"><aside class="sidebar left-sidebar sticky ">
-    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="">
         <span class="hamburger-box">
             <span class="hamburger-inner"></span>
         </span>
@@ -55,9 +57,9 @@
     <header>
         <figure class="site-avatar">
                 <a href="/">
-                    <img src="images/touxiang.jpg" 
-                        width=""
-                        height=""
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
                         class="site-logo"
                         loading="lazy"
                         alt="Avatar">
@@ -126,7 +128,7 @@
 
 
 
-                        <span>Dark Mode</span>
+                        <span></span>
                     </li>
                 
             </ol>
@@ -134,7 +136,73 @@
     </ol>
 </aside>
 
-    
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title"></h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a>
+      <ul>
+        <li><a href="#终端侧表现">终端侧表现</a></li>
+        <li><a href="#域控侧表现">域控侧表现</a></li>
+      </ul>
+    </li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一层确认gpo链接与作用域">第一层：确认GPO链接与作用域</a></li>
+        <li><a href="#第二层检查策略冲突与优先级">第二层：检查策略冲突与优先级</a></li>
+        <li><a href="#第三层发现gpo版本号异常策略内容未写入">第三层：发现GPO版本号异常——策略内容未写入</a></li>
+        <li><a href="#第四层排查gptini版本号未更新的原因">第四层：排查GPT.INI版本号未更新的原因</a></li>
+        <li><a href="#第五层确认dc02的dfsr服务状态">第五层：确认DC02的DFSR服务状态</a></li>
+        <li><a href="#第六层修复gpo版本号并验证">第六层：修复GPO版本号并验证</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#1-修复sysvol-dfs复制延迟">1. 修复SYSVOL DFS复制延迟</a></li>
+        <li><a href="#2-修复gpo版本号">2. 修复GPO版本号</a></li>
+        <li><a href="#3-在所有终端上强制刷新策略">3. 在所有终端上强制刷新策略</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a>
+      <ul>
+        <li><a href="#1-gpo操作规范">1. GPO操作规范</a></li>
+        <li><a href="#2-dfs复制监控">2. DFS复制监控</a></li>
+        <li><a href="#3-gpo部署验证流程">3. GPO部署验证流程</a></li>
+        <li><a href="#4-补丁维护窗口规范">4. 补丁维护窗口规范</a></li>
+      </ul>
+    </li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
 
             <main class="main full-width">
     <article class="main-article">
@@ -206,7 +274,7 @@
 
 
                     <time class="article-time--reading">
-                        3 minutes read
+                        
                     </time>
                 
             </div>
@@ -221,6 +289,57 @@
 
 </header>
 
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span></span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a>
+      <ul>
+        <li><a href="#终端侧表现">终端侧表现</a></li>
+        <li><a href="#域控侧表现">域控侧表现</a></li>
+      </ul>
+    </li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一层确认gpo链接与作用域">第一层：确认GPO链接与作用域</a></li>
+        <li><a href="#第二层检查策略冲突与优先级">第二层：检查策略冲突与优先级</a></li>
+        <li><a href="#第三层发现gpo版本号异常策略内容未写入">第三层：发现GPO版本号异常——策略内容未写入</a></li>
+        <li><a href="#第四层排查gptini版本号未更新的原因">第四层：排查GPT.INI版本号未更新的原因</a></li>
+        <li><a href="#第五层确认dc02的dfsr服务状态">第五层：确认DC02的DFSR服务状态</a></li>
+        <li><a href="#第六层修复gpo版本号并验证">第六层：修复GPO版本号并验证</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#1-修复sysvol-dfs复制延迟">1. 修复SYSVOL DFS复制延迟</a></li>
+        <li><a href="#2-修复gpo版本号">2. 修复GPO版本号</a></li>
+        <li><a href="#3-在所有终端上强制刷新策略">3. 在所有终端上强制刷新策略</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a>
+      <ul>
+        <li><a href="#1-gpo操作规范">1. GPO操作规范</a></li>
+        <li><a href="#2-dfs复制监控">2. DFS复制监控</a></li>
+        <li><a href="#3-gpo部署验证流程">3. GPO部署验证流程</a></li>
+        <li><a href="#4-补丁维护窗口规范">4. 补丁维护窗口规范</a></li>
+      </ul>
+    </li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
     
 
     <section class="article-content">
@@ -629,7 +748,7 @@
     
 
 <aside>
-    <h2 class="section-title">Related content</h2>
+    <h2 class="section-title"></h2>
     <div class="subsection-list">
         <div class="article-list--tile">
             
@@ -685,8 +804,8 @@
     </section>
     
     <section class="powerby">
-        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
-        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+         <br />
+        
     </section>
 </footer>
 
@@ -726,7 +845,7 @@
             </main>
         </div>
         
-<script type="text/javascript" src="/ts/main.1ff1e5fdc4e178ed422e50aa407526dc552f26342d729343fded19416194382c.js" defer></script>
+<script type="text/javascript" src="/ts/main.d00997a2f4a6ce525f496da0c3ae6ad392b0468b8a9024f23309fdfc75c67a35.js" defer></script>
 
 
     </body>
