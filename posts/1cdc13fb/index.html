@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="CI 构建节点新建容器全部报 no space left on device，但 df -h 显示空间充足，最终定位为 overlay2 海量小文件耗尽 inode 的排查实录。">
+<title>一次 Docker 宿主机 overlay2 目录 inode 耗尽导致容器批量创建失败的排查记录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/1cdc13fb/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次 Docker 宿主机 overlay2 目录 inode 耗尽导致容器批量创建失败的排查记录">
+<meta property='og:description' content="CI 构建节点新建容器全部报 no space left on device，但 df -h 显示空间充足，最终定位为 overlay2 海量小文件耗尽 inode 的排查实录。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/1cdc13fb/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='容器运维' /><meta property='article:tag' content='Docker' /><meta property='article:tag' content='overlay2' /><meta property='article:tag' content='inode' /><meta property='article:tag' content='故障排查' /><meta property='article:published_time' content='2026-07-07T07:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-07-07T07:00:00&#43;00:00'/>
+<meta name="twitter:title" content="一次 Docker 宿主机 overlay2 目录 inode 耗尽导致容器批量创建失败的排查记录">
+<meta name="twitter:description" content="CI 构建节点新建容器全部报 no space left on device，但 df -h 显示空间充足，最终定位为 overlay2 海量小文件耗尽 inode 的排查实录。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description"></h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/post' >
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span></span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title"></h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/1cdc13fb/">一次 Docker 宿主机 overlay2 目录 inode 耗尽导致容器批量创建失败的排查记录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            CI 构建节点新建容器全部报 no space left on device，但 df -h 显示空间充足，最终定位为 overlay2 海量小文件耗尽 inode 的排查实录。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-07T07:00:00Z'>Tuesday, July 7, 2026</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span></span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="一问题背景"><a href="#%e4%b8%80%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>一、问题背景
+</h2><p>公司内部的 CI/CD 构建节点是一台 2C4G 的云主机，上面跑着 GitLab Runner，所有流水线任务都通过 <code>docker run</code> 临时拉起容器执行编译、单元测试和镜像打包。这台机器已经稳定运行了半年多，运维也基本是&quot;放养&quot;状态——除了偶尔手动清理一下磁盘，没人专门维护。某天上午，开发同学突然在群里反馈：多条流水线同时失败，报错信息五花八门，有的说&quot;无法拉取镜像&quot;，有的说&quot;容器启动超时&quot;。我登录上去一看，连 <code>docker ps</code> 都开始变得卡顿，这才意识到事情没那么简单。</p>
+<h2 id="二故障现象"><a href="#%e4%ba%8c%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>二、故障现象
+</h2><p>最直观的现象是：几乎所有新建容器的操作都会失败。无论是 Runner 自动拉起的构建容器，还是我手动执行的 <code>docker run hello-world</code>，都返回一个类似的错误：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>docker: Error response from daemon: mkdir /var/lib/docker/overlay2/xxxxxxx: no space left on device.
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>更诡异的是，报错明明说 &ldquo;no space left on device（设备上没有剩余空间）&quot;，但 <code>df -h /</code> 显示的磁盘使用率只有 63%，还有大把空间。开发同学一度怀疑是 Docker 引擎抽风，甚至有人建议直接重启机器&quot;试试看&rdquo;。</p>
+<p>此外，已有的运行中容器并没有崩溃，业务服务照常对外提供访问，只是任何&quot;新建/重启容器&quot;的动作全部失败；<code>docker images</code> 列表里堆积了上百个 <code>&lt;none&gt;</code> 的中间镜像，磁盘肉眼可见地越来越慢。</p>
+<h2 id="三排查过程"><a href="#%e4%b8%89%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>三、排查过程
+</h2><p>第一步，我本能地按&quot;磁盘满&quot;的思路去查。执行 <code>df -h</code>：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>Filesystem      Size  Used Avail Use% Mounted on
+</span></span><span style="display:flex;"><span>/dev/vda1        50G   32G   18G  63% /
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>空间明明还剩 18G，所以 &ldquo;no space left on device&rdquo; 在这里是假象。结合经验，Linux 上除了字节数，还有另一个隐藏上限——<strong>inode 数量</strong>。一个文件系统能创建的文件总数受 inode 限制，即使字节没满，inode 耗尽同样会报这个错。</p>
+<p>第二步，用 <code>df -i</code> 验证猜测：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>Filesystem       Inodes   IUsed    IFree IUse% Mounted on
+</span></span><span style="display:flex;"><span>/dev/vda1       <span style="color:#ae81ff">3276800</span> <span style="color:#ae81ff">3276790</span>       <span style="color:#ae81ff">10</span>  100% /
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>果然，inode 使用率 100%，只剩 10 个可用。问题定性了：这是 inode 耗尽，不是磁盘空间耗尽。</p>
+<p>第三步，定位是哪个目录吃掉了 inode。因为 Docker 的根目录默认在 <code>/var/lib/docker</code>，我写了个循环统计子目录的文件数：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#66d9ef">for</span> d in /var/lib/docker/*; <span style="color:#66d9ef">do</span>
+</span></span><span style="display:flex;"><span>  echo <span style="color:#e6db74">&#34;</span>$d<span style="color:#e6db74">: </span><span style="color:#66d9ef">$(</span>find <span style="color:#e6db74">&#34;</span>$d<span style="color:#e6db74">&#34;</span> -xdev -type f 2&gt;/dev/null | wc -l<span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">done</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出显示 <code>/var/lib/docker/overlay2</code> 一个目录就占了 320 多万个文件，几乎吃光了全部 inode。overlay2 是 Docker 的存储驱动，每一层镜像、每个容器的可写层都被拆成一个个真实的小文件存放在这里。</p>
+<p>第四步，进一步分析 overlay2 内部构成。用 <code>docker system df</code> 看到：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+</span></span><span style="display:flex;"><span>Images          214       12        28.4GB    26.1GB (91%)
+</span></span><span style="display:flex;"><span>Containers      187       3         1.2GB     1.1GB (95%)
+</span></span><span style="display:flex;"><span>Local Volumes   9         2         0         0
+</span></span><span style="display:flex;"><span>Build Cache     0         0         0         0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>镜像和&quot;僵尸容器&quot;（已退出但未删除）数量惊人。再钻进 overlay2 看单目录文件数分布，发现大量 <code>&lt;hash&gt;/diff</code> 目录每个都装着几万甚至十几万个小文件——这正是那些 Java/Maven 项目在构建时往容器可写层写入海量 <code>.class</code>、依赖 jar、源码文件留下的痕迹。</p>
+<p>第五步，确认加剧因素——日志。检查 <code>/etc/docker/daemon.json</code>，发现根本没有配置 json-file 的日志轮转（<code>max-size</code> / <code>max-file</code>）。这意味着每个容器的标准输出日志都在 <code>/var/lib/docker/containers/&lt;id&gt;/&lt;id&gt;-json.log</code> 里无限增长，虽然单个日志是&quot;大文件&quot;对 inode 贡献不大，但叠加海量中间层小文件，最终把 inode 彻底打满。</p>
+<p>至此根因链条清晰：长期不清理 + 构建任务频繁创建容器/镜像 + 日志不轮转，导致 overlay2 累积了数百万个小文件，耗尽 inode，新容器再也无法创建目录。</p>
+<h2 id="四解决方案"><a href="#%e5%9b%9b%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>四、解决方案
+</h2><p>当务之急是腾出 inode，让 Docker 能继续工作：</p>
+<ol>
+<li>
+<p><strong>清理已退出容器与悬空镜像</strong>（释放海量小文件）：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>docker container prune -f
+</span></span><span style="display:flex;"><span>docker image prune -a -f
+</span></span><span style="display:flex;"><span>docker system prune -a --volumes -f
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>执行后 <code>df -i</code> 的 IFree 从 10 回升到 290 多万，inode 使用率降到 12%。</p>
+</li>
+<li>
+<p><strong>重启 Docker 守护进程</strong>让状态归一：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl restart docker
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p><strong>临时把 Docker 根目录迁到 inode 更充裕的磁盘</strong>（可选，针对根盘 inode 本就偏小的云主机）：挂载一块数据盘，修改 <code>daemon.json</code> 的 <code>&quot;data-root&quot;: &quot;/data/docker&quot;</code> 后重启。</p>
+</li>
+<li>
+<p><strong>验证</strong>：手动 <code>docker run --rm hello-world</code> 成功，Runner 流水线逐步恢复正常。</p>
+</li>
+</ol>
+<h2 id="五根因分析"><a href="#%e4%ba%94%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>五、根因分析
+</h2><p>表面看是&quot;磁盘满了&quot;，本质是<strong>文件系统 inode 资源被海量小文件耗尽</strong>。overlay2 存储驱动把每个镜像层和容器可写层都映射成宿主机的真实文件，构建型任务（编译、打包）会在容器内产生大量细小文件，这些文件在容器退出后若不被清理，就以&quot;僵尸容器 + dangling 镜像&quot;的形式永久占用 inode。再加上日志未配置轮转，雪上加霜。云主机默认文件系统的 inode 总数往往偏小（本例仅 327 万），在 CI 场景下极容易被打满。</p>
+<h2 id="六预防措施"><a href="#%e5%85%ad%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>六、预防措施
+</h2><ol>
+<li>
+<p><strong>配置日志轮转</strong>：在 <code>daemon.json</code> 中加入</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-json" data-lang="json"><span style="display:flex;"><span><span style="color:#e6db74">&#34;log-driver&#34;</span><span style="color:#960050;background-color:#1e0010">:</span> <span style="color:#e6db74">&#34;json-file&#34;</span><span style="color:#960050;background-color:#1e0010">,</span>
+</span></span><span style="display:flex;"><span><span style="color:#e6db74">&#34;log-opts&#34;</span><span style="color:#960050;background-color:#1e0010">:</span> { <span style="color:#f92672">&#34;max-size&#34;</span>: <span style="color:#e6db74">&#34;100m&#34;</span>, <span style="color:#f92672">&#34;max-file&#34;</span>: <span style="color:#e6db74">&#34;3&#34;</span> }
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p><strong>建立定期清理机制</strong>：用 cron 每天凌晨执行 <code>docker system prune -a -f --filter &quot;until=72h&quot;</code>，只保留近三天的资源。</p>
+</li>
+<li>
+<p><strong>inode 监控告警</strong>：把 <code>df -i</code> 接入监控（Node Exporter + Prometheus 或云监控），inode 使用率超 80% 即告警，比磁盘空间告警更早发现隐患。</p>
+</li>
+<li>
+<p><strong>构建阶段减少可写层文件</strong>：CI 中尽量用多阶段构建（multi-stage build），把编译产生的中间文件留在构建阶段、不带入最终镜像；构建缓存挂载到宿主机独立大目录而非容器可写层。</p>
+</li>
+<li>
+<p><strong>给 Docker 分配独立数据盘</strong>：新建大 inode 文件系统（<code>mkfs.ext4 -i 8192</code> 调高密度）专供 <code>/var/lib/docker</code>，从容量上根除风险。</p>
+</li>
+</ol>
+<h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
+</h2><p>这次故障给我最深的教训是：<strong>排查 &ldquo;no space left on device&rdquo; 不能只看 <code>df -h</code>，一定要补一眼 <code>df -i</code></strong>。在容器、CI、日志这类&quot;产生海量小文件&quot;的场景里，inode 耗尽比磁盘字节耗尽更常见、更隐蔽。把日志轮转、定期 prune、inode 监控三件事做成标准动作，基本可以杜绝这类问题再次发生。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/">容器运维</a>
+        
+            <a href="/tags/docker/">Docker</a>
+        
+            <a href="/tags/overlay2/">Overlay2</a>
+        
+            <a href="/tags/inode/">Inode</a>
+        
+            <a href="/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/">故障排查</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title"></h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/4c970ef4/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次Linux服务器文件系统inode耗尽导致磁盘有空间却无法写入的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/fbe3a5fa/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次FortiGate防火墙策略配置错误导致内网DNS解析失败的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/9eb92141/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次Docker容器OOM引发的服务雪崩排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/1f2b6c4/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">zTC1支持接入Home Assistant</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/29dc6fe8/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Docker常用命令</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.d00997a2f4a6ce525f496da0c3ae6ad392b0468b8a9024f23309fdfc75c67a35.js" defer></script>
+
+
+    </body>
+</html>
