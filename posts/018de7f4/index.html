@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="早高峰大量员工无法上网，IP变成169.254.x.x。定位到DHCP地址池被手机、访客、IoT设备占满，从租期、VLAN隔离和监控三方面根治。">
+<title>一次办公网DHCP地址池耗尽导致部分终端无法获取IP的排查记录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/018de7f4/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次办公网DHCP地址池耗尽导致部分终端无法获取IP的排查记录">
+<meta property='og:description' content="早高峰大量员工无法上网，IP变成169.254.x.x。定位到DHCP地址池被手机、访客、IoT设备占满，从租期、VLAN隔离和监控三方面根治。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/018de7f4/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='DHCP' /><meta property='article:tag' content='网络运维' /><meta property='article:tag' content='故障排查' /><meta property='article:tag' content='地址池' /><meta property='article:tag' content='VLAN' /><meta property='article:published_time' content='2026-07-08T07:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-07-08T07:00:00&#43;00:00'/>
+<meta name="twitter:title" content="一次办公网DHCP地址池耗尽导致部分终端无法获取IP的排查记录">
+<meta name="twitter:description" content="早高峰大量员工无法上网，IP变成169.254.x.x。定位到DHCP地址池被手机、访客、IoT设备占满，从租期、VLAN隔离和监控三方面根治。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
+                网络运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/018de7f4/">一次办公网DHCP地址池耗尽导致部分终端无法获取IP的排查记录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            早高峰大量员工无法上网，IP变成169.254.x.x。定位到DHCP地址池被手机、访客、IoT设备占满，从租期、VLAN隔离和监控三方面根治。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-08T07:00:00Z'>2026年7月8日星期三</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 6 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司办公网核心是一台三层交换机，下挂多个接入交换机，员工 PC、手机、打印机和一堆 IoT 设备都划分在同一个 /24 网段里，由 Windows Server 上的 DHCP 服务统一下发地址。平时一切正常，管理员也没太关注地址池的剩余量。某天周一早高峰，几乎同一时刻上百人打卡开机、连 WiFi，问题就爆发了。这类&quot;容量型&quot;故障最隐蔽的地方在于：它平时毫无征兆，一旦触发就是大面积、且每次重启都只是暂时缓解，很容易让排障者陷入&quot;重启试试&quot;的误区。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>早上 9 点前后，IT 服务台在十分钟内涌进二十多个报障工单，集中在同一楼层：</p>
+<ul>
+<li>部分员工插上网线或连上办公 WiFi 后，系统托盘网络图标显示&quot;黄色感叹号&quot;，状态是&quot;已连接，但无法访问 Internet&quot;；</li>
+<li><code>ipconfig /all</code> 看到的不是正常的 <code>192.168.10.x</code>，而是 <code>169.254.x.x</code>（APIPA 自动专用地址），说明没有从 DHCP 拿到地址；</li>
+<li>能 Ping 通网关 <code>192.168.10.1</code>，但打不开任何网页，DNS 解析也失败；</li>
+<li>已在线的人不受影响，问题只集中在新开机、或休眠唤醒、或重新连网的那批终端；</li>
+<li>现场重启交换机、重启网卡后能临时恢复，但半小时后同样的人又掉回 169.254，形成&quot;重启救一时、过会儿又复发&quot;的怪圈。</li>
+</ul>
+<p>初步判断这不是线路或交换机故障——能 Ping 通网关就说明二层、三层转发是好的，问题大概率出在&quot;地址下发&quot;这一环。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p><strong>第一步：确认是否真的没拿到地址。</strong> 在故障终端上执行 <code>ipconfig /release &amp;&amp; ipconfig /renew</code>，观察输出。正常情况下会立刻拿到 <code>192.168.10.x</code>；而故障终端卡在 &ldquo;正在等待 DHCP 服务器响应&rdquo; 几十秒后，退回 169.254.x.x。结合 <code>ipconfig /all</code> 里&quot;自动配置 IP 地址 169.254.x.x&quot;，基本锁定：DHCP  Discover/Offer 阶段就拿不到地址，不是 DNS 也不是网关问题。</p>
+<p><strong>第二步：直奔 DHCP 服务器看地址池。</strong> 登录 Windows DHCP 控制台（或 <code>dhcputil</code> / PowerShell <code>Get-DhcpServerv4Scope</code>），展开作用域 <code>192.168.10.0/24</code>，重点看两个数字：<strong>&ldquo;地址总数&rdquo;</strong> 与 <strong>&ldquo;可用地址&rdquo;</strong>。结果发现：253 个可用地址里，剩余可用显示为 <strong>0</strong>，租约列表里 253 条全是&quot;已租用 (Active)&ldquo;状态。这就对上了——不是服务器宕了，而是它&quot;无地址可发&rdquo;，只能让客户端退到 APIPA。</p>
+<p><strong>第三步：分析租约构成，找出&quot;占坑&quot;的设备。</strong> 把租约按&quot;租约过期时间&quot;排序，发现大量租约剩余时间还挂着 6~7 天（默认租期 8 天），且客户端标识里混着很多手机 MAC（OUI 一眼能认出是 Apple / Xiaomi / Huawei）、几台访客笔记本、十几台打印机和智能电视。也就是说：一个 /24 既要养员工 PC，又要养所有人的手机、访客设备、IoT，253 个地址根本不够早高峰并发。</p>
+<p><strong>第四步：确认有没有&quot;放大器&quot;。</strong> 进一步排查发现，有员工在工位私接了一台家用无线路由器当 AP，LAN 口又接回办公网——这本身不直接耗地址，但更严重的是另一处：访客 WiFi 的 DHCP 中继（DHCP Relay / IP Helper）错误地指向了办公网这个作用域，导致访客手机也来抢办公地址。再加上几个研发在测试环境开了几十台虚拟机，桥接到了办公网桥，每台都来要地址。三重叠加，地址池直接被打满。</p>
+<p><strong>第五步：用数据验证根因。</strong> 在核心交换机上 <code>show ip dhcp snooping binding</code>（或 Windows 侧用 <code>Get-DhcpServerv4Lease -ScopeId 192.168.10.0 | Measure-Object</code>），统计当前活跃租约里非员工 PC 的占比，超过 55%。结合早高峰工单时间曲线与租约申请日志峰值时间完全吻合，确认&quot;地址池容量不足 + 租期过长 + 访客/测试流量串入&quot;是本次故障的组合根因。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><p>排障要快、根治要稳，分两步走：</p>
+<p><strong>应急（10 分钟内恢复业务）：</strong></p>
+<ol>
+<li>在 DHCP 控制台对抢占严重的访客 MAC、测试虚拟机 MAC 做<strong>保留排除（Reservation / Exclusion）</strong>，把它们从办公作用域剔除；</li>
+<li>临时把办公作用域的<strong>租期从 8 天改成 8 小时</strong>，<code>Set-DhcpServerv4Scope -LeaseDuration 08:00:00</code>，让休眠/离线的设备更快释放地址；</li>
+<li>立即修正访客 WiFi 的 DHCP Relay，指向独立的访客作用域，并给研发测试网单独划 VLAN、单独地址池；</li>
+<li>对仍卡在 169.254 的终端批量 <code>ipconfig /release &amp;&amp; ipconfig /renew</code>，几分钟内全部恢复正常。</li>
+</ol>
+<p><strong>根治（当天完成）：</strong></p>
+<ol>
+<li>按部门/楼层<strong>拆分 VLAN</strong>，把办公、访客、IoT、打印机分属不同子网，每个子网独立 /24，从物理上隔离地址竞争；</li>
+<li>启用接入交换机的 <strong>DHCP Snooping + 端口安全</strong>，非法私接的路由器/小交换机无法下发地址，从源头堵住&quot;家用路由当 AP&quot;的乱接行为；</li>
+<li>对固定设备（打印机、服务器、AP）做静态保留，把动态池留给真正的流动终端。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>根本原因是<strong>地址规划与容量管理缺位</strong>，而非设备故障：单个 /24（253 地址）承载了远超设计容量的终端类型，且默认 8 天租期让离线设备长期&quot;占坑不释放&quot;；同时访客网络与测试网络的 DHCP 流量错误串入办公作用域，成了压垮地址池的最后一根稻草。169.254 只是表象，地址池归零才是真凶。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
+<li><strong>容量规划前置</strong>：按&quot;终端数 × 1.3&quot;预留地址，移动设备多的办公区直接上 /23 或拆 VLAN，别拿一个 /24 硬扛；</li>
+<li><strong>租期分级</strong>：员工 PC 可长（如 1 天），手机/访客用短租期（2~4 小时），让地址快速周转；</li>
+<li><strong>网络分区</strong>：办公、访客、IoT、打印严格分 VLAN，各用各的地址池，互不影响；</li>
+<li><strong>监控告警</strong>：对 DHCP 作用域的&quot;可用地址数&quot;做监控，低于 20% 就告警，把故障消灭在爆发前；</li>
+<li><strong>接入管控</strong>：开启 DHCP Snooping + 端口安全，禁止私接 NAT 路由，避免地址池被意外放大消耗。</li>
+</ol>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>DHCP 地址池耗尽是典型&quot;平时无感、爆发致命&quot;的容量型故障，排查关键就一句话：<strong>看到 169.254，先别查线路，直接去 DHCP 服务器看&quot;可用地址&quot;是不是 0</strong>。真正要做的不是反复重启，而是缩短租期、隔离访客、拆 VLAN、加监控——把容量和管理补齐，故障才不会下个周一再来一遍。</p>
+<hr>
+<p><em>本文基于真实办公网排障场景整理，涉及 IP 段与设备数量已做脱敏处理。</em></p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/dhcp/">DHCP</a>
+        
+            <a href="/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/">网络运维</a>
+        
+            <a href="/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/">故障排查</a>
+        
+            <a href="/tags/%E5%9C%B0%E5%9D%80%E6%B1%A0/">地址池</a>
+        
+            <a href="/tags/vlan/">VLAN</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1dhcp%E5%9C%B0%E5%9D%80%E6%B1%A0%E8%80%97%E5%B0%BD%E5%AF%BC%E8%87%B4%E5%A4%A7%E9%9D%A2%E7%A7%AF%E6%96%AD%E7%BD%91%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 DHCP 地址池耗尽引发的大面积断网</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/2025-10-09-%E4%B8%80%E6%AC%A1mpls%E4%B8%93%E7%BA%BF%E6%8A%96%E5%8A%A8%E5%AF%BC%E8%87%B4%E8%B7%A8%E6%9C%BA%E6%88%BF%E6%95%B0%E6%8D%AE%E5%BA%93%E5%90%8C%E6%AD%A5%E4%B8%AD%E6%96%AD%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">MPLS 专线抖动致跨机房数据库同步中断的定位</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1fortigate%E9%98%B2%E7%81%AB%E5%A2%99%E7%AD%96%E7%95%A5%E9%85%8D%E7%BD%AE%E9%94%99%E8%AF%AF%E5%AF%BC%E8%87%B4%E5%86%85%E7%BD%91dns%E8%A7%A3%E6%9E%90%E5%A4%B1%E8%B4%A5%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">FortiGate 策略配错，内网 DNS 为何解析失败？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/2025-06-15-%E4%B8%80%E6%AC%A1%E5%85%AC%E7%BD%91dns%E8%A7%A3%E6%9E%90%E8%B6%85%E6%97%B6%E5%AF%BC%E8%87%B4cdn%E5%9B%9E%E6%BA%90%E5%A4%A7%E9%9D%A2%E7%A7%AF%E5%A4%B1%E8%B4%A5%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">公网 DNS 解析超时，CDN 回源为何大面积失败？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/2025-02-03-%E4%B8%80%E6%AC%A1%E6%A0%B8%E5%BF%83%E4%BA%A4%E6%8D%A2%E6%9C%BAstp%E6%A0%B9%E6%A1%A5%E6%8A%A2%E5%8D%A0%E5%BC%95%E5%8F%91%E5%B9%BF%E6%92%AD%E9%A3%8E%E6%9A%B4%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">核心交换机 STP 根桥被抢，广播风暴怎么来的？</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
