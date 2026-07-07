@@ -4,7 +4,7 @@
         <link>https://blog.5772447.xyz/tags/%E7%9B%91%E6%8E%A7%E5%91%8A%E8%AD%A6/</link>
         <description>Recent content in 监控告警 on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
-        <language>zh-CN</language>
+        <language>zh</language>
         <lastBuildDate>Sun, 28 Jun 2026 06:55:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E7%9B%91%E6%8E%A7%E5%91%8A%E8%AD%A6/index.xml" rel="self" type="application/rss+xml" /><item>
             <title>一次Prometheus告警风暴拖垮邮件与企业微信告警通道的排查实录</title>
             <link>https://blog.5772447.xyz/posts/7a7e48c3/</link>

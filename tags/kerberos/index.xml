@@ -4,7 +4,7 @@
         <link>https://blog.5772447.xyz/tags/kerberos/</link>
         <description>Recent content in Kerberos on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
-        <language>zh-CN</language>
+        <language>zh</language>
         <lastBuildDate>Sat, 04 Jul 2026 06:55:33 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/kerberos/index.xml" rel="self" type="application/rss+xml" /><item>
             <title>一次域控NTP时间源失效导致全公司Kerberos认证大面积失败的排查实录</title>
             <link>https://blog.5772447.xyz/posts/2cc57a5e/</link>

@@ -4,7 +4,7 @@
         <link>https://blog.5772447.xyz/tags/ipsec/</link>
         <description>Recent content in IPSec on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
-        <language>zh-CN</language>
+        <language>zh</language>
         <lastBuildDate>Fri, 26 Jun 2026 07:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/ipsec/index.xml" rel="self" type="application/rss+xml" /><item>
             <title>一次IPSec VPN隧道因MTU不匹配导致ERP系统远程访问异常的排查实录</title>
             <link>https://blog.5772447.xyz/posts/de113360/</link>

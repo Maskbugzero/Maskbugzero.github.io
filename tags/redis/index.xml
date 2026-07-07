@@ -4,7 +4,7 @@
         <link>https://blog.5772447.xyz/tags/redis/</link>
         <description>Recent content in Redis on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
-        <language>zh-CN</language>
+        <language>zh</language>
         <lastBuildDate>Tue, 11 Mar 2025 22:43:30 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/redis/index.xml" rel="self" type="application/rss+xml" /><item>
             <title>一次Redis缓存雪崩导致秒杀接口大面积超时的排查记录</title>
             <link>https://blog.5772447.xyz/posts/e4f8877e/</link>

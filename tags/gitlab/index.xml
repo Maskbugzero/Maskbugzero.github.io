@@ -4,7 +4,7 @@
         <link>https://blog.5772447.xyz/tags/gitlab/</link>
         <description>Recent content in GitLab on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
-        <language>zh-CN</language>
+        <language>zh</language>
         <lastBuildDate>Sat, 27 Jun 2026 16:09:09 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/gitlab/index.xml" rel="self" type="application/rss+xml" /><item>
             <title>一次GitLab CI Runner卡死导致生产部署流水线全停的排查实录</title>
             <link>https://blog.5772447.xyz/posts/1b83a967/</link>

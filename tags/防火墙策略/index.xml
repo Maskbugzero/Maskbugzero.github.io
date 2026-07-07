@@ -4,7 +4,7 @@
         <link>https://blog.5772447.xyz/tags/%E9%98%B2%E7%81%AB%E5%A2%99%E7%AD%96%E7%95%A5/</link>
         <description>Recent content in 防火墙策略 on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
-        <language>zh-CN</language>
+        <language>zh</language>
         <lastBuildDate>Sun, 21 Jun 2026 20:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E9%98%B2%E7%81%AB%E5%A2%99%E7%AD%96%E7%95%A5/index.xml" rel="self" type="application/rss+xml" /><item>
             <title>一次FortiGate防火墙策略配置错误导致内网DNS解析失败的排查实录</title>
             <link>https://blog.5772447.xyz/posts/fbe3a5fa/</link>

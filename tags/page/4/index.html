@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" dir="ltr">
+<html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Life Oriented Programming">
 <title>Page 4 - Tags</title>
@@ -46,7 +46,7 @@
     })();
 </script>
 <div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
-    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
         <span class="hamburger-box">
             <span class="hamburger-inner"></span>
         </span>
@@ -63,12 +63,14 @@
                         alt="Avatar">
                 </a>
                 
+                    <span class="emoji">🛠️</span>
+                
             </figure>
         
         
         <div class="site-meta">
             <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
-            <h2 class="site-description"></h2>
+            <h2 class="site-description">IT 运维实战笔记</h2>
         </div>
     </header><ol class="menu-social">
             
@@ -99,6 +101,16 @@
         <li >
             <a href='/page/archives/' >
                 
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
                 <span>归档</span>
             </a>
         </li>
@@ -106,6 +118,15 @@
         
         <li >
             <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
                 
                 <span>标签</span>
             </a>
@@ -115,6 +136,17 @@
         <li >
             <a href='/categories' >
                 
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
                 <span>分类</span>
             </a>
         </li>
@@ -122,6 +154,15 @@
         
         <li >
             <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
                 
                 <span>关于</span>
             </a>
@@ -148,7 +189,7 @@
 
 
 
-                        <span></span>
+                        <span>暗色模式</span>
                     </li>
                 
             </ol>
@@ -161,10 +202,10 @@
             
                 <form action="/page/search/" class="search-form widget" >
         <p>
-            <label></label>
-            <input name="keyword" required placeholder="" />
+            <label>搜索</label>
+            <input name="keyword" required placeholder="输入关键词..." />
         
-            <button title="">
+            <button title="搜索">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
   <path stroke="none" d="M0 0h24v24H0z"/>
   <circle cx="10" cy="10" r="7" />
@@ -191,7 +232,7 @@
         </div>
         <h2 class="widget-title section-title">
             <a href="/page/archives/">
-                
+                归档
             </a>
         </h2>
 
@@ -242,7 +283,7 @@
             <div class="archives-year">
                     <a href="/page/archives/#2021">
                         
-                            <span class="year"></span>
+                            <span class="year">更多</span>
                         
                     </a> 
                 </div>
@@ -252,8 +293,7 @@
             
         
             
-                
-<section class="widget tagCloud">
+                <section class="widget tagCloud">
     <div class="widget-icon">
         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
   <path stroke="none" d="M0 0h24v24H0z"/>
@@ -269,7 +309,7 @@
     <h2 class="widget-title section-title">
         
             <a href="/categories/">
-                
+                分类
             </a>
         
     </h2>
@@ -322,8 +362,7 @@
             
         
             
-                
-<section class="widget tagCloud">
+                <section class="widget tagCloud">
     <div class="widget-icon">
         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
   <path stroke="none" d="M0 0h24v24H0z"/>
@@ -337,7 +376,7 @@
     <h2 class="widget-title section-title">
         
             <a href="/tags/">
-                
+                标签
             </a>
         
     </h2>
@@ -396,13 +435,13 @@
     <header>
         <h3 class="section-title">
             
-                
+                章节
             
         </h3>
 
         <div class="section-card">
             <div class="section-details">
-                <h3 class="section-count"></h3>
+                <h3 class="section-count">235 个页面</h3>
                 <h1 class="section-term">Tags</h1>
                 
             </div>
@@ -416,7 +455,7 @@
     <a href="/tags/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/">
         <div class="article-details">
             <h2 class="article-title">桌面运维</h2>
-                <footer class="article-meta"><span class="article-description"></span>
+                <footer class="article-meta"><span class="article-description">13 个页面</span>
                 </footer></div>
     </a>
 </article>
@@ -425,7 +464,7 @@
     <a href="/tags/%E6%97%B6%E9%97%B4%E5%90%8C%E6%AD%A5/">
         <div class="article-details">
             <h2 class="article-title">时间同步</h2>
-                <footer class="article-meta"><span class="article-description"></span>
+                <footer class="article-meta"><span class="article-description">1 个页面</span>
                 </footer></div>
     </a>
 </article>
@@ -434,7 +473,7 @@
     <a href="/tags/ntp/">
         <div class="article-details">
             <h2 class="article-title">NTP</h2>
-                <footer class="article-meta"><span class="article-description"></span>
+                <footer class="article-meta"><span class="article-description">2 个页面</span>
                 </footer></div>
     </a>
 </article>
@@ -443,7 +482,7 @@
     <a href="/tags/kerberos/">
         <div class="article-details">
             <h2 class="article-title">Kerberos</h2>
-                <footer class="article-meta"><span class="article-description"></span>
+                <footer class="article-meta"><span class="article-description">3 个页面</span>
                 </footer></div>
     </a>
 </article>
@@ -452,7 +491,7 @@
     <a href="/tags/ad%E5%9F%9F%E6%8E%A7/">
         <div class="article-details">
             <h2 class="article-title">AD域控</h2>
-                <footer class="article-meta"><span class="article-description"></span>
+                <footer class="article-meta"><span class="article-description">4 个页面</span>
                 </footer></div>
     </a>
 </article>
@@ -461,7 +500,7 @@
     <a href="/tags/%E9%85%8D%E7%BD%AE%E6%BC%82%E7%A7%BB/">
         <div class="article-details">
             <h2 class="article-title">配置漂移</h2>
-                <footer class="article-meta"><span class="article-description"></span>
+                <footer class="article-meta"><span class="article-description">1 个页面</span>
                 </footer></div>
     </a>
 </article>
@@ -470,7 +509,7 @@
     <a href="/tags/%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86/">
         <div class="article-details">
             <h2 class="article-title">配置管理</h2>
-                <footer class="article-meta"><span class="article-description"></span>
+                <footer class="article-meta"><span class="article-description">1 个页面</span>
                 </footer></div>
     </a>
 </article>
@@ -479,7 +518,7 @@
     <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/">
         <div class="article-details">
             <h2 class="article-title">服务运维</h2>
-                <footer class="article-meta"><span class="article-description"></span>
+                <footer class="article-meta"><span class="article-description">28 个页面</span>
                 </footer></div>
     </a>
 </article>
@@ -488,7 +527,7 @@
     <a href="/tags/%E5%8F%98%E9%87%8F%E4%BC%98%E5%85%88%E7%BA%A7/">
         <div class="article-details">
             <h2 class="article-title">变量优先级</h2>
-                <footer class="article-meta"><span class="article-description"></span>
+                <footer class="article-meta"><span class="article-description">1 个页面</span>
                 </footer></div>
     </a>
 </article>
@@ -497,7 +536,7 @@
     <a href="/tags/ansible/">
         <div class="article-details">
             <h2 class="article-title">Ansible</h2>
-                <footer class="article-meta"><span class="article-description"></span>
+                <footer class="article-meta"><span class="article-description">1 个页面</span>
                 </footer></div>
     </a>
 </article>
@@ -520,7 +559,7 @@
         </a><button
                 type="button"
                 class="page-link pagination-link pagination-jump-trigger"
-                aria-label="Jump to page">
+                aria-label="跳转到页码">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-dots"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M19 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /></svg>
             </button><a
                     class="page-link  "href="/tags/page/3/"
@@ -537,7 +576,7 @@
                 </a><button
                 type="button"
                 class="page-link pagination-link pagination-jump-trigger"
-                aria-label="Jump to page">
+                aria-label="跳转到页码">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-dots"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M19 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /></svg>
             </button><a
             class="page-link "href="/tags/page/24/"aria-label="Page 24">
@@ -553,7 +592,7 @@
         <form method="dialog" class="pagination-jump-form">
             <header>
                 <label id="pagination-jump-title" class="title" for="pagination-jump-input">
-                    Jump to page:
+                    跳转到页码
                 </label>
                 <span class="subtitle">(1 - 24)</span>
             </header>
@@ -567,24 +606,26 @@
                     autocomplete="off"
                     required>
                 <button type="submit" class="btn btn-primary">
-                    Go
+                    跳转
                 </button>
             </div>
             <div class="pagination-jump-hint">
                 <kbd>Enter</kbd>
-                <span>Press Enter to jump</span>
+                <span>按 Enter 键跳转</span>
             </div>
         </form>
     </dialog><footer class="site-footer">
     <section class="copyright">
         &copy; 
         
+            2020 - 
+        
         2026 Zero Day Notes
     </section>
     
     <section class="powerby">
-         <br />
-        
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
     </section>
 </footer>
 
@@ -592,7 +633,7 @@
             </main>
         </div>
         
-<script type="text/javascript" src="/ts/main.d00997a2f4a6ce525f496da0c3ae6ad392b0468b8a9024f23309fdfc75c67a35.js" defer></script>
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
 
 
     </body>

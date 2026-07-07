@@ -4,7 +4,7 @@
         <link>https://blog.5772447.xyz/tags/%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86/</link>
         <description>Recent content in 配置管理 on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
-        <language>zh-CN</language>
+        <language>zh</language>
         <lastBuildDate>Fri, 03 Jul 2026 06:55:17 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86/index.xml" rel="self" type="application/rss+xml" /><item>
             <title>一次Ansible Playbook变量优先级错误导致批量服务器配置漂移的排查实录</title>
             <link>https://blog.5772447.xyz/posts/3e35df54/</link>

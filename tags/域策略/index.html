@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" dir="ltr">
+<html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Life Oriented Programming">
 <title>域策略</title>
@@ -46,7 +46,7 @@
     })();
 </script>
 <div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
-    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
         <span class="hamburger-box">
             <span class="hamburger-inner"></span>
         </span>
@@ -63,12 +63,14 @@
                         alt="Avatar">
                 </a>
                 
+                    <span class="emoji">🛠️</span>
+                
             </figure>
         
         
         <div class="site-meta">
             <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
-            <h2 class="site-description"></h2>
+            <h2 class="site-description">IT 运维实战笔记</h2>
         </div>
     </header><ol class="menu-social">
             
@@ -99,6 +101,16 @@
         <li >
             <a href='/page/archives/' >
                 
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
                 <span>归档</span>
             </a>
         </li>
@@ -106,6 +118,15 @@
         
         <li >
             <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
                 
                 <span>标签</span>
             </a>
@@ -115,6 +136,17 @@
         <li >
             <a href='/categories' >
                 
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
                 <span>分类</span>
             </a>
         </li>
@@ -122,6 +154,15 @@
         
         <li >
             <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
                 
                 <span>关于</span>
             </a>
@@ -148,7 +189,7 @@
 
 
 
-                        <span></span>
+                        <span>暗色模式</span>
                     </li>
                 
             </ol>
@@ -161,10 +202,10 @@
             
                 <form action="/page/search/" class="search-form widget" >
         <p>
-            <label></label>
-            <input name="keyword" required placeholder="" />
+            <label>搜索</label>
+            <input name="keyword" required placeholder="输入关键词..." />
         
-            <button title="">
+            <button title="搜索">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
   <path stroke="none" d="M0 0h24v24H0z"/>
   <circle cx="10" cy="10" r="7" />
@@ -191,7 +232,7 @@
         </div>
         <h2 class="widget-title section-title">
             <a href="/page/archives/">
-                
+                归档
             </a>
         </h2>
 
@@ -242,7 +283,7 @@
             <div class="archives-year">
                     <a href="/page/archives/#2021">
                         
-                            <span class="year"></span>
+                            <span class="year">更多</span>
                         
                     </a> 
                 </div>
@@ -252,8 +293,7 @@
             
         
             
-                
-<section class="widget tagCloud">
+                <section class="widget tagCloud">
     <div class="widget-icon">
         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
   <path stroke="none" d="M0 0h24v24H0z"/>
@@ -269,7 +309,7 @@
     <h2 class="widget-title section-title">
         
             <a href="/categories/">
-                
+                分类
             </a>
         
     </h2>
@@ -322,8 +362,7 @@
             
         
             
-                
-<section class="widget tagCloud">
+                <section class="widget tagCloud">
     <div class="widget-icon">
         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
   <path stroke="none" d="M0 0h24v24H0z"/>
@@ -337,7 +376,7 @@
     <h2 class="widget-title section-title">
         
             <a href="/tags/">
-                
+                标签
             </a>
         
     </h2>
@@ -402,7 +441,7 @@
 
         <div class="section-card">
             <div class="section-details">
-                <h3 class="section-count"></h3>
+                <h3 class="section-count">1 个页面</h3>
                 <h1 class="section-term">域策略</h1>
                 
             </div>
@@ -416,7 +455,7 @@
     <a href="/posts/%E4%B8%80%E6%AC%A1windows%E5%9F%9F%E7%AD%96%E7%95%A5%E6%8E%A8%E9%80%81%E5%A4%B1%E8%B4%A5%E5%AF%BC%E8%87%B4%E6%96%B0%E7%94%B5%E8%84%91%E6%97%A0%E6%B3%95%E7%99%BB%E5%BD%95%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
         <div class="article-details">
             <h2 class="article-title">一次Windows域策略推送失败导致新电脑无法登录的排查实录</h2>
-                <footer class="article-meta"><time datetime="2023-09-15T08:50:00Z">Friday, September 15, 2023</time>
+                <footer class="article-meta"><time datetime="2023-09-15T08:50:00Z">2023年9月15日星期五</time>
                 </footer></div>
     </a>
 </article>
@@ -426,12 +465,14 @@
     <section class="copyright">
         &copy; 
         
+            2020 - 
+        
         2026 Zero Day Notes
     </section>
     
     <section class="powerby">
-         <br />
-        
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
     </section>
 </footer>
 
@@ -439,7 +480,7 @@
             </main>
         </div>
         
-<script type="text/javascript" src="/ts/main.d00997a2f4a6ce525f496da0c3ae6ad392b0468b8a9024f23309fdfc75c67a35.js" defer></script>
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
 
 
     </body>

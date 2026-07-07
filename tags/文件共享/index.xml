@@ -4,7 +4,7 @@
         <link>https://blog.5772447.xyz/tags/%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/</link>
         <description>Recent content in 文件共享 on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
-        <language>zh-CN</language>
+        <language>zh</language>
         <lastBuildDate>Sun, 05 Jul 2026 18:49:05 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/index.xml" rel="self" type="application/rss+xml" /><item>
             <title>一次Windows组策略文件共享权限误配导致全公司无法访问共享文件夹的排查实录</title>
             <link>https://blog.5772447.xyz/posts/b8b997b4/</link>

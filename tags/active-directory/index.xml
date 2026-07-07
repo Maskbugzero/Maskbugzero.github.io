@@ -4,7 +4,7 @@
         <link>https://blog.5772447.xyz/tags/active-directory/</link>
         <description>Recent content in Active Directory on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
-        <language>zh-CN</language>
+        <language>zh</language>
         <lastBuildDate>Mon, 14 Jul 2025 09:15:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/active-directory/index.xml" rel="self" type="application/rss+xml" /><item>
             <title>一次NTP时间同步异常导致Kerberos认证全部失效的排查实录</title>
             <link>https://blog.5772447.xyz/posts/c2769c36/</link>

@@ -4,7 +4,7 @@
         <link>https://blog.5772447.xyz/tags/%E7%8E%AF%E8%B7%AF/</link>
         <description>Recent content in 环路 on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
-        <language>zh-CN</language>
+        <language>zh</language>
         <lastBuildDate>Mon, 29 Jun 2026 07:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E7%8E%AF%E8%B7%AF/index.xml" rel="self" type="application/rss+xml" /><item>
             <title>一次交换机物理环路导致整栋楼广播风暴瘫痪的排查实录</title>
             <link>https://blog.5772447.xyz/posts/f38b1b7e/</link>
