@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="某服务 Pod 频繁 OOMKilled 重启， readiness 探针失败引发滚动更新卡死，上游调用全部超时雪崩。">
+<title>记一次 K8s Pod OOMKilled 触发的服务雪崩</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/2025-07-02-%E4%B8%80%E6%AC%A1kubernetes-pod-oomkilled%E8%A7%A6%E5%8F%91%E6%9C%8D%E5%8A%A1%E9%9B%AA%E5%B4%A9%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次 K8s Pod OOMKilled 触发的服务雪崩">
+<meta property='og:description' content="某服务 Pod 频繁 OOMKilled 重启， readiness 探针失败引发滚动更新卡死，上游调用全部超时雪崩。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/2025-07-02-%E4%B8%80%E6%AC%A1kubernetes-pod-oomkilled%E8%A7%A6%E5%8F%91%E6%9C%8D%E5%8A%A1%E9%9B%AA%E5%B4%A9%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='容器运维' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='OOMKilled' /><meta property='article:tag' content='内存' /><meta property='article:tag' content='故障排查' /><meta property='article:published_time' content='2025-07-02T09:08:48&#43;00:00'/><meta property='article:modified_time' content='2025-07-02T09:08:48&#43;00:00'/>
+<meta name="twitter:title" content="记一次 K8s Pod OOMKilled 触发的服务雪崩">
+<meta name="twitter:description" content="某服务 Pod 频繁 OOMKilled 重启， readiness 探针失败引发滚动更新卡死，上游调用全部超时雪崩。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(274, 60%, 84%); color: hsl(274, 60%, 15%);">
+                容器运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/2025-07-02-%E4%B8%80%E6%AC%A1kubernetes-pod-oomkilled%E8%A7%A6%E5%8F%91%E6%9C%8D%E5%8A%A1%E9%9B%AA%E5%B4%A9%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">记一次 K8s Pod OOMKilled 触发的服务雪崩</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            某服务 Pod 频繁 OOMKilled 重启， readiness 探针失败引发滚动更新卡死，上游调用全部超时雪崩。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2025-07-02T09:08:48Z'>2025年7月2日星期三</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 4 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="一问题背景"><a href="#%e4%b8%80%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>一、问题背景
+</h2><p>我们的订单中心 <code>order-service</code> 跑在 Kubernetes 集群（v1.27，containerd 运行时）上，Deployment 配置 6 个副本，平时负载稳定，内存常驻约 600MB。该服务是交易链路的核心，下游由支付、库存等服务调用，上游又被 API 网关和多个内部业务系统依赖。</p>
+<p>某天上午，运营临时做了一个营销活动，订单量较平日上涨约 3 倍。活动开始约 20 分钟后，订单成功率告警触发。此时我们并未发版，纯属流量驱动的突发故障。集群节点规格为 8C16G，节点本身剩余内存充足，看起来不像是节点级资源问题。</p>
+<h2 id="二故障现象"><a href="#%e4%ba%8c%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>二、故障现象
+</h2><p>监控面板在 09:05 左右集中飘红：</p>
+<ul>
+<li><code>order-service</code> 的 <code>CrashLoopBackOff</code> 副本数从 0 涨到 4，6 个副本里一度只剩 2 个在 <code>Running</code>；</li>
+<li>上游 API 网关大量返回 504，<code>order-service</code> 调用超时率从 0.2% 升到 35%；</li>
+<li>订单创建成功率从 99.6% 跌到 58%，部分用户出现重复下单；</li>
+<li>滚动更新状态卡在 <code>Progressing</code>：新副本 <code>ready</code> 数量始终达不到 <code>minAvailable</code>，Deployment 既不成功也不回滚。</li>
+</ul>
+<p>最迷惑的是：节点 <code>kubectl top node</code> 显示内存还有 6G+ 空闲，但 Pod 就是不断重启。这说明问题出在 <strong>Pod 级别内存限制（limit）</strong>，而不是节点容量。</p>
+<h2 id="三排查过程"><a href="#%e4%b8%89%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>三、排查过程
+</h2><p>第一步，看 Pod 事件，直接命中关键字：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl describe pod order-service-7d9c8b6f4-xyz12
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>Last State:     Terminated
+</span></span><span style="display:flex;"><span>  Reason:       OOMKilled
+</span></span><span style="display:flex;"><span>  Exit Code:    <span style="color:#ae81ff">137</span>
+</span></span><span style="display:flex;"><span>Events:
+</span></span><span style="display:flex;"><span>  Type     Reason     Age   From               Message
+</span></span><span style="display:flex;"><span>  Warning  Unhealthy  2m    kubelet            Readiness probe failed: HTTP probe failed with statuscode: <span style="color:#ae81ff">503</span>
+</span></span><span style="display:flex;"><span>  Warning  BackOff    1m    kubelet            Back-off restarting failed container
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>Reason: OOMKilled</code> 和 <code>Exit Code: 137</code> 明确说明容器是被 cgroup 杀了——进程实际用量超过了 <code>memory limit</code>。</p>
+<p>第二步，看内存配置和真实用量：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl get deploy order-service -o jsonpath<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;{.spec.template.spec.containers[0].resources}&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">{</span><span style="color:#e6db74">&#34;limits&#34;</span>:<span style="color:#f92672">{</span><span style="color:#e6db74">&#34;memory&#34;</span>:<span style="color:#e6db74">&#34;1Gi&#34;</span><span style="color:#f92672">}</span>,<span style="color:#e6db74">&#34;requests&#34;</span>:<span style="color:#f92672">{</span><span style="color:#e6db74">&#34;cpu&#34;</span>:<span style="color:#e6db74">&#34;500m&#34;</span>,<span style="color:#e6db74">&#34;memory&#34;</span>:<span style="color:#e6db74">&#34;512Mi&#34;</span><span style="color:#f92672">}}</span>
+</span></span><span style="display:flex;"><span>$ kubectl top pod | grep order-service
+</span></span><span style="display:flex;"><span>order-service-7d9c8b6f4-abc 980Mi
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>limit 设了 1Gi，但流量上涨后 RSS 已逼近 980Mi，剩余空间几乎为 0。一旦有请求峰值或 GC 不及时，立刻越线被杀。</p>
+<p>第三步，确认是不是内存泄漏。拉取一个还没被杀的 Pod 的堆信息：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl exec order-service-xxx -- jmap -histo:live <span style="color:#ae81ff">1</span> | head -15
+</span></span><span style="display:flex;"><span> num     <span style="color:#75715e">#instances         #bytes  class name</span>
+</span></span><span style="display:flex;"><span>   1:        <span style="color:#ae81ff">420183</span>       <span style="color:#ae81ff">71234560</span>  java.util.concurrent.ConcurrentHashMap$Node
+</span></span><span style="display:flex;"><span>   2:        <span style="color:#ae81ff">318902</span>       <span style="color:#ae81ff">25512160</span>  com.xxx.OrderCacheEntry
+</span></span><span style="display:flex;"><span>   3:        <span style="color:#ae81ff">120033</span>       <span style="color:#ae81ff">14403960</span>  java.lang.String
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>OrderCacheEntry</code> 实例高达 31 万个且持续增长——这是一个本地订单缓存，使用 <code>ConcurrentHashMap</code> 但<strong>没有设置容量上限和过期策略</strong>，活动期间订单不断写入，缓存无限膨胀，导致内存只涨不落。</p>
+<p>第四步，解释&quot;雪崩&quot;链条。Pod 被 OOMKilled 后重启，重启期间 <code>readinessProbe</code> 在应用冷启动 + 缓存重建完成前一直返回 503，于是 Endpoint 不把流量切给它；而剩余存活副本要承接全部流量，内存进一步上涨，再次 OOMKilled——形成<strong>重启→探活失败→流量集中→再 OOM</strong>的死亡螺旋。滚动更新因为新副本始终 <code>ready</code> 不过半，卡死在 Progressing，无法自愈。</p>
+<h2 id="四解决方案"><a href="#%e5%9b%9b%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>四、解决方案
+</h2><p>应急（先止血）：</p>
+<ol>
+<li>立即调大 <code>memory limit</code> 到 2Gi、request 提到 1Gi，并临时把副本数扩到 12，分散单 Pod 压力，打破越线被杀的循环：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl scale deploy order-service --replicas<span style="color:#f92672">=</span><span style="color:#ae81ff">12</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>
+<p>给 <code>readinessProbe</code> 增加 <code>initialDelaySeconds: 30</code> 与更宽容的 <code>failureThreshold</code>，避免冷启动期被误判摘流（临时缓解，非根治）。</p>
+</li>
+<li>
+<p>紧急重启有泄漏风险的缓存：对 <code>OrderCacheEntry</code> 增加容量上限（LRU，最大 5 万条）+ TTL（10 分钟），重新发版。</p>
+</li>
+<li>
+<p>给 Deployment 配置 <code>minReadySeconds</code> 与 <code>progressDeadlineSeconds: 300</code>，并在探针上加 <code>startupProbe</code>，让冷启动阶段不被 readiness 误杀：</p>
+</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">startupProbe</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">httpGet</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">path</span>: <span style="color:#ae81ff">/health</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">port</span>: <span style="color:#ae81ff">8080</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">failureThreshold</span>: <span style="color:#ae81ff">30</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">periodSeconds</span>: <span style="color:#ae81ff">5</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>发版后副本稳定 <code>Running</code>，上游超时率 5 分钟内回落到 0.3%，订单成功率恢复到 99.4%。</p>
+<h2 id="五根因分析"><a href="#%e4%ba%94%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>五、根因分析
+</h2><p>根因是<strong>无界本地缓存导致的内存泄漏</strong>，在流量上涨时触顶 <code>memory limit</code> 被 cgroup OOMKilled。雪崩的放大器是两点：</p>
+<ul>
+<li><strong>readiness 探针在冷启动期误摘流</strong>：Pod 重启后缓存未预热完即被判定不健康，Endpoint 不接流量，存活副本承压更重。</li>
+<li><strong>滚动更新卡死</strong>：新副本始终达不到 ready 阈值，Deployment 既不能完成也不能自动回滚，故障窗口被人为拉长。</li>
+</ul>
+<p>节点有空余内存是假象——Kubernetes 的 OOM 是按 Pod cgroup 边界触发的，和节点总内存无关。</p>
+<h2 id="六预防措施"><a href="#%e5%85%ad%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>六、预防措施
+</h2><ol>
+<li>
+<p><strong>所有本地缓存必须有界</strong>：用 Caffeine/Guava Cache 显式设置 <code>maximumSize</code> 与 <code>expireAfterWrite</code>，禁止裸用 <code>ConcurrentHashMap</code> 当缓存。</p>
+</li>
+<li>
+<p><strong>内存 limit 留足 headroom</strong>：limit 不应紧贴常驻用量，建议 limit ≥ 常驻峰值 × 1.5，并配置 <code>requests</code> 与 <code>limits</code> 一致以避免被调度到紧张节点。</p>
+</li>
+<li>
+<p><strong>探针三件套合理配置</strong>：<code>startupProbe</code> 保护冷启动、<code>readinessProbe</code> 控制接流、<code>livenessProbe</code> 控制重启，三者职责分离，避免互相误伤。</p>
+</li>
+<li>
+<p><strong>设置 PodDisruptionBudget + progressDeadlineSeconds</strong>，配合告警，让滚动更新卡死能被及时发现并人工/自动干预。</p>
+</li>
+<li>
+<p><strong>内存监控与压测</strong>：对 <code>container_memory_working_set_bytes</code> 设 80% 告警，大促前按 3 倍流量做容量压测，提前暴露泄漏。</p>
+</li>
+</ol>
+<h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
+</h2><p>这次故障的教训是：<strong>Kubernetes 的 OOM 是 Pod 级的，不是节点级的</strong>。看到节点有内存就以为安全，是典型的认知陷阱。更深的坑在于 OOMKilled 与探针、滚动更新的耦合——单点重启会被链路放大成整服务雪崩。排查时 <code>kubectl describe pod</code> 里的 <code>Reason: OOMKilled</code> + <code>Exit Code 137</code> 是第一线索，再用 <code>jmap -histo:live</code> 定位泄漏对象。容器环境下，任何&quot;无限增长&quot;的本地状态都是隐患，给缓存设边界、给探针分职责、给更新加兜底，三者缺一不可。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/">容器运维</a>
+        
+            <a href="/tags/kubernetes/">Kubernetes</a>
+        
+            <a href="/tags/oomkilled/">OOMKilled</a>
+        
+            <a href="/tags/%E5%86%85%E5%AD%98/">内存</a>
+        
+            <a href="/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/">故障排查</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/2025-06-15-%E4%B8%80%E6%AC%A1%E5%85%AC%E7%BD%91dns%E8%A7%A3%E6%9E%90%E8%B6%85%E6%97%B6%E5%AF%BC%E8%87%B4cdn%E5%9B%9E%E6%BA%90%E5%A4%A7%E9%9D%A2%E7%A7%AF%E5%A4%B1%E8%B4%A5%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">公网 DNS 解析超时，CDN 回源为何大面积失败？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/2025-05-01-%E4%B8%80%E6%AC%A1%E5%9F%9F%E7%94%A8%E6%88%B7%E5%AF%86%E7%A0%81%E8%BF%87%E6%9C%9F%E5%AF%BC%E8%87%B4%E5%AE%9A%E6%97%B6%E5%90%8C%E6%AD%A5%E4%BB%BB%E5%8A%A1%E6%89%B9%E9%87%8F%E5%A4%B1%E8%B4%A5%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">域用户密码过期，定时同步任务为何批量失败？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/2025-03-11-%E4%B8%80%E6%AC%A1redis%E7%BC%93%E5%AD%98%E9%9B%AA%E5%B4%A9%E5%AF%BC%E8%87%B4%E7%A7%92%E6%9D%80%E6%8E%A5%E5%8F%A3%E5%A4%A7%E9%9D%A2%E7%A7%AF%E8%B6%85%E6%97%B6%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">秒杀接口大面积超时：Redis 缓存雪崩的定位与修复</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/2025-02-03-%E4%B8%80%E6%AC%A1%E6%A0%B8%E5%BF%83%E4%BA%A4%E6%8D%A2%E6%9C%BAstp%E6%A0%B9%E6%A1%A5%E6%8A%A2%E5%8D%A0%E5%BC%95%E5%8F%91%E5%B9%BF%E6%92%AD%E9%A3%8E%E6%9A%B4%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">核心交换机 STP 根桥被抢，广播风暴怎么来的？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/2025-01-13-%E4%B8%80%E6%AC%A1%E6%96%B0%E8%B4%AD%E7%AC%94%E8%AE%B0%E6%9C%AC%E5%87%BA%E5%8E%82%E7%B3%BB%E7%BB%9F%E6%97%A0%E6%B3%95%E5%8A%A0%E5%85%A5ad%E5%9F%9F%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">新购笔记本为何加不进 AD 域？出厂系统排障记</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

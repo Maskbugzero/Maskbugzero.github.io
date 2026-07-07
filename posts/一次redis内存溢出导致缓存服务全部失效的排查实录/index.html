@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="生产Redis实例因maxmemory配置不当，在业务高峰期内存耗尽后开始拒绝写入，上层应用缓存大面积穿透，数据库瞬间承压飙升。">
+<title>记一次 Redis 内存溢出、缓存服务全失效的排查</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/%E4%B8%80%E6%AC%A1redis%E5%86%85%E5%AD%98%E6%BA%A2%E5%87%BA%E5%AF%BC%E8%87%B4%E7%BC%93%E5%AD%98%E6%9C%8D%E5%8A%A1%E5%85%A8%E9%83%A8%E5%A4%B1%E6%95%88%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次 Redis 内存溢出、缓存服务全失效的排查">
+<meta property='og:description' content="生产Redis实例因maxmemory配置不当，在业务高峰期内存耗尽后开始拒绝写入，上层应用缓存大面积穿透，数据库瞬间承压飙升。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/%E4%B8%80%E6%AC%A1redis%E5%86%85%E5%AD%98%E6%BA%A2%E5%87%BA%E5%AF%BC%E8%87%B4%E7%BC%93%E5%AD%98%E6%9C%8D%E5%8A%A1%E5%85%A8%E9%83%A8%E5%A4%B1%E6%95%88%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Redis' /><meta property='article:tag' content='缓存' /><meta property='article:tag' content='服务运维' /><meta property='article:tag' content='内存管理' /><meta property='article:published_time' content='2023-02-22T15:30:00&#43;00:00'/><meta property='article:modified_time' content='2023-02-22T15:30:00&#43;00:00'/>
+<meta name="twitter:title" content="记一次 Redis 内存溢出、缓存服务全失效的排查">
+<meta name="twitter:description" content="生产Redis实例因maxmemory配置不当，在业务高峰期内存耗尽后开始拒绝写入，上层应用缓存大面积穿透，数据库瞬间承压飙升。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步确认-redis-状态">第一步：确认 Redis 状态</a></li>
+        <li><a href="#第二步分析内存占用">第二步：分析内存占用</a></li>
+        <li><a href="#第三步追溯大-key-的产生原因">第三步：追溯大 Key 的产生原因</a></li>
+        <li><a href="#第四步评估立即处理方案">第四步：评估立即处理方案</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#第一步临时修改淘汰策略不重启">第一步：临时修改淘汰策略（不重启）</a></li>
+        <li><a href="#第二步删除大-key避免直接-del防止阻塞">第二步：删除大 Key（避免直接 DEL，防止阻塞）</a></li>
+        <li><a href="#第三步截断积压-list">第三步：截断积压 List</a></li>
+        <li><a href="#第四步修正商品缓存设计">第四步：修正商品缓存设计</a></li>
+        <li><a href="#第五步修复消费者积压问题">第五步：修复消费者积压问题</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/%E4%B8%80%E6%AC%A1redis%E5%86%85%E5%AD%98%E6%BA%A2%E5%87%BA%E5%AF%BC%E8%87%B4%E7%BC%93%E5%AD%98%E6%9C%8D%E5%8A%A1%E5%85%A8%E9%83%A8%E5%A4%B1%E6%95%88%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">记一次 Redis 内存溢出、缓存服务全失效的排查</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            生产Redis实例因maxmemory配置不当，在业务高峰期内存耗尽后开始拒绝写入，上层应用缓存大面积穿透，数据库瞬间承压飙升。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2023-02-22T15:30:00Z'>2023年2月22日星期三</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步确认-redis-状态">第一步：确认 Redis 状态</a></li>
+        <li><a href="#第二步分析内存占用">第二步：分析内存占用</a></li>
+        <li><a href="#第三步追溯大-key-的产生原因">第三步：追溯大 Key 的产生原因</a></li>
+        <li><a href="#第四步评估立即处理方案">第四步：评估立即处理方案</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#第一步临时修改淘汰策略不重启">第一步：临时修改淘汰策略（不重启）</a></li>
+        <li><a href="#第二步删除大-key避免直接-del防止阻塞">第二步：删除大 Key（避免直接 DEL，防止阻塞）</a></li>
+        <li><a href="#第三步截断积压-list">第三步：截断积压 List</a></li>
+        <li><a href="#第四步修正商品缓存设计">第四步：修正商品缓存设计</a></li>
+        <li><a href="#第五步修复消费者积压问题">第五步：修复消费者积压问题</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>某业务大促活动开始后约 2 小时，监控告警系统收到大量告警：</p>
+<ul>
+<li>数据库（MySQL）慢查询数量骤增，P99 响应时间从 50ms 升至 8000ms</li>
+<li>部分 API 接口 5xx 错误率达到 15%</li>
+<li>Redis 实例的 <code>rejected_connections</code> 计数器快速增长</li>
+</ul>
+<p>业务团队紧急联系运维排查，此时活动已进入高峰期，影响用户体验，需要快速定位并修复。</p>
+<hr>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>Redis <code>INFO</code> 命令返回 <code>used_memory</code> 接近服务器总内存</li>
+<li>Redis 日志中出现大量 <code>OOM command not allowed when used memory &gt; 'maxmemory'</code> 错误</li>
+<li>应用日志中 Redis 写操作报错：<code>COMMAND NOT ALLOWED When Used Memory &gt; 'maxmemory'</code></li>
+<li>MySQL 慢查询日志急剧增多，大量查询耗时 5-10 秒</li>
+<li>部分服务接口响应超时，用户请求报 504</li>
+</ul>
+<hr>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="第一步确认-redis-状态"><a href="#%e7%ac%ac%e4%b8%80%e6%ad%a5%e7%a1%ae%e8%ae%a4-redis-%e7%8a%b6%e6%80%81" class="header-anchor"></a>第一步：确认 Redis 状态
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>redis-cli -h redis-prod-01 -p <span style="color:#ae81ff">6379</span> -a &lt;password&gt; INFO memory
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>关键输出：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>used_memory:8388557312          # 约 8GB
+</span></span><span style="display:flex;"><span>used_memory_human:7.81G
+</span></span><span style="display:flex;"><span>maxmemory:8589934592            # 8GB
+</span></span><span style="display:flex;"><span>maxmemory_human:8.00G
+</span></span><span style="display:flex;"><span>maxmemory_policy:noeviction     # ⚠️ 不淘汰策略
+</span></span><span style="display:flex;"><span>mem_fragmentation_ratio:1.23
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Redis 已用内存 7.81GB，最大内存限制 8GB，使用率 97.7%，几乎满了。</p>
+<p><strong>关键发现：<code>maxmemory_policy</code> 为 <code>noeviction</code></strong>，意味着当内存满时，Redis 不会主动淘汰任何键，而是直接拒绝所有写操作（包括 SET、HSET、LPUSH 等），返回 OOM 错误。</p>
+<h3 id="第二步分析内存占用"><a href="#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e5%88%86%e6%9e%90%e5%86%85%e5%ad%98%e5%8d%a0%e7%94%a8" class="header-anchor"></a>第二步：分析内存占用
+</h3><p>查看 Redis 内存使用详情：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>redis-cli -h redis-prod-01 -p <span style="color:#ae81ff">6379</span> -a &lt;password&gt; MEMORY DOCTOR
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出提示内存碎片率正常，但总体内存占用过高。</p>
+<p>使用 <code>DEBUG JMAP</code> 或 <code>redis-rdb-tools</code> 分析大 Key：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 扫描占用内存最多的 key（生产环境谨慎使用 KEYS，使用 SCAN 替代）</span>
+</span></span><span style="display:flex;"><span>redis-cli -h redis-prod-01 -p <span style="color:#ae81ff">6379</span> -a &lt;password&gt; --bigkeys
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>发现几个异常的大 Key：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>Biggest string found so far &#39;&#34;product:detail:cache:all&#34;&#39; with 524288000 bytes  # 500MB！
+</span></span><span style="display:flex;"><span>Biggest hash found so far &#39;&#34;user:session:hash&#34;&#39; with 1258291 fields
+</span></span><span style="display:flex;"><span>Biggest list found so far &#39;&#34;activity:log:queue&#34;&#39; with 2847593 elements
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong><code>product:detail:cache:all</code></strong> 这个 Key 存储了 500MB 的数据，这是一个&quot;全量商品缓存&quot;，是某开发同学为了提高商品详情接口性能，将全部商品数据序列化后存入一个 Redis Key 中。</p>
+<p><strong><code>activity:log:queue</code></strong> 是一个活动日志队列，因为消费者处理不及，积压了将近 300 万条记录。</p>
+<h3 id="第三步追溯大-key-的产生原因"><a href="#%e7%ac%ac%e4%b8%89%e6%ad%a5%e8%bf%bd%e6%ba%af%e5%a4%a7-key-%e7%9a%84%e4%ba%a7%e7%94%9f%e5%8e%9f%e5%9b%a0" class="header-anchor"></a>第三步：追溯大 Key 的产生原因
+</h3><p>通过查看应用代码和 Redis 写入监控，发现：</p>
+<ol>
+<li>
+<p><code>product:detail:cache:all</code>：大促前夕，开发同学为了&quot;预热缓存&quot;，写了一个脚本把全量商品（约 5 万个商品，每个商品序列化后约 10KB）存入一个 String Key。这个 Key 在大促当天被反复覆盖写入（每次预热都覆盖一次），每次写入耗时 2-3 秒，本身就是一个隐患。</p>
+</li>
+<li>
+<p><code>activity:log:queue</code>：活动期间消费者处理速度远低于生产速度，积压数百万条未处理的日志条目，占用了大量内存。</p>
+</li>
+</ol>
+<h3 id="第四步评估立即处理方案"><a href="#%e7%ac%ac%e5%9b%9b%e6%ad%a5%e8%af%84%e4%bc%b0%e7%ab%8b%e5%8d%b3%e5%a4%84%e7%90%86%e6%96%b9%e6%a1%88" class="header-anchor"></a>第四步：评估立即处理方案
+</h3><p>此时有几个选项：</p>
+<p><strong>方案 A：调大 maxmemory</strong>（临时方案）</p>
+<ul>
+<li>风险：服务器本身可用内存只有 12GB，Redis 已用约 8GB，系统还有其他进程，不建议调太高</li>
+<li>可临时调至 10GB，争取时间清理大 Key</li>
+</ul>
+<p><strong>方案 B：修改 maxmemory_policy 为 allkeys-lru</strong>（临时方案）</p>
+<ul>
+<li>让 Redis 自动淘汰最近最少使用的 Key</li>
+<li>风险：可能淘汰到重要的缓存数据，但好过直接拒绝写入</li>
+</ul>
+<p><strong>方案 C：立即删除大 Key</strong>（直接处理）</p>
+<ul>
+<li>删除大 String Key，释放 500MB 空间</li>
+<li>清空或截断积压 List</li>
+</ul>
+<p>综合评估后，选择<strong>先临时调整 maxmemory_policy，再清理大 Key，最后重新评估内存上限</strong>。</p>
+<hr>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><h3 id="第一步临时修改淘汰策略不重启"><a href="#%e7%ac%ac%e4%b8%80%e6%ad%a5%e4%b8%b4%e6%97%b6%e4%bf%ae%e6%94%b9%e6%b7%98%e6%b1%b0%e7%ad%96%e7%95%a5%e4%b8%8d%e9%87%8d%e5%90%af" class="header-anchor"></a>第一步：临时修改淘汰策略（不重启）
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>redis-cli -h redis-prod-01 -p <span style="color:#ae81ff">6379</span> -a &lt;password&gt; CONFIG SET maxmemory-policy allkeys-lru
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>修改后，Redis 开始主动淘汰冷数据，写操作不再被拒绝，应用侧错误率立即下降。</p>
+<h3 id="第二步删除大-key避免直接-del防止阻塞"><a href="#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e5%88%a0%e9%99%a4%e5%a4%a7-key%e9%81%bf%e5%85%8d%e7%9b%b4%e6%8e%a5-del%e9%98%b2%e6%ad%a2%e9%98%bb%e5%a1%9e" class="header-anchor"></a>第二步：删除大 Key（避免直接 DEL，防止阻塞）
+</h3><p>直接 <code>DEL</code> 一个 500MB 的 Key 会阻塞 Redis 主线程数秒。使用异步删除：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># Redis 4.0+ 支持 UNLINK 命令（异步删除）</span>
+</span></span><span style="display:flex;"><span>redis-cli -h redis-prod-01 -p <span style="color:#ae81ff">6379</span> -a &lt;password&gt; UNLINK <span style="color:#e6db74">&#34;product:detail:cache:all&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>UNLINK</code> 命令将 Key 的删除操作交给后台线程，主线程几乎无阻塞。</p>
+<h3 id="第三步截断积压-list"><a href="#%e7%ac%ac%e4%b8%89%e6%ad%a5%e6%88%aa%e6%96%ad%e7%a7%af%e5%8e%8b-list" class="header-anchor"></a>第三步：截断积压 List
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 保留最新的 10000 条，其余丢弃（或者清空）</span>
+</span></span><span style="display:flex;"><span>redis-cli -h redis-prod-01 -p <span style="color:#ae81ff">6379</span> -a &lt;password&gt; LTRIM <span style="color:#e6db74">&#34;activity:log:queue&#34;</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">9999</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="第四步修正商品缓存设计"><a href="#%e7%ac%ac%e5%9b%9b%e6%ad%a5%e4%bf%ae%e6%ad%a3%e5%95%86%e5%93%81%e7%bc%93%e5%ad%98%e8%ae%be%e8%ae%a1" class="header-anchor"></a>第四步：修正商品缓存设计
+</h3><p>与开发同学沟通，将&quot;全量商品缓存&quot;改为按商品 ID 分散存储：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>product:detail:{product_id}  →  单个商品数据（约 10KB/key）
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>并设置合理的 TTL（如 1 小时），避免永不过期。</p>
+<h3 id="第五步修复消费者积压问题"><a href="#%e7%ac%ac%e4%ba%94%e6%ad%a5%e4%bf%ae%e5%a4%8d%e6%b6%88%e8%b4%b9%e8%80%85%e7%a7%af%e5%8e%8b%e9%97%ae%e9%a2%98" class="header-anchor"></a>第五步：修复消费者积压问题
+</h3><p>扩容消费者实例数量（从 2 个扩到 8 个），加速消耗积压队列。</p>
+<hr>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>根本原因：<strong>缓存设计不合理 + maxmemory 策略配置错误</strong>。</p>
+<ol>
+<li>
+<p>将大量数据存入单个 Redis Key，是典型的大 Key 反模式，不仅占用大量内存，还会导致网络带宽和序列化/反序列化的额外开销。</p>
+</li>
+<li>
+<p>使用 <code>noeviction</code> 策略对于缓存场景来说是错误选择——它适用于数据不能丢失的持久化场景（如队列），但对于普通缓存应改用 <code>allkeys-lru</code> 或 <code>volatile-lru</code>。</p>
+</li>
+<li>
+<p>没有预估大促期间的内存需求，也没有设置合理的内存告警阈值（应在 80% 时告警）。</p>
+</li>
+</ol>
+<hr>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><p><strong>1. Redis 内存监控告警</strong></p>
+<p>在 80% 使用率时告警，90% 时紧急告警，不等到 OOM 再处理。</p>
+<p><strong>2. 大 Key 定期扫描</strong></p>
+<p>通过 <code>redis-cli --bigkeys</code> 或 <code>redis-rdb-tools</code> 分析 RDB 文件，定期检查大 Key：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 分析 RDB 文件（离线分析，不影响线上）</span>
+</span></span><span style="display:flex;"><span>rdb --command memory dump.rdb | sort -rn -k3 | head -20
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>3. 禁止大 Key 设计规范</strong></p>
+<p>在代码规范中明确：单个 Redis Key 的 Value 大小不超过 1MB，List/Hash/Set 的元素数量不超过 5000。</p>
+<p><strong>4. 缓存淘汰策略合理化</strong></p>
+<p>纯缓存场景统一使用 <code>allkeys-lru</code>，结合 TTL 管理数据生命周期。</p>
+<p><strong>5. 生产变更前做容量评估</strong></p>
+<p>大促类活动前，评估 Redis 内存峰值需求，提前扩容。</p>
+<hr>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这次事故表明，Redis 的配置和使用规范同样需要纳入代码审查流程。一个大 Key、一个错误的淘汰策略，在平时可能不显眼，但到了业务高峰期就会变成定时炸弹。</p>
+<p>对于 Redis 运维，除了关注可用性，还要重点关注<strong>大 Key、热 Key、内存使用率、慢查询</strong>这四个维度，建立起常态化的监控和审计机制。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/redis/">Redis</a>
+        
+            <a href="/tags/%E7%BC%93%E5%AD%98/">缓存</a>
+        
+            <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/">服务运维</a>
+        
+            <a href="/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/">内存管理</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1elasticsearch%E9%9B%86%E7%BE%A4red%E7%8A%B6%E6%80%81%E5%AF%BC%E8%87%B4%E6%90%9C%E7%B4%A2%E6%9C%8D%E5%8A%A1%E4%B8%8D%E5%8F%AF%E7%94%A8%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">ES 集群变 Red，搜索服务怎么就不可用了？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1vmware-esxi%E4%B8%BB%E6%9C%BA%E7%B4%AB%E5%B1%8F%E5%AE%95%E6%9C%BA%E7%9A%84%E6%8E%92%E6%9F%A5%E4%B8%8E%E6%81%A2%E5%A4%8D%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">VMware ESXi 紫屏宕机：排查与恢复实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1nginx%E5%8F%8D%E5%90%91%E4%BB%A3%E7%90%86%E9%85%8D%E7%BD%AE%E9%94%99%E8%AF%AF%E5%AF%BC%E8%87%B4%E4%B8%8A%E4%BC%A0%E6%96%87%E4%BB%B6%E5%A4%A7%E5%B0%8F%E9%99%90%E5%88%B6%E5%A4%B1%E6%95%88%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Nginx 反代配错，上传文件大小限制为何失效？</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

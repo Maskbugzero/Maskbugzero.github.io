@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="新接入接入交换机后全网卡顿，端口指示灯疯狂闪烁，定位为非法交换机优先级引发STP根桥抢占形成环路广播风暴。">
+<title>核心交换机 STP 根桥被抢，广播风暴怎么来的？</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/2025-02-03-%E4%B8%80%E6%AC%A1%E6%A0%B8%E5%BF%83%E4%BA%A4%E6%8D%A2%E6%9C%BAstp%E6%A0%B9%E6%A1%A5%E6%8A%A2%E5%8D%A0%E5%BC%95%E5%8F%91%E5%B9%BF%E6%92%AD%E9%A3%8E%E6%9A%B4%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="核心交换机 STP 根桥被抢，广播风暴怎么来的？">
+<meta property='og:description' content="新接入接入交换机后全网卡顿，端口指示灯疯狂闪烁，定位为非法交换机优先级引发STP根桥抢占形成环路广播风暴。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/2025-02-03-%E4%B8%80%E6%AC%A1%E6%A0%B8%E5%BF%83%E4%BA%A4%E6%8D%A2%E6%9C%BAstp%E6%A0%B9%E6%A1%A5%E6%8A%A2%E5%8D%A0%E5%BC%95%E5%8F%91%E5%B9%BF%E6%92%AD%E9%A3%8E%E6%9A%B4%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='网络运维' /><meta property='article:tag' content='STP' /><meta property='article:tag' content='广播风暴' /><meta property='article:tag' content='交换机' /><meta property='article:tag' content='故障排查' /><meta property='article:published_time' content='2025-02-03T13:26:40&#43;00:00'/><meta property='article:modified_time' content='2025-02-03T13:26:40&#43;00:00'/>
+<meta name="twitter:title" content="核心交换机 STP 根桥被抢，广播风暴怎么来的？">
+<meta name="twitter:description" content="新接入接入交换机后全网卡顿，端口指示灯疯狂闪烁，定位为非法交换机优先级引发STP根桥抢占形成环路广播风暴。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
+                网络运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/2025-02-03-%E4%B8%80%E6%AC%A1%E6%A0%B8%E5%BF%83%E4%BA%A4%E6%8D%A2%E6%9C%BAstp%E6%A0%B9%E6%A1%A5%E6%8A%A2%E5%8D%A0%E5%BC%95%E5%8F%91%E5%B9%BF%E6%92%AD%E9%A3%8E%E6%9A%B4%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">核心交换机 STP 根桥被抢，广播风暴怎么来的？</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            新接入接入交换机后全网卡顿，端口指示灯疯狂闪烁，定位为非法交换机优先级引发STP根桥抢占形成环路广播风暴。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2025-02-03T13:26:40Z'>2025年2月3日星期一</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="一问题背景"><a href="#%e4%b8%80%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>一、问题背景
+</h2><p>公司园区网采用典型三层架构：核心层一台华为 S7706（以下简称 CORE）作为 STP 根桥，汇聚层两台 S5730，接入层大量 S5731 接入交换机，全网联一、二层均启用 MSTP（多生成树）。根桥 CORE 上通过 <code>stp root primary</code> 设定为最优根，优先级 0（实际显示为 0/4096，按实例计），确保生成树拓扑稳定。</p>
+<p>节后复工第一天，行政楼 3 层新扩了 12 个工位，施工方临时搬来一台华为 S1730S 傻瓜型可网管交换机（以下简称 NEW）用于补点。该交换机按惯例应作为接入层叶子节点挂到现有接入交换机下，不配置 STP 优先级（用默认 32768），乖乖当阻塞端口的下游即可。中午 13 点左右，行政楼整层及相邻的 2、4 层陆续出现网络卡顿、视频会议花屏、部分工位甚至拿不到 IP。</p>
+<h2 id="二故障现象"><a href="#%e4%ba%8c%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>二、故障现象
+</h2><p>现场观察与监控告警汇总如下：</p>
+<ol>
+<li>行政楼 2/3/4 层用户大面积反馈“网页打开慢、钉钉转圈、共享文件夹访问超时”，但核心业务系统（位于数据中心）偶发可达，整体是“时通时断”的严重劣化，而非完全断网。</li>
+<li>登上汇聚交换机 <code>display interface brief</code>，发现多个上联口入方向带宽长期 90%+，且 <code>Broadcast</code> 计数每秒几万包疯涨：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>Interface                  PHY   Protocol  InUti  OutUti  Broadcast(pps)
+</span></span><span style="display:flex;"><span>GE0/0/24                   up    up        98%    95%     42000
+</span></span><span style="display:flex;"><span>GE0/0/23                   up    up        97%    92%     39000
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>接入交换机面板端口指示灯呈“集体疯狂闪烁”状态，典型广播风暴特征。</li>
+<li>网管平台 Zabbix 触发 <code>High Broadcast Ratio</code> 与 <code>STP Topology Change</code> 告警，且 <code>Topology Change Count</code> 在几分钟内从 0 涨到 600+，说明生成树在频繁震荡重算。</li>
+</ol>
+<h2 id="三排查过程"><a href="#%e4%b8%89%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>三、排查过程
+</h2><p>广播风暴 + 拓扑频繁变更，基本锁定在二层环路或 STP 异常，按“先抑制、再定位”的思路推进。</p>
+<ol>
+<li>先登录核心 CORE，查看当前根桥是否还是自己：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>display stp
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>-------[CIST Global Info][Mode MSTP]-------
+</span></span><span style="display:flex;"><span>Protocol Status       : Enabled
+</span></span><span style="display:flex;"><span>Bridge Priority       : 0
+</span></span><span style="display:flex;"><span>Root Bridge ID        : 4c1f-ccxx-xxxx
+</span></span><span style="display:flex;"><span>Root Cost             : 0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>Root Bridge ID</code> 的 MAC 不是 CORE 自己的桥 MAC，而是 <code>4c1f-cc...</code>，说明根桥被别人抢走了！本应是自己（Cost 0、自己就是根），现在 Root Cost 仍是 0 只是因为命令行显示的是“到根的开销”，需要进一步比对。</p>
+<ol start="2">
+<li>精确查看根桥身份：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>display stp root
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>Root Bridge ID   : 4c1f-cc12-3456
+</span></span><span style="display:flex;"><span>Root Bridge Cost : 0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>4c1f-cc12-3456</code> 经 MAC 前缀查询是华为 S1700 系列，正是那台新搬来的 NEW 交换机！它成了根桥。</p>
+<ol start="3">
+<li>查看 NEW 的 STP 优先级：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>display stp | include Bridge Priority
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在 NEW 上回显 <code>Bridge Priority : 0</code>（被施工方误设为 <code>stp priority 0</code> 或 <code>stp root primary</code> 想“保证稳定”），优先级高于 CORE，于是 STP 重新选举，NEW 抢占根桥。</p>
+<ol start="4">
+<li>根桥漂移后，原稳定拓扑被推翻， NEW 与周边交换机之间形成次优路径且出现临时环路窗口，广播帧在环路中无限泛洪，形成广播风暴。再查拓扑变更：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>display stp topology-change
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>Topology Change Count : 612
+</span></span><span style="display:flex;"><span>Last Topo Change Time : 2025-02-03 13:02:11
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>与告警时间吻合，确认 NEW 接入是触发点。</p>
+<h2 id="四解决方案"><a href="#%e5%9b%9b%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>四、解决方案
+</h2><p>目标是让 CORE 恢复根桥、消除环路、压制风暴。</p>
+<ol>
+<li>应急抑制：在汇聚/核心上临时对上联接入口开启广播抑制，先止血，避免风暴蔓延：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>interface GigabitEthernet0/0/24
+</span></span><span style="display:flex;"><span> storm-control broadcast min-rate <span style="color:#ae81ff">1000</span> max-rate <span style="color:#ae81ff">5000</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>纠正根桥：将 NEW 的 STP 优先级改回默认，并取消其抢占设置：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>system-view
+</span></span><span style="display:flex;"><span>stp priority <span style="color:#ae81ff">32768</span>
+</span></span><span style="display:flex;"><span>undo stp root
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>强制 CORE 重新稳坐根桥（双保险）：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>system-view
+</span></span><span style="display:flex;"><span>stp root primary
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="4">
+<li>
+<p>等待 STP 重新收敛后，再次 <code>display stp root</code>，根桥 MAC 变回 CORE，<code>Topology Change Count</code> 停止增长，端口 Broadcast pps 回落到个位数，用户网络在 3 分钟内恢复。</p>
+</li>
+<li>
+<p>事后复盘：NEW 作为临时补点本应只做接入，施工方却顺手配了根桥优先级。已要求所有接入层设备出厂/入场前统一刷标准配置模板，禁止任何非核心设备设置 <code>stp root</code> 或优先级低于 8192。</p>
+</li>
+</ol>
+<h2 id="五根因分析"><a href="#%e4%ba%94%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>五、根因分析
+</h2><p>根因是 NEW 交换机被错误配置了 STP 优先级 0（等价于 <code>stp root primary</code>），使其桥优先级高于原根桥 CORE。MSTP 选举根桥时比较“桥优先级 + MAC”，优先级数值越小越优，0 优于 CORE 的 4096（显示值），于是 NEW 被选举为新的根桥。</p>
+<p>根桥变更触发全网生成树重算：大量端口角色/状态翻转（根端口、指定端口、阻塞端口重新分配），在收敛的过渡窗口内，本应阻塞的冗余链路短暂进入转发态，与既有物理连线构成二层环路。广播帧、未知单播帧在环路中反复泛洪且无法 TTL 终结，迅速演变为广播风暴，表现为端口灯狂闪、Broadcast pps 爆表、终端卡顿断网。拓扑每次震荡又产生新的 TC（Topology Change）报文，进一步加剧不稳定，形成“变更—环路—风暴—再变更”的恶性循环，直到根桥归位、环路消除才停止。</p>
+<h2 id="六预防措施"><a href="#%e5%85%ad%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>六、预防措施
+</h2><ol>
+<li>根桥保护（Root Protection）：在所有的接入交换机上联口配置 <code>stp root-protection</code>，一旦收到更优 BPDU 直接将该口置为 <code>root-inconsistent</code>（丢弃）状态，从协议层面杜绝下级设备抢占根桥。</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>interface GigabitEthernet0/0/1
+</span></span><span style="display:flex;"><span> stp root-protection
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>BPDU 保护（BPDU Protection）：在连接终端/临时设备的边缘端口开启 <code>stp edged-port enable</code> 并全局 <code>stp bpdu-protection</code>，收到 BPDU 立即 shutdown 边缘口，防止私接设备扰乱生成树。</li>
+<li>标准配置模板 + 入场审计：所有交换机（含临时补点）入场前必须刷公司标准模板，模板中明确禁止设置 <code>stp root</code> 与低优先级，并由网络组验收后方可上线。</li>
+<li>环路防护与 TC 防护：开启 <code>loop-protection</code> 与 <code>tc-protection</code>，限制单位时间 TC 报文处理速率，避免频繁重算拖垮 CPU。</li>
+<li>监控加固：在 Zabbix 对 <code>Topology Change Count</code>、<code>Broadcast pps</code>、端口利用率设阈值告警，争取在风暴成形前发现。</li>
+</ol>
+<h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
+</h2><p>这起广播风暴的根因不在“环路本身”，而在“根桥被抢”——一台被误配优先级的临时交换机颠覆了整网生成树，收敛窗口里出现的瞬时环路才是风暴的直接推手。排查关键在于第一时间 <code>display stp root</code> 比对根桥 MAC，发现身份异常便知有人抢桥。最该记住的教训是：STP 不能只靠“约定”，必须用 <code>root-protection</code>、<code>bpdu-protection</code> 等协议机制把根桥和边缘口钉死，再配合标准模板与入场审计，才能避免“好心配置”变成全网故障。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/">网络运维</a>
+        
+            <a href="/tags/stp/">STP</a>
+        
+            <a href="/tags/%E5%B9%BF%E6%92%AD%E9%A3%8E%E6%9A%B4/">广播风暴</a>
+        
+            <a href="/tags/%E4%BA%A4%E6%8D%A2%E6%9C%BA/">交换机</a>
+        
+            <a href="/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/">故障排查</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1%E6%A0%B8%E5%BF%83%E4%BA%A4%E6%8D%A2%E6%9C%BAstp%E9%A3%8E%E6%9A%B4%E5%AF%BC%E8%87%B4%E5%85%A8%E6%A5%BC%E7%BD%91%E7%BB%9C%E7%98%AB%E7%97%AA%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">核心交换机 STP 风暴，全楼网络为何瘫痪？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1arp%E6%AC%BA%E9%AA%97%E6%94%BB%E5%87%BB%E5%AF%BC%E8%87%B4%E6%A5%BC%E5%B1%82%E7%BD%91%E7%BB%9C%E9%97%B4%E6%AD%87%E6%80%A7%E6%96%AD%E7%BD%91%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 ARP 欺骗攻击导致的楼层网络间歇断网</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1%E6%A0%B8%E5%BF%83%E4%BA%A4%E6%8D%A2%E6%9C%BA%E9%93%BE%E8%B7%AF%E8%81%9A%E5%90%88lacp%E5%8D%8F%E5%95%86%E5%A4%B1%E8%B4%A5%E5%AF%BC%E8%87%B4%E7%BD%91%E7%BB%9C%E5%B8%A6%E5%AE%BD%E9%AA%A4%E9%99%8D%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次核心交换机 LACP 协商失败致带宽骤降</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/2025-01-13-%E4%B8%80%E6%AC%A1%E6%96%B0%E8%B4%AD%E7%AC%94%E8%AE%B0%E6%9C%AC%E5%87%BA%E5%8E%82%E7%B3%BB%E7%BB%9F%E6%97%A0%E6%B3%95%E5%8A%A0%E5%85%A5ad%E5%9F%9F%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">新购笔记本为何加不进 AD 域？出厂系统排障记</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1fortigate%E7%AD%96%E7%95%A5%E5%8F%98%E6%9B%B4%E5%AF%BC%E8%87%B4%E5%88%86%E6%94%AF%E6%9C%BA%E6%9E%84ipsec-vpn%E9%9A%A7%E9%81%93%E5%85%A8%E9%83%A8%E4%B8%AD%E6%96%AD%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">FortiGate 策略变更致分支机构 VPN 隧道全断的复盘</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

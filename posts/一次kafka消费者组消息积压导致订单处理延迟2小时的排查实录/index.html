@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="问题背景\r公司订单处理中心采用 Kafka 作为消息中间件，上游订单服务将新订单写入 Topic order-events（16 分区），下游 3 个消费者服务（订单处理、库存扣减、通知推送）共用同一个消费者组 order-processor-group。日均消息量约 50 万条，正常 lag &lt; 200。\n">
-<title>一次Kafka消费者组消息积压导致订单处理延迟2小时的排查实录</title>
+<title>Kafka 消费者组积压，订单为何延迟两小时才处理？</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/%E4%B8%80%E6%AC%A1kafka%E6%B6%88%E8%B4%B9%E8%80%85%E7%BB%84%E6%B6%88%E6%81%AF%E7%A7%AF%E5%8E%8B%E5%AF%BC%E8%87%B4%E8%AE%A2%E5%8D%95%E5%A4%84%E7%90%86%E5%BB%B6%E8%BF%9F2%E5%B0%8F%E6%97%B6%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次Kafka消费者组消息积压导致订单处理延迟2小时的排查实录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Kafka 消费者组积压，订单为何延迟两小时才处理？">
 <meta property='og:description' content="问题背景\r公司订单处理中心采用 Kafka 作为消息中间件，上游订单服务将新订单写入 Topic order-events（16 分区），下游 3 个消费者服务（订单处理、库存扣减、通知推送）共用同一个消费者组 order-processor-group。日均消息量约 50 万条，正常 lag &lt; 200。\n">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/%E4%B8%80%E6%AC%A1kafka%E6%B6%88%E8%B4%B9%E8%80%85%E7%BB%84%E6%B6%88%E6%81%AF%E7%A7%AF%E5%8E%8B%E5%AF%BC%E8%87%B4%E8%AE%A2%E5%8D%95%E5%A4%84%E7%90%86%E5%BB%B6%E8%BF%9F2%E5%B0%8F%E6%97%B6%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kafka' /><meta property='article:tag' content='消息队列' /><meta property='article:tag' content='消费积压' /><meta property='article:tag' content='反序列化' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2024-10-11T18:20:00&#43;00:00'/><meta property='article:modified_time' content='2024-10-11T18:20:00&#43;00:00'/>
-<meta name="twitter:title" content="一次Kafka消费者组消息积压导致订单处理延迟2小时的排查实录">
+<meta name="twitter:title" content="Kafka 消费者组积压，订单为何延迟两小时才处理？">
 <meta name="twitter:description" content="问题背景\r公司订单处理中心采用 Kafka 作为消息中间件，上游订单服务将新订单写入 Topic order-events（16 分区），下游 3 个消费者服务（订单处理、库存扣减、通知推送）共用同一个消费者组 order-processor-group。日均消息量约 50 万条，正常 lag &lt; 200。\n">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -280,7 +280,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/%E4%B8%80%E6%AC%A1kafka%E6%B6%88%E8%B4%B9%E8%80%85%E7%BB%84%E6%B6%88%E6%81%AF%E7%A7%AF%E5%8E%8B%E5%AF%BC%E8%87%B4%E8%AE%A2%E5%8D%95%E5%A4%84%E7%90%86%E5%BB%B6%E8%BF%9F2%E5%B0%8F%E6%97%B6%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">一次Kafka消费者组消息积压导致订单处理延迟2小时的排查实录</a>
+            <a href="/posts/%E4%B8%80%E6%AC%A1kafka%E6%B6%88%E8%B4%B9%E8%80%85%E7%BB%84%E6%B6%88%E6%81%AF%E7%A7%AF%E5%8E%8B%E5%AF%BC%E8%87%B4%E8%AE%A2%E5%8D%95%E5%A4%84%E7%90%86%E5%BB%B6%E8%BF%9F2%E5%B0%8F%E6%97%B6%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">Kafka 消费者组积压，订单为何延迟两小时才处理？</a>
         </h2>
     
         
@@ -595,22 +595,22 @@
             
                 
 <article class="">
-    <a href="/posts/671a045a/">
+    <a href="/posts/%E4%B8%80%E6%AC%A1ssl%E8%AF%81%E4%B9%A6%E8%BF%87%E6%9C%9F%E5%AF%BC%E8%87%B4%E5%86%85%E7%BD%91https%E6%9C%8D%E5%8A%A1%E5%85%A8%E9%9D%A2%E4%B8%AD%E6%96%AD%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
         
 
         <div class="article-details">
-            <h2 class="article-title">一次SSL证书过期导致内网HTTPS服务全面中断的排查实录</h2>
+            <h2 class="article-title">记一次 SSL 证书过期致内网 HTTPS 全面中断</h2>
         </div>
     </a>
 </article>
             
                 
 <article class="">
-    <a href="/posts/9eb92141/">
+    <a href="/posts/%E4%B8%80%E6%AC%A1docker%E5%AE%B9%E5%99%A8oom%E5%BC%95%E5%8F%91%E7%9A%84%E6%9C%8D%E5%8A%A1%E9%9B%AA%E5%B4%A9%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
         
 
         <div class="article-details">
-            <h2 class="article-title">一次Docker容器OOM引发的服务雪崩排查实录</h2>
+            <h2 class="article-title">Docker 容器 OOM，服务雪崩是怎么炸开的？</h2>
         </div>
     </a>
 </article>
@@ -621,18 +621,18 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次GitLab Runner并发构建导致宿主机CPU过载的排查实录</h2>
+            <h2 class="article-title">记一次 GitLab Runner 并发构建压垮宿主机的排查</h2>
         </div>
     </a>
 </article>
             
                 
 <article class="">
-    <a href="/posts/81929d4d/">
+    <a href="/posts/%E4%B8%80%E6%AC%A1k8s%E8%8A%82%E7%82%B9%E7%A3%81%E7%9B%98%E5%8E%8B%E5%8A%9B%E5%AF%BC%E8%87%B4pod%E6%89%B9%E9%87%8F%E9%A9%B1%E9%80%90%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
         
 
         <div class="article-details">
-            <h2 class="article-title">一次K8s节点磁盘压力导致Pod批量驱逐的排查实录</h2>
+            <h2 class="article-title">K8s 节点磁盘压力致 Pod 批量驱逐的定位</h2>
         </div>
     </a>
 </article>
@@ -643,7 +643,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次MySQL主从复制延迟导致报表数据差异过大的排查实录</h2>
+            <h2 class="article-title">MySQL 主从延迟致报表数据差异过大：定位与修复</h2>
         </div>
     </a>
 </article>

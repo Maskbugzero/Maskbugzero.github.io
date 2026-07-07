@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="域用户密码策略到期未改，导致跑在该账号下的跨部门数据同步定时任务凌晨集体失败。">
+<title>域用户密码过期，定时同步任务为何批量失败？</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/2025-05-01-%E4%B8%80%E6%AC%A1%E5%9F%9F%E7%94%A8%E6%88%B7%E5%AF%86%E7%A0%81%E8%BF%87%E6%9C%9F%E5%AF%BC%E8%87%B4%E5%AE%9A%E6%97%B6%E5%90%8C%E6%AD%A5%E4%BB%BB%E5%8A%A1%E6%89%B9%E9%87%8F%E5%A4%B1%E8%B4%A5%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="域用户密码过期，定时同步任务为何批量失败？">
+<meta property='og:description' content="域用户密码策略到期未改，导致跑在该账号下的跨部门数据同步定时任务凌晨集体失败。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/2025-05-01-%E4%B8%80%E6%AC%A1%E5%9F%9F%E7%94%A8%E6%88%B7%E5%AF%86%E7%A0%81%E8%BF%87%E6%9C%9F%E5%AF%BC%E8%87%B4%E5%AE%9A%E6%97%B6%E5%90%8C%E6%AD%A5%E4%BB%BB%E5%8A%A1%E6%89%B9%E9%87%8F%E5%A4%B1%E8%B4%A5%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='服务运维' /><meta property='article:tag' content='AD域' /><meta property='article:tag' content='密码过期' /><meta property='article:tag' content='定时任务' /><meta property='article:tag' content='故障排查' /><meta property='article:published_time' content='2025-05-01T11:33:54&#43;00:00'/><meta property='article:modified_time' content='2025-05-01T11:33:54&#43;00:00'/>
+<meta name="twitter:title" content="域用户密码过期，定时同步任务为何批量失败？">
+<meta name="twitter:description" content="域用户密码策略到期未改，导致跑在该账号下的跨部门数据同步定时任务凌晨集体失败。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/2025-05-01-%E4%B8%80%E6%AC%A1%E5%9F%9F%E7%94%A8%E6%88%B7%E5%AF%86%E7%A0%81%E8%BF%87%E6%9C%9F%E5%AF%BC%E8%87%B4%E5%AE%9A%E6%97%B6%E5%90%8C%E6%AD%A5%E4%BB%BB%E5%8A%A1%E6%89%B9%E9%87%8F%E5%A4%B1%E8%B4%A5%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">域用户密码过期，定时同步任务为何批量失败？</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            域用户密码策略到期未改，导致跑在该账号下的跨部门数据同步定时任务凌晨集体失败。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2025-05-01T11:33:54Z'>2025年5月1日星期四</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 4 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="一问题背景"><a href="#%e4%b8%80%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>一、问题背景
+</h2><p>我们部门维护着一套跨部门数据同步平台，负责把 ERP、CRM、WMS 三个业务系统的增量数据，在每天凌晨 01:00 统一抽取、清洗后写入数据仓库。平台跑在 6 台 Linux 应用服务器上，调度由一台独立的 cron 主机负责。出于统一身份管理的考虑，这 6 台机器和 cron 主机都加域（Active Directory），同步脚本通过域用户 <code>svc-sync</code> 运行，该账号由安全团队统一纳管，强制 90 天改密。</p>
+<p>这个账号已经稳定运行了快一年。问题发生在 2025 年 5 月 1 日凌晨，恰逢五一假期，绝大多数同事在家，告警却准时在 01:05 炸了。</p>
+<h2 id="二故障现象"><a href="#%e4%ba%8c%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>二、故障现象
+</h2><p>凌晨 01:05，企业微信告警群连续收到 6 条 &ldquo;数据同步任务失败&rdquo; 的告警，全部来自 6 台应用服务器。打开监控面板，发现以下现象：</p>
+<ol>
+<li>所有同步任务都在获取源数据连接阶段就失败，没有一条进入清洗环节；</li>
+<li>失败时间高度集中在 01:00–01:03，与 cron 触发时间吻合；</li>
+<li>白天手动用 <code>svc-sync</code> 登录任一节点测试 SSH，提示密码错误；</li>
+<li>应用自身进程（如常驻的数据清洗守护进程）正常，只是&quot;由 cron 拉起的脚本&quot;失败。</li>
+</ol>
+<p>更奇怪的是，前一日（4 月 30 日）白天的手动同步回放测试一切正常，问题只出现在&quot;定时自动跑&quot;的场景，让人第一反应是 cron 配置被改了。</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span># 01:02 收到的部分告警原文
+</span></span><span style="display:flex;"><span>[CRIT] job=sync_erp  exit=1  host=app-01  msg=source connect failed: Authentication failed
+</span></span><span style="display:flex;"><span>[CRIT] job=sync_crm  exit=1  host=app-02  msg=source connect failed: Authentication failed
+</span></span><span style="display:flex;"><span>[CRIT] job=sync_wms  exit=1  host=app-03  msg=source connect failed: Authentication failed
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="三排查过程"><a href="#%e4%b8%89%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>三、排查过程
+</h2><p><strong>第一步：确认 cron 是否执行。</strong> 登录 cron 主机，查看 <code>/var/log/cron</code>，任务确实在 01:00 被拉起，排除&quot;任务没触发&quot;的可能。</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>grep <span style="color:#e6db74">&#34;sync&#34;</span> /var/log/cron | grep <span style="color:#e6db74">&#34;May  1&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># May  1 01:00:01 cron (svc-sync) CMD (/opt/sync/run_all.sh)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>第二步：缩小到认证环节。</strong> 手动以 <code>svc-sync</code> 身份执行脚本：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo -u svc-sync /opt/sync/run_all.sh
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># ERROR 1045 (28000): Access denied for user &#39;svc_sync&#39;@&#39;app-01&#39; (using password: YES)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>但数据库里这个账号的密码没变过，说明不是数据库侧问题，而是本地用什么凭据去连。脚本通过 <code>kinit</code> 拿 TGT 后再用 Kerberos 委托访问各系统。</p>
+<p><strong>第三步：检查域账号状态。</strong> 在域控上用 <code>Get-ADUser</code> 查看：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span>Get-ADUser svc-sync -Properties PasswordExpired,PasswordLastSet,AccountExpirationDate | fl
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># PasswordExpired     : True</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># PasswordLastSet     : 2025-02-01 01:18:33</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 计算 90 天后 = 2025-05-02，但策略在 5/1 凌晨缓存刷新即生效</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>账号 <code>PasswordExpired</code> 已经是 <code>True</code>。由于 4 月 30 日的手动测试用的是白天已缓存的 TGT，而 5 月 1 日 cron 拉起时票据缓存已过期、重新 <code>kinit</code> 因密码过期直接失败，脚本拿不到新票据，于是连接各系统时报认证失败。</p>
+<p><strong>第四步：定位为何白天没发现。</strong> 该账号密码过期没有邮件提醒，且 <code>svc-sync</code> 是服务账号，不在普通用户的&quot;密码到期前 14 天提醒&quot;流程里；值班同学假期前没做账号巡检。</p>
+<h2 id="四解决方案"><a href="#%e5%9b%9b%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>四、解决方案
+</h2><p>紧急恢复分为两步：</p>
+<ol>
+<li><strong>重置密码并解锁账号</strong>（在域控执行）：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span>Set-ADAccountPassword svc-sync -Reset -NewPassword (ConvertTo-SecureString <span style="color:#e6db74">&#34;NewP@ssw0rd2025&#34;</span> -AsPlainText -Force)
+</span></span><span style="display:flex;"><span>Set-ADAccountControl svc-sync -PasswordNeverExpires $false
+</span></span><span style="display:flex;"><span>Unlock-ADAccount svc-sync
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li><strong>统一更新所有节点的凭据缓存</strong>。将新密码写入各节点的 keytab 与凭据文件，并重新生成 keytab：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 在域控用 ktpass 重新生成</span>
+</span></span><span style="display:flex;"><span>ktpass /out svc-sync.keytab /princ svc-sync@CORP.LOCAL /mapuser svc-sync /pass <span style="color:#e6db74">&#34;NewP@ssw0rd2025&#34;</span> /crypto ALL /ptype KRB5_NT_PRINCIPAL
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 分发到 6 台节点后</span>
+</span></span><span style="display:flex;"><span>kinit -kt /etc/sync/svc-sync.keytab svc-sync@CORP.LOCAL
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li><strong>补跑 5 月 1 日数据</strong>：由于没有进入清洗环节，直接重跑 <code>run_all.sh</code>，全部成功，数据无遗漏。</li>
+</ol>
+<h2 id="五根因分析"><a href="#%e4%ba%94%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>五、根因分析
+</h2><p>根因是<strong>服务账号密码过期策略与定时任务的耦合缺乏监控</strong>：</p>
+<ul>
+<li>安全团队对 <code>svc-sync</code> 启用了 90 天强制改密，但未把&quot;服务账号密码到期&quot;纳入运维告警；</li>
+<li>该账号不接收普通用户的到期提醒邮件，导致过期无人知晓；</li>
+<li>cron 场景每次执行都重新 <code>kinit</code>，密码一旦过期即彻底失败；而白天手动测试依赖已缓存 TGT，掩盖了问题；</li>
+<li>凭据管理分散在 keytab 文件和脚本变量中，密码轮换需要人工逐节点更新，极易遗漏。</li>
+</ul>
+<p>本质上是把&quot;人的账号生命周期管理&quot;套用到了&quot;机器服务账号&quot;上，却没配套机器侧的无缝轮换机制。</p>
+<h2 id="六预防措施"><a href="#%e5%85%ad%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>六、预防措施
+</h2><ol>
+<li><strong>服务账号改用 gMSA 或密钥托管</strong>：Windows 侧迁移到组托管服务账号（gMSA），由域控自动轮转密码，应用无需感知；Linux 侧接入 HashiCorp Vault 动态凭据，脚本启动时向 Vault 拉取短期密码。</li>
+<li><strong>密码到期纳入监控</strong>：在 Zabbix 里加一个脚本，对 <code>PasswordExpired -eq $true</code> 或 <code>PasswordLastSet</code> 距今天数 &gt; 75 的账号发预警，提前 15 天提醒。</li>
+<li><strong>凭据集中化</strong>：所有 keytab 由配置管理（Ansible）统一推送，禁止手工散落，轮换时一条 playbook 全量更新。</li>
+<li><strong>任务自恢复</strong>：cron 脚本开头加 <code>kinit</code> 健康检查，若失败先尝试用 Vault 刷新再执行，避免单点凭据失效直接拖垮整批任务。</li>
+<li><strong>假期前巡检清单</strong>：把服务账号有效期检查列入节假日前必做项。</li>
+</ol>
+<h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
+</h2><p>这次故障从表象看像&quot;cron 挂了&quot;，实则是<strong>域控侧账号密码过期</strong>沿着 Kerberos 认证链路传导到了数据同步任务。一线排查的关键，是把&quot;任务失败&quot;往&quot;认证失败&quot;再往&quot;账号生命周期&quot;逐层下钻，而不是停留在调度层打转。</p>
+<p>最大的教训是：服务账号也是一种资源，它的生命周期（创建、轮换、过期、回收）必须纳入运维监控体系，不能因为&quot;平时不出事&quot;就放进盲区。把人工密码轮换替换为自动托管，才是杜绝此类问题复发的根本办法。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/">服务运维</a>
+        
+            <a href="/tags/ad%E5%9F%9F/">AD域</a>
+        
+            <a href="/tags/%E5%AF%86%E7%A0%81%E8%BF%87%E6%9C%9F/">密码过期</a>
+        
+            <a href="/tags/%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1/">定时任务</a>
+        
+            <a href="/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/">故障排查</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/2025-03-11-%E4%B8%80%E6%AC%A1redis%E7%BC%93%E5%AD%98%E9%9B%AA%E5%B4%A9%E5%AF%BC%E8%87%B4%E7%A7%92%E6%9D%80%E6%8E%A5%E5%8F%A3%E5%A4%A7%E9%9D%A2%E7%A7%AF%E8%B6%85%E6%97%B6%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">秒杀接口大面积超时：Redis 缓存雪崩的定位与修复</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/2025-01-13-%E4%B8%80%E6%AC%A1%E6%96%B0%E8%B4%AD%E7%AC%94%E8%AE%B0%E6%9C%AC%E5%87%BA%E5%8E%82%E7%B3%BB%E7%BB%9F%E6%97%A0%E6%B3%95%E5%8A%A0%E5%85%A5ad%E5%9F%9F%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">新购笔记本为何加不进 AD 域？出厂系统排障记</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/2025-04-12-%E4%B8%80%E6%AC%A1%E5%91%98%E5%B7%A5%E5%9F%9F%E8%B4%A6%E5%8F%B7%E5%BC%82%E5%9C%B0%E7%99%BB%E5%BD%95%E5%91%8A%E8%AD%A6%E5%8F%8A%E7%B4%A7%E6%80%A5%E9%94%81%E5%AE%9A%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">员工域账号异地登录：告警研判与紧急锁定处置</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/2025-02-03-%E4%B8%80%E6%AC%A1%E6%A0%B8%E5%BF%83%E4%BA%A4%E6%8D%A2%E6%9C%BAstp%E6%A0%B9%E6%A1%A5%E6%8A%A2%E5%8D%A0%E5%BC%95%E5%8F%91%E5%B9%BF%E6%92%AD%E9%A3%8E%E6%9A%B4%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">核心交换机 STP 根桥被抢，广播风暴怎么来的？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1mysql%E8%87%AA%E5%8A%A8%E5%A4%87%E4%BB%BD%E8%84%9A%E6%9C%AC%E9%9D%99%E9%BB%98%E5%A4%B1%E8%B4%A5%E5%AF%BC%E8%87%B4%E7%BC%BA%E5%B0%91%E8%BF%91%E4%B8%80%E5%91%A8%E5%A4%87%E4%BB%BD%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 MySQL 自动备份静默失败、缺失近一周备份</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

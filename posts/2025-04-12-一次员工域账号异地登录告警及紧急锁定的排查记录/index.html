@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="SIEM 告警某员工账号在境外 IP 成功登录，排查为凭证泄露后钓鱼，立即锁定账号并强制改密处置。">
+<title>员工域账号异地登录：告警研判与紧急锁定处置</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/2025-04-12-%E4%B8%80%E6%AC%A1%E5%91%98%E5%B7%A5%E5%9F%9F%E8%B4%A6%E5%8F%B7%E5%BC%82%E5%9C%B0%E7%99%BB%E5%BD%95%E5%91%8A%E8%AD%A6%E5%8F%8A%E7%B4%A7%E6%80%A5%E9%94%81%E5%AE%9A%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="员工域账号异地登录：告警研判与紧急锁定处置">
+<meta property='og:description' content="SIEM 告警某员工账号在境外 IP 成功登录，排查为凭证泄露后钓鱼，立即锁定账号并强制改密处置。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/2025-04-12-%E4%B8%80%E6%AC%A1%E5%91%98%E5%B7%A5%E5%9F%9F%E8%B4%A6%E5%8F%B7%E5%BC%82%E5%9C%B0%E7%99%BB%E5%BD%95%E5%91%8A%E8%AD%A6%E5%8F%8A%E7%B4%A7%E6%80%A5%E9%94%81%E5%AE%9A%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='安全运维' /><meta property='article:tag' content='AD域' /><meta property='article:tag' content='异地登录' /><meta property='article:tag' content='账号安全' /><meta property='article:tag' content='应急响应' /><meta property='article:published_time' content='2025-04-12T15:59:59&#43;00:00'/><meta property='article:modified_time' content='2025-04-12T15:59:59&#43;00:00'/>
+<meta name="twitter:title" content="员工域账号异地登录：告警研判与紧急锁定处置">
+<meta name="twitter:description" content="SIEM 告警某员工账号在境外 IP 成功登录，排查为凭证泄露后钓鱼，立即锁定账号并强制改密处置。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
+                安全运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/2025-04-12-%E4%B8%80%E6%AC%A1%E5%91%98%E5%B7%A5%E5%9F%9F%E8%B4%A6%E5%8F%B7%E5%BC%82%E5%9C%B0%E7%99%BB%E5%BD%95%E5%91%8A%E8%AD%A6%E5%8F%8A%E7%B4%A7%E6%80%A5%E9%94%81%E5%AE%9A%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">员工域账号异地登录：告警研判与紧急锁定处置</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            SIEM 告警某员工账号在境外 IP 成功登录，排查为凭证泄露后钓鱼，立即锁定账号并强制改密处置。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2025-04-12T15:59:59Z'>2025年4月12日星期六</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="一问题背景"><a href="#%e4%b8%80%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>一、问题背景
+</h2><p>我司日常使用 Windows Active Directory（AD）作为统一身份认证域，全公司约 1800 个域账号集中由两台域控（DC01、DC02，运行 Windows Server 2019）管理。安全侧部署了 SIEM 平台（基于 Splunk），通过 Windows 事件日志转发（WEF）实时采集各 DC 的安全日志（Event ID 4624/4625），并对&quot;非常用地登录 IP&quot;&ldquo;境外 ASN&quot;&ldquo;非工作时间登录&quot;等场景配置了关联告警规则。</p>
+<p>2025-04-12 下午 15:23，SIEM 弹出一条高危告警：财务部的域账号 <code>li.wei</code> 在位于越南胡志明市的境外 IP（103.xx.xx.88）完成了一次成功的交互式登录（Event ID 4624，Logon Type 3 网络登录）。该员工当天上午 09:40 刚在广州办公网的固定出口 IP 登录过，下午却出现在境外，明显异常。作为当班安全运维，我立即启动账号安全应急响应流程。</p>
+<h2 id="二故障现象"><a href="#%e4%ba%8c%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>二、故障现象
+</h2><p>SIEM 告警详情如下：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>[ALERT] 异地成功登录 - 高危
+</span></span><span style="display:flex;"><span>账号: li.wei (财务部)
+</span></span><span style="display:flex;"><span>源IP: 103.xx.xx.88 (VN, Ho Chi Minh City, ASN: 45609)
+</span></span><span style="display:flex;"><span>登录类型: 3 (Network)
+</span></span><span style="display:flex;"><span>目标主机: FILESRV03 (文件服务器)
+</span></span><span style="display:flex;"><span>时间: 2025-04-12 15:18:42
+</span></span><span style="display:flex;"><span>事件ID: 4624
+</span></span><span style="display:flex;"><span>历史登录地: 广州 (出口 58.xx.xx.10)
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>同时在域控安全日志中可看到该账号在 15:18 至 15:22 之间，对 FILESRV03 发起了多次 SMB 会话，访问了 <code>\\FILESRV03\finance$</code> 共享目录。财务主管反馈 li.wei 本人正在参加下午的线下会议，并未操作电脑，且其本人手机未收到任何异地登录验证提示（我司尚未对内部 SMB 登录启用 MFA）。</p>
+<p>初步判断：账号凭证已泄露，攻击者已使用该账号从境外成功访问了内网文件资源。</p>
+<h2 id="三排查过程"><a href="#%e4%b8%89%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>三、排查过程
+</h2><p><strong>第一步：确认告警真实性，排除误报。</strong></p>
+<p>先到域控上确认原始日志，避免 SIEM 关联规则误判：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span>Get-WinEvent -FilterHashtable @{LogName=<span style="color:#e6db74">&#39;Security&#39;</span>;Id=<span style="color:#ae81ff">4624</span>} |
+</span></span><span style="display:flex;"><span>  Where-Object { $_.Properties[<span style="color:#ae81ff">5</span>].Value <span style="color:#f92672">-eq</span> <span style="color:#e6db74">&#39;li.wei&#39;</span> } |
+</span></span><span style="display:flex;"><span>  Select-Object TimeCreated, @{n=<span style="color:#e6db74">&#39;IP&#39;</span>;e={$_.Properties[<span style="color:#ae81ff">18</span>].Value}},
+</span></span><span style="display:flex;"><span>    @{n=<span style="color:#e6db74">&#39;LogonType&#39;</span>;e={$_.Properties[<span style="color:#ae81ff">8</span>].Value}},
+</span></span><span style="display:flex;"><span>    @{n=<span style="color:#e6db74">&#39;Target&#39;</span>;e={$_.Properties[<span style="color:#ae81ff">11</span>].Value}} |
+</span></span><span style="display:flex;"><span>  Format-List
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出确认 15:18:42 确有来自 103.xx.xx.88 的 4624 事件，<code>TargetServerName</code> 为 FILESRV03，登录类型为 3。原始日志与 SIEM 一致，排除误报。</p>
+<p><strong>第二步：研判攻击路径与失陷范围。</strong></p>
+<p>核查该账号近 24 小时全部登录记录，发现 09:40 在广州办公网正常登录后，13:05 起在广州出口 IP 出现 7 次 4625 失败登录（密码错误），随后 15:18 在境外 IP 登录成功——说明攻击者可能已掌握旧密码或完成了密码爆破。进一步在 SIEM 中检索该境外 IP 对我司其他资产的访问：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>源IP 103.xx.xx.88 当日访问汇总:
+</span></span><span style="display:flex;"><span>  FILESRV03   SMB 4624 成功 3次
+</span></span><span style="display:flex;"><span>  MAIL01      SMTP 587 连接 失败(被拒绝)
+</span></span><span style="display:flex;"><span>  VPN-GW      443   SSL握手 失败(需MFA)
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可见攻击者主要意图是窃取文件服务器上的财务资料，VPN 与邮件因启用 MFA 未能突破。</p>
+<p><strong>第三步：联系当事人与钓鱼溯源。</strong></p>
+<p>电话联系 li.wei，确认其本人未操作，且回忆起 04-11 收到一封伪装成&quot;税务局退税通知&quot;的钓鱼邮件，曾点击链接并输入过域账号密码。基本锁定为钓鱼导致的凭证泄露。</p>
+<h2 id="四解决方案"><a href="#%e5%9b%9b%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>四、解决方案
+</h2><p>应急处置按&quot;先止血、后取证、再恢复&quot;执行：</p>
+<ol>
+<li><strong>立即锁定账号</strong>，阻止攻击者继续操作：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span>Disable-ADAccount -Identity li.wei
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 同时清空其 Kerberos TGT，强制已建立会话失效</span>
+</span></span><span style="display:flex;"><span>Set-ADAccountPassword -Identity li.wei -Reset
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li><strong>踢除攻击者已建立的 SMB 会话</strong>，在 FILESRV03 上结束该来源 IP 的所有会话：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span>Get-SmbSession | Where-Object { $_.ClientComputerName <span style="color:#f92672">-like</span> <span style="color:#e6db74">&#39;*103.xx.xx.88*&#39;</span> } |
+</span></span><span style="display:flex;"><span>  ForEach-Object { Close-SmbSession -SessionId $_.SessionId -Force }
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>
+<p><strong>阻断攻击源 IP</strong>，在边界防火墙（Fortinet）下发临时封锁策略，并同步到 SIEM 的威胁情报黑名单。</p>
+</li>
+<li>
+<p><strong>强制改密与 MFA 补强</strong>：为 li.wei 重置密码并启用条件访问策略，要求下次登录必须绑定 MFA（Microsoft Authenticator）。同时将该 IOC（103.xx.xx.88 及关联域名）写入 SOAR  playbook，实现同源自动封禁。</p>
+</li>
+<li>
+<p><strong>取证留存</strong>：导出 4624/4625 原始日志与该账号访问过的文件清单，归档备查，确认 <code>finance$</code> 下 3 个 Excel 被读取但未发现外传迹象（文件服务器未开启出站审计，后续已补充）。</p>
+</li>
+</ol>
+<p>处置完成后 15:45 复盘，攻击者会话已被清除，账号处于禁用状态，告警解除。</p>
+<h2 id="五根因分析"><a href="#%e4%ba%94%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>五、根因分析
+</h2><ol>
+<li><strong>直接原因</strong>：员工 li.wei 点击钓鱼邮件链接，在伪造的登录页提交了域账号密码，凭证被攻击者获取。钓鱼页面托管于境外，与告警中的越南 IP 同属一个攻击团伙基础设施。</li>
+<li><strong>防护短板</strong>：内部 SMB/文件服务器登录未启用 MFA，导致单因素凭证一旦泄露即可横向访问敏感共享；SIEM 虽能告警，但处置依赖人工，从告警到锁定的 22 分钟窗口内攻击者已读取文件。</li>
+<li><strong>意识薄弱</strong>：该钓鱼邮件未触发邮件网关的拦截（发件域名做了近似伪装 <code>tax-refund-gov[.]cn</code>），员工缺乏识别训练。</li>
+</ol>
+<h2 id="六预防措施"><a href="#%e5%85%ad%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>六、预防措施
+</h2><ul>
+<li><strong>全面启用 MFA</strong>：推动对 AD 域的所有交互式及网络登录（含 SMB、RDP）接入条件访问 + MFA，优先覆盖财务、研发等高危部门。</li>
+<li><strong>收敛共享权限</strong>：对 <code>finance$</code> 等敏感共享启用访问审计与 DLP 出站监控，限制可访问 IP 段。</li>
+<li><strong>钓鱼演练常态化</strong>：通过安全邮件网关（如 Proofpoint）加强过滤器，并每月开展模拟钓鱼演练，对易中招人员强制再培训。</li>
+<li><strong>自动化响应</strong>：在 SOAR 中固化&quot;异地成功登录 → 自动禁用账号 + 防火墙封禁源 IP + 通知值班&quot;的 playbook，将响应时间从分钟级压缩到秒级。</li>
+<li><strong>UEBA 增强</strong>：为域账号引入用户实体行为分析，对&quot;短时多地登录&quot;&ldquo;非常规文件批量读取&quot;等行为做基线偏离告警。</li>
+</ul>
+<h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
+</h2><p>本次事件是一次典型的&quot;钓鱼获取凭证 → 异地登录内网资源&quot;的账号安全事件。SIEM 的异地登录告警帮助我们及时发现，但人工处置的时间窗口仍让攻击者读取了部分财务文件。核心教训有两点：其一，内网资源的单因素认证是最大短板，MFA 必须覆盖到文件服务器这类&quot;看似内部、实则敏感&quot;的系统；其二，响应自动化程度直接决定损失大小。后续我们将 MFA 全覆盖与 SOAR 自动处置作为安全运维的优先项，并辅以持续的钓鱼意识培训，把&quot;人&quot;这个最薄弱的环节也补上。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/">安全运维</a>
+        
+            <a href="/tags/ad%E5%9F%9F/">AD域</a>
+        
+            <a href="/tags/%E5%BC%82%E5%9C%B0%E7%99%BB%E5%BD%95/">异地登录</a>
+        
+            <a href="/tags/%E8%B4%A6%E5%8F%B7%E5%AE%89%E5%85%A8/">账号安全</a>
+        
+            <a href="/tags/%E5%BA%94%E6%80%A5%E5%93%8D%E5%BA%94/">应急响应</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/2025-01-13-%E4%B8%80%E6%AC%A1%E6%96%B0%E8%B4%AD%E7%AC%94%E8%AE%B0%E6%9C%AC%E5%87%BA%E5%8E%82%E7%B3%BB%E7%BB%9F%E6%97%A0%E6%B3%95%E5%8A%A0%E5%85%A5ad%E5%9F%9F%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">新购笔记本为何加不进 AD 域？出厂系统排障记</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1%E5%A0%A1%E5%9E%92%E6%9C%BAssh%E7%99%BB%E5%BD%95%E5%93%8D%E5%BA%94%E8%B6%85%E6%97%B6%E5%AF%BC%E8%87%B4%E8%BF%90%E7%BB%B4%E6%97%A0%E6%B3%95%E7%B4%A7%E6%80%A5%E6%93%8D%E4%BD%9C%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次堡垒机 SSH 超时致运维无法紧急操作的排查</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1windows%E5%9F%9F%E7%AD%96%E7%95%A5%E6%8E%A8%E9%80%81%E5%A4%B1%E8%B4%A5%E5%AF%BC%E8%87%B4%E6%96%B0%E7%94%B5%E8%84%91%E6%97%A0%E6%B3%95%E7%99%BB%E5%BD%95%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Windows 域策略推送失败致新电脑无法登录的处理</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

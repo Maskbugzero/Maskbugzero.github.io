@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="电商平台发货服务在晚高峰突发不可用，一个Java容器的内存泄漏拖垮了整个Docker Swarm集群。">
+<title>Docker 容器 OOM，服务雪崩是怎么炸开的？</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/%E4%B8%80%E6%AC%A1docker%E5%AE%B9%E5%99%A8oom%E5%BC%95%E5%8F%91%E7%9A%84%E6%9C%8D%E5%8A%A1%E9%9B%AA%E5%B4%A9%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Docker 容器 OOM，服务雪崩是怎么炸开的？">
+<meta property='og:description' content="电商平台发货服务在晚高峰突发不可用，一个Java容器的内存泄漏拖垮了整个Docker Swarm集群。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/%E4%B8%80%E6%AC%A1docker%E5%AE%B9%E5%99%A8oom%E5%BC%95%E5%8F%91%E7%9A%84%E6%9C%8D%E5%8A%A1%E9%9B%AA%E5%B4%A9%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Docker' /><meta property='article:tag' content='OOM' /><meta property='article:tag' content='内存泄漏' /><meta property='article:tag' content='JVM' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2024-07-19T23:47:34&#43;00:00'/><meta property='article:modified_time' content='2026-06-20T08:00:00&#43;00:00'/>
+<meta name="twitter:title" content="Docker 容器 OOM，服务雪崩是怎么炸开的？">
+<meta name="twitter:description" content="电商平台发货服务在晚高峰突发不可用，一个Java容器的内存泄漏拖垮了整个Docker Swarm集群。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步止血先让服务活过来">第一步：止血——先让服务活过来</a></li>
+        <li><a href="#第二步看-oom-日志谁在吃内存">第二步：看 OOM 日志——谁在吃内存</a></li>
+        <li><a href="#第三步抓-java-堆确认泄漏对象">第三步：抓 Java 堆——确认泄漏对象</a></li>
+        <li><a href="#第四步读代码缓存为什么不清">第四步：读代码——缓存为什么不清</a></li>
+        <li><a href="#第五步验证其他宿主机">第五步：验证其他宿主机</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#1-紧急修复代码热修复--重启">1. 紧急修复——代码热修复 + 重启</a></li>
+        <li><a href="#2-容器层加固">2. 容器层加固</a></li>
+        <li><a href="#3-监控告警">3. 监控告警</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/%E4%B8%80%E6%AC%A1docker%E5%AE%B9%E5%99%A8oom%E5%BC%95%E5%8F%91%E7%9A%84%E6%9C%8D%E5%8A%A1%E9%9B%AA%E5%B4%A9%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">Docker 容器 OOM，服务雪崩是怎么炸开的？</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            电商平台发货服务在晚高峰突发不可用，一个Java容器的内存泄漏拖垮了整个Docker Swarm集群。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2024-07-19T23:47:34Z'>2024年7月19日星期五</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 7 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步止血先让服务活过来">第一步：止血——先让服务活过来</a></li>
+        <li><a href="#第二步看-oom-日志谁在吃内存">第二步：看 OOM 日志——谁在吃内存</a></li>
+        <li><a href="#第三步抓-java-堆确认泄漏对象">第三步：抓 Java 堆——确认泄漏对象</a></li>
+        <li><a href="#第四步读代码缓存为什么不清">第四步：读代码——缓存为什么不清</a></li>
+        <li><a href="#第五步验证其他宿主机">第五步：验证其他宿主机</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#1-紧急修复代码热修复--重启">1. 紧急修复——代码热修复 + 重启</a></li>
+        <li><a href="#2-容器层加固">2. 容器层加固</a></li>
+        <li><a href="#3-监控告警">3. 监控告警</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>周三晚上 8 点 23 分，钉钉群里炸了锅。</p>
+<p>&ldquo;发货中心挂了，后台全部 502！&quot;——运营同事的消息连着发了 5 条。紧接着，运维监控大屏上 3 个核心服务的健康检查指示灯全部由绿转红。</p>
+<p>我们平台是一个电商 SaaS 系统，发货服务（delivery-service）是核心链路里的一环，负责生成电子面单、调用快递接口、更新订单状态。晚 8 点到 10 点是发货高峰期，如果这个点挂了——当天的订单基本全积压。</p>
+<p>技术栈：Docker Swarm 管理集群，每个服务至少 3 个副本。发货服务是 Java 11 + Spring Boot 2.7，跑在 8 台 16 核 32G 的物理机上。</p>
+<p>紧急程度：<strong>P0</strong>（核心业务中断），运维同事已经开始手动重启容器，但问题是——重启完不到 3 分钟又崩了。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>第一波告警来自 Nginx 反向代理层：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>2026-06-18 20:23:15 [error] upstream prematurely closed connection while reading response header from upstream
+</span></span><span style="display:flex;"><span>2026-06-18 20:23:16 [error] connect() failed (111: Connection refused) while connecting to upstream
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>同时，Prometheus 监控面板显示 <code>delivery-service</code> 的可用副本数在 3 → 2 → 1 → 0 之间快速跳变：</p>
+<ul>
+<li><strong>20:23</strong>：3 个副本正常运行</li>
+<li><strong>20:24</strong>：<code>delivery-service-2</code> 状态变为 <code>unhealthy</code>，被 Swarm 调度器踢出</li>
+<li><strong>20:25</strong>：<code>delivery-service-1</code> 也挂了，仅剩 <code>delivery-service-3</code></li>
+<li><strong>20:27</strong>：最后一个副本也倒下，所有请求 502</li>
+</ul>
+<p>登上管理节点 <code>docker service ps delivery-service</code> 一看：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>ID       NAME                  NODE     DESIRED STATE   CURRENT STATE          ERROR
+</span></span><span style="display:flex;"><span>x7a2f3   delivery-service.1    node03   Running         Running 12 seconds ago
+</span></span><span style="display:flex;"><span>8b3k9m   delivery-service.1    node03   Shutdown        Failed 15 seconds ago  &#34;task: non-zero exit (137)&#34;
+</span></span><span style="display:flex;"><span>p1q5r7   delivery-service.2    node05   Running         Running 8 seconds ago
+</span></span><span style="display:flex;"><span>n4j6w8   delivery-service.2    node05   Shutdown        Failed 10 seconds ago  &#34;task: non-zero exit (137)&#34;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>Exit code 137</strong> 是 Docker 世界的死亡代码——容器被 OOM Killer 干掉了（137 = 128 + 9，SIGKILL）。</p>
+<p>更让人头疼的是：<code>delivery-service</code> 挂了之后，同一台宿主机上的 <code>order-service</code> 和 <code>notify-service</code> 也开始出现间歇性 502。问题在蔓延。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="第一步止血先让服务活过来"><a href="#%e7%ac%ac%e4%b8%80%e6%ad%a5%e6%ad%a2%e8%a1%80%e5%85%88%e8%ae%a9%e6%9c%8d%e5%8a%a1%e6%b4%bb%e8%bf%87%e6%9d%a5" class="header-anchor"></a>第一步：止血——先让服务活过来
+</h3><p>盲目重启没用，每次启动不到 3 分钟就挂。当务之急是把 <code>delivery-service</code> 的副本数临时扩容，让它至少能扛到我们找到根因：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 先用更多副本来分摊压力，争取排查时间</span>
+</span></span><span style="display:flex;"><span>docker service scale delivery-service<span style="color:#f92672">=</span><span style="color:#ae81ff">6</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>但这是饮鸩止渴——如果问题是内存泄漏，副本越多，整个集群的内存压力越大。</p>
+<p>果然，扩容到 6 个之后，宿主机 <code>node03</code> 上的 <code>order-service</code> 容器直接被 OOM Kill 了。这下确定了一个事实：<strong>问题不只是 delivery-service 本身，宿主机的内存也在吃紧</strong>。</p>
+<h3 id="第二步看-oom-日志谁在吃内存"><a href="#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e7%9c%8b-oom-%e6%97%a5%e5%bf%97%e8%b0%81%e5%9c%a8%e5%90%83%e5%86%85%e5%ad%98" class="header-anchor"></a>第二步：看 OOM 日志——谁在吃内存
+</h3><p>登录 <code>node03</code>：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 查看系统 OOM 日志</span>
+</span></span><span style="display:flex;"><span>dmesg -T | grep -i oom | tail -20
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出触目惊心：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-gdscript3" data-lang="gdscript3"><span style="display:flex;"><span>[Wed Jun <span style="color:#ae81ff">18</span> <span style="color:#ae81ff">20</span>:<span style="color:#ae81ff">23</span>:<span style="color:#ae81ff">45</span> <span style="color:#ae81ff">2026</span>] oom<span style="color:#f92672">-</span>kill:constraint<span style="color:#f92672">=</span>CONSTRAINT_MEMCG,
+</span></span><span style="display:flex;"><span>  oom_memcg<span style="color:#f92672">=/</span>docker<span style="color:#f92672">/</span>abc123def456,
+</span></span><span style="display:flex;"><span>  task_memcg<span style="color:#f92672">=/</span>docker<span style="color:#f92672">/</span>abc123def456,
+</span></span><span style="display:flex;"><span>  task<span style="color:#f92672">=</span>java, pid<span style="color:#f92672">=</span><span style="color:#ae81ff">28471</span>, uid<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>[Wed Jun <span style="color:#ae81ff">18</span> <span style="color:#ae81ff">20</span>:<span style="color:#ae81ff">23</span>:<span style="color:#ae81ff">45</span> <span style="color:#ae81ff">2026</span>] Memory cgroup out of memory: Killed process <span style="color:#ae81ff">28471</span> (java)
+</span></span><span style="display:flex;"><span>  total<span style="color:#f92672">-</span>vm:<span style="color:#ae81ff">12582912</span>kB, anon<span style="color:#f92672">-</span>rss:<span style="color:#ae81ff">9467808</span>kB, file<span style="color:#f92672">-</span>rss:<span style="color:#ae81ff">0</span>kB, shmem<span style="color:#f92672">-</span>rss:<span style="color:#ae81ff">0</span>kB
+</span></span><span style="display:flex;"><span>  oom_score_adj:<span style="color:#ae81ff">0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>关键数据：<code>anon-rss:9467808kB</code>——这个 Java 进程的<strong>常驻内存占了 9.2 GB</strong>！</p>
+<p>再看容器级别的内存曲线：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 查看被 Kill 容器的资源使用历史</span>
+</span></span><span style="display:flex;"><span>docker stats --no-stream --format <span style="color:#e6db74">&#34;table {{.Name}}\t{{.MemUsage}}\t{{.MemPerc}}&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  | grep delivery
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>正常启动时，<code>delivery-service</code> 内存使用约 1.2 GB。但每处理一批发货请求，内存就涨一点，<strong>从不回落</strong>。启动 3 分钟后直奔 9 GB，触发了 Swarm 为这个服务设置的 <code>--memory=10g</code> 上限（已逼近宿主机 32G 总内存的警戒线）。</p>
+<h3 id="第三步抓-java-堆确认泄漏对象"><a href="#%e7%ac%ac%e4%b8%89%e6%ad%a5%e6%8a%93-java-%e5%a0%86%e7%a1%ae%e8%ae%a4%e6%b3%84%e6%bc%8f%e5%af%b9%e8%b1%a1" class="header-anchor"></a>第三步：抓 Java 堆——确认泄漏对象
+</h3><p>在容器还没挂的时候（黄金窗口只有启动后的 2 分钟内），紧急上去抓堆：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 进入容器</span>
+</span></span><span style="display:flex;"><span>docker exec -it delivery-service.3.abc123 /bin/bash
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 抓 heap dump</span>
+</span></span><span style="display:flex;"><span>jmap -dump:live,format<span style="color:#f92672">=</span>b,file<span style="color:#f92672">=</span>/tmp/heap.hprof <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 快速看下 top 对象</span>
+</span></span><span style="display:flex;"><span>jmap -histo:live <span style="color:#ae81ff">1</span> | head -30
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>histo</code> 输出前三名：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span> num     #instances         #bytes  class name
+</span></span><span style="display:flex;"><span>   1:       3284512      262760960  [B
+</span></span><span style="display:flex;"><span>   2:       1558327      174533424  java.util.LinkedHashMap$Entry
+</span></span><span style="display:flex;"><span>   3:       1539820      123185600  com.xxx.delivery.cache.WaybillCache
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>WaybillCache</code> 这个自定义缓存对象有 <strong>150 万个实例</strong>，占了约 120MB。但真正吞内存的是 <code>[B</code>（字节数组）——3.2 亿字节、约 <strong>250MB 的 byte[]</strong>。</p>
+<p><code>WaybillCache</code> 里每个对象都持有一个 <code>byte[]</code>（快递公司返回的面单 PDF 数据），一个面单 PDF 约 80KB。正常业务场景下，面单生成后应该被序列化到 OSS 并从内存中释放，但现在它们全滞留在了 LinkedHashMap 里。</p>
+<h3 id="第四步读代码缓存为什么不清"><a href="#%e7%ac%ac%e5%9b%9b%e6%ad%a5%e8%af%bb%e4%bb%a3%e7%a0%81%e7%bc%93%e5%ad%98%e4%b8%ba%e4%bb%80%e4%b9%88%e4%b8%8d%e6%b8%85" class="header-anchor"></a>第四步：读代码——缓存为什么不清
+</h3><p>找到 <code>WaybillCache</code> 的实现：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@Component</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">WaybillCache</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 问题代码：没有大小限制，没有过期策略</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">final</span> Map<span style="color:#f92672">&lt;</span>String, <span style="color:#66d9ef">byte</span><span style="color:#f92672">[]&gt;</span> CACHE <span style="color:#f92672">=</span> 
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">new</span> LinkedHashMap<span style="color:#f92672">&lt;&gt;</span>();
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">put</span>(String orderNo, <span style="color:#66d9ef">byte</span><span style="color:#f92672">[]</span> pdfData) {
+</span></span><span style="display:flex;"><span>        CACHE.<span style="color:#a6e22e">put</span>(orderNo, pdfData);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">byte</span><span style="color:#f92672">[]</span> <span style="color:#a6e22e">get</span>(String orderNo) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> CACHE.<span style="color:#a6e22e">get</span>(orderNo);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 没有 remove()，没有 evict()，没有 TTL</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>根因一目了然：</p>
+<ol>
+<li><strong><code>LinkedHashMap</code> 没有任何淘汰策略</strong>——没有 <code>removeEldestEntry()</code>，没有最大容量</li>
+<li><strong>写入后从不删除</strong>——面单生成后存在 Map 里，直到 JVM OOM</li>
+<li><strong>没有 TTL</strong>——即使订单已经发货完毕，缓存里的 PDF 数据永远不释放</li>
+</ol>
+<p>每次发货请求都往这个 Map 里 <code>put</code> 一次。晚高峰每秒 200 单的发货量，1 分钟就是 12000 条记录 × 80KB ≈ <strong>960MB</strong>。3 分钟直接撑爆 10G 内存限制。</p>
+<h3 id="第五步验证其他宿主机"><a href="#%e7%ac%ac%e4%ba%94%e6%ad%a5%e9%aa%8c%e8%af%81%e5%85%b6%e4%bb%96%e5%ae%bf%e4%b8%bb%e6%9c%ba" class="header-anchor"></a>第五步：验证其他宿主机
+</h3><p>检查其他 7 台机器的 OOM 日志，发现 <code>node05</code>、<code>node07</code> 也在同一时刻触发了 OOM。问题不是单机故障，是整个 <code>delivery-service</code> 集群的系统性内存泄漏。</p>
+<p>而且，OOM Killer 在回收 <code>delivery-service</code> 时，同一台宿主机的其他容器也会被牵连——内核 OOM 打分机制下，<code>order-service</code> 的 <code>oom_score</code> 也不低，所以出现了连带 Kill。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><h3 id="1-紧急修复代码热修复--重启"><a href="#1-%e7%b4%a7%e6%80%a5%e4%bf%ae%e5%a4%8d%e4%bb%a3%e7%a0%81%e7%83%ad%e4%bf%ae%e5%a4%8d--%e9%87%8d%e5%90%af" class="header-anchor"></a>1. 紧急修复——代码热修复 + 重启
+</h3><p>运维同事紧急拉了一个 hotfix 分支，把 <code>LinkedHashMap</code> 改成基于 Caffeine 的有界缓存：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#f92672">import</span> com.github.benmanes.caffeine.cache.Cache;
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> com.github.benmanes.caffeine.cache.Caffeine;
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> java.util.concurrent.TimeUnit;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@Component</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">WaybillCache</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> Cache<span style="color:#f92672">&lt;</span>String, <span style="color:#66d9ef">byte</span><span style="color:#f92672">[]&gt;</span> cache <span style="color:#f92672">=</span> Caffeine.<span style="color:#a6e22e">newBuilder</span>()
+</span></span><span style="display:flex;"><span>        .<span style="color:#a6e22e">maximumSize</span>(1000)                  <span style="color:#75715e">// 最多存 1000 条</span>
+</span></span><span style="display:flex;"><span>        .<span style="color:#a6e22e">expireAfterWrite</span>(5, TimeUnit.<span style="color:#a6e22e">MINUTES</span>)  <span style="color:#75715e">// 5 分钟过期</span>
+</span></span><span style="display:flex;"><span>        .<span style="color:#a6e22e">removalListener</span>((key, value, cause) <span style="color:#f92672">-&gt;</span> {
+</span></span><span style="display:flex;"><span>            log.<span style="color:#a6e22e">info</span>(<span style="color:#e6db74">&#34;WaybillCache evicted: {}, cause: {}&#34;</span>, key, cause);
+</span></span><span style="display:flex;"><span>        })
+</span></span><span style="display:flex;"><span>        .<span style="color:#a6e22e">build</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">put</span>(String orderNo, <span style="color:#66d9ef">byte</span><span style="color:#f92672">[]</span> pdfData) {
+</span></span><span style="display:flex;"><span>        cache.<span style="color:#a6e22e">put</span>(orderNo, pdfData);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">byte</span><span style="color:#f92672">[]</span> <span style="color:#a6e22e">get</span>(String orderNo) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> cache.<span style="color:#a6e22e">getIfPresent</span>(orderNo);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>CI/CD 流水线跑完，重新部署：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 滚动更新</span>
+</span></span><span style="display:flex;"><span>docker service update --image registry.xxx.com/delivery-service:hotfix-v2 <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  --limit-memory 8g --limit-memory-reservation 4g delivery-service
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 观察启动</span>
+</span></span><span style="display:flex;"><span>docker service ps delivery-service --no-trunc
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="2-容器层加固"><a href="#2-%e5%ae%b9%e5%99%a8%e5%b1%82%e5%8a%a0%e5%9b%ba" class="header-anchor"></a>2. 容器层加固
+</h3><p>在 docker-compose / stack 文件里加了硬限制：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">services</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">delivery-service</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">image</span>: <span style="color:#ae81ff">registry.xxx.com/delivery-service:latest</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">deploy</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">replicas</span>: <span style="color:#ae81ff">3</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">resources</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">limits</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">memory</span>: <span style="color:#ae81ff">8G       </span> <span style="color:#75715e"># 硬上限</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">reservations</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">memory</span>: <span style="color:#ae81ff">4G       </span> <span style="color:#75715e"># 软预留</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">environment</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">JAVA_OPTS=-Xms2g -Xmx6g -XX:+UseG1GC</span>
+</span></span><span style="display:flex;"><span>          -<span style="color:#ae81ff">XX:MaxGCPauseMillis=200</span>
+</span></span><span style="display:flex;"><span>          -<span style="color:#ae81ff">XX:+HeapDumpOnOutOfMemoryError</span>
+</span></span><span style="display:flex;"><span>          -<span style="color:#ae81ff">XX:HeapDumpPath=/tmp/heapdump.hprof</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>要点说明：</p>
+<ul>
+<li><code>-Xmx6g</code> 给 JVM 堆设了明确上限，留 2G 给堆外内存和 OS；</li>
+<li><code>-XX:+HeapDumpOnOutOfMemoryError</code>：再出问题自动 dump，省掉了上去手动 <code>jmap</code> 的黄金窗口压力；</li>
+<li>容器 <code>memory: 8G</code> 硬限制，超过直接 Kill，不拖累宿主机上其他容器。</li>
+</ul>
+<h3 id="3-监控告警"><a href="#3-%e7%9b%91%e6%8e%a7%e5%91%8a%e8%ad%a6" class="header-anchor"></a>3. 监控告警
+</h3><p>在 Prometheus 里加了容器级别的内存告警规则：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">groups</span>:
+</span></span><span style="display:flex;"><span>  - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">container_memory</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">rules</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">alert</span>: <span style="color:#ae81ff">ContainerMemoryHigh</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">expr</span>: <span style="color:#ae81ff">container_memory_working_set_bytes{name=~&#34;delivery-service.*&#34;} </span>
+</span></span><span style="display:flex;"><span>              <span style="color:#ae81ff">/ container_spec_memory_limit_bytes &gt; 0.8</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">for</span>: <span style="color:#ae81ff">2m</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">labels</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">severity</span>: <span style="color:#ae81ff">warning</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">annotations</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">summary</span>: <span style="color:#e6db74">&#34;delivery-service 内存使用超过 80%&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">alert</span>: <span style="color:#ae81ff">ContainerOOMKilled</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">expr</span>: <span style="color:#ae81ff">rate(container_oom_events_total[5m]) &gt; 0</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">labels</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">severity</span>: <span style="color:#ae81ff">critical</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">annotations</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">summary</span>: <span style="color:#e6db74">&#34;检测到容器被 OOM Kill&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接原因：<code>WaybillCache</code> 使用无界 <code>LinkedHashMap</code> 做面单 PDF 数据缓存，写入后从不淘汰，高峰流量下内存持续线性增长直至 OOM。</p>
+<p>深层原因有三层：</p>
+<ol>
+<li>
+<p><strong>代码层面</strong>：开发同学对缓存基础组件缺乏敬畏，&ldquo;一个 Map 就是缓存&quot;的认知导致没有考虑淘汰策略和容量上限。任何缓存系统必须回答三个问题：<strong>最大容量多少？什么条件下淘汰？淘汰策略是什么？</strong> 用 <code>LinkedHashMap</code> 不代表它就是安全的缓存。</p>
+</li>
+<li>
+<p><strong>流程层面</strong>：这个 <code>WaybillCache</code> 是一个月前由一位离职同事写的，Code Review 时<strong>没有人关注缓存的容量和淘汰策略</strong>。CR 只看了业务逻辑对不对，没看资源安全和边界条件。</p>
+</li>
+<li>
+<p><strong>运维层面</strong>：容器 OOM 告警缺失。直到用户报障、监控大屏亮红灯才知道出了问题。晚 8 点之前其实内存就在涨了，如果 70% 的时候就有告警，完全可以提前介入。</p>
+</li>
+</ol>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
+<li>
+<p><strong>缓存规范</strong>：团队内部定了缓存使用规范——禁止裸用 <code>HashMap</code> / <code>LinkedHashMap</code> 做缓存；必须使用有界缓存（Caffeine / Guava Cache），强制设置 <code>maximumSize</code> 和 <code>expireAfterWrite</code>。在 CI 里加了简单的静态检查规则，扫描 <code>new LinkedHashMap</code> 和 <code>new HashMap</code> 出现在 <code>Cache</code> 相关类里会报警。</p>
+</li>
+<li>
+<p><strong>JVM 参数标准化</strong>：所有 Java 服务统一带上 <code>-XX:+HeapDumpOnOutOfMemoryError</code>，生产环境预留至少 20% 容器内存给堆外。</p>
+</li>
+<li>
+<p><strong>容器资源限制白盒化</strong>：在 CI 打包阶段自动校验 Dockerfile 或编排文件里是否声明了 <code>resources.limits.memory</code>，没声明的不允许上线。</p>
+</li>
+<li>
+<p><strong>监控前置</strong>：每条业务线至少配置 3 条基础告警——CPU &gt; 80%、内存 &gt; 80%、容器重启次数 &gt; 0。告警阈值在代码合入 production 分支时自动生成 Ansible playbook 推送到 Prometheus。</p>
+</li>
+<li>
+<p><strong>压测 + 内存 Profile</strong>：所有涉及缓存的模块，要求在上线前做一次至少 30 分钟的压测，附带 JVM 内存趋势图，确认没有持续增长。</p>
+</li>
+</ol>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这次故障从发现到修复历时 47 分钟，影响订单发货约 12000 单。教训非常深刻：</p>
+<p><strong>第一，容器给运维带来了便利，也带来了&quot;邻居效应&rdquo;</strong>。以前物理机部署，一个应用内存泄漏大不了重启自己。Docker 环境下，一个容器的无限制增长会拖累整个宿主机的内存池，OOM Killer 的连带伤害让问题变成雪崩。</p>
+<p><strong>第二，缓存不是&quot;先跑起来再优化&quot;的东西</strong>。无界缓存在生产环境就是定时炸弹，只是你不知道引线有多长。晚高峰就是那根火柴。</p>
+<p><strong>第三，OOM 排查的顺序很重要</strong>：先看 <code>dmesg</code> 确认是 OOM → 看 <code>docker stats</code> 确定是哪个容器 → <code>jmap</code> 抓堆确定是什么对象泄漏 → 读代码定位根因。不要跳步，不要上来就怀疑网络、怀疑数据库，<strong>exit code 137 就是最诚实的线索</strong>。</p>
+
+    <blockquote>
+        <p>运维圈有一句话：&ldquo;没有容量上限的缓存，就是内存泄漏的另一种写法。&rdquo;</p>
+
+    </blockquote>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/docker/">Docker</a>
+        
+            <a href="/tags/oom/">OOM</a>
+        
+            <a href="/tags/%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F/">内存泄漏</a>
+        
+            <a href="/tags/jvm/">JVM</a>
+        
+            <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/">服务运维</a>
+        
+    </section>
+
+
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年6月20日星期六
+        </span>
+    </section></footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1docker%E5%AE%B9%E5%99%A8%E5%8F%8D%E5%A4%8D%E9%87%8D%E5%90%AF%E5%AF%BC%E8%87%B4%E5%BE%AE%E6%9C%8D%E5%8A%A1%E9%93%BE%E8%B7%AF%E9%9B%AA%E5%B4%A9%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 Docker 容器反复重启引发的微服务链路雪崩</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1gitlab-runner%E5%B9%B6%E5%8F%91%E6%9E%84%E5%BB%BA%E5%AF%BC%E8%87%B4%E5%AE%BF%E4%B8%BB%E6%9C%BAcpu%E8%BF%87%E8%BD%BD%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 GitLab Runner 并发构建压垮宿主机的排查</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1docker-swarm-overlay%E7%BD%91%E7%BB%9C%E8%B7%A8%E8%8A%82%E7%82%B9%E5%AE%B9%E5%99%A8%E9%80%9A%E4%BF%A1%E5%A4%B1%E8%B4%A5%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Docker Swarm Overlay 跨节点不通，问题卡在哪？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1k8s%E8%8A%82%E7%82%B9%E7%A3%81%E7%9B%98%E5%8E%8B%E5%8A%9B%E5%AF%BC%E8%87%B4pod%E6%89%B9%E9%87%8F%E9%A9%B1%E9%80%90%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">K8s 节点磁盘压力致 Pod 批量驱逐的定位</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1mysql%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E5%BB%B6%E8%BF%9F%E5%AF%BC%E8%87%B4%E6%8A%A5%E8%A1%A8%E6%95%B0%E6%8D%AE%E5%B7%AE%E5%BC%82%E8%BF%87%E5%A4%A7%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">MySQL 主从延迟致报表数据差异过大：定位与修复</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

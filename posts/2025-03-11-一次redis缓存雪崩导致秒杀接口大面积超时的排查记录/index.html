@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="大促秒杀开始缓存集中过期，Redis 被打满后大量请求穿透到数据库，接口 P99 从 50ms 飙到 8s。">
+<title>秒杀接口大面积超时：Redis 缓存雪崩的定位与修复</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/2025-03-11-%E4%B8%80%E6%AC%A1redis%E7%BC%93%E5%AD%98%E9%9B%AA%E5%B4%A9%E5%AF%BC%E8%87%B4%E7%A7%92%E6%9D%80%E6%8E%A5%E5%8F%A3%E5%A4%A7%E9%9D%A2%E7%A7%AF%E8%B6%85%E6%97%B6%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="秒杀接口大面积超时：Redis 缓存雪崩的定位与修复">
+<meta property='og:description' content="大促秒杀开始缓存集中过期，Redis 被打满后大量请求穿透到数据库，接口 P99 从 50ms 飙到 8s。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/2025-03-11-%E4%B8%80%E6%AC%A1redis%E7%BC%93%E5%AD%98%E9%9B%AA%E5%B4%A9%E5%AF%BC%E8%87%B4%E7%A7%92%E6%9D%80%E6%8E%A5%E5%8F%A3%E5%A4%A7%E9%9D%A2%E7%A7%AF%E8%B6%85%E6%97%B6%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='服务运维' /><meta property='article:tag' content='Redis' /><meta property='article:tag' content='缓存雪崩' /><meta property='article:tag' content='高并发' /><meta property='article:tag' content='故障排查' /><meta property='article:published_time' content='2025-03-11T22:43:30&#43;00:00'/><meta property='article:modified_time' content='2025-03-11T22:43:30&#43;00:00'/>
+<meta name="twitter:title" content="秒杀接口大面积超时：Redis 缓存雪崩的定位与修复">
+<meta name="twitter:description" content="大促秒杀开始缓存集中过期，Redis 被打满后大量请求穿透到数据库，接口 P99 从 50ms 飙到 8s。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/2025-03-11-%E4%B8%80%E6%AC%A1redis%E7%BC%93%E5%AD%98%E9%9B%AA%E5%B4%A9%E5%AF%BC%E8%87%B4%E7%A7%92%E6%9D%80%E6%8E%A5%E5%8F%A3%E5%A4%A7%E9%9D%A2%E7%A7%AF%E8%B6%85%E6%97%B6%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">秒杀接口大面积超时：Redis 缓存雪崩的定位与修复</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            大促秒杀开始缓存集中过期，Redis 被打满后大量请求穿透到数据库，接口 P99 从 50ms 飙到 8s。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2025-03-11T22:43:30Z'>2025年3月11日星期二</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="一问题背景"><a href="#%e4%b8%80%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>一、问题背景
+</h2><p>我们的电商系统在大促期间会开放限量秒杀活动，秒杀商品几十款，单款库存几千到几万不等。秒杀接口 <code>POST /api/seckill</code> 是系统流量入口，正常情况下 QPS 在 2000 左右，大促开场瞬间会冲到 30000+。</p>
+<p>为了扛住读压力，商品详情、库存余量、用户限购状态等热点数据全部缓存在 Redis 集群（3 主 3 从，每主 8G maxmemory）。缓存设计上，运营在后台批量导入秒杀商品时，统一把缓存 TTL 设置为 30 分钟，并且由于是同一时刻批量导入，大量 key 的过期时间高度集中在开场后的同一个时间窗口内。</p>
+<p>本次大促的秒杀在晚上 20:00 准时开始，商品导入动作发生在 19:25 左右，这意味着绝大部分缓存 key 会在 19:55 ~ 20:00 之间集中失效。</p>
+<h2 id="二故障现象"><a href="#%e4%ba%8c%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>二、故障现象
+</h2><p>20:00 活动一开抢，监控告警在 30 秒内全部触发：</p>
+<ul>
+<li>秒杀接口 P99 延迟从平时的 50ms 飙升至 8s，P999 直接超过 15s；</li>
+<li>网关层 504 超时大量出现，错误率从 0.1% 涨到 23%；</li>
+<li>Redis 集群 CPU 使用率被打满（各节点 user + sys 接近 100%），但 QPS 反而比平时低——因为大量请求已经穿透；</li>
+<li>后端 MySQL 主库连接数瞬间打满（max_connections=2000），出现 <code>Too many connections</code>；</li>
+<li>订单创建成功率从 99.5% 掉到 41%，大量用户反馈&quot;点了没反应&quot;&ldquo;一直在转圈&rdquo;。</li>
+</ul>
+<p>最诡异的一点是：Redis 本身并没有宕机，节点都是 <code>connected</code> 状态，但业务就是全面变慢。这让我们一开始怀疑是网关或应用层的问题，而不是缓存。</p>
+<h2 id="三排查过程"><a href="#%e4%b8%89%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>三、排查过程
+</h2><p>第一步，先确认慢在哪里。在网关机器上抓取秒杀链路的 tracing：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>span: gateway -&gt; seckill-svc -&gt; redis (GET stock:sku_123)  3ms
+</span></span><span style="display:flex;"><span>span: gateway -&gt; seckill-svc -&gt; mysql (SELECT stock ...)    7200ms
+</span></span><span style="display:flex;"><span>span: gateway -&gt; seckill-svc -&gt; mysql (INSERT order)        timeout
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>火焰图清楚显示耗时全部卡在 MySQL 的 <code>SELECT stock</code> 上，而本该走 Redis 的 <code>GET stock:sku_xxx</code> 几乎不见了。第一反应是 Redis 挂了或者连接池耗尽。</p>
+<p>第二步，登录 Redis 节点验证。连接正常，但发现一个反常现象：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ redis-cli info stats | grep -E <span style="color:#e6db74">&#34;instantaneous_ops_per_sec|evicted_keys|keyspace_hits|keyspace_misses&#34;</span>
+</span></span><span style="display:flex;"><span>instantaneous_ops_per_sec:1850
+</span></span><span style="display:flex;"><span>evicted_keys:0
+</span></span><span style="display:flex;"><span>keyspace_hits:201
+</span></span><span style="display:flex;"><span>keyspace_misses:1640
+</span></span><span style="display:flex;"><span>expired_keys:98231
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>keyspace_misses</code> 远大于 <code>keyspace_hits</code>，说明大量 key 查不到，请求全部穿透到 MySQL。再看 <code>expired_keys</code>，在故障窗口内一秒过期近 10 万个 key——典型的<strong>集中过期</strong>。</p>
+<p>第三步，确认过期时间分布。抽样几个秒杀 key：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ redis-cli TTL stock:sku_1001
+</span></span><span style="display:flex;"><span><span style="color:#f92672">(</span>integer<span style="color:#f92672">)</span> -2
+</span></span><span style="display:flex;"><span>$ redis-cli TTL stock:sku_1002
+</span></span><span style="display:flex;"><span><span style="color:#f92672">(</span>integer<span style="color:#f92672">)</span> -2
+</span></span><span style="display:flex;"><span>$ redis-cli --scan --pattern stock:* | head -5
+</span></span><span style="display:flex;"><span>stock:sku_1021
+</span></span><span style="display:flex;"><span>$ redis-cli TTL stock:sku_1021
+</span></span><span style="display:flex;"><span><span style="color:#f92672">(</span>integer<span style="color:#f92672">)</span> <span style="color:#ae81ff">7</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>绝大多数热点 key 都已失效或即将在几秒内失效，印证了&quot;批量导入时统一 TTL&quot;导致的集中过期。这就是缓存雪崩：同一时刻大量 key 失效，所有请求同时回源数据库。</p>
+<p>第四步，确认数据库承压。<code>SHOW PROCESSLIST</code> 里堆满了 <code>SELECT stock FROM seckill_stock WHERE sku=?</code>，几乎都是 <code>Sending data</code> 状态。MySQL 本身能力不足以承接 3 万 QPS 的纯读，连接池被瞬间占满，进而拖垮整个订单链路。</p>
+<h2 id="四解决方案"><a href="#%e5%9b%9b%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>四、解决方案
+</h2><p>应急止血（先恢复，再根治）：</p>
+<ol>
+<li>
+<p>临时对秒杀接口做<strong>请求合并 + 本地缓存降级</strong>。在应用层对库存查询加一层 Caffeine 本地缓存（TTL 2s），即使 Redis 没值，也先返回上一次的非空结果，避免所有线程同时打库。</p>
+</li>
+<li>
+<p>给热点读加<strong>互斥锁（singleflight）</strong>，同一 sku 的回源只允许一个线程查库并写回 Redis，其余线程等待结果：</p>
+</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#75715e">// 伪代码：singleflight 回源</span>
+</span></span><span style="display:flex;"><span>String val <span style="color:#f92672">=</span> redis.<span style="color:#a6e22e">get</span>(key);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> (val <span style="color:#f92672">==</span> <span style="color:#66d9ef">null</span>) {
+</span></span><span style="display:flex;"><span>    val <span style="color:#f92672">=</span> singleflight.<span style="color:#a6e22e">exec</span>(key, () <span style="color:#f92672">-&gt;</span> {
+</span></span><span style="display:flex;"><span>        String dbVal <span style="color:#f92672">=</span> db.<span style="color:#a6e22e">queryStock</span>(sku);
+</span></span><span style="display:flex;"><span>        redis.<span style="color:#a6e22e">setex</span>(key, baseTtl <span style="color:#f92672">+</span> random(0,300), dbVal); <span style="color:#75715e">// 加随机抖动</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> dbVal;
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>
+<p>紧急扩容 MySQL 只读从库，将库存读流量导向从库，主库只承接下单写。</p>
+</li>
+<li>
+<p>网关侧对 <code>/api/seckill</code> 开启<strong>令牌桶限流</strong>（20000 QPS），超出直接快速失败返回&quot;活动太火爆&quot;，保护后端不被彻底压垮。</p>
+</li>
+</ol>
+<p>5 分钟后 P99 回落到 600ms，10 分钟后恢复到 120ms，订单成功率回到 92%。</p>
+<h2 id="五根因分析"><a href="#%e4%ba%94%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>五、根因分析
+</h2><p>根因是<strong>缓存 key 集中过期引发的缓存雪崩</strong>，叠加了两个设计缺陷：</p>
+<ul>
+<li><strong>TTL 高度一致</strong>：运营批量导入时统一设 30 分钟 TTL，导致活动开场瞬间海量 key 同时失效，请求在极短时间内全部击穿到数据库。</li>
+<li><strong>缺乏防穿透/防雪崩机制</strong>：缓存未命中时没有任何合并、降级或随机抖动策略，数据库在没有任何缓冲的情况下直面 3 万 QPS 的回源洪峰。</li>
+</ul>
+<p>Redis 没宕机但 CPU 打满，是因为雪崩期间大量 key 同时过期触发主动/被动淘汰扫描，加上连接风暴，使单节点处理效率骤降；而真正的瓶颈在下游 MySQL——它本就不是为承载全部读流量设计的。</p>
+<h2 id="六预防措施"><a href="#%e5%85%ad%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>六、预防措施
+</h2><ol>
+<li><strong>TTL 加随机抖动</strong>：导入缓存时 TTL = 基础值 + 随机(0, 300s)，打散过期时间，避免集体失效。</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#66d9ef">int</span> ttl <span style="color:#f92672">=</span> 1800 <span style="color:#f92672">+</span> ThreadLocalRandom.<span style="color:#a6e22e">current</span>().<span style="color:#a6e22e">nextInt</span>(0, 300);
+</span></span><span style="display:flex;"><span>redis.<span style="color:#a6e22e">setex</span>(key, ttl, value);
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>
+<p><strong>热点 key 永不过期 + 后台异步刷新</strong>：对秒杀库存这类极热点数据，设为逻辑不过期，由定时任务在后台主动刷新，彻底规避过期瞬间空窗。</p>
+</li>
+<li>
+<p><strong>回源合并</strong>：全站接入 singleflight / 分布式锁，保证同一 key 同一时刻只有一个回源。</p>
+</li>
+<li>
+<p><strong>多级缓存</strong>：Redis + 应用本地缓存（Caffeine）双层，Redis 失效时本地缓存仍能兜底。</p>
+</li>
+<li>
+<p><strong>数据库保护</strong>：库存读走从库，写主库；并配置合理的连接池上限与熔断（Sentinel/Resilience4j），避免被回源打挂。</p>
+</li>
+<li>
+<p><strong>压测与演练</strong>：大促前对&quot;缓存全失效&quot;场景做专项混沌演练，验证降级链路可用。</p>
+</li>
+</ol>
+<h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
+</h2><p>这次故障本质不是 Redis 性能问题，而是<strong>缓存生命周期设计缺陷</strong>引发的雪崩。集中 TTL 是很容易被忽视的&quot;定时炸弹&quot;，平时相安无事，一到流量洪峰就炸。排查上，关键抓手是 Redis 的 <code>keyspace_misses / expired_keys</code> 两个指标——它们能一眼定性&quot;请求是否穿透&quot;。记住：缓存层永远要假设自己会失效，回源必须有合并、必须有抖动、必须有降级。把数据库当成最后一道防线，而不是第一道承受洪峰的堤坝。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/">服务运维</a>
+        
+            <a href="/tags/redis/">Redis</a>
+        
+            <a href="/tags/%E7%BC%93%E5%AD%98%E9%9B%AA%E5%B4%A9/">缓存雪崩</a>
+        
+            <a href="/tags/%E9%AB%98%E5%B9%B6%E5%8F%91/">高并发</a>
+        
+            <a href="/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/">故障排查</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1redis-cluster%E8%84%91%E8%A3%82%E5%AF%BC%E8%87%B4%E7%BC%93%E5%AD%98%E6%95%B0%E6%8D%AE%E4%B8%8D%E4%B8%80%E8%87%B4%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Redis Cluster 脑裂，缓存数据为何对不上？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1redis%E5%86%85%E5%AD%98%E6%BA%A2%E5%87%BA%E5%AF%BC%E8%87%B4%E7%BC%93%E5%AD%98%E6%9C%8D%E5%8A%A1%E5%85%A8%E9%83%A8%E5%A4%B1%E6%95%88%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 Redis 内存溢出、缓存服务全失效的排查</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/2025-02-03-%E4%B8%80%E6%AC%A1%E6%A0%B8%E5%BF%83%E4%BA%A4%E6%8D%A2%E6%9C%BAstp%E6%A0%B9%E6%A1%A5%E6%8A%A2%E5%8D%A0%E5%BC%95%E5%8F%91%E5%B9%BF%E6%92%AD%E9%A3%8E%E6%9A%B4%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">核心交换机 STP 根桥被抢，广播风暴怎么来的？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/2025-01-13-%E4%B8%80%E6%AC%A1%E6%96%B0%E8%B4%AD%E7%AC%94%E8%AE%B0%E6%9C%AC%E5%87%BA%E5%8E%82%E7%B3%BB%E7%BB%9F%E6%97%A0%E6%B3%95%E5%8A%A0%E5%85%A5ad%E5%9F%9F%E7%9A%84%E6%8E%92%E6%9F%A5%E8%AE%B0%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">新购笔记本为何加不进 AD 域？出厂系统排障记</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1mysql%E8%87%AA%E5%8A%A8%E5%A4%87%E4%BB%BD%E8%84%9A%E6%9C%AC%E9%9D%99%E9%BB%98%E5%A4%B1%E8%B4%A5%E5%AF%BC%E8%87%B4%E7%BC%BA%E5%B0%91%E8%BF%91%E4%B8%80%E5%91%A8%E5%A4%87%E4%BB%BD%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 MySQL 自动备份静默失败、缺失近一周备份</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
