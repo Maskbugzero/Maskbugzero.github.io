@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="问题背景\r公司生产环境有 6 套 MySQL 实例，运维团队编写了一套自动化备份脚本，通过 crontab 每天凌晨 2:00 执行全量备份（mysqldump），备份文件存储在专用的 NFS 挂载点 /backup/mysql/。备份保留 30 天，过期文件自动清理。Zabbix 配置了备份文件新鲜度监控（最新备份超过 26 小时告警）。\n">
+<title>一次MySQL自动备份脚本静默失败导致缺少近一周备份的排查实录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/%E4%B8%80%E6%AC%A1mysql%E8%87%AA%E5%8A%A8%E5%A4%87%E4%BB%BD%E8%84%9A%E6%9C%AC%E9%9D%99%E9%BB%98%E5%A4%B1%E8%B4%A5%E5%AF%BC%E8%87%B4%E7%BC%BA%E5%B0%91%E8%BF%91%E4%B8%80%E5%91%A8%E5%A4%87%E4%BB%BD%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次MySQL自动备份脚本静默失败导致缺少近一周备份的排查实录">
+<meta property='og:description' content="问题背景\r公司生产环境有 6 套 MySQL 实例，运维团队编写了一套自动化备份脚本，通过 crontab 每天凌晨 2:00 执行全量备份（mysqldump），备份文件存储在专用的 NFS 挂载点 /backup/mysql/。备份保留 30 天，过期文件自动清理。Zabbix 配置了备份文件新鲜度监控（最新备份超过 26 小时告警）。\n">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/%E4%B8%80%E6%AC%A1mysql%E8%87%AA%E5%8A%A8%E5%A4%87%E4%BB%BD%E8%84%9A%E6%9C%AC%E9%9D%99%E9%BB%98%E5%A4%B1%E8%B4%A5%E5%AF%BC%E8%87%B4%E7%BC%BA%E5%B0%91%E8%BF%91%E4%B8%80%E5%91%A8%E5%A4%87%E4%BB%BD%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='MySQL' /><meta property='article:tag' content='备份' /><meta property='article:tag' content='crontab' /><meta property='article:tag' content='监控' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2024-11-19T08:30:00&#43;00:00'/><meta property='article:modified_time' content='2024-11-19T08:30:00&#43;00:00'/>
+<meta name="twitter:title" content="一次MySQL自动备份脚本静默失败导致缺少近一周备份的排查实录">
+<meta name="twitter:description" content="问题背景\r公司生产环境有 6 套 MySQL 实例，运维团队编写了一套自动化备份脚本，通过 crontab 每天凌晨 2:00 执行全量备份（mysqldump），备份文件存储在专用的 NFS 挂载点 /backup/mysql/。备份保留 30 天，过期文件自动清理。Zabbix 配置了备份文件新鲜度监控（最新备份超过 26 小时告警）。\n">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description"></h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span></span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title"></h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步检查-crontab-执行日志">第一步：检查 crontab 执行日志</a></li>
+        <li><a href="#第二步检查备份日志">第二步：检查备份日志</a></li>
+        <li><a href="#第三步审查脚本退出码逻辑">第三步：审查脚本退出码逻辑</a></li>
+        <li><a href="#第四步检查为什么-zabbix-没告警">第四步：检查为什么 Zabbix 没告警</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/%E4%B8%80%E6%AC%A1mysql%E8%87%AA%E5%8A%A8%E5%A4%87%E4%BB%BD%E8%84%9A%E6%9C%AC%E9%9D%99%E9%BB%98%E5%A4%B1%E8%B4%A5%E5%AF%BC%E8%87%B4%E7%BC%BA%E5%B0%91%E8%BF%91%E4%B8%80%E5%91%A8%E5%A4%87%E4%BB%BD%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">一次MySQL自动备份脚本静默失败导致缺少近一周备份的排查实录</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2024-11-19T08:30:00Z'>Tuesday, November 19, 2024</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span></span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步检查-crontab-执行日志">第一步：检查 crontab 执行日志</a></li>
+        <li><a href="#第二步检查备份日志">第二步：检查备份日志</a></li>
+        <li><a href="#第三步审查脚本退出码逻辑">第三步：审查脚本退出码逻辑</a></li>
+        <li><a href="#第四步检查为什么-zabbix-没告警">第四步：检查为什么 Zabbix 没告警</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司生产环境有 6 套 MySQL 实例，运维团队编写了一套自动化备份脚本，通过 crontab 每天凌晨 2:00 执行全量备份（mysqldump），备份文件存储在专用的 NFS 挂载点 <code>/backup/mysql/</code>。备份保留 30 天，过期文件自动清理。Zabbix 配置了备份文件新鲜度监控（最新备份超过 26 小时告警）。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>11 月 19 日周二上午，DBA 按惯例进行每周备份巡检时发现：生产主库 <code>db-prod-01</code> 的最新备份文件日期停留在 <strong>11 月 13 日</strong>，其后 5 天的备份全部缺失。</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ ls -lt /backup/mysql/db-prod-01/
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#ae81ff">1</span> backup backup 2.3G Nov <span style="color:#ae81ff">13</span> 02:15 db-prod-01_20241113.sql.gz
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#ae81ff">1</span> backup backup 2.1G Nov <span style="color:#ae81ff">12</span> 02:12 db-prod-01_20241112.sql.gz
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#ae81ff">1</span> backup backup 2.3G Nov  <span style="color:#ae81ff">6</span> 02:11 db-prod-01_20241106.sql.gz
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 11月14日至11月18日的备份文件全部缺失</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>令人不安的是：crontab 日志显示脚本&quot;正常执行&quot;，Zabbix 监控也未触发告警。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="第一步检查-crontab-执行日志"><a href="#%e7%ac%ac%e4%b8%80%e6%ad%a5%e6%a3%80%e6%9f%a5-crontab-%e6%89%a7%e8%a1%8c%e6%97%a5%e5%bf%97" class="header-anchor"></a>第一步：检查 crontab 执行日志
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ grep <span style="color:#e6db74">&#34;mysql_backup&#34;</span> /var/log/cron
+</span></span><span style="display:flex;"><span>Nov <span style="color:#ae81ff">14</span> 02:00:01 backup-srv CROND<span style="color:#f92672">[</span>23451<span style="color:#f92672">]</span>: <span style="color:#f92672">(</span>backup<span style="color:#f92672">)</span> CMD <span style="color:#f92672">(</span>/opt/scripts/mysql_backup.sh &gt;&gt; /var/log/backup.log 2&gt;&amp;1<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>Nov <span style="color:#ae81ff">15</span> 02:00:01 backup-srv CROND<span style="color:#f92672">[</span>28402<span style="color:#f92672">]</span>: <span style="color:#f92672">(</span>backup<span style="color:#f92672">)</span> CMD <span style="color:#f92672">(</span>/opt/scripts/mysql_backup.sh &gt;&gt; /var/log/backup.log 2&gt;&amp;1<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>Nov <span style="color:#ae81ff">16</span> 02:00:01 backup-srv CROND<span style="color:#f92672">[</span>30421<span style="color:#f92672">]</span>: <span style="color:#f92672">(</span>backup<span style="color:#f92672">)</span> CMD <span style="color:#f92672">(</span>/opt/scripts/mysql_backup.sh &gt;&gt; /var/log/backup.log 2&gt;&amp;1<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>crontab 确实每天执行了，退出码为 0（成功）。</p>
+<h3 id="第二步检查备份日志"><a href="#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e6%a3%80%e6%9f%a5%e5%a4%87%e4%bb%bd%e6%97%a5%e5%bf%97" class="header-anchor"></a>第二步：检查备份日志
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ tail -50 /var/log/backup.log
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>2024-11-14 02:00:02<span style="color:#f92672">]</span> 开始备份 db-prod-01
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>2024-11-14 02:00:02<span style="color:#f92672">]</span> WARNING: 磁盘空间不足，可用空间仅 1.2GB，需要 2.5GB
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>2024-11-14 02:00:02<span style="color:#f92672">]</span> 备份已跳过
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>2024-11-15 02:00:02<span style="color:#f92672">]</span> 开始备份 db-prod-01
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>2024-11-15 02:00:02<span style="color:#f92672">]</span> WARNING: 磁盘空间不足，可用空间仅 1.2GB，需要 2.5GB
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>2024-11-15 02:00:02<span style="color:#f92672">]</span> 备份已跳过
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>...（连续5天相同的跳过记录）
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>关键发现：脚本检测到磁盘空间不足后打印了 WARNING，然后退出，<strong>但退出码仍为 0</strong>。</p>
+<h3 id="第三步审查脚本退出码逻辑"><a href="#%e7%ac%ac%e4%b8%89%e6%ad%a5%e5%ae%a1%e6%9f%a5%e8%84%9a%e6%9c%ac%e9%80%80%e5%87%ba%e7%a0%81%e9%80%bb%e8%be%91" class="header-anchor"></a>第三步：审查脚本退出码逻辑
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ cat /opt/scripts/mysql_backup.sh | grep -A5 <span style="color:#e6db74">&#34;磁盘空间&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> $AVAIL -lt <span style="color:#ae81ff">3000</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+</span></span><span style="display:flex;"><span>    echo <span style="color:#e6db74">&#34;[</span><span style="color:#66d9ef">$(</span>date<span style="color:#66d9ef">)</span><span style="color:#e6db74">] WARNING: 磁盘空间不足，可用空间仅 </span><span style="color:#e6db74">${</span>AVAIL<span style="color:#e6db74">}</span><span style="color:#e6db74">MB，需要 2500MB&#34;</span>
+</span></span><span style="display:flex;"><span>    echo <span style="color:#e6db74">&#34;[</span><span style="color:#66d9ef">$(</span>date<span style="color:#66d9ef">)</span><span style="color:#e6db74">] 备份已跳过&#34;</span>
+</span></span><span style="display:flex;"><span>    exit <span style="color:#ae81ff">0</span>          <span style="color:#75715e"># &lt;--- 问题在这里！磁盘不足但返回了退出码0！</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">fi</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>脚本在磁盘空间不足时 echo 了警告信息，但<strong>用了 <code>exit 0</code> 而非 <code>exit 1</code></strong>。crontab 只看退出码判断成功/失败——所以 crontab 认为脚本执行成功，Zabbix 的监控也未触发（因为监控也是通过检查退出码来判断的）。</p>
+<h3 id="第四步检查为什么-zabbix-没告警"><a href="#%e7%ac%ac%e5%9b%9b%e6%ad%a5%e6%a3%80%e6%9f%a5%e4%b8%ba%e4%bb%80%e4%b9%88-zabbix-%e6%b2%a1%e5%91%8a%e8%ad%a6" class="header-anchor"></a>第四步：检查为什么 Zabbix 没告警
+</h3><p>Zabbix 备份监控项配置：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>Item: vfs.file.time[/backup/mysql/db-prod-01/db-prod-01_{DATE}.sql.gz,change]
+</span></span><span style="display:flex;"><span>Trigger: {host:vfs.file.time[...].now} - {host:vfs.file.time[...].last()} &gt; 93600
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>触发器逻辑：最新备份文件时间距当前时间超过 26 小时告警。</p>
+<p>但问题是——11 月 13 日的备份文件仍然存在于磁盘上。Zabbix 的 <code>vfs.file.time</code> 检查的是<strong>文件系统的最后修改时间</strong>，而非备份是否真正包含了前一天的完整数据。备份脚本虽然跳过了 14-18 日，但 13 日的文件因为保留策略（30天）仍在磁盘上，Zabbix 每次都读到 13 日的文件并认为&quot;最新备份在 26 小时内&quot;。</p>
+<p><strong>等等，这不对</strong>——13 日的备份怎么可能在 14-18 日仍然被视为&quot;25 小时内&quot;？</p>
+<p>更仔细地看 Zabbix 配置：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>Item: vfs.file.time[/backup/mysql/db-prod-01/db-prod-01_{DATE}.sql.gz,change]
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这里的 <code>{DATE}</code> 是 Zabbix 的宏，每天都会替换为当天的日期。比如 11 月 14 日检查的是 <code>db-prod-01_20241114.sql.gz</code>，这个文件不存在时 <code>vfs.file.time</code> 返回错误（而非 0），而触发器只配置了成功值 &gt; 26h 才告警——文件不存在时的错误状态被忽略了！</p>
+<p>这就是<strong>监控的双重失效</strong>：退出码 0 欺骗了 crontab，文件不存在的错误返回值欺骗了 Zabbix 触发器。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>修正备份脚本退出码</strong>：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> $AVAIL -lt <span style="color:#ae81ff">3000</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+</span></span><span style="display:flex;"><span>    echo <span style="color:#e6db74">&#34;[</span><span style="color:#66d9ef">$(</span>date<span style="color:#66d9ef">)</span><span style="color:#e6db74">] ERROR: 磁盘空间不足&#34;</span> &gt;&amp;<span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span>    echo <span style="color:#e6db74">&#34;[</span><span style="color:#66d9ef">$(</span>date<span style="color:#66d9ef">)</span><span style="color:#e6db74">] 备份已跳过&#34;</span> &gt;&amp;<span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span>    exit <span style="color:#ae81ff">1</span>          <span style="color:#75715e"># 改为非0退出码</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">fi</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li><strong>清理磁盘空间</strong>：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 删除超过30天的备份</span>
+</span></span><span style="display:flex;"><span>find /backup/mysql/ -name <span style="color:#e6db74">&#34;*.gz&#34;</span> -mtime +30 -delete
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 清理后释放了 8GB</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>
+<p><strong>补充缺失备份</strong>：手动执行一次全量备份。</p>
+</li>
+<li>
+<p><strong>修正 Zabbix 监控</strong>：</p>
+</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span># 触发器改为：文件不存在 OR 修改时间超过26小时
+</span></span><span style="display:flex;"><span>{host:vfs.file.time[...].last()}=0 
+</span></span><span style="display:flex;"><span>or {host:vfs.file.time[...].now}-{host:vfs.file.time[...].last()}&gt;93600
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接原因：备份脚本在磁盘空间不足时以 <code>exit 0</code> 退出，crontab 认为执行成功，Zabbix 也未收到错误信号。</p>
+<p>深层原因：</p>
+<ul>
+<li>脚本的退出码使用不规范（非致命错误也返回 0）</li>
+<li>Zabbix 触发器未覆盖&quot;文件不存在&quot;的异常情况</li>
+<li>备份磁盘空间没有独立的容量监控（30 天保留策略未考虑数据增长）</li>
+<li>缺少备份成功后的验证步骤（如校验 <code>gzip -t</code>）</li>
+</ul>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
+<li><strong>退出码规范</strong>：脚本中任何非正常完成的情况必须返回非 0 退出码</li>
+<li><strong>备份验证</strong>：备份完成后 <code>gzip -t</code> 校验完整性 + 检查文件大小是否合理（&gt;50% 前一日大小）</li>
+<li><strong>磁盘容量独立监控</strong>：对 <code>/backup/mysql</code> 分区单独设置 &gt;80% 告警</li>
+<li><strong>数据库增长监控</strong>：统计每月备份大小趋势，当增长率 &gt;20% 时提前扩容</li>
+<li><strong>多维度监控</strong>：不要只依赖一种监控方式，退出码 + 文件时间 + 文件大小三者交叉验证</li>
+<li><strong>定期恢复演练</strong>：每季度随机抽取一个备份文件进行恢复验证</li>
+</ol>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>备份系统最可怕的不是&quot;备份失败&quot;，而是&quot;备份失败了但没有人知道&quot;。这次事故暴露了两个核心问题：退出码的滥用和监控的盲区。一个执行了 5 天、每次都&quot;成功&quot;的备份脚本，实际上从未生成过有效的备份文件。如果在第 6 天确实发生了数据丢失需要回滚，DBA 会惊讶地发现最近可用的备份停在 6 天前。备份脚本的退出码不应该是一个可选项——<strong>所有非正常路径都必须返回非 0，没有例外</strong>。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/mysql/">MySQL</a>
+        
+            <a href="/tags/%E5%A4%87%E4%BB%BD/">备份</a>
+        
+            <a href="/tags/crontab/">Crontab</a>
+        
+            <a href="/tags/%E7%9B%91%E6%8E%A7/">监控</a>
+        
+            <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/">服务运维</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title"></h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1mysql%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E5%BB%B6%E8%BF%9F%E5%AF%BC%E8%87%B4%E6%8A%A5%E8%A1%A8%E6%95%B0%E6%8D%AE%E5%B7%AE%E5%BC%82%E8%BF%87%E5%A4%A7%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次MySQL主从复制延迟导致报表数据差异过大的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1kafka%E6%B6%88%E8%B4%B9%E8%80%85%E7%BB%84%E6%B6%88%E6%81%AF%E7%A7%AF%E5%8E%8B%E5%AF%BC%E8%87%B4%E8%AE%A2%E5%8D%95%E5%A4%84%E7%90%86%E5%BB%B6%E8%BF%9F2%E5%B0%8F%E6%97%B6%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次Kafka消费者组消息积压导致订单处理延迟2小时的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/671a045a/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次SSL证书过期导致内网HTTPS服务全面中断的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/9eb92141/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次Docker容器OOM引发的服务雪崩排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/%E4%B8%80%E6%AC%A1gitlab-runner%E5%B9%B6%E5%8F%91%E6%9E%84%E5%BB%BA%E5%AF%BC%E8%87%B4%E5%AE%BF%E4%B8%BB%E6%9C%BAcpu%E8%BF%87%E8%BD%BD%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次GitLab Runner并发构建导致宿主机CPU过载的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.d00997a2f4a6ce525f496da0c3ae6ad392b0468b8a9024f23309fdfc75c67a35.js" defer></script>
+
+
+    </body>
+</html>

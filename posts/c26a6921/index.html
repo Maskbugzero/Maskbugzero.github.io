@@ -16,7 +16,7 @@
 <meta property='og:description' content="服务器CPU使用率60%不高，top也看不出异常进程，但服务频繁超时——最终定位到网络软中断全部压在单核上，这才是隐藏的性能杀手。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/c26a6921/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='CPU软中断' /><meta property='article:tag' content='性能调优' /><meta property='article:tag' content='网络中断' /><meta property='article:tag' content='Linux内核' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2026-06-30T21:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-06-30T21:00:00&#43;00:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='CPU软中断' /><meta property='article:tag' content='性能调优' /><meta property='article:tag' content='网络中断' /><meta property='article:tag' content='Linux内核' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2026-06-30T07:34:07&#43;00:00'/><meta property='article:modified_time' content='2026-06-30T21:00:00&#43;00:00'/>
 <meta name="twitter:title" content="一次服务器CPU软中断飙高导致服务间歇性超时的排查实录">
 <meta name="twitter:description" content="服务器CPU使用率60%不高，top也看不出异常进程，但服务频繁超时——最终定位到网络软中断全部压在单核上，这才是隐藏的性能杀手。">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -276,7 +276,7 @@
   <path d="M3 11h16" />
   <path d="M18 16.496v1.504l1 1" />
 </svg>
-                    <time class="article-time--published" datetime='2026-06-30T21:00:00Z'>Tuesday, June 30, 2026</time>
+                    <time class="article-time--published" datetime='2026-06-30T07:34:07Z'>Tuesday, June 30, 2026</time>
                 
 
                 
@@ -933,7 +933,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+             Tuesday, June 30, 2026
+        </span>
+    </section></footer>
 
 
     
