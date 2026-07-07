@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Wed, 24 Jun 2026 07:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/windows-update/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次Windows更新后打印机Spooler服务反复崩溃的全网排查实录</title>
+            <title>Windows 更新后打印机 Spooler 反复崩溃，全网怎么查？</title>
             <link>https://blog.5772447.xyz/posts/e337afd5/</link>
             <pubDate>Wed, 24 Jun 2026 05:19:49 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/e337afd5/</guid>

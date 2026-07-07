@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Fri, 26 Jun 2026 07:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/mtu/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次IPSec VPN隧道因MTU不匹配导致ERP系统远程访问异常的排查实录</title>
+            <title>IPSec VPN MTU 不匹配致 ERP 远程访问异常：定位与修复</title>
             <link>https://blog.5772447.xyz/posts/de113360/</link>
             <pubDate>Fri, 26 Jun 2026 08:36:04 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/de113360/</guid>

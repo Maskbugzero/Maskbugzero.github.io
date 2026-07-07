@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Tue, 30 Jun 2026 21:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次服务器CPU软中断飙高导致服务间歇性超时的排查实录</title>
+            <title>服务器 CPU 软中断飙高，服务为何间歇超时？</title>
             <link>https://blog.5772447.xyz/posts/c26a6921/</link>
             <pubDate>Tue, 30 Jun 2026 07:34:07 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/c26a6921/</guid>

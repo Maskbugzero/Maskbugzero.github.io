@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="K8s集群中部分Pod间TCP连接间歇性超时，最终定位到节点conntrack表满导致新连接被内核丢弃。">
-<title>一次Kubernetes节点conntrack表满导致服务间TCP连接超时的排查记录</title>
+<title>记一次 K8s 节点 conntrack 表打满导致的服务间 TCP 超时</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/16c569d2/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次Kubernetes节点conntrack表满导致服务间TCP连接超时的排查记录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次 K8s 节点 conntrack 表打满导致的服务间 TCP 超时">
 <meta property='og:description' content="K8s集群中部分Pod间TCP连接间歇性超时，最终定位到节点conntrack表满导致新连接被内核丢弃。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/16c569d2/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='conntrack' /><meta property='article:tag' content='TCP' /><meta property='article:tag' content='网络排查' /><meta property='article:published_time' content='2026-07-06T04:52:26&#43;00:00'/><meta property='article:modified_time' content='2026-07-06T07:00:00&#43;00:00'/>
-<meta name="twitter:title" content="一次Kubernetes节点conntrack表满导致服务间TCP连接超时的排查记录">
+<meta name="twitter:title" content="记一次 K8s 节点 conntrack 表打满导致的服务间 TCP 超时">
 <meta name="twitter:description" content="K8s集群中部分Pod间TCP连接间歇性超时，最终定位到节点conntrack表满导致新连接被内核丢弃。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -281,7 +281,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/16c569d2/">一次Kubernetes节点conntrack表满导致服务间TCP连接超时的排查记录</a>
+            <a href="/posts/16c569d2/">记一次 K8s 节点 conntrack 表打满导致的服务间 TCP 超时</a>
         </h2>
     
         
@@ -670,7 +670,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次Kubernetes Pod OOMKilled触发服务雪崩的排查记录</h2>
+            <h2 class="article-title">记一次 K8s Pod OOMKilled 触发的服务雪崩</h2>
         </div>
     </a>
 </article>
@@ -681,7 +681,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次K8s节点磁盘压力导致Pod批量驱逐的排查实录</h2>
+            <h2 class="article-title">K8s 节点磁盘压力致 Pod 批量驱逐的定位</h2>
         </div>
     </a>
 </article>

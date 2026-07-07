@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Fri, 03 Jul 2026 06:55:17 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E5%8F%98%E9%87%8F%E4%BC%98%E5%85%88%E7%BA%A7/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次Ansible Playbook变量优先级错误导致批量服务器配置漂移的排查实录</title>
+            <title>Ansible 变量优先级算错，批量服务器怎么就配置漂移了？</title>
             <link>https://blog.5772447.xyz/posts/3e35df54/</link>
             <pubDate>Fri, 03 Jul 2026 06:55:17 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/3e35df54/</guid>

@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="文件服务器存储控制器故障切换导致漫游用户配置文件损坏，市场部全员周一早登录卡死30分钟——本文记录从事件查看器到注册表ProfileList的完整排查过程。">
-<title>一次Windows漫游用户配置文件损坏导致终端登录卡死的排查实录</title>
+<title>Windows 漫游配置文件损坏致终端登录卡死的修复</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/d2a21abf/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次Windows漫游用户配置文件损坏导致终端登录卡死的排查实录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Windows 漫游配置文件损坏致终端登录卡死的修复">
 <meta property='og:description' content="文件服务器存储控制器故障切换导致漫游用户配置文件损坏，市场部全员周一早登录卡死30分钟——本文记录从事件查看器到注册表ProfileList的完整排查过程。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/d2a21abf/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Windows' /><meta property='article:tag' content='漫游配置文件' /><meta property='article:tag' content='桌面运维' /><meta property='article:tag' content='AD域控' /><meta property='article:tag' content='文件服务器' /><meta property='article:published_time' content='2026-07-01T21:03:24&#43;00:00'/><meta property='article:modified_time' content='2026-07-01T07:00:00&#43;00:00'/>
-<meta name="twitter:title" content="一次Windows漫游用户配置文件损坏导致终端登录卡死的排查实录">
+<meta name="twitter:title" content="Windows 漫游配置文件损坏致终端登录卡死的修复">
 <meta name="twitter:description" content="文件服务器存储控制器故障切换导致漫游用户配置文件损坏，市场部全员周一早登录卡死30分钟——本文记录从事件查看器到注册表ProfileList的完整排查过程。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -288,7 +288,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/d2a21abf/">一次Windows漫游用户配置文件损坏导致终端登录卡死的排查实录</a>
+            <a href="/posts/d2a21abf/">Windows 漫游配置文件损坏致终端登录卡死的修复</a>
         </h2>
     
         
@@ -755,7 +755,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">AD域环境下打印机批量部署失败的排查手记</h2>
+            <h2 class="article-title">AD 域环境下打印机批量部署失败的处理手记</h2>
         </div>
     </a>
 </article>
@@ -766,18 +766,18 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次AD域控GPO策略推送失败导致终端安全基线不生效的排查实录</h2>
+            <h2 class="article-title">域控 GPO 推送失败，终端安全基线为何不生效？</h2>
         </div>
     </a>
 </article>
             
                 
 <article class="">
-    <a href="/posts/%E4%B8%80%E6%AC%A1windows%E5%9F%9F%E7%AD%96%E7%95%A5%E6%8E%A8%E9%80%81%E5%A4%B1%E8%B4%A5%E5%AF%BC%E8%87%B4%E6%96%B0%E7%94%B5%E8%84%91%E6%97%A0%E6%B3%95%E7%99%BB%E5%BD%95%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+    <a href="/posts/windows-%E5%9F%9F%E7%AD%96%E7%95%A5%E6%8E%A8%E9%80%81%E5%A4%B1%E8%B4%A5%E8%87%B4%E6%96%B0%E7%94%B5%E8%84%91%E6%97%A0%E6%B3%95%E7%99%BB%E5%BD%95%E7%9A%84%E5%A4%84%E7%90%86/">
         
 
         <div class="article-details">
-            <h2 class="article-title">一次Windows域策略推送失败导致新电脑无法登录的排查实录</h2>
+            <h2 class="article-title">Windows 域策略推送失败致新电脑无法登录的处理</h2>
         </div>
     </a>
 </article>
@@ -788,7 +788,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次Windows更新后打印机Spooler服务反复崩溃的全网排查实录</h2>
+            <h2 class="article-title">Windows 更新后打印机 Spooler 反复崩溃，全网怎么查？</h2>
         </div>
     </a>
 </article>
@@ -799,7 +799,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次USB-C扩展坞外接双显示器无信号的排查记录</h2>
+            <h2 class="article-title">USB-C 扩展坞接双屏为何没信号？桌面排障记</h2>
         </div>
     </a>
 </article>

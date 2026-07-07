@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="大促秒杀开始缓存集中过期，Redis 被打满后大量请求穿透到数据库，接口 P99 从 50ms 飙到 8s。">
-<title>一次Redis缓存雪崩导致秒杀接口大面积超时的排查记录</title>
+<title>秒杀接口大面积超时：Redis 缓存雪崩的定位与修复</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/e4f8877e/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次Redis缓存雪崩导致秒杀接口大面积超时的排查记录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="秒杀接口大面积超时：Redis 缓存雪崩的定位与修复">
 <meta property='og:description' content="大促秒杀开始缓存集中过期，Redis 被打满后大量请求穿透到数据库，接口 P99 从 50ms 飙到 8s。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/e4f8877e/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='服务运维' /><meta property='article:tag' content='Redis' /><meta property='article:tag' content='缓存雪崩' /><meta property='article:tag' content='高并发' /><meta property='article:tag' content='故障排查' /><meta property='article:published_time' content='2025-03-11T22:43:30&#43;00:00'/><meta property='article:modified_time' content='2025-03-11T22:43:30&#43;00:00'/>
-<meta name="twitter:title" content="一次Redis缓存雪崩导致秒杀接口大面积超时的排查记录">
+<meta name="twitter:title" content="秒杀接口大面积超时：Redis 缓存雪崩的定位与修复">
 <meta name="twitter:description" content="大促秒杀开始缓存集中过期，Redis 被打满后大量请求穿透到数据库，接口 P99 从 50ms 飙到 8s。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -267,7 +267,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/e4f8877e/">一次Redis缓存雪崩导致秒杀接口大面积超时的排查记录</a>
+            <a href="/posts/e4f8877e/">秒杀接口大面积超时：Redis 缓存雪崩的定位与修复</a>
         </h2>
     
         
@@ -549,11 +549,11 @@
             
                 
 <article class="">
-    <a href="/posts/%E4%B8%80%E6%AC%A1redis-cluster%E8%84%91%E8%A3%82%E5%AF%BC%E8%87%B4%E7%BC%93%E5%AD%98%E6%95%B0%E6%8D%AE%E4%B8%8D%E4%B8%80%E8%87%B4%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+    <a href="/posts/redis-cluster-%E8%84%91%E8%A3%82%E7%BC%93%E5%AD%98%E6%95%B0%E6%8D%AE%E4%B8%BA%E4%BD%95%E5%AF%B9%E4%B8%8D%E4%B8%8A/">
         
 
         <div class="article-details">
-            <h2 class="article-title">一次Redis Cluster脑裂导致缓存数据不一致的排查实录</h2>
+            <h2 class="article-title">Redis Cluster 脑裂，缓存数据为何对不上？</h2>
         </div>
     </a>
 </article>
@@ -564,7 +564,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次Redis内存溢出导致缓存服务全部失效的排查实录</h2>
+            <h2 class="article-title">记一次 Redis 内存溢出、缓存服务全失效的排查</h2>
         </div>
     </a>
 </article>
@@ -575,7 +575,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次核心交换机STP根桥抢占引发广播风暴的排查记录</h2>
+            <h2 class="article-title">核心交换机 STP 根桥被抢，广播风暴怎么来的？</h2>
         </div>
     </a>
 </article>
@@ -586,18 +586,18 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次新购笔记本出厂系统无法加入AD域的排查记录</h2>
+            <h2 class="article-title">新购笔记本为何加不进 AD 域？出厂系统排障记</h2>
         </div>
     </a>
 </article>
             
                 
 <article class="">
-    <a href="/posts/%E4%B8%80%E6%AC%A1mysql%E8%87%AA%E5%8A%A8%E5%A4%87%E4%BB%BD%E8%84%9A%E6%9C%AC%E9%9D%99%E9%BB%98%E5%A4%B1%E8%B4%A5%E5%AF%BC%E8%87%B4%E7%BC%BA%E5%B0%91%E8%BF%91%E4%B8%80%E5%91%A8%E5%A4%87%E4%BB%BD%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">
+    <a href="/posts/%E8%AE%B0%E4%B8%80%E6%AC%A1-mysql-%E8%87%AA%E5%8A%A8%E5%A4%87%E4%BB%BD%E9%9D%99%E9%BB%98%E5%A4%B1%E8%B4%A5%E7%BC%BA%E5%A4%B1%E8%BF%91%E4%B8%80%E5%91%A8%E5%A4%87%E4%BB%BD/">
         
 
         <div class="article-details">
-            <h2 class="article-title">一次MySQL自动备份脚本静默失败导致缺少近一周备份的排查实录</h2>
+            <h2 class="article-title">记一次 MySQL 自动备份静默失败、缺失近一周备份</h2>
         </div>
     </a>
 </article>

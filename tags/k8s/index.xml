@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Tue, 12 Mar 2024 10:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/k8s/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次K8s节点磁盘压力导致Pod批量驱逐的排查实录</title>
+            <title>K8s 节点磁盘压力致 Pod 批量驱逐的定位</title>
             <link>https://blog.5772447.xyz/posts/81929d4d/</link>
             <pubDate>Tue, 12 Mar 2024 06:02:50 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/81929d4d/</guid>

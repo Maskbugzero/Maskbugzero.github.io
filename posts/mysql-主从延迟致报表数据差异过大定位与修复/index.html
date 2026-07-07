@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="问题背景\r公司报表系统每天上午 9:00 自动生成前一天的日报，数据来源是 MySQL 从库（只读副本）。业务库采用一主两从架构，使用 GTID 异步复制。业务高峰期主库 QPS 约 5000，从库负责分担读负载和报表查询。\n">
+<title>MySQL 主从延迟致报表数据差异过大：定位与修复</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/mysql-%E4%B8%BB%E4%BB%8E%E5%BB%B6%E8%BF%9F%E8%87%B4%E6%8A%A5%E8%A1%A8%E6%95%B0%E6%8D%AE%E5%B7%AE%E5%BC%82%E8%BF%87%E5%A4%A7%E5%AE%9A%E4%BD%8D%E4%B8%8E%E4%BF%AE%E5%A4%8D/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="MySQL 主从延迟致报表数据差异过大：定位与修复">
+<meta property='og:description' content="问题背景\r公司报表系统每天上午 9:00 自动生成前一天的日报，数据来源是 MySQL 从库（只读副本）。业务库采用一主两从架构，使用 GTID 异步复制。业务高峰期主库 QPS 约 5000，从库负责分担读负载和报表查询。\n">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/mysql-%E4%B8%BB%E4%BB%8E%E5%BB%B6%E8%BF%9F%E8%87%B4%E6%8A%A5%E8%A1%A8%E6%95%B0%E6%8D%AE%E5%B7%AE%E5%BC%82%E8%BF%87%E5%A4%A7%E5%AE%9A%E4%BD%8D%E4%B8%8E%E4%BF%AE%E5%A4%8D/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='MySQL' /><meta property='article:tag' content='主从复制' /><meta property='article:tag' content='报表' /><meta property='article:tag' content='性能优化' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2024-03-05T09:30:00&#43;00:00'/><meta property='article:modified_time' content='2024-03-05T09:30:00&#43;00:00'/>
+<meta name="twitter:title" content="MySQL 主从延迟致报表数据差异过大：定位与修复">
+<meta name="twitter:description" content="问题背景\r公司报表系统每天上午 9:00 自动生成前一天的日报，数据来源是 MySQL 从库（只读副本）。业务库采用一主两从架构，使用 GTID 异步复制。业务高峰期主库 QPS 约 5000，从库负责分担读负载和报表查询。\n">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步确认延迟趋势">第一步：确认延迟趋势</a></li>
+        <li><a href="#第二步定位延迟来源">第二步：定位延迟来源</a></li>
+        <li><a href="#第三步分析慢回放事务">第三步：分析慢回放事务</a></li>
+        <li><a href="#第四步确认索引缺失">第四步：确认索引缺失</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/mysql-%E4%B8%BB%E4%BB%8E%E5%BB%B6%E8%BF%9F%E8%87%B4%E6%8A%A5%E8%A1%A8%E6%95%B0%E6%8D%AE%E5%B7%AE%E5%BC%82%E8%BF%87%E5%A4%A7%E5%AE%9A%E4%BD%8D%E4%B8%8E%E4%BF%AE%E5%A4%8D/">MySQL 主从延迟致报表数据差异过大：定位与修复</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2024-03-05T09:30:00Z'>2024年3月5日星期二</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 3 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步确认延迟趋势">第一步：确认延迟趋势</a></li>
+        <li><a href="#第二步定位延迟来源">第二步：定位延迟来源</a></li>
+        <li><a href="#第三步分析慢回放事务">第三步：分析慢回放事务</a></li>
+        <li><a href="#第四步确认索引缺失">第四步：确认索引缺失</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司报表系统每天上午 9:00 自动生成前一天的日报，数据来源是 MySQL 从库（只读副本）。业务库采用一主两从架构，使用 GTID 异步复制。业务高峰期主库 QPS 约 5000，从库负责分担读负载和报表查询。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>2024 年 3 月 5 日上午，财务部门反馈 3 月 4 日的日报中订单总金额为 238 万元，但业务后台显示的金额是 271 万元，<strong>差异达到 12%</strong>。进一步比对发现，日报中缺失了大约 3 月 4 日晚上 20:00–22:00 之间的 40 多笔订单数据。</p>
+<p>运维登录从库检查：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span>mysql<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">SHOW</span> SLAVE STATUS<span style="color:#960050;background-color:#1e0010">\</span><span style="color:#66d9ef">G</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">***************************</span> <span style="color:#ae81ff">1</span>. <span style="color:#66d9ef">row</span> <span style="color:#f92672">***************************</span>
+</span></span><span style="display:flex;"><span>             Seconds_Behind_Master: <span style="color:#ae81ff">2147</span>   <span style="color:#75715e">-- 35分钟的延迟！
+</span></span></span><span style="display:flex;"><span>     Slave_SQL_Running_State: <span style="color:#66d9ef">System</span> <span style="color:#66d9ef">lock</span>
+</span></span><span style="display:flex;"><span>          Exec_Master_Log_Pos: <span style="color:#ae81ff">342187651</span>
+</span></span><span style="display:flex;"><span>      Relay_Log_Space: <span style="color:#ae81ff">3502211072</span>         <span style="color:#75715e">-- 3.5GB relay log堆积
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>主从复制延迟 35 分钟，从库落后 9000 多个 binlog 事件未回放。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="第一步确认延迟趋势"><a href="#%e7%ac%ac%e4%b8%80%e6%ad%a5%e7%a1%ae%e8%ae%a4%e5%bb%b6%e8%bf%9f%e8%b6%8b%e5%8a%bf" class="header-anchor"></a>第一步：确认延迟趋势
+</h3><p>查看延迟变化趋势，发现并非突发：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ mysql -e <span style="color:#e6db74">&#34;SELECT * FROM mysql.slave_master_info\G&#34;</span> | grep -E <span style="color:#e6db74">&#34;Retried|Heartbeat&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>抄送 slave delay 监控图表显示，延迟从前一天下午 6:00 开始逐步上升，到次日凌晨 2:00 达到峰值约 50 分钟后缓慢恢复，但到上午 9:00 仍未追平。</p>
+<h3 id="第二步定位延迟来源"><a href="#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e5%ae%9a%e4%bd%8d%e5%bb%b6%e8%bf%9f%e6%9d%a5%e6%ba%90" class="header-anchor"></a>第二步：定位延迟来源
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span>mysql<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">SHOW</span> SLAVE STATUS<span style="color:#960050;background-color:#1e0010">\</span><span style="color:#66d9ef">G</span> <span style="color:#f92672">|</span> grep <span style="color:#f92672">-</span>i <span style="color:#e6db74">&#34;slave_sql_running_state&#34;</span>
+</span></span><span style="display:flex;"><span>     Slave_SQL_Running_State: <span style="color:#66d9ef">System</span> <span style="color:#66d9ef">lock</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从库 SQL 线程卡在 System lock 状态，说明有<strong>大事务</strong>在回放。</p>
+<h3 id="第三步分析慢回放事务"><a href="#%e7%ac%ac%e4%b8%89%e6%ad%a5%e5%88%86%e6%9e%90%e6%85%a2%e5%9b%9e%e6%94%be%e4%ba%8b%e5%8a%a1" class="header-anchor"></a>第三步：分析慢回放事务
+</h3><p>查看当前的 relay log 位置对应的 binlog：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ mysqlbinlog --base64-output<span style="color:#f92672">=</span>decode-rows -v mysql-bin.000287 <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>    --start-position<span style="color:#f92672">=</span><span style="color:#ae81ff">342187651</span> --stop-position<span style="color:#f92672">=</span><span style="color:#ae81ff">342200000</span> | head -50
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>发现一个巨大的 DELETE 语句：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#66d9ef">DELETE</span> <span style="color:#66d9ef">FROM</span> order_snapshot_backup <span style="color:#66d9ef">WHERE</span> create_time <span style="color:#f92672">&lt;</span> <span style="color:#e6db74">&#39;2024-01-05 00:00:00&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>该语句一次删除了 120 万行数据，在主库上执行了 2 分钟，在从库上回放需要更多时间。</p>
+<h3 id="第四步确认索引缺失"><a href="#%e7%ac%ac%e5%9b%9b%e6%ad%a5%e7%a1%ae%e8%ae%a4%e7%b4%a2%e5%bc%95%e7%bc%ba%e5%a4%b1" class="header-anchor"></a>第四步：确认索引缺失
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span>mysql<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">SHOW</span> <span style="color:#66d9ef">CREATE</span> <span style="color:#66d9ef">TABLE</span> order_snapshot_backup<span style="color:#960050;background-color:#1e0010">\</span><span style="color:#66d9ef">G</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">-- 关键发现：create_time 列没有索引
+</span></span></span><span style="display:flex;"><span>mysql<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">EXPLAIN</span> <span style="color:#66d9ef">DELETE</span> <span style="color:#66d9ef">FROM</span> order_snapshot_backup <span style="color:#66d9ef">WHERE</span> create_time <span style="color:#f92672">&lt;</span> <span style="color:#e6db74">&#39;2024-01-05 00:00:00&#39;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">-- Extra: Using where（全表扫描）
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>create_time</code> 字段没有索引，120 万行的 DELETE 在主库变成全表扫描，回放到从库时 SQL 线程单线程处理，遇到全表扫描就严重阻塞。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>紧急处理</strong>：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#75715e">-- 在主库上添加索引（从库会自动同步DDL）
+</span></span></span><span style="display:flex;"><span><span style="color:#66d9ef">ALTER</span> <span style="color:#66d9ef">TABLE</span> order_snapshot_backup <span style="color:#66d9ef">ADD</span> <span style="color:#66d9ef">INDEX</span> idx_create_time (create_time);
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li><strong>优化批量删除</strong>：将大 DELETE 拆分为小批量：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#75715e">-- 每次删除 5000 行，间隔 1 秒
+</span></span></span><span style="display:flex;"><span><span style="color:#66d9ef">DELETE</span> <span style="color:#66d9ef">FROM</span> order_snapshot_backup <span style="color:#66d9ef">WHERE</span> create_time <span style="color:#f92672">&lt;</span> <span style="color:#e6db74">&#39;2024-01-05&#39;</span> <span style="color:#66d9ef">LIMIT</span> <span style="color:#ae81ff">5000</span>;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">-- 循环执行直到 affected_rows = 0
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>
+<p><strong>调整删除策略</strong>：将定时清理任务从上班时间移到凌晨 2:00–4:00，避开报表查询时段。</p>
+</li>
+<li>
+<p><strong>优化从库并行复制</strong>：升级 MySQL 5.7 到 8.0 并配置 <code>slave_parallel_workers=4</code>，启用基于 WRITESET 的并行复制。</p>
+</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接原因：一个没有索引的全表扫描 DELETE 操作在主库执行了 2 分钟，从库 SQL 线程（单线程）在回放时遇到了相同的全表扫描，处理速度跟不上主库的写入速度，延迟逐步累积到 35 分钟。</p>
+<p>深层原因：</p>
+<ul>
+<li>报表定时任务（DELETE 清理）和日报查询在同一个时间窗口竞争</li>
+<li>缺少自动删除的索引优化审查机制</li>
+<li>从库使用单线程复制（MySQL 5.7 默认），对大事务的回放能力不足</li>
+</ul>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
+<li><strong>索引审查</strong>：所有定时清理 SQL 上线前必须通过 EXPLAIN 审查，确保有合适索引</li>
+<li><strong>大事务拆分</strong>：任何预计影响行数 &gt;1 万的操作必须拆分为小批量</li>
+<li><strong>主从延迟监控</strong>：延迟超过 60 秒立即告警，并联动检查慢查询日志</li>
+<li><strong>并行复制</strong>：升级到 MySQL 8.0 + WRITESET 并行复制</li>
+<li><strong>报表查询使用半同步复制</strong>：考虑对从库启用 <code>rpl_semi_sync_slave</code> 降低延迟风险</li>
+</ol>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>主从延迟看起来是数据库问题，实际上往往是<strong>应用层 SQL 质量问题</strong>的反映。一个没有索引、不做拆分的 DELETE 语句就足以拖垮从库复制，进而影响整个报表系统的数据准确性。数据库运维不仅仅是被动监控，更需要主动审视每一个在生产环境运行的 DML 语句的质量。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/mysql/">MySQL</a>
+        
+            <a href="/tags/%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/">主从复制</a>
+        
+            <a href="/tags/%E6%8A%A5%E8%A1%A8/">报表</a>
+        
+            <a href="/tags/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/">性能优化</a>
+        
+            <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/">服务运维</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/%E8%AE%B0%E4%B8%80%E6%AC%A1-docker-%E5%AE%B9%E5%99%A8%E5%8F%8D%E5%A4%8D%E9%87%8D%E5%90%AF%E5%BC%95%E5%8F%91%E7%9A%84%E5%BE%AE%E6%9C%8D%E5%8A%A1%E9%93%BE%E8%B7%AF%E9%9B%AA%E5%B4%A9/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 Docker 容器反复重启引发的微服务链路雪崩</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/nginx-%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5%E8%AF%AF%E5%88%A4%E6%9C%8D%E5%8A%A1%E8%8A%82%E7%82%B9%E6%80%8E%E4%B9%88%E8%A2%AB%E6%89%B9%E9%87%8F%E5%89%94%E9%99%A4/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Nginx 健康检查误判，服务节点怎么被批量剔除？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/redis-cluster-%E8%84%91%E8%A3%82%E7%BC%93%E5%AD%98%E6%95%B0%E6%8D%AE%E4%B8%BA%E4%BD%95%E5%AF%B9%E4%B8%8D%E4%B8%8A/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Redis Cluster 脑裂，缓存数据为何对不上？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/%E8%AE%B0%E4%B8%80%E6%AC%A1%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%86%85%E5%AD%98%E7%A1%AC%E4%BB%B6%E6%95%85%E9%9A%9C%E5%AF%BC%E8%87%B4%E7%9A%84%E4%B8%8D%E5%AE%9A%E6%97%B6%E5%AE%95%E6%9C%BA/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次服务器内存硬件故障导致的不定时宕机</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/docker-swarm-overlay-%E8%B7%A8%E8%8A%82%E7%82%B9%E4%B8%8D%E9%80%9A%E9%97%AE%E9%A2%98%E5%8D%A1%E5%9C%A8%E5%93%AA/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Docker Swarm Overlay 跨节点不通，问题卡在哪？</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

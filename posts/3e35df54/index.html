@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="一次Ansible Playbook中extra-vars误覆盖角色默认值，导致Nginx、PHP-FPM等关键配置批量漂移，业务出现随机502和连接超时。">
-<title>一次Ansible Playbook变量优先级错误导致批量服务器配置漂移的排查实录</title>
+<title>Ansible 变量优先级算错，批量服务器怎么就配置漂移了？</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/3e35df54/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次Ansible Playbook变量优先级错误导致批量服务器配置漂移的排查实录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Ansible 变量优先级算错，批量服务器怎么就配置漂移了？">
 <meta property='og:description' content="一次Ansible Playbook中extra-vars误覆盖角色默认值，导致Nginx、PHP-FPM等关键配置批量漂移，业务出现随机502和连接超时。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/3e35df54/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Ansible' /><meta property='article:tag' content='配置漂移' /><meta property='article:tag' content='变量优先级' /><meta property='article:tag' content='服务运维' /><meta property='article:tag' content='配置管理' /><meta property='article:published_time' content='2026-07-03T06:55:17&#43;00:00'/><meta property='article:modified_time' content='2026-07-03T06:55:17&#43;00:00'/>
-<meta name="twitter:title" content="一次Ansible Playbook变量优先级错误导致批量服务器配置漂移的排查实录">
+<meta name="twitter:title" content="Ansible 变量优先级算错，批量服务器怎么就配置漂移了？">
 <meta name="twitter:description" content="一次Ansible Playbook中extra-vars误覆盖角色默认值，导致Nginx、PHP-FPM等关键配置批量漂移，业务出现随机502和连接超时。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -284,7 +284,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/3e35df54/">一次Ansible Playbook变量优先级错误导致批量服务器配置漂移的排查实录</a>
+            <a href="/posts/3e35df54/">Ansible 变量优先级算错，批量服务器怎么就配置漂移了？</a>
         </h2>
     
         
@@ -826,7 +826,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次服务器CPU软中断飙高导致服务间歇性超时的排查实录</h2>
+            <h2 class="article-title">服务器 CPU 软中断飙高，服务为何间歇超时？</h2>
         </div>
     </a>
 </article>
@@ -837,7 +837,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次Prometheus告警风暴拖垮邮件与企业微信告警通道的排查实录</h2>
+            <h2 class="article-title">Prometheus 告警风暴，怎么把邮件和企微通道全拖垮了？</h2>
         </div>
     </a>
 </article>
@@ -848,7 +848,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次GitLab CI Runner卡死导致生产部署流水线全停的排查实录</h2>
+            <h2 class="article-title">GitLab CI Runner 卡死致生产流水线全停的抢修</h2>
         </div>
     </a>
 </article>
@@ -859,7 +859,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次Linux服务器文件系统inode耗尽导致磁盘有空间却无法写入的排查实录</h2>
+            <h2 class="article-title">磁盘有空间却写不进文件？Linux inode 耗尽的坑</h2>
         </div>
     </a>
 </article>
@@ -870,7 +870,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次Kafka消费者Rebalance风暴导致业务数据延迟2小时的排查实录</h2>
+            <h2 class="article-title">Kafka Rebalance 风暴致业务数据延迟两小时的定位</h2>
         </div>
     </a>
 </article>

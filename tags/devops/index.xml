@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Sat, 27 Jun 2026 16:09:09 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/devops/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次GitLab CI Runner卡死导致生产部署流水线全停的排查实录</title>
+            <title>GitLab CI Runner 卡死致生产流水线全停的抢修</title>
             <link>https://blog.5772447.xyz/posts/1b83a967/</link>
             <pubDate>Sat, 27 Jun 2026 16:09:09 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/1b83a967/</guid>

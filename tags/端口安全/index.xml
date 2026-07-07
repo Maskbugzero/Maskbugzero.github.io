@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Sat, 20 Jun 2026 08:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E7%AB%AF%E5%8F%A3%E5%AE%89%E5%85%A8/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次DHCP地址池耗尽导致大面积断网的排查实录</title>
+            <title>记一次 DHCP 地址池耗尽引发的大面积断网</title>
             <link>https://blog.5772447.xyz/posts/c9e5a7cb/</link>
             <pubDate>Thu, 27 Mar 2025 12:15:27 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/c9e5a7cb/</guid>

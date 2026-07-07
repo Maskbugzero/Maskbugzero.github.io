@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Thu, 02 Jul 2026 07:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E5%8F%8C%E6%9C%BA%E7%83%AD%E5%A4%87/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次FortiGate HA主备切换因会话同步不完整导致业务大规模中断的排查实录</title>
+            <title>FortiGate HA 主备切换，业务为何大规模中断？</title>
             <link>https://blog.5772447.xyz/posts/1672d715/</link>
             <pubDate>Thu, 02 Jul 2026 02:49:56 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/1672d715/</guid>

@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Mon, 06 Jul 2026 07:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/tcp/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次Kubernetes节点conntrack表满导致服务间TCP连接超时的排查记录</title>
+            <title>记一次 K8s 节点 conntrack 表打满导致的服务间 TCP 超时</title>
             <link>https://blog.5772447.xyz/posts/16c569d2/</link>
             <pubDate>Mon, 06 Jul 2026 04:52:26 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/16c569d2/</guid>

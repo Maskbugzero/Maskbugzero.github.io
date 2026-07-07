@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Wed, 22 Feb 2023 15:30:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次Redis内存溢出导致缓存服务全部失效的排查实录</title>
+            <title>记一次 Redis 内存溢出、缓存服务全失效的排查</title>
             <link>https://blog.5772447.xyz/posts/61346c4a/</link>
             <pubDate>Wed, 22 Feb 2023 15:30:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/61346c4a/</guid>

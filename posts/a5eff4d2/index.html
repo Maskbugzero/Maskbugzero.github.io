@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="用户反映上传大文件时始终报413错误，即使已在应用层修改了上传限制，排查后发现是Nginx多层配置覆盖导致的经典坑。">
-<title>一次Nginx反向代理配置错误导致上传文件大小限制失效的排查实录</title>
+<title>Nginx 反代配错，上传文件大小限制为何失效？</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/a5eff4d2/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次Nginx反向代理配置错误导致上传文件大小限制失效的排查实录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Nginx 反代配错，上传文件大小限制为何失效？">
 <meta property='og:description' content="用户反映上传大文件时始终报413错误，即使已在应用层修改了上传限制，排查后发现是Nginx多层配置覆盖导致的经典坑。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/a5eff4d2/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Nginx' /><meta property='article:tag' content='反向代理' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2022-03-15T09:30:00&#43;00:00'/><meta property='article:modified_time' content='2022-03-15T09:30:00&#43;00:00'/>
-<meta name="twitter:title" content="一次Nginx反向代理配置错误导致上传文件大小限制失效的排查实录">
+<meta name="twitter:title" content="Nginx 反代配错，上传文件大小限制为何失效？">
 <meta name="twitter:description" content="用户反映上传大文件时始终报413错误，即使已在应用层修改了上传限制，排查后发现是Nginx多层配置覆盖导致的经典坑。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -275,7 +275,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/a5eff4d2/">一次Nginx反向代理配置错误导致上传文件大小限制失效的排查实录</a>
+            <a href="/posts/a5eff4d2/">Nginx 反代配错，上传文件大小限制为何失效？</a>
         </h2>
     
         

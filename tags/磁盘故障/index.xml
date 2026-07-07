@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Sat, 27 Jun 2026 06:55:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E7%A3%81%E7%9B%98%E6%95%85%E9%9A%9C/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次Linux服务器文件系统inode耗尽导致磁盘有空间却无法写入的排查实录</title>
+            <title>磁盘有空间却写不进文件？Linux inode 耗尽的坑</title>
             <link>https://blog.5772447.xyz/posts/4c970ef4/</link>
             <pubDate>Sat, 27 Jun 2026 06:55:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/4c970ef4/</guid>

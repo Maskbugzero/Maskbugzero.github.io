@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Sun, 15 Jun 2025 17:25:39 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/cdn/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次公网DNS解析超时导致CDN回源大面积失败的排查记录</title>
+            <title>公网 DNS 解析超时，CDN 回源为何大面积失败？</title>
             <link>https://blog.5772447.xyz/posts/2d137ee2/</link>
             <pubDate>Sun, 15 Jun 2025 17:25:39 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/2d137ee2/</guid>

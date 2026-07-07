@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Sun, 05 Jul 2026 18:49:05 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次Windows组策略文件共享权限误配导致全公司无法访问共享文件夹的排查实录</title>
+            <title>组策略共享权限配错致全公司无法访问共享文件夹</title>
             <link>https://blog.5772447.xyz/posts/b8b997b4/</link>
             <pubDate>Sun, 05 Jul 2026 18:49:05 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/b8b997b4/</guid>

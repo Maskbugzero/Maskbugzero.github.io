@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Sun, 05 Jul 2026 07:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E5%85%89%E7%BA%A4%E6%95%85%E9%9A%9C/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次OSPF路由震荡导致跨机房业务间歇性中断的排查实录</title>
+            <title>OSPF 路由震荡致跨机房业务间歇中断的定位</title>
             <link>https://blog.5772447.xyz/posts/45da4463/</link>
             <pubDate>Sun, 05 Jul 2026 06:26:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/45da4463/</guid>

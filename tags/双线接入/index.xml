@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Tue, 23 Jun 2026 06:55:12 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E5%8F%8C%E7%BA%BF%E6%8E%A5%E5%85%A5/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次BGP双线接入因AS-PATH策略错误导致业务流量全部走错运营商的排查实录</title>
+            <title>BGP 双线 AS-PATH 配错，业务流量为何全走错运营商</title>
             <link>https://blog.5772447.xyz/posts/6b4c4a25/</link>
             <pubDate>Tue, 23 Jun 2026 06:55:12 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/6b4c4a25/</guid>

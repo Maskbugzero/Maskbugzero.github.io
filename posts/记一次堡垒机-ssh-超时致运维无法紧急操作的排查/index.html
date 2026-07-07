@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="问题背景\r公司内网部署了一台 JumpServer 堡垒机，所有运维人员通过该堡垒机 SSH 跳转到生产服务器。堡垒机配置了完整的会话审计（录像 + 日志），日均登录次数约 200 次。\n故障现象\r下午 3:10，线上 Redis 集群发生主从切换异常，需要紧急登录服务器切换 VIP。运维人员通过堡垒机 SSH 登录目标服务器时，发现从输入 ssh 命令到出现密码提示，卡顿了 30 秒以上，登录过程极度缓慢。多位运维人员同时遇到相同问题，严重拖慢了故障处理进度。\n">
+<title>记一次堡垒机 SSH 超时致运维无法紧急操作的排查</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/%E8%AE%B0%E4%B8%80%E6%AC%A1%E5%A0%A1%E5%9E%92%E6%9C%BA-ssh-%E8%B6%85%E6%97%B6%E8%87%B4%E8%BF%90%E7%BB%B4%E6%97%A0%E6%B3%95%E7%B4%A7%E6%80%A5%E6%93%8D%E4%BD%9C%E7%9A%84%E6%8E%92%E6%9F%A5/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次堡垒机 SSH 超时致运维无法紧急操作的排查">
+<meta property='og:description' content="问题背景\r公司内网部署了一台 JumpServer 堡垒机，所有运维人员通过该堡垒机 SSH 跳转到生产服务器。堡垒机配置了完整的会话审计（录像 + 日志），日均登录次数约 200 次。\n故障现象\r下午 3:10，线上 Redis 集群发生主从切换异常，需要紧急登录服务器切换 VIP。运维人员通过堡垒机 SSH 登录目标服务器时，发现从输入 ssh 命令到出现密码提示，卡顿了 30 秒以上，登录过程极度缓慢。多位运维人员同时遇到相同问题，严重拖慢了故障处理进度。\n">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/%E8%AE%B0%E4%B8%80%E6%AC%A1%E5%A0%A1%E5%9E%92%E6%9C%BA-ssh-%E8%B6%85%E6%97%B6%E8%87%B4%E8%BF%90%E7%BB%B4%E6%97%A0%E6%B3%95%E7%B4%A7%E6%80%A5%E6%93%8D%E4%BD%9C%E7%9A%84%E6%8E%92%E6%9F%A5/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='堡垒机' /><meta property='article:tag' content='SSH' /><meta property='article:tag' content='磁盘空间' /><meta property='article:tag' content='wtmp' /><meta property='article:tag' content='安全运维' /><meta property='article:published_time' content='2024-02-21T15:30:00&#43;00:00'/><meta property='article:modified_time' content='2024-02-21T15:30:00&#43;00:00'/>
+<meta name="twitter:title" content="记一次堡垒机 SSH 超时致运维无法紧急操作的排查">
+<meta name="twitter:description" content="问题背景\r公司内网部署了一台 JumpServer 堡垒机，所有运维人员通过该堡垒机 SSH 跳转到生产服务器。堡垒机配置了完整的会话审计（录像 + 日志），日均登录次数约 200 次。\n故障现象\r下午 3:10，线上 Redis 集群发生主从切换异常，需要紧急登录服务器切换 VIP。运维人员通过堡垒机 SSH 登录目标服务器时，发现从输入 ssh 命令到出现密码提示，卡顿了 30 秒以上，登录过程极度缓慢。多位运维人员同时遇到相同问题，严重拖慢了故障处理进度。\n">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步网络连通性检查">第一步：网络连通性检查</a></li>
+        <li><a href="#第二步堡垒机资源检查">第二步：堡垒机资源检查</a></li>
+        <li><a href="#第三步ssh-客户端详细调试">第三步：SSH 客户端详细调试</a></li>
+        <li><a href="#第四步wtmp-锁定">第四步：wtmp 锁定</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
+                安全运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/%E8%AE%B0%E4%B8%80%E6%AC%A1%E5%A0%A1%E5%9E%92%E6%9C%BA-ssh-%E8%B6%85%E6%97%B6%E8%87%B4%E8%BF%90%E7%BB%B4%E6%97%A0%E6%B3%95%E7%B4%A7%E6%80%A5%E6%93%8D%E4%BD%9C%E7%9A%84%E6%8E%92%E6%9F%A5/">记一次堡垒机 SSH 超时致运维无法紧急操作的排查</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2024-02-21T15:30:00Z'>2024年2月21日星期三</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 3 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步网络连通性检查">第一步：网络连通性检查</a></li>
+        <li><a href="#第二步堡垒机资源检查">第二步：堡垒机资源检查</a></li>
+        <li><a href="#第三步ssh-客户端详细调试">第三步：SSH 客户端详细调试</a></li>
+        <li><a href="#第四步wtmp-锁定">第四步：wtmp 锁定</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司内网部署了一台 JumpServer 堡垒机，所有运维人员通过该堡垒机 SSH 跳转到生产服务器。堡垒机配置了完整的会话审计（录像 + 日志），日均登录次数约 200 次。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>下午 3:10，线上 Redis 集群发生主从切换异常，需要紧急登录服务器切换 VIP。运维人员通过堡垒机 SSH 登录目标服务器时，发现从输入 ssh 命令到出现密码提示，卡顿了 <strong>30 秒以上</strong>，登录过程极度缓慢。多位运维人员同时遇到相同问题，严重拖慢了故障处理进度。</p>
+<p>登录行为在 putty 的表现：<code>Connecting to 10.x.x.x...</code> 长时间停留在该状态，且无任何超时报错。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="第一步网络连通性检查"><a href="#%e7%ac%ac%e4%b8%80%e6%ad%a5%e7%bd%91%e7%bb%9c%e8%bf%9e%e9%80%9a%e6%80%a7%e6%a3%80%e6%9f%a5" class="header-anchor"></a>第一步：网络连通性检查
+</h3><p>首先排查是否是网络问题：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ ping 10.x.x.x -c <span style="color:#ae81ff">10</span>              <span style="color:#75715e"># 延迟正常，&lt;1ms</span>
+</span></span><span style="display:flex;"><span>$ telnet 10.x.x.x <span style="color:#ae81ff">22</span>                <span style="color:#75715e"># 端口秒开，排除TCP握手问题</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>网络层面一切正常，问题锁定在堡垒机本身或 SSH 服务端。</p>
+<h3 id="第二步堡垒机资源检查"><a href="#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e5%a0%a1%e5%9e%92%e6%9c%ba%e8%b5%84%e6%ba%90%e6%a3%80%e6%9f%a5" class="header-anchor"></a>第二步：堡垒机资源检查
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ top                                <span style="color:#75715e"># CPU idle &gt;95%，Memory available &gt;4GB</span>
+</span></span><span style="display:flex;"><span>$ iostat -x <span style="color:#ae81ff">1</span>                       <span style="color:#75715e"># 磁盘IO await &lt;5ms，无异常</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>堡垒机本身资源非常充裕，不是性能瓶颈。</p>
+<h3 id="第三步ssh-客户端详细调试"><a href="#%e7%ac%ac%e4%b8%89%e6%ad%a5ssh-%e5%ae%a2%e6%88%b7%e7%ab%af%e8%af%a6%e7%bb%86%e8%b0%83%e8%af%95" class="header-anchor"></a>第三步：SSH 客户端详细调试
+</h3><p>使用 <code>ssh -vvv</code> 查看详细交互过程：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ ssh -vvv user@10.x.x.x
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>debug1: Authentication succeeded <span style="color:#f92672">(</span>publickey<span style="color:#f92672">)</span>.
+</span></span><span style="display:flex;"><span>debug1: channel 0: new <span style="color:#f92672">[</span>client-session<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>debug1: Requesting no-more-sessions@openssh.com
+</span></span><span style="display:flex;"><span>debug1: Entering interactive session.
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># &lt;--- 此处卡顿30秒 ---&gt;</span>
+</span></span><span style="display:flex;"><span>Last login: Wed Feb <span style="color:#ae81ff">21</span> 15:28:00 <span style="color:#ae81ff">2024</span> from 10.x.x.y
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>卡顿发生在认证成功后、进入交互会话之前——此时 SSH 守护进程会做两件事：<strong>更新登录日志（wtmp/lastlog）<strong>和</strong>PAM 会话模块初始化</strong>。</p>
+<h3 id="第四步wtmp-锁定"><a href="#%e7%ac%ac%e5%9b%9b%e6%ad%a5wtmp-%e9%94%81%e5%ae%9a" class="header-anchor"></a>第四步：wtmp 锁定
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ df -h
+</span></span><span style="display:flex;"><span>Filesystem      Size  Used Avail Use% Mounted on
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>/dev/sda1        20G   19G     <span style="color:#ae81ff">0</span> 100% /var
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>/var</code> 分区 100% 占满。进一步排查：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ ls -lhS /var/log/jumpserver/ | head -5
+</span></span><span style="display:flex;"><span>-rw------- <span style="color:#ae81ff">1</span> jumpserver jumpserver 8.2G Feb <span style="color:#ae81ff">21</span> 15:28 session_replay_20240221.log
+</span></span><span style="display:flex;"><span>-rw------- <span style="color:#ae81ff">1</span> jumpserver jumpserver 5.1G Feb <span style="color:#ae81ff">20</span> 23:59 session_replay_20240220.log
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>堡垒机的<strong>会话审计录像日志</strong>堆积了超过 15GB，而 <code>/var/log/wtmp</code> 也受分区满载影响无法写入：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ tail -f /var/log/secure | grep wtmp
+</span></span><span style="display:flex;"><span>Feb <span style="color:#ae81ff">21</span> 15:12:34 bastion sshd<span style="color:#f92672">[</span>4823<span style="color:#f92672">]</span>: pam_lastlog<span style="color:#f92672">(</span>sshd:session<span style="color:#f92672">)</span>: <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  unable to open /var/log/wtmp: No space left on device
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>pam_lastlog.so</code> 在尝试写入 wtmp 时阻塞，导致 SSH 会话建立被严重拖慢。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>紧急处理</strong>：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 临时关闭 pam_lastlog 模块</span>
+</span></span><span style="display:flex;"><span>sed -i <span style="color:#e6db74">&#39;s/^session.*pam_lastlog.so/#&amp;/&#39;</span> /etc/pam.d/sshd
+</span></span><span style="display:flex;"><span>systemctl restart sshd
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>重启 sshd 后，登录速度恢复正常（&lt;2秒）。</p>
+<ol start="2">
+<li><strong>清理旧审计日志</strong>：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>find /var/log/jumpserver/ -name <span style="color:#e6db74">&#34;*.log&#34;</span> -mtime +7 -exec gzip <span style="color:#f92672">{}</span> <span style="color:#ae81ff">\;</span>
+</span></span><span style="display:flex;"><span>find /var/log/jumpserver/ -name <span style="color:#e6db74">&#34;*.log.gz&#34;</span> -mtime +30 -delete
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li><strong>配置日志轮转</strong>：创建 <code>/etc/logrotate.d/jumpserver</code> 并配置按天轮转、保留 30 天。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接原因：JumpServer 的会话审计录像日志未做轮转和清理，占满 <code>/var</code> 分区，导致 <code>pam_lastlog.so</code> 在尝试更新 wtmp 时长时间阻塞。</p>
+<p>深层原因：堡垒机初始部署时<strong>未规划日志分区隔离</strong>——<code>/var</code> 分区与系统盘共享 20GB 空间，且未配置任何 logrotate 策略。对于每天产生数百 MB 审计录像的堡垒机来说，20GB 很快就会被耗尽。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
+<li><strong>磁盘分区隔离</strong>：堡垒机单独挂载一块大容量磁盘用于审计日志存储</li>
+<li><strong>配置 logrotate</strong>：审计日志按天轮转，保留 30 天，超过后自动删除</li>
+<li><strong>磁盘容量监控</strong>：<code>/var</code> 分区使用率 &gt;80% 时触发告警</li>
+<li><strong>pam_lastlog 优化</strong>：将 <code>silent</code> 参数添加到 <code>pam_lastlog.so</code> 行，避免因 wtmp 写入失败阻塞登录</li>
+<li><strong>定期巡检</strong>：每月检查堡垒机的磁盘和日志状态</li>
+</ol>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>堡垒机作为运维入口，其稳定性直接关系到故障应急效率。<code>/var</code> 分区满了看似是小问题，但在 SSH 登录这种场景下会被放大为严重的业务影响。任何时候，关键基础设施的磁盘分区和日志轮转都应该在部署时做好规划，而不是等到故障爆发再救火。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E5%A0%A1%E5%9E%92%E6%9C%BA/">堡垒机</a>
+        
+            <a href="/tags/ssh/">SSH</a>
+        
+            <a href="/tags/%E7%A3%81%E7%9B%98%E7%A9%BA%E9%97%B4/">磁盘空间</a>
+        
+            <a href="/tags/wtmp/">Wtmp</a>
+        
+            <a href="/tags/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/">安全运维</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

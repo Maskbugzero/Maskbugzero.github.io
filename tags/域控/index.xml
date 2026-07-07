@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Mon, 16 Jan 2023 09:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E5%9F%9F%E6%8E%A7/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次Windows域账号批量锁定事件的排查实录</title>
+            <title>记一次 Windows 域账号批量锁定事件的排查</title>
             <link>https://blog.5772447.xyz/posts/7e4d3819/</link>
             <pubDate>Mon, 16 Jan 2023 20:56:36 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/7e4d3819/</guid>

@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Sat, 04 Jul 2026 06:55:33 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E6%97%B6%E9%97%B4%E5%90%8C%E6%AD%A5/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次域控NTP时间源失效导致全公司Kerberos认证大面积失败的排查实录</title>
+            <title>域控 NTP 时间源失效，全公司 Kerberos 为何大面积失败？</title>
             <link>https://blog.5772447.xyz/posts/2cc57a5e/</link>
             <pubDate>Sat, 04 Jul 2026 06:55:33 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/2cc57a5e/</guid>
