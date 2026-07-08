@@ -5,16 +5,22 @@
         <description>Recent content in Categories on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Wed, 08 Jul 2026 07:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/categories/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Thu, 09 Jul 2026 07:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/categories/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>桌面运维</title>
+            <link>https://blog.5772447.xyz/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/</link>
+            <pubDate>Sun, 05 Jul 2026 18:49:05 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/</guid>
+            <description></description>
+        </item><item>
             <title>运维</title>
             <link>https://blog.5772447.xyz/categories/%E8%BF%90%E7%BB%B4/</link>
-            <pubDate>Tue, 07 Jul 2026 12:38:41 +0000</pubDate>
+            <pubDate>Wed, 08 Jul 2026 07:00:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/categories/%E8%BF%90%E7%BB%B4/</guid>
             <description></description>
         </item><item>
             <title>网络运维</title>
             <link>https://blog.5772447.xyz/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/</link>
-            <pubDate>Mon, 06 Jul 2026 04:52:26 +0000</pubDate>
+            <pubDate>Wed, 08 Jul 2026 07:00:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/</guid>
             <description></description>
         </item><item>
@@ -28,12 +34,6 @@
             <link>https://blog.5772447.xyz/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/</link>
             <pubDate>Mon, 06 Jul 2026 13:59:10 +0000</pubDate>
             <guid>https://blog.5772447.xyz/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/</guid>
-            <description></description>
-        </item><item>
-            <title>桌面运维</title>
-            <link>https://blog.5772447.xyz/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/</link>
-            <pubDate>Sun, 05 Jul 2026 18:49:05 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/</guid>
             <description></description>
         </item><item>
             <title>容器运维</title>
