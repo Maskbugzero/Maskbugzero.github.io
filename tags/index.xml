@@ -5,40 +5,70 @@
         <description>Recent content in Tags on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Thu, 09 Jul 2026 16:58:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>网络运维</title>
-            <link>https://blog.5772447.xyz/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/</link>
-            <pubDate>Wed, 08 Jul 2026 07:00:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/</guid>
-            <description></description>
-        </item><item>
+        <lastBuildDate>Fri, 10 Jul 2026 07:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
             <title>故障排查</title>
             <link>https://blog.5772447.xyz/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/</link>
-            <pubDate>Wed, 08 Jul 2026 07:00:00 +0000</pubDate>
+            <pubDate>Thu, 09 Jul 2026 16:58:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/</guid>
+            <description></description>
+        </item><item>
+            <title>服务运维</title>
+            <link>https://blog.5772447.xyz/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/</link>
+            <pubDate>Fri, 03 Jul 2026 06:55:17 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/</guid>
+            <description></description>
+        </item><item>
+            <title>存储</title>
+            <link>https://blog.5772447.xyz/tags/%E5%AD%98%E5%82%A8/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%AD%98%E5%82%A8/</guid>
+            <description></description>
+        </item><item>
+            <title>NFS</title>
+            <link>https://blog.5772447.xyz/tags/nfs/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/nfs/</guid>
+            <description></description>
+        </item><item>
+            <title>Linux</title>
+            <link>https://blog.5772447.xyz/tags/linux/</link>
+            <pubDate>Sun, 05 Jul 2026 12:42:26 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/linux/</guid>
+            <description></description>
+        </item><item>
+            <title>D状态</title>
+            <link>https://blog.5772447.xyz/tags/d%E7%8A%B6%E6%80%81/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/d%E7%8A%B6%E6%80%81/</guid>
+            <description></description>
+        </item><item>
+            <title>网络运维</title>
+            <link>https://blog.5772447.xyz/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/</link>
+            <pubDate>Thu, 09 Jul 2026 16:58:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/</guid>
             <description></description>
         </item><item>
             <title>EDNS0</title>
             <link>https://blog.5772447.xyz/tags/edns0/</link>
-            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <pubDate>Thu, 09 Jul 2026 16:58:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/edns0/</guid>
             <description></description>
         </item><item>
             <title>DNS</title>
             <link>https://blog.5772447.xyz/tags/dns/</link>
-            <pubDate>Fri, 15 Aug 2025 07:38:48 +0000</pubDate>
+            <pubDate>Thu, 09 Jul 2026 16:58:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/dns/</guid>
             <description></description>
         </item><item>
             <title>CoreDNS</title>
             <link>https://blog.5772447.xyz/tags/coredns/</link>
-            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <pubDate>Thu, 09 Jul 2026 16:58:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/coredns/</guid>
             <description></description>
         </item><item>
             <title>504</title>
             <link>https://blog.5772447.xyz/tags/504/</link>
-            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <pubDate>Thu, 09 Jul 2026 16:58:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/504/</guid>
             <description></description>
         </item><item>
@@ -84,7 +114,7 @@
             <guid>https://blog.5772447.xyz/tags/postgresql/</guid>
             <description></description>
         </item><item>
-            <title>Nas</title>
+            <title>NAS</title>
             <link>https://blog.5772447.xyz/tags/nas/</link>
             <pubDate>Thu, 09 Jul 2026 07:00:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/nas/</guid>
@@ -270,12 +300,6 @@
             <guid>https://blog.5772447.xyz/tags/mysql/</guid>
             <description></description>
         </item><item>
-            <title>Linux</title>
-            <link>https://blog.5772447.xyz/tags/linux/</link>
-            <pubDate>Sun, 05 Jul 2026 12:42:26 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/linux/</guid>
-            <description></description>
-        </item><item>
             <title>Cron</title>
             <link>https://blog.5772447.xyz/tags/cron/</link>
             <pubDate>Sun, 05 Jul 2026 12:42:26 +0000</pubDate>
@@ -322,12 +346,6 @@
             <link>https://blog.5772447.xyz/tags/%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86/</link>
             <pubDate>Fri, 03 Jul 2026 06:55:17 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86/</guid>
-            <description></description>
-        </item><item>
-            <title>服务运维</title>
-            <link>https://blog.5772447.xyz/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/</link>
-            <pubDate>Fri, 03 Jul 2026 06:55:17 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/</guid>
             <description></description>
         </item><item>
             <title>变量优先级</title>
