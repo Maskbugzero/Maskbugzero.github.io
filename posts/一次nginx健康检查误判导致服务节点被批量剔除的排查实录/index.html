@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="问题背景\r公司 API Gateway 层使用 Nginx 作为反向代理，后端 10 台 Tomcat 服务器（Java 应用）组成 upstream 池，配置了被动健康检查（max_fails + fail_timeout）。正常情况下 10 台后端均匀承担约 2000 QPS 的流量。\n">
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Nginx将正常节点批量剔除致服务不可用，根因是健康检查路径/超时配置不当产生误判。">
 <title>Nginx 健康检查误判，服务节点怎么被批量剔除？</title>
 
 
@@ -13,12 +13,12 @@
 
 
 <link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Nginx 健康检查误判，服务节点怎么被批量剔除？">
-<meta property='og:description' content="问题背景\r公司 API Gateway 层使用 Nginx 作为反向代理，后端 10 台 Tomcat 服务器（Java 应用）组成 upstream 池，配置了被动健康检查（max_fails + fail_timeout）。正常情况下 10 台后端均匀承担约 2000 QPS 的流量。\n">
+<meta property='og:description' content="Nginx将正常节点批量剔除致服务不可用，根因是健康检查路径/超时配置不当产生误判。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/%E4%B8%80%E6%AC%A1nginx%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5%E8%AF%AF%E5%88%A4%E5%AF%BC%E8%87%B4%E6%9C%8D%E5%8A%A1%E8%8A%82%E7%82%B9%E8%A2%AB%E6%89%B9%E9%87%8F%E5%89%94%E9%99%A4%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Nginx' /><meta property='article:tag' content='负载均衡' /><meta property='article:tag' content='健康检查' /><meta property='article:tag' content='Full GC' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2023-11-22T20:10:00&#43;00:00'/><meta property='article:modified_time' content='2023-11-22T20:10:00&#43;00:00'/>
 <meta name="twitter:title" content="Nginx 健康检查误判，服务节点怎么被批量剔除？">
-<meta name="twitter:description" content="问题背景\r公司 API Gateway 层使用 Nginx 作为反向代理，后端 10 台 Tomcat 服务器（Java 应用）组成 upstream 池，配置了被动健康检查（max_fails + fail_timeout）。正常情况下 10 台后端均匀承担约 2000 QPS 的流量。\n">
+<meta name="twitter:description" content="Nginx将正常节点批量剔除致服务不可用，根因是健康检查路径/超时配置不当产生误判。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
     </head>
@@ -283,6 +283,10 @@
             <a href="/posts/%E4%B8%80%E6%AC%A1nginx%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5%E8%AF%AF%E5%88%A4%E5%AF%BC%E8%87%B4%E6%9C%8D%E5%8A%A1%E8%8A%82%E7%82%B9%E8%A2%AB%E6%89%B9%E9%87%8F%E5%89%94%E9%99%A4%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">Nginx 健康检查误判，服务节点怎么被批量剔除？</a>
         </h2>
     
+        
+        <h3 class="article-subtitle">
+            Nginx将正常节点批量剔除致服务不可用，根因是健康检查路径/超时配置不当产生误判。
+        </h3>
         
     </div>
 

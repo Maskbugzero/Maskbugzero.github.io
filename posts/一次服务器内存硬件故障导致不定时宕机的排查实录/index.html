@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="问题背景\r公司一台运行 MySQL 8.0 的物理服务器（Dell PowerEdge R740xd，128GB DDR4 ECC 内存），作为生产环境的主库。该机器上线约 18 个月，之前从未出现过硬件问题。\n">
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="服务器不定时宕机，根因是某条内存硬件故障触发ECC不可纠正错误导致内核panic。">
 <title>记一次服务器内存硬件故障导致的不定时宕机</title>
 
 
@@ -13,12 +13,12 @@
 
 
 <link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次服务器内存硬件故障导致的不定时宕机">
-<meta property='og:description' content="问题背景\r公司一台运行 MySQL 8.0 的物理服务器（Dell PowerEdge R740xd，128GB DDR4 ECC 内存），作为生产环境的主库。该机器上线约 18 个月，之前从未出现过硬件问题。\n">
+<meta property='og:description' content="服务器不定时宕机，根因是某条内存硬件故障触发ECC不可纠正错误导致内核panic。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/%E4%B8%80%E6%AC%A1%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%86%85%E5%AD%98%E7%A1%AC%E4%BB%B6%E6%95%85%E9%9A%9C%E5%AF%BC%E8%87%B4%E4%B8%8D%E5%AE%9A%E6%97%B6%E5%AE%95%E6%9C%BA%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='服务器' /><meta property='article:tag' content='内存故障' /><meta property='article:tag' content='MCE' /><meta property='article:tag' content='宕机' /><meta property='article:tag' content='硬件' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2023-07-12T11:55:00&#43;00:00'/><meta property='article:modified_time' content='2023-07-12T11:55:00&#43;00:00'/>
 <meta name="twitter:title" content="记一次服务器内存硬件故障导致的不定时宕机">
-<meta name="twitter:description" content="问题背景\r公司一台运行 MySQL 8.0 的物理服务器（Dell PowerEdge R740xd，128GB DDR4 ECC 内存），作为生产环境的主库。该机器上线约 18 个月，之前从未出现过硬件问题。\n">
+<meta name="twitter:description" content="服务器不定时宕机，根因是某条内存硬件故障触发ECC不可纠正错误导致内核panic。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
     </head>
@@ -277,6 +277,10 @@
             <a href="/posts/%E4%B8%80%E6%AC%A1%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%86%85%E5%AD%98%E7%A1%AC%E4%BB%B6%E6%95%85%E9%9A%9C%E5%AF%BC%E8%87%B4%E4%B8%8D%E5%AE%9A%E6%97%B6%E5%AE%95%E6%9C%BA%E7%9A%84%E6%8E%92%E6%9F%A5%E5%AE%9E%E5%BD%95/">记一次服务器内存硬件故障导致的不定时宕机</a>
         </h2>
     
+        
+        <h3 class="article-subtitle">
+            服务器不定时宕机，根因是某条内存硬件故障触发ECC不可纠正错误导致内核panic。
+        </h3>
         
     </div>
 
