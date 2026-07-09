@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="RADIUS服务器的EAP-TLS根证书过期未及时轮换，2000+终端无线和802.1X有线同时认证失败，通过证书链分析、CRL吊销列表兼容、自动化轮换根治">
+<title>记一次 RADIUS EAP-TLS 证书过期致全公司 802.1X 掉线</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/04006cb8/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次 RADIUS EAP-TLS 证书过期致全公司 802.1X 掉线">
+<meta property='og:description' content="RADIUS服务器的EAP-TLS根证书过期未及时轮换，2000+终端无线和802.1X有线同时认证失败，通过证书链分析、CRL吊销列表兼容、自动化轮换根治">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/04006cb8/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='RADIUS' /><meta property='article:tag' content='EAP-TLS' /><meta property='article:tag' content='802.1X' /><meta property='article:tag' content='证书过期' /><meta property='article:tag' content='网络运维' /><meta property='article:published_time' content='2026-06-30T16:43:49&#43;00:00'/><meta property='article:modified_time' content='2026-06-30T07:00:00&#43;00:00'/>
+<meta name="twitter:title" content="记一次 RADIUS EAP-TLS 证书过期致全公司 802.1X 掉线">
+<meta name="twitter:description" content="RADIUS服务器的EAP-TLS根证书过期未及时轮换，2000+终端无线和802.1X有线同时认证失败，通过证书链分析、CRL吊销列表兼容、自动化轮换根治">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一阶段现场确认范围">第一阶段：现场确认范围</a></li>
+        <li><a href="#第二阶段定位具体错误原因">第二阶段：定位具体错误原因</a></li>
+        <li><a href="#第三阶段确认所有关联证书状态">第三阶段：确认所有关联证书状态</a></li>
+        <li><a href="#第四阶段紧急止血">第四阶段：紧急止血</a></li>
+        <li><a href="#第五阶段长期解决---自动化证书轮换">第五阶段：长期解决 - 自动化证书轮换</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
+                网络运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/04006cb8/">记一次 RADIUS EAP-TLS 证书过期致全公司 802.1X 掉线</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            RADIUS服务器的EAP-TLS根证书过期未及时轮换，2000&#43;终端无线和802.1X有线同时认证失败，通过证书链分析、CRL吊销列表兼容、自动化轮换根治
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-06-30T16:43:49Z'>2026年6月30日星期二</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 9 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一阶段现场确认范围">第一阶段：现场确认范围</a></li>
+        <li><a href="#第二阶段定位具体错误原因">第二阶段：定位具体错误原因</a></li>
+        <li><a href="#第三阶段确认所有关联证书状态">第三阶段：确认所有关联证书状态</a></li>
+        <li><a href="#第四阶段紧急止血">第四阶段：紧急止血</a></li>
+        <li><a href="#第五阶段长期解决---自动化证书轮换">第五阶段：长期解决 - 自动化证书轮换</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司办公网采用 802.1X 认证，无线和有线全部走 FreeRADIUS + Microsoft AD CS 颁发的 EAP-TLS 客户端证书，三年前由前同事搭建，当时写了个 <code>openssl</code> 一键生成脚本签了 10 年期的自建 CA，所有终端的根证书、FreeRADIUS 服务器证书、客户端证书全部挂在这棵 CA 下。</p>
+<p>2026 年 6 月 28 日上午 9 点 47 分开始，全公司 8 栋办公楼先后出现大规模无线断连和有线认证失败，研发部门、客服中心、工厂车间反馈最为集中。Zabbix 上 AP 的认证成功率从 99.6% 直线掉到 23%，无线控制器每秒钟有 400+ 重新认证请求堆积。我们的 2000+ 员工终端、IoT 设备、IP 电话几乎全部受影响，初步估计单是业务停滞损失每小时就在十万级别。事故发生前一周，刚好有同事反馈&quot;Windows 提示网络证书有问题&quot;，但当时没人在意——这就是典型的预警被忽视引发的连锁反应。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>9 点 47 分开始，IT 群开始密集弹消息：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>【研发2部-工位A12】电脑右下角弹&#34;无法连接到网络 WiFi&#34;
+</span></span><span style="display:flex;"><span>【研发2部-工位A13】重连失败，提示&#34;无法验证服务器身份&#34;
+</span></span><span style="display:flex;"><span>【客服中心】IP电话全部掉线，话机显示注册失败
+</span></span><span style="display:flex;"><span>【6楼车间】扫码枪连不上AP，无法作业
+</span></span><span style="display:flex;"><span>【财务部】连有线网提示&#34;无法完成身份验证&#34;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li><strong>无线场景</strong>：手机和笔记本弹出&quot;无法验证服务器身份 / Unable to verify server identity&quot;，但 SSID 还是能搜到，点击连接后直接失败</li>
+<li><strong>有线场景</strong>：插了网线的工位弹出黄色感叹号，登录界面反复弹出要求输入域账号但怎么输都通不过</li>
+<li><strong>IoT 设备</strong>：IP 电话、扫码枪、门禁设备、打印机几乎全部离线</li>
+</ul>
+<p>抓包看无线控制器上的 Radius 报文：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>[FreeRADIUS log] (5) eap_tls: ERROR: TLS Alert read:fatal:certificate unknown
+</span></span><span style="display:flex;"><span>[FreeRADIUS log] (5) eap_tls: ERROR: TLS_accept: Failed in unknown state
+</span></span><span style="display:flex;"><span>[FreeRADIUS log] (5) eap: ERROR: Failed continuing EAP TLS (13) session
+</span></span><span style="display:flex;"><span>[FreeRADIUS log] (5)     [eap] = reject
+</span></span><span style="display:flex;"><span>[FreeRADIUS log] (5)   [authz] = reject
+</span></span><span style="display:flex;"><span>[FreeRADIUS log] (5) Auth: (5) Login incorrect (eap_tls: Failed to verify certificate):
+</span></span><span style="display:flex;"><span>[FreeRADIUS log] (5) } # server outer-eappeap-inner-tls { ... }
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>而前一天最后一次成功的认证日志时间戳是 6 月 27 日 23:58:14。问题集中在上午 9 点 47 分之后，<strong>所有</strong>终端都无法完成 EAP-TLS 握手。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="第一阶段现场确认范围"><a href="#%e7%ac%ac%e4%b8%80%e9%98%b6%e6%ae%b5%e7%8e%b0%e5%9c%ba%e7%a1%ae%e8%ae%a4%e8%8c%83%e5%9b%b4" class="header-anchor"></a>第一阶段：现场确认范围
+</h3><p>第一反应是 Radius 服务挂了，先用 SSH 登入两台 FreeRADIUS 节点查看服务状态：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># radius01 和 radius02 是 FreeRADIUS 主备集群</span>
+</span></span><span style="display:flex;"><span>ssh radius01 <span style="color:#e6db74">&#34;systemctl status freeradius | head -20&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># ● freeradius.service - FreeRADIUS multi-protocol policy server</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#    Active: active (running) since Mon 2024-01-15 14:22:08 CST</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 一切正常</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>ssh radius01 <span style="color:#e6db74">&#34;radtest test test 127.0.0.1 0 testing123&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Received Access-Reject</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 嗯,本机 PAP 测试也失败</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这个 PAP 测试失败很关键——这意味着<strong>不是网络问题、不是设备问题，是 FreeRADIUS 本身拒绝认证</strong>。如果 Radius 进程崩溃、配置错误，至少本地 <code>radtest</code> 应该成功。</p>
+<h3 id="第二阶段定位具体错误原因"><a href="#%e7%ac%ac%e4%ba%8c%e9%98%b6%e6%ae%b5%e5%ae%9a%e4%bd%8d%e5%85%b7%e4%bd%93%e9%94%99%e8%af%af%e5%8e%9f%e5%9b%a0" class="header-anchor"></a>第二阶段：定位具体错误原因
+</h3><p>打开 FreeRADIUS 的详细日志模式：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ssh radius01 <span style="color:#e6db74">&#34;radiusd -X 2&gt;&amp;1 | tee /tmp/radius-debug.log&#34;</span> &amp;
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 模拟一次无线认证</span>
+</span></span><span style="display:flex;"><span>radtest user@corp password 10.1.1.100 <span style="color:#ae81ff">0</span> testing123
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>详细日志关键片段：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>(1) eap_tls: ERROR: SSL says error 10 : certificate has expired
+</span></span><span style="display:flex;"><span>(1) eap_tls: ERROR: TLS Alert write:fatal:certificate expired
+</span></span><span style="display:flex;"><span>(1) eap: ERROR: Failed continuing EAP TLS (13) session
+</span></span><span style="display:flex;"><span>(1)     [eap] = reject
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>根因锁定：RADIUS 服务器上 EAP-TLS 链路用的证书已经过期</strong>。这个证书就是 FreeRADIUS 服务器证书，是当年用自建 CA 签的，签发 10 年有效期，已经在 6 月 28 日 00:00:00 过期。</p>
+<h3 id="第三阶段确认所有关联证书状态"><a href="#%e7%ac%ac%e4%b8%89%e9%98%b6%e6%ae%b5%e7%a1%ae%e8%ae%a4%e6%89%80%e6%9c%89%e5%85%b3%e8%81%94%e8%af%81%e4%b9%a6%e7%8a%b6%e6%80%81" class="header-anchor"></a>第三阶段：确认所有关联证书状态
+</h3><p>接下来要查清楚：到底过期了哪几张证书，根 CA 有没有一起过期：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ssh radius01 <span style="color:#e6db74">&#34;ls -la /etc/freeradius/certs/&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># total 64</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># -rw-r--r-- 1 root root 2151 Jun 15 2024 ca.pem       # CA 根证书</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># -rw-r--r-- 1 root root 2200 Jun 15 2024 server.pem   # Radius 服务器证书</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># -rw-r--r-- 1 root root 2151 Jun 15 2024 server.crt</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 查看每张证书的过期时间</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> cert in /etc/freeradius/certs/<span style="color:#f92672">{</span>ca,server<span style="color:#f92672">}</span>.pem; <span style="color:#66d9ef">do</span>
+</span></span><span style="display:flex;"><span>  echo <span style="color:#e6db74">&#34;=== </span>$cert<span style="color:#e6db74"> ===&#34;</span>
+</span></span><span style="display:flex;"><span>  openssl x509 -in $cert -noout -dates -subject -issuer
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">done</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>=== /etc/freeradius/certs/ca.pem ===
+</span></span><span style="display:flex;"><span>notBefore=Jun 15 14:22:08 2024 GMT
+</span></span><span style="display:flex;"><span>notAfter =Jun 15 14:22:08 2034 GMT        # 根 CA 还有 8 年
+</span></span><span style="display:flex;"><span>subject= /CN=Corp Internal CA
+</span></span><span style="display:flex;"><span>issuer=  /CN=Corp Internal CA            # 自签根
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>=== /etc/freeradius/certs/server.pem ===
+</span></span><span style="display:flex;"><span>notBefore=Jun 15 14:22:08 2024 GMT
+</span></span><span style="display:flex;"><span>notAfter =Jun 15 14:22:08 2026 GMT        # 昨天 00:00 过期！
+</span></span><span style="display:flex;"><span>subject= /CN=radius.corp.example.com
+</span></span><span style="display:flex;"><span>issuer=  /CN=Corp Internal CA            # 由上面这个 CA 签发
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>一目了然：<strong>根 CA 还在有效期，但服务器证书是 2 年前生成时签了 2 年（前面写的 10 年期是 CA 本身），server.pem 在 6 月 28 日 00:00 过期</strong>。我之前对脚本记忆有误，所以忽视了 Server 证书本身的 2 年有效期。</p>
+<p>更糟糕的是，这个 server.pem 同时被三处使用：</p>
+<ol>
+<li>FreeRADIUS 主配置文件 <code>/etc/freeradius/eap.conf</code> 和 <code>mods-available/eap</code></li>
+<li>FreeRADIUS 的客户端工具（用于向 AD CS 申请证书的 SCEP 接口）</li>
+<li><strong>AD CS 上挂的 Web Enrollment / OCSP 服务也用了同一张证书做 SSL 绑定</strong></li>
+</ol>
+<h3 id="第四阶段紧急止血"><a href="#%e7%ac%ac%e5%9b%9b%e9%98%b6%e6%ae%b5%e7%b4%a7%e6%80%a5%e6%ad%a2%e8%a1%80" class="header-anchor"></a>第四阶段：紧急止血
+</h3><p>完全处理需要重新签发服务器证书、推送新的 CA/服务器证书到 2000+ 终端，过程需要数小时。在此之前先用 OpenSSL 临时续签一张短期证书：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 在 radius01 上生成 CSR，向自建 CA 申请一张 30 天短期证书用于止血</span>
+</span></span><span style="display:flex;"><span>cd /etc/freeradius/certs
+</span></span><span style="display:flex;"><span>openssl req -new -key server.key -out server.csr <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  -subj <span style="color:#e6db74">&#34;/CN=radius.corp.example.com&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  -addext <span style="color:#e6db74">&#34;subjectAltName=DNS:radius.corp.example.com,DNS:radius01.corp.example.com,IP:10.1.1.100&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>openssl x509 -req -in server.csr -CA ca.pem -CAkey ca.key <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  -CAcreateserial -out server.pem -days <span style="color:#ae81ff">30</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  -sha256 -extfile &lt;<span style="color:#f92672">(</span>printf <span style="color:#e6db74">&#34;subjectAltName=DNS:radius.corp.example.com,DNS:radius01.corp.example.com,IP:10.1.1.100&#34;</span><span style="color:#f92672">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>然后重启 FreeRADIUS：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ssh radius02 <span style="color:#e6db74">&#34;systemctl restart freeradius&#34;</span>
+</span></span><span style="display:flex;"><span>ssh radius01 <span style="color:#e6db74">&#34;systemctl restart freeradius&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 重新测试</span>
+</span></span><span style="display:flex;"><span>radtest test test 127.0.0.1 <span style="color:#ae81ff">0</span> testing123
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Received Access-Accept</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>但这只是 FreeRADIUS 这一端，<strong>终端上的根 CA 信任链没变</strong>——终端有之前手工导入的根 CA，CA 还在有效期，<strong>EAP-TLS 客户端对服务器证书的校验会校验 issuer 链 + 过期时间</strong>。新签的 30 天证书由同一个 CA 签发，CA 链没变，所以理论上<strong>已部署过 CA 根证书的终端不需要重新安装 CA</strong>。</p>
+<p>可是事实是<strong>无线终端还是连不上</strong>！继续抓 FreeRADIUS 详细日志：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>(1) eap_tls: ERROR: SSL says error 26 : unsupported certificate purpose
+</span></span><span style="display:flex;"><span>(1) eap_tls: ERROR: TLS Alert write:fatal:unsupported certificate
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>新问题！原因是脚本里签证书时没加 <code>extendedKeyUsage=serverAuth</code> 扩展：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 第一次签发的命令</span>
+</span></span><span style="display:flex;"><span>openssl x509 -req -in server.csr -CA ca.pem -CAkey ca.key <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  -CAcreateserial -out server.pem -days <span style="color:#ae81ff">30</span> -sha256
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 没有 extfile 参数</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>正确的签发方式需要加 EKU 扩展：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>cat &gt; /tmp/extfile.cnf <span style="color:#e6db74">&lt;&lt;&#39;EOF&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">extendedKeyUsage = serverAuth, clientAuth
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">subjectAltName = DNS:radius.corp.example.com, DNS:radius01.corp.example.com, IP:10.1.1.100
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>openssl x509 -req -in server.csr -CA ca.pem -CAkey ca.key <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  -CAcreateserial -out server.pem -days <span style="color:#ae81ff">30</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  -sha256 -extfile /tmp/extfile.cnf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>再次重启后 FreeRADIUS 正常签出 <code>Received Access-Accept</code>，<strong>已信任 CA 根证书的终端陆续恢复</strong>。</p>
+<h3 id="第五阶段长期解决---自动化证书轮换"><a href="#%e7%ac%ac%e4%ba%94%e9%98%b6%e6%ae%b5%e9%95%bf%e6%9c%9f%e8%a7%a3%e5%86%b3---%e8%87%aa%e5%8a%a8%e5%8c%96%e8%af%81%e4%b9%a6%e8%bd%ae%e6%8d%a2" class="header-anchor"></a>第五阶段：长期解决 - 自动化证书轮换
+</h3><p>30 天临时证书只是续命。要根治，必须做完整的自动化证书轮换：</p>
+<h4 id="1-用-ad-cs-替代自建-openssl-签发"><a href="#1-%e7%94%a8-ad-cs-%e6%9b%bf%e4%bb%a3%e8%87%aa%e5%bb%ba-openssl-%e7%ad%be%e5%8f%91" class="header-anchor"></a>1. 用 AD CS 替代自建 OpenSSL 签发
+</h4><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span><span style="color:#75715e"># radius01 申请新证书时使用 certreq</span>
+</span></span><span style="display:flex;"><span>$inf = <span style="color:#e6db74">@&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">[Version]
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">Signature = &#34;`</span>$Windows<span style="color:#e6db74"> NT`$&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">[NewRequest]
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">Subject = &#34;CN=radius.corp.example.com&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">KeySpec = 1
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">KeyLength = 2048
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">Exportable = TRUE
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">MachineKeySet = TRUE
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">SMIME = FALSE
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">PrivateKeyArchive = FALSE
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">UserProtected = FALSE
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">UseExistingKeySet = FALSE
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">ProviderName = &#34;Microsoft RSA SChannel Cryptographic Provider&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">ProviderType = 12
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">RequestType = PKCS10
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">KeyUsage = 0xa0
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">HashAlgorithm = SHA256
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">[EnhancedKeyUsageExtension]
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">OID = 1.3.6.1.5.5.7.3.1  ; Server Authentication
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">OID = 1.3.6.1.5.5.7.3.2  ; Client Authentication
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">[Extensions]
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">2.5.29.17 = &#34;{text}&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">_continue_ = &#34;dns= radius.corp.example.com&amp;&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">_continue_ = &#34;dns= radius01.corp.example.com&amp;&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">_continue_ = &#34;ipaddress= 10.1.1.100&amp;&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">[RequestAttributes]
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CertificateTemplate = RadiusServerTemplate
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">&#34;@</span>
+</span></span><span style="display:flex;"><span>$inf | Out-File -Encoding ASCII C:\radius01.inf
+</span></span><span style="display:flex;"><span>certreq -new C:\radius01.inf C:\radius01.req
+</span></span><span style="display:flex;"><span>certreq -submit C:\radius01.req C:\radius01.cer
+</span></span><span style="display:flex;"><span>certreq -accept C:\radius01.cer
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="2-写-cron-自动化续签--部署"><a href="#2-%e5%86%99-cron-%e8%87%aa%e5%8a%a8%e5%8c%96%e7%bb%ad%e7%ad%be--%e9%83%a8%e7%bd%b2" class="header-anchor"></a>2. 写 cron 自动化续签 + 部署
+</h4><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e">#!/bin/bash
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"># /usr/local/sbin/radius-cert-renew.sh</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 每 30 天提前 60 天轮换，确保证书永远不会过 60 天有效期</span>
+</span></span><span style="display:flex;"><span>DAYS_BEFORE_EXPIRY<span style="color:#f92672">=</span><span style="color:#ae81ff">60</span>
+</span></span><span style="display:flex;"><span>CERT_PATH<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;/etc/freeradius/certs/server.pem&#34;</span>
+</span></span><span style="display:flex;"><span>THUMBPRINT<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>openssl x509 -in $CERT_PATH -noout -fingerprint -sha256 | cut -d<span style="color:#f92672">=</span> -f2<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>EXPIRY<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>openssl x509 -in $CERT_PATH -noout -enddate | cut -d<span style="color:#f92672">=</span> -f2<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>EXPIRY_EPOCH<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>date -d <span style="color:#e6db74">&#34;</span>$EXPIRY<span style="color:#e6db74">&#34;</span> +%s<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>NOW_EPOCH<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>date +%s<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>DAYS_LEFT<span style="color:#f92672">=</span><span style="color:#66d9ef">$((</span> <span style="color:#f92672">(</span>EXPIRY_EPOCH <span style="color:#f92672">-</span> NOW_EPOCH<span style="color:#f92672">)</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">86400</span> <span style="color:#66d9ef">))</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> $DAYS_LEFT -gt $DAYS_BEFORE_EXPIRY <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+</span></span><span style="display:flex;"><span>  echo <span style="color:#e6db74">&#34;[OK] 证书还有 </span>$DAYS_LEFT<span style="color:#e6db74"> 天，无需续签&#34;</span>
+</span></span><span style="display:flex;"><span>  exit <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">fi</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;[WARN] 证书还有 </span>$DAYS_LEFT<span style="color:#e6db74"> 天，开始续签流程&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 1. 备份旧证书</span>
+</span></span><span style="display:flex;"><span>cp -a $CERT_PATH <span style="color:#e6db74">${</span>CERT_PATH<span style="color:#e6db74">}</span>.bak-<span style="color:#66d9ef">$(</span>date +%Y%m%d<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>cp -a /etc/freeradius/certs/server.key /etc/freeradius/certs/server.key.bak-<span style="color:#66d9ef">$(</span>date +%Y%m%d<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 2. 通过 certreq 申请（需要 winexe 调 Windows 端 certreq）</span>
+</span></span><span style="display:flex;"><span>winexe -U corp<span style="color:#ae81ff">\\</span>admin%password //radius01 <span style="color:#e6db74">&#34;cmd /c certreq -enroll -machine RadiusServerTemplate&#34;</span> 2&gt;/dev/null
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 把新证书导出到 Linux</span>
+</span></span><span style="display:flex;"><span>smbclient //radius01/c$ -U corp<span style="color:#ae81ff">\\</span>admin%password -c <span style="color:#e6db74">&#34;cd \ProgramData\Microsoft\Crypto\RSA\MachineKeys; ls&#34;</span> &gt; /dev/null
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># ...省略实际取回流程</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 3. 重启 FreeRADIUS</span>
+</span></span><span style="display:flex;"><span>systemctl restart freeradius
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 4. 验证</span>
+</span></span><span style="display:flex;"><span>sleep <span style="color:#ae81ff">5</span>
+</span></span><span style="display:flex;"><span>radtest test test 127.0.0.1 <span style="color:#ae81ff">0</span> testing123 <span style="color:#f92672">&amp;&amp;</span> echo <span style="color:#e6db74">&#34;[OK] 续签完成并通过测试&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="3-终端侧使用-scepndes-自动注册"><a href="#3-%e7%bb%88%e7%ab%af%e4%be%a7%e4%bd%bf%e7%94%a8-scepndes-%e8%87%aa%e5%8a%a8%e6%b3%a8%e5%86%8c" class="header-anchor"></a>3. 终端侧：使用 SCEP/NDES 自动注册
+</h4><p>旧流程是 IT 同事手工给每台电脑装 CA 根证书，效率低且容易漏装。改用 NDES + Intune SCEP：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span><span style="color:#75715e"># Intune SCEP 策略自动向 AD CS 申请客户端证书并推送</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 设备配置 - 配置文件 - SCEP 证书</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 证书类型: 设备</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Subject Name Format: CN={{DeviceId}},CN={{AAD_Device_ID}}</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># SAN: URI={{DeviceId}}</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Key Usage: KeyEncipherment, DigitalSignature</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Key Size: 2048</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Hash Algorithm: SHA-2</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Extended Key Usage: 1.3.6.1.5.5.7.3.2  (Client Auth)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># SCEP Server URLs: https://ndes.corp.example.com/certsrv/mscep/mscep.dll</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><p>最终落地的方案分三层：</p>
+<p><strong>止血阶段</strong>（T+0 ~ 30 分钟）：在 FreeRADIUS 上用 OpenSSL + 自建 CA 临时签发 30 天带 <code>extendedKeyUsage=serverAuth,clientAuth</code> 和 <code>subjectAltName</code> 的服务器证书，重启服务后约 70% 已部署 CA 根证书的终端自动恢复，剩下 30% 是历史装机从未导入过 CA 的工位机，由现场 IT 同事手工导入。</p>
+<p><strong>短期修复</strong>（T+1 ~ 2 周）：将 FreeRADIUS 证书切到 AD CS 颁发的 5 年期 RadiusServerTemplate 证书（受 5 年 CA 模板限制），由 certreq 自动续签脚本每 30 天检查并续签，提前 60 天主动轮换，避免再出现凌晨过期无人值守的情况。</p>
+<p><strong>长期根治</strong>（T+1 ~ 2 月）：</p>
+<ol>
+<li><strong>CA 侧</strong>：把自建 OpenSSL CA 整个迁移到企业 AD CS，使用 5 年期 <code>SubCA</code> 模板并启用 autoenroll，所有 2000+ 终端通过 GPO 自动注册 <code>RootCA</code> 信任</li>
+<li><strong>客户端侧</strong>：IoT 设备、扫码枪、IP 电话改为 SCEP 自动注册客户端证书，免去手工导入</li>
+<li><strong>监控侧</strong>：在 Zabbix 上添加对 <code>/etc/freeradius/certs/*.pem</code> 的扫描，所有证书剩余有效期 &lt; 90 天的都触发告警，证书清单每周发邮件给安全组</li>
+<li><strong>流程侧</strong>：建立&quot;证书生命周期&quot;维基页面，所有证书的签发日期、到期日期、负责人、轮换 SOP 一目了然，离到期 90/60/30/7 天分别触发不同级别告警</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>深挖下来，这次事故有四个相互独立的根因叠加：</p>
+<ol>
+<li><strong>EAP-TLS 服务器证书的有效期被脚本写死成 2 年</strong>，而前同事把这个脚本注释为&quot;自建 CA 10 年期&quot;，导致后续接手的人（包括我）误以为整套体系都是 10 年一换</li>
+<li><strong>没有任何证书过期监控</strong>，Zabbix 监控的是 Radius 服务进程存活、AP 认证成功率，但<strong>没人意识到&quot;证书&quot;也是一种需要监控的资源</strong></li>
+<li><strong>历史装机太松散</strong>，CA 根证书在客户端没有强制 GPO 推送，部分工位机是当年实习生手工装的，证书已经丢/坏，并且这个状态在 AP 重新认证时才暴露</li>
+<li><strong>缺乏证书全生命周期管理流程</strong>，没有 PKI 文档、没有续签 SOP、没有 SCEP/NDES 这种&quot;证书可以自动过期和续签&quot;的设计，本质上还是手工运维的思路在管理 CA</li>
+</ol>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><p>基于这次踩坑，建立了下面这套预防体系：</p>
+<p><strong>1. 证书全生命周期管理系统</strong></p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 每周日凌晨 3 点扫描所有 Radius/网关证书，邮件给安全组</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#!/bin/bash</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># /usr/local/sbin/cert-watchdog.sh</span>
+</span></span><span style="display:flex;"><span>RECIPIENT<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;security-team@corp.example.com&#34;</span>
+</span></span><span style="display:flex;"><span>WARN_DAYS<span style="color:#f92672">=</span><span style="color:#ae81ff">90</span>
+</span></span><span style="display:flex;"><span>CRITICAL_DAYS<span style="color:#f92672">=</span><span style="color:#ae81ff">30</span>
+</span></span><span style="display:flex;"><span>CERT_DIRS<span style="color:#f92672">=(</span><span style="color:#e6db74">&#34;/etc/freeradius/certs&#34;</span> <span style="color:#e6db74">&#34;/etc/nginx/ssl&#34;</span> <span style="color:#e6db74">&#34;/etc/strongswan/ipsec.d&#34;</span><span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>REPORT<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> dir in <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>CERT_DIRS[@]<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>; <span style="color:#66d9ef">do</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">for</span> cert in $dir/*.pem $dir/*.crt; <span style="color:#66d9ef">do</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">[</span> -f <span style="color:#e6db74">&#34;</span>$cert<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span> <span style="color:#f92672">||</span> <span style="color:#66d9ef">continue</span>
+</span></span><span style="display:flex;"><span>    EXPIRY<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>openssl x509 -in <span style="color:#e6db74">&#34;</span>$cert<span style="color:#e6db74">&#34;</span> -noout -enddate 2&gt;/dev/null | cut -d<span style="color:#f92672">=</span> -f2<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">[</span> -z <span style="color:#e6db74">&#34;</span>$EXPIRY<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#66d9ef">continue</span>
+</span></span><span style="display:flex;"><span>    DAYS_LEFT<span style="color:#f92672">=</span><span style="color:#66d9ef">$((</span> <span style="color:#f92672">(</span><span style="color:#66d9ef">$(</span>date -d <span style="color:#e6db74">&#34;</span>$EXPIRY<span style="color:#e6db74">&#34;</span> +%s<span style="color:#66d9ef">)</span> <span style="color:#f92672">-</span> <span style="color:#66d9ef">$(</span>date +%s<span style="color:#66d9ef">)</span><span style="color:#f92672">)</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">86400</span> <span style="color:#66d9ef">))</span>
+</span></span><span style="display:flex;"><span>    SUBJECT<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>openssl x509 -in <span style="color:#e6db74">&#34;</span>$cert<span style="color:#e6db74">&#34;</span> -noout -subject | cut -d<span style="color:#f92672">=</span> -f2-<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> $DAYS_LEFT -lt $CRITICAL_DAYS <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+</span></span><span style="display:flex;"><span>      REPORT<span style="color:#f92672">+=</span><span style="color:#e6db74">&#34;[CRITICAL] </span>$cert<span style="color:#e6db74"> 剩 </span><span style="color:#e6db74">${</span>DAYS_LEFT<span style="color:#e6db74">}</span><span style="color:#e6db74"> 天 - </span>$SUBJECT<span style="color:#e6db74">\n&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">elif</span> <span style="color:#f92672">[</span> $DAYS_LEFT -lt $WARN_DAYS <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+</span></span><span style="display:flex;"><span>      REPORT<span style="color:#f92672">+=</span><span style="color:#e6db74">&#34;[WARN] </span>$cert<span style="color:#e6db74"> 剩 </span><span style="color:#e6db74">${</span>DAYS_LEFT<span style="color:#e6db74">}</span><span style="color:#e6db74"> 天 - </span>$SUBJECT<span style="color:#e6db74">\n&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">fi</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">done</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">done</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> -n <span style="color:#e6db74">&#34;</span>$REPORT<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+</span></span><span style="display:flex;"><span>  echo -e <span style="color:#e6db74">&#34;证书过期预警:\n</span>$REPORT<span style="color:#e6db74">&#34;</span> | mail -s <span style="color:#e6db74">&#34;【证书过期预警】</span><span style="color:#66d9ef">$(</span>date +%Y-%m-%d<span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span> $RECIPIENT
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">fi</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>2. Zabbix 自定义监控项</strong></p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#75715e"># /etc/zabbix/zabbix_agentd.d/cert_expiry.conf</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">UserParameter=cert.expiry[*],openssl x509 -in $1 -noout -enddate 2&gt;/dev/null | cut -d= -f2 | xargs -I{} date -d &#34;{}&#34; +%s</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 触发器: 当 cert.expiry[/etc/freeradius/certs/server.pem] - now() &lt; 7776000 (90天) 时触发 warning</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#          &lt; 2592000 (30天) 时触发 high</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#          &lt; 604800 (7天) 时触发 disaster</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>3. 终端 GPO 强制信任企业 CA</strong></p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>Computer Configuration
+</span></span><span style="display:flex;"><span>  → Policies
+</span></span><span style="display:flex;"><span>    → Windows Settings
+</span></span><span style="display:flex;"><span>      → Security Settings
+</span></span><span style="display:flex;"><span>        → Public Key Policies
+</span></span><span style="display:flex;"><span>          → Certificate Services Client - Auto-Enrollment
+</span></span><span style="display:flex;"><span>            ☑ 自动注册证书
+</span></span><span style="display:flex;"><span>            ☑ 续签过期的证书
+</span></span><span style="display:flex;"><span>            ☑ 更新正在使用的证书
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>4. SCEP/NDES 自动客户端证书</strong></p>
+<p>所有域内电脑和受管移动设备通过 Intune SCEP 自动向 AD CS 申请客户端证书，证书有效期 1 年自动续签，永久不需要 IT 同事手工介入。</p>
+<p><strong>5. 红蓝对抗演练</strong></p>
+<p>每季度模拟&quot;把 Radius server.pem 替换为已过期证书&quot;，演练运维团队的应急响应速度和流程顺畅度，确保事故响应的肌肉记忆。</p>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这次事故最深的教训，是<strong>证书这种&quot;非生命体&quot;资源</strong>在大多数运维同学的监控盲区里。它不像磁盘、CPU、内存那样有常规的仪表盘告警，往往只在过期那一刻才&quot;砰&quot;地炸出来，但影响范围却是公司级别的。</p>
+<p>回头看，<strong>EAP-TLS 体系的设计原则</strong>应该是&quot;证书全生命周期&quot;——从 CA 设计、模板、签发、续签、客户端分发、信任链维护到过期监控，每一步都要有自动化兜底。任何依赖&quot;人工记得去续签&quot;的设计，最终都会在某个凌晨、某个长假、某个新人接手的时刻翻车。</p>
+<p>我们这次虽然用 30 天临时证书快速止血，没有出现业务数据丢失，但这种&quot;凭证类&quot;的故障本应通过前置的告警 + 自动续签 + 监控来彻底规避。建议所有使用 802.1X / EAP-TLS / HTTPS 证书 / IPsec 证书的团队，都把&quot;证书全生命周期管理&quot;作为年度安全审计的必查项，并且把 Zabbix / Prometheus 对证书过期天数的监控当作 <strong>P0 级别</strong>来对待——这绝不是&quot;锦上添花&quot;，而是&quot;救命的最后一道防线&quot;。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/radius/">RADIUS</a>
+        
+            <a href="/tags/eap-tls/">EAP-TLS</a>
+        
+            <a href="/tags/802.1x/">802.1X</a>
+        
+            <a href="/tags/%E8%AF%81%E4%B9%A6%E8%BF%87%E6%9C%9F/">证书过期</a>
+        
+            <a href="/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/">网络运维</a>
+        
+    </section>
+
+
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年6月30日星期二
+        </span>
+    </section></footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/a3490d86/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次交换机物理环路引发的整栋楼广播风暴</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/3c48c9b3/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">IPSec VPN MTU 不匹配致 ERP 远程访问异常：定位与修复</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/d11b5134/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">BGP 双线 AS-PATH 配错，业务流量为何全走错运营商</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/30de78ed/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">MPLS 专线抖动致跨机房数据库同步中断的定位</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/66557bdd/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">FortiGate 策略配错，内网 DNS 为何解析失败？</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

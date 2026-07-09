@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="年终机房精密空调故障，服务器集群过热降频，根因是空调冗余失效且温度告警未被及时响应。">
+<title>机房精密空调故障，服务器集群怎么就过热降频了？</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/472b6e86/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="机房精密空调故障，服务器集群怎么就过热降频了？">
+<meta property='og:description' content="年终机房精密空调故障，服务器集群过热降频，根因是空调冗余失效且温度告警未被及时响应。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/472b6e86/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='机房' /><meta property='article:tag' content='空调' /><meta property='article:tag' content='散热' /><meta property='article:tag' content='降频' /><meta property='article:tag' content='服务器' /><meta property='article:tag' content='桌面运维' /><meta property='article:published_time' content='2023-12-13T10:35:00&#43;00:00'/><meta property='article:modified_time' content='2023-12-13T10:35:00&#43;00:00'/>
+<meta name="twitter:title" content="机房精密空调故障，服务器集群怎么就过热降频了？">
+<meta name="twitter:description" content="年终机房精密空调故障，服务器集群过热降频，根因是空调冗余失效且温度告警未被及时响应。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步确认机房温度">第一步：确认机房温度</a></li>
+        <li><a href="#第二步检查空调状态">第二步：检查空调状态</a></li>
+        <li><a href="#第三步分析-1-号空调停机原因">第三步：分析 1 号空调停机原因</a></li>
+        <li><a href="#第四步为什么-2-号空调制冷不足">第四步：为什么 2 号空调制冷不足？</a></li>
+        <li><a href="#第五步为什么-zabbix-告警延迟了-15-分钟">第五步：为什么 Zabbix 告警延迟了 15 分钟？</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#紧急物理降温">紧急物理降温</a></li>
+        <li><a href="#后续整改">后续整改</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" style="background-color: hsl(195, 60%, 84%); color: hsl(195, 60%, 15%);">
+                桌面运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/472b6e86/">机房精密空调故障，服务器集群怎么就过热降频了？</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            年终机房精密空调故障，服务器集群过热降频，根因是空调冗余失效且温度告警未被及时响应。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2023-12-13T10:35:00Z'>2023年12月13日星期三</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 4 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步确认机房温度">第一步：确认机房温度</a></li>
+        <li><a href="#第二步检查空调状态">第二步：检查空调状态</a></li>
+        <li><a href="#第三步分析-1-号空调停机原因">第三步：分析 1 号空调停机原因</a></li>
+        <li><a href="#第四步为什么-2-号空调制冷不足">第四步：为什么 2 号空调制冷不足？</a></li>
+        <li><a href="#第五步为什么-zabbix-告警延迟了-15-分钟">第五步：为什么 Zabbix 告警延迟了 15 分钟？</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#紧急物理降温">紧急物理降温</a></li>
+        <li><a href="#后续整改">后续整改</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司自建数据中心内有 5 个标准机柜，约 30 台物理服务器（含数据库、虚拟化主机、备份存储）。机房制冷由两台 Emerson 精密空调（一主一备）提供，设定温度 22°C，温差 ±2°C。机房环境监控通过 Zabbix 采集温湿度传感器的 SNMP 数据。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>12 月 13 日上午 10:20，运维收到用户反馈：公司内部 OA 系统、ERP 系统、企业邮箱全部响应极度缓慢，页面加载时间从正常的 1-2 秒变成 30-60 秒。监控平台显示全业务 P99 延迟飙升 20-30 倍。</p>
+<p>登录虚拟化平台 vCenter 查看宿主机：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>Host: esxi-01.corp.local
+</span></span><span style="display:flex;"><span>CPU Usage: 35%
+</span></span><span style="display:flex;"><span>CPU Ready: 18% (正常应 &lt;5%)
+</span></span><span style="display:flex;"><span>Memory Usage: 72%
+</span></span><span style="display:flex;"><span>Alarm: Host CPU thermal throttling active
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>CPU 热节流（Thermal Throttling）被触发！</strong> 所有 ESXi 主机都在强制降频运行，原本 3.0GHz 的 CPU 被限制在 1.2GHz，虚拟机中的应用程序性能被严重拖慢。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="第一步确认机房温度"><a href="#%e7%ac%ac%e4%b8%80%e6%ad%a5%e7%a1%ae%e8%ae%a4%e6%9c%ba%e6%88%bf%e6%b8%a9%e5%ba%a6" class="header-anchor"></a>第一步：确认机房温度
+</h3><p>跑到机房门口，开门瞬间热浪扑面——室内温度计显示 <strong>48°C</strong>！</p>
+<p>Zabbix 监控的告警时间：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>10:20:00  机房温度 = 28°C  (超过25°C阈值，未告警？)
+</span></span><span style="display:flex;"><span>10:25:00  机房温度 = 35°C  (仍无告警)
+</span></span><span style="display:flex;"><span>10:30:00  机房温度 = 45°C  (仍无告警？)
+</span></span><span style="display:flex;"><span>10:35:00  机房温度 = 48°C  (告警终于发出) # 延迟了15分钟！
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="第二步检查空调状态"><a href="#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e6%a3%80%e6%9f%a5%e7%a9%ba%e8%b0%83%e7%8a%b6%e6%80%81" class="header-anchor"></a>第二步：检查空调状态
+</h3><p>1 号精密空调——<strong>完全停机</strong>。面板无任何指示灯。2 号备用空调在运行，但出风口温度仅 28°C（正常应为 16-18°C），实际制冷能力严重不足。</p>
+<h3 id="第三步分析-1-号空调停机原因"><a href="#%e7%ac%ac%e4%b8%89%e6%ad%a5%e5%88%86%e6%9e%90-1-%e5%8f%b7%e7%a9%ba%e8%b0%83%e5%81%9c%e6%9c%ba%e5%8e%9f%e5%9b%a0" class="header-anchor"></a>第三步：分析 1 号空调停机原因
+</h3><p>查看空调控制器日志：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>2023-12-13 10:15:32 Compressor High Pressure Alarm
+</span></span><span style="display:flex;"><span>2023-12-13 10:15:32 System Shutdown (Safety)
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>压缩机高压保护——空调因室外机散热受阻导致压缩机出口压力过高，触发安全停机。</p>
+<p>室外温度 -12°C，打开室外机检修面板——风扇叶片被一层厚厚的冰冻住了，完全无法转动。北京冬季夜间温度降到 -15°C，空调室外机底部的排水孔被冰堵住，融化的冷凝水无法排出，在风扇轴承上结冰。</p>
+<h3 id="第四步为什么-2-号空调制冷不足"><a href="#%e7%ac%ac%e5%9b%9b%e6%ad%a5%e4%b8%ba%e4%bb%80%e4%b9%88-2-%e5%8f%b7%e7%a9%ba%e8%b0%83%e5%88%b6%e5%86%b7%e4%b8%8d%e8%b6%b3" class="header-anchor"></a>第四步：为什么 2 号空调制冷不足？
+</h3><p>2 号空调虽然在运行，但制冷剂（R410A）压力只有正常值的 60%。检查发现制冷剂管路接口处有微漏，过去半年逐步泄漏但未补充。低制冷剂量下制冷能力大打折扣——2 号空调虽然亮着灯，实际起不到&quot;备用&quot;的作用。</p>
+<h3 id="第五步为什么-zabbix-告警延迟了-15-分钟"><a href="#%e7%ac%ac%e4%ba%94%e6%ad%a5%e4%b8%ba%e4%bb%80%e4%b9%88-zabbix-%e5%91%8a%e8%ad%a6%e5%bb%b6%e8%bf%9f%e4%ba%86-15-%e5%88%86%e9%92%9f" class="header-anchor"></a>第五步：为什么 Zabbix 告警延迟了 15 分钟？
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ cat /etc/zabbix/zabbix_server.conf | grep -E <span style="color:#e6db74">&#34;StartPollers|Timeout&#34;</span>
+</span></span><span style="display:flex;"><span>StartPollers<span style="color:#f92672">=</span><span style="color:#ae81ff">5</span>
+</span></span><span style="display:flex;"><span>Timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">30</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>温度传感器的 SNMP 轮询间隔为 3 分钟。关键是告警触发条件：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>Trigger: avg(机房温度, 15m) &gt; 28°C
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>触发条件使用了 <code>avg(15m)</code>（15 分钟均值）——温度上升期间前几分钟的低值拉低了平均值，直到均值突破 28°C 才触发告警，而实际温度已经到 48°C 了。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><h3 id="紧急物理降温"><a href="#%e7%b4%a7%e6%80%a5%e7%89%a9%e7%90%86%e9%99%8d%e6%b8%a9" class="header-anchor"></a>紧急物理降温
+</h3><ol>
+<li><strong>打开机房所有门窗通风</strong>，搬入 2 台工业风扇辅助对流</li>
+<li><strong>紧急关闭非核心服务器</strong>：将测试环境和开发环境的物理机全部关机，降低整体热负载</li>
+<li><strong>手动除冰</strong>：用热水浇融 1 号空调室外机风扇上的冰层，清理排水孔</li>
+</ol>
+<p>冰层清除后，1 号空调恢复正常运行，机房温度在 20 分钟内回落到 28°C。CPU 热节流自动解除，业务 P99 延迟逐步恢复。</p>
+<h3 id="后续整改"><a href="#%e5%90%8e%e7%bb%ad%e6%95%b4%e6%94%b9" class="header-anchor"></a>后续整改
+</h3><ol>
+<li><strong>1 号空调加装低温套件</strong>：包含加热带（防止排水孔结冰）和变速风扇控制器</li>
+<li><strong>2 号空调补充制冷剂</strong>：查找泄漏点并修复，补充制冷剂至标称压力</li>
+<li><strong>Zabbix 告警规则修正</strong>：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span># 改为：最近一次温度值（非均值）超过28°C立即告警
+</span></span><span style="display:flex;"><span>Trigger: last(机房温度) &gt; 28°C
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span># 增加温度变化率告警
+</span></span><span style="display:flex;"><span>Trigger: (last(机房温度) - last(机房温度, 60s)) &gt; 3
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接原因：精密空调室外机排水孔在冬季严寒天气下结冰堵塞，风扇被冻住 → 压缩机高压报警停机 → 室内温度快速上升 → 服务器自动降频保护。</p>
+<p>深层原因：</p>
+<ul>
+<li>精密空调缺少低温环境适配（未安装低温套件）</li>
+<li>备用空调制冷剂泄漏，关键时刻无法满负荷运行</li>
+<li>Zabbix 温度告警使用 15 分钟均值，延迟了紧急告警</li>
+<li>机房缺乏温度传感器的多点冗余部署</li>
+</ul>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
+<li><strong>精密空调低温套件</strong>：冬季前安装加热带、变速风扇等低温适配组件</li>
+<li><strong>备机制冷能力保障</strong>：每季度检测备机制冷剂压力，确保备机随时可用</li>
+<li><strong>实时温度告警</strong>：告警规则改用 <code>last()</code> 实时值 + 变化率双触发</li>
+<li><strong>多点温感冗余</strong>：机柜顶部、中部、底部各部署温度传感器</li>
+<li><strong>冬季巡检 SOP</strong>：11 月-3 月每月检查室外机排水孔和风扇轴承结冰情况</li>
+<li><strong>应急演练</strong>：机房温度异常应急预案（工业风扇、开门通风、关非核心设备）</li>
+</ol>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>机房空调故障是运维能遇到的最&quot;低技术含量&quot;但又最致命的事故之一——不需要什么高深的网络协议或分布式系统知识，它就是物理世界的一个设备坏了。但它的破坏力是全局性的：一台空调停机，30 台服务器的 CPU 全部被迫降频，所有业务线的性能同时崩盘。在运维的世界里，对物理基础设施的监控不能有任何侥幸——温度告警的延迟、备机制冷剂的泄漏，都可以被&quot;看起来正常&quot;的表象掩盖，直到故障真正爆发。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E6%9C%BA%E6%88%BF/">机房</a>
+        
+            <a href="/tags/%E7%A9%BA%E8%B0%83/">空调</a>
+        
+            <a href="/tags/%E6%95%A3%E7%83%AD/">散热</a>
+        
+            <a href="/tags/%E9%99%8D%E9%A2%91/">降频</a>
+        
+            <a href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8/">服务器</a>
+        
+            <a href="/tags/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/">桌面运维</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/8c4b1183/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Windows 域策略推送失败致新电脑无法登录的处理</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/42fcb7d3/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次服务器内存硬件故障导致的不定时宕机</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/ecb32d7f/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 Windows 域账号批量锁定事件的排查</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

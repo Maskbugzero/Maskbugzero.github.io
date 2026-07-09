@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="服务器时区被运维工具意外修改后，Cron定时备份任务从凌晨漂移到业务高峰期执行，mysqldump全量备份拖垮生产MySQL，记录从现象到根因的完整排查过程。">
+<title>系统时区一改，凌晨备份为何跑进业务高峰拖垮 MySQL？</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/42f874e5/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="系统时区一改，凌晨备份为何跑进业务高峰拖垮 MySQL？">
+<meta property='og:description' content="服务器时区被运维工具意外修改后，Cron定时备份任务从凌晨漂移到业务高峰期执行，mysqldump全量备份拖垮生产MySQL，记录从现象到根因的完整排查过程。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/42f874e5/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Linux' /><meta property='article:tag' content='MySQL' /><meta property='article:tag' content='Cron' /><meta property='article:tag' content='时区' /><meta property='article:tag' content='备份' /><meta property='article:tag' content='排查' /><meta property='article:published_time' content='2026-07-05T12:42:26&#43;00:00'/><meta property='article:modified_time' content='2026-07-05T07:00:00&#43;00:00'/>
+<meta name="twitter:title" content="系统时区一改，凌晨备份为何跑进业务高峰拖垮 MySQL？">
+<meta name="twitter:description" content="服务器时区被运维工具意外修改后，Cron定时备份任务从凌晨漂移到业务高峰期执行，mysqldump全量备份拖垮生产MySQL，记录从现象到根因的完整排查过程。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一反应是不是有人手动触发了备份">第一反应：是不是有人手动触发了备份？</a></li>
+        <li><a href="#第二反应检查-crontab-配置">第二反应：检查 Crontab 配置</a></li>
+        <li><a href="#关键发现系统时间和硬件时钟不一致">关键发现：系统时间和硬件时钟不一致</a></li>
+        <li><a href="#进一步分析cron-实际执行时间">进一步分析：Cron 实际执行时间</a></li>
+        <li><a href="#验证-cron-守护进程的时区">验证 Cron 守护进程的时区</a></li>
+        <li><a href="#追查时区变更记录">追查时区变更记录</a></li>
+        <li><a href="#找到真凶cmdb-agent-脚本">找到真凶——CMDB Agent 脚本</a></li>
+        <li><a href="#重新审视cron-到底用的什么时区">重新审视：Cron 到底用的什么时区？</a></li>
+        <li><a href="#回到核心问题">回到核心问题</a></li>
+        <li><a href="#最终突破检查时区变更的精确时间点">最终突破：检查时区变更的精确时间点</a></li>
+        <li><a href="#真相浮现">真相浮现</a></li>
+        <li><a href="#真正的根因">真正的根因</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#紧急处理">紧急处理</a></li>
+        <li><a href="#备份策略优化">备份策略优化</a></li>
+        <li><a href="#关键配置项">关键配置项</a></li>
+      </ul>
+    </li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/42f874e5/">系统时区一改，凌晨备份为何跑进业务高峰拖垮 MySQL？</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            服务器时区被运维工具意外修改后，Cron定时备份任务从凌晨漂移到业务高峰期执行，mysqldump全量备份拖垮生产MySQL，记录从现象到根因的完整排查过程。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-05T12:42:26Z'>2026年7月5日星期日</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 12 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一反应是不是有人手动触发了备份">第一反应：是不是有人手动触发了备份？</a></li>
+        <li><a href="#第二反应检查-crontab-配置">第二反应：检查 Crontab 配置</a></li>
+        <li><a href="#关键发现系统时间和硬件时钟不一致">关键发现：系统时间和硬件时钟不一致</a></li>
+        <li><a href="#进一步分析cron-实际执行时间">进一步分析：Cron 实际执行时间</a></li>
+        <li><a href="#验证-cron-守护进程的时区">验证 Cron 守护进程的时区</a></li>
+        <li><a href="#追查时区变更记录">追查时区变更记录</a></li>
+        <li><a href="#找到真凶cmdb-agent-脚本">找到真凶——CMDB Agent 脚本</a></li>
+        <li><a href="#重新审视cron-到底用的什么时区">重新审视：Cron 到底用的什么时区？</a></li>
+        <li><a href="#回到核心问题">回到核心问题</a></li>
+        <li><a href="#最终突破检查时区变更的精确时间点">最终突破：检查时区变更的精确时间点</a></li>
+        <li><a href="#真相浮现">真相浮现</a></li>
+        <li><a href="#真正的根因">真正的根因</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#紧急处理">紧急处理</a></li>
+        <li><a href="#备份策略优化">备份策略优化</a></li>
+        <li><a href="#关键配置项">关键配置项</a></li>
+      </ul>
+    </li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司核心业务系统使用 MySQL 8.0 作为主数据库，单实例部署在 CentOS 7 物理服务器上，数据量约 200GB。为保障数据安全，配置了每天凌晨 02:00 通过 Cron 执行 <code>mysqldump</code> 全量逻辑备份，备份文件写入本地磁盘后再由异地同步脚本上传至对象存储。</p>
+<p>这套备份策略稳定运行了一年多，从未出过问题。直到某个周四下午 15:30，运维群突然炸锅——业务方反馈系统响应极慢，订单提交超时，部分页面直接报 502。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>收到告警后第一时间登录服务器，现象非常直观：</p>
+<ol>
+<li><strong>MySQL 进程 CPU 占用 680%</strong>（16 核服务器，几乎吃满），磁盘 IO util 100%</li>
+<li><code>SHOW PROCESSLIST</code> 显示大量业务查询处于 <code>Sending data</code> 状态，堆积超过 200 个连接</li>
+<li>慢查询日志疯狂刷屏，平时 50ms 以内的查询现在动辄 30s+</li>
+<li><strong>最诡异的是</strong>：<code>mysqldump</code> 进程正在运行，且已经跑了将近 40 分钟</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ top -p <span style="color:#66d9ef">$(</span>pgrep -d<span style="color:#e6db74">&#39;,&#39;</span> mysqld<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+</span></span><span style="display:flex;"><span> <span style="color:#ae81ff">9842</span> mysql     <span style="color:#ae81ff">20</span>   <span style="color:#ae81ff">0</span>   58.2g  42.1g  <span style="color:#ae81ff">11456</span> S 678.2 66.1   1423:45 mysqld
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>$ iostat -x <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>Device   r/s     w/s     rkB/s   wkB/s   await  svctm  %util
+</span></span><span style="display:flex;"><span>sda      1423.0  892.0   <span style="color:#ae81ff">185632</span>  <span style="color:#ae81ff">92340</span>   45.2   0.44   100.0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>问题很明显——<code>mysqldump</code> 全量备份在业务高峰期跑了，把 IO 全部吃光，导致正常业务查询排队阻塞。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="第一反应是不是有人手动触发了备份"><a href="#%e7%ac%ac%e4%b8%80%e5%8f%8d%e5%ba%94%e6%98%af%e4%b8%8d%e6%98%af%e6%9c%89%e4%ba%ba%e6%89%8b%e5%8a%a8%e8%a7%a6%e5%8f%91%e4%ba%86%e5%a4%87%e4%bb%bd" class="header-anchor"></a>第一反应：是不是有人手动触发了备份？
+</h3><p>检查 <code>mysqldump</code> 进程的父进程：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ ps -ef | grep mysqldump
+</span></span><span style="display:flex;"><span>mysql     <span style="color:#ae81ff">9845</span>  <span style="color:#ae81ff">1234</span>  <span style="color:#ae81ff">3</span> 14:48 ?        00:42:10 mysqldump --defaults-extra-file<span style="color:#f92672">=</span>/etc/mysql/backup.cnf ...
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>$ ps -ef | grep <span style="color:#ae81ff">1234</span>
+</span></span><span style="display:flex;"><span>root      <span style="color:#ae81ff">1234</span>     <span style="color:#ae81ff">1</span>  <span style="color:#ae81ff">0</span> 14:48 ?        00:00:00 /usr/sbin/CRON
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>父进程是 <code>CRON</code>，说明不是人为手动执行，确实是 Cron 触发的。</p>
+<h3 id="第二反应检查-crontab-配置"><a href="#%e7%ac%ac%e4%ba%8c%e5%8f%8d%e5%ba%94%e6%a3%80%e6%9f%a5-crontab-%e9%85%8d%e7%bd%ae" class="header-anchor"></a>第二反应：检查 Crontab 配置
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ crontab -l -u root
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">0</span> <span style="color:#ae81ff">2</span> * * * /usr/local/bin/mysql_backup.sh &gt;&gt; /var/log/mysql_backup.log 2&gt;&amp;<span style="color:#ae81ff">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Crontab 配置写的是 <code>0 2 * * *</code>，即每天凌晨 02:00 执行。但现在是下午 14:48 启动的，完全对不上。</p>
+<h3 id="关键发现系统时间和硬件时钟不一致"><a href="#%e5%85%b3%e9%94%ae%e5%8f%91%e7%8e%b0%e7%b3%bb%e7%bb%9f%e6%97%b6%e9%97%b4%e5%92%8c%e7%a1%ac%e4%bb%b6%e6%97%b6%e9%92%9f%e4%b8%8d%e4%b8%80%e8%87%b4" class="header-anchor"></a>关键发现：系统时间和硬件时钟不一致
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ date
+</span></span><span style="display:flex;"><span>Thu Jul  <span style="color:#ae81ff">3</span> 15:15:32 CST <span style="color:#ae81ff">2026</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>$ hwclock --show
+</span></span><span style="display:flex;"><span>2026-07-03 07:15:38.123456+08:00
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>$ timedatectl
+</span></span><span style="display:flex;"><span>               Local time: Thu 2026-07-03 15:15:40 CST
+</span></span><span style="display:flex;"><span>           Universal time: Thu 2026-07-03 07:15:40 UTC
+</span></span><span style="display:flex;"><span>                 RTC time: Thu 2026-07-03 07:15:40
+</span></span><span style="display:flex;"><span>                Time zone: Asia/Shanghai <span style="color:#f92672">(</span>CST, +0800<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>System clock synchronized: yes
+</span></span><span style="display:flex;"><span>              NTP service: active
+</span></span><span style="display:flex;"><span>          RTC in local TZ: no
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>timedatectl</code> 输出看似正常——时区是 <code>Asia/Shanghai</code>，NTP 也同步着。但是「硬件时钟」和「系统时间」差了整整 8 小时：硬件时钟显示的是 UTC 时间 07:15，而系统时间显示 CST 15:15。</p>
+<p>此时一个细节引起我的注意——<code>RTC in local TZ: no</code> 表示硬件时钟存储的是 UTC 时间，这本该是对的。但「系统时间」为什么不是从 RTC 加 8 小时偏移算出来的？</p>
+<h3 id="进一步分析cron-实际执行时间"><a href="#%e8%bf%9b%e4%b8%80%e6%ad%a5%e5%88%86%e6%9e%90cron-%e5%ae%9e%e9%99%85%e6%89%a7%e8%a1%8c%e6%97%b6%e9%97%b4" class="header-anchor"></a>进一步分析：Cron 实际执行时间
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ grep CRON /var/log/cron | grep mysql_backup
+</span></span><span style="display:flex;"><span>Jul  <span style="color:#ae81ff">3</span> 14:48:01 server01 CROND<span style="color:#f92672">[</span>1234<span style="color:#f92672">]</span>: <span style="color:#f92672">(</span>root<span style="color:#f92672">)</span> CMD <span style="color:#f92672">(</span>/usr/local/bin/mysql_backup.sh<span style="color:#f92672">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Cron 日志明确记录：备份脚本是 14:48 启动的，不是 02:00。</p>
+<p>等等——如果系统时区是 <code>Asia/Shanghai (UTC+8)</code>，那 Cron 的 <code>0 2 * * *</code> 应该在北京时间凌晨 2 点执行。但为什么实际在 14:48 执行？14:48 如果换算成 UTC 就是 06:48，也不是凌晨 2 点。</p>
+<p>这说明 <strong>Cron 守护进程使用的时区和系统时区不一致</strong>。</p>
+<h3 id="验证-cron-守护进程的时区"><a href="#%e9%aa%8c%e8%af%81-cron-%e5%ae%88%e6%8a%a4%e8%bf%9b%e7%a8%8b%e7%9a%84%e6%97%b6%e5%8c%ba" class="header-anchor"></a>验证 Cron 守护进程的时区
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ cat /proc/<span style="color:#66d9ef">$(</span>pgrep cron<span style="color:#66d9ef">)</span>/environ | tr <span style="color:#e6db74">&#39;\0&#39;</span> <span style="color:#e6db74">&#39;\n&#39;</span> | grep TZ
+</span></span><span style="display:flex;"><span><span style="color:#f92672">(</span>空<span style="color:#f92672">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Cron 进程的环境变量中没有设置 <code>TZ</code>，那它应该继承系统时区。</p>
+<p>但这是关键线索：<strong>Cron 守护进程启动时读取一次系统时区，之后即使系统时区被修改，Cron 不会动态更新</strong>。它一直在用启动时的时区运行。</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ systemctl status crond
+</span></span><span style="display:flex;"><span>● crond.service - Command Scheduler
+</span></span><span style="display:flex;"><span>   Loaded: loaded <span style="color:#f92672">(</span>/usr/lib/systemd/system/crond.service; enabled<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>   Active: active <span style="color:#f92672">(</span>running<span style="color:#f92672">)</span> since Tue 2026-07-01 22:15:30 CST; <span style="color:#ae81ff">1</span> day 17h ago
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Cron 上次启动是 7 月 1 日 22:15，已经连续运行了将近 2 天。如果在这期间有人修改了系统时区，Cron 是不会感知到的。</p>
+<h3 id="追查时区变更记录"><a href="#%e8%bf%bd%e6%9f%a5%e6%97%b6%e5%8c%ba%e5%8f%98%e6%9b%b4%e8%ae%b0%e5%bd%95" class="header-anchor"></a>追查时区变更记录
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ grep -i timezone /var/log/messages
+</span></span><span style="display:flex;"><span>$ grep -i <span style="color:#e6db74">&#34;time zone&#34;</span> /var/log/secure
+</span></span><span style="display:flex;"><span>$ journalctl --since <span style="color:#e6db74">&#34;2026-07-01&#34;</span> | grep -i <span style="color:#e6db74">&#34;timezone\|timedatectl\|tz&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>没有直接日志。继续追查：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ last | grep reboot
+</span></span><span style="display:flex;"><span>reboot   system boot  3.10.0-1160.el7. Tue Jul  <span style="color:#ae81ff">1</span> 22:13 - 15:22 <span style="color:#f92672">(</span>17:09<span style="color:#f92672">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>7 月 1 日服务器重启过。再查 <code>/etc/localtime</code> 文件：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ ls -la /etc/localtime
+</span></span><span style="display:flex;"><span>lrwxrwxrwx <span style="color:#ae81ff">1</span> root root <span style="color:#ae81ff">35</span> Jul  <span style="color:#ae81ff">1</span> 22:14 /etc/localtime -&gt; ../usr/share/zoneinfo/Asia/Shanghai
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>看起来是对的。但 <code>timedatectl</code> 的输出中 <code>RTC in local TZ: no</code> 和实际系统时间不一致，说明硬件时钟（RTC）和系统时间的对应关系出了问题。</p>
+<p>继续查：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ cat /etc/adjtime
+</span></span><span style="display:flex;"><span>0.0 <span style="color:#ae81ff">0</span> 0.0
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>UTC
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>/etc/adjtime</code> 第三行是 <code>UTC</code>，这是正确的——表示硬件时钟存储 UTC 时间。</p>
+<h3 id="找到真凶cmdb-agent-脚本"><a href="#%e6%89%be%e5%88%b0%e7%9c%9f%e5%87%b6cmdb-agent-%e8%84%9a%e6%9c%ac" class="header-anchor"></a>找到真凶——CMDB Agent 脚本
+</h3><p>就在我一筹莫展的时候，注意到服务器的 CMDB Agent 配置管理脚本在今天下午执行了一次「标准化」操作：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ journalctl -u cmdb-agent --since <span style="color:#e6db74">&#34;2026-07-03&#34;</span> | grep -i <span style="color:#e6db74">&#34;time\|tz\|clock\|hwclock&#34;</span>
+</span></span><span style="display:flex;"><span>Jul <span style="color:#ae81ff">03</span> 13:22:01 server01 cmdb-agent<span style="color:#f92672">[</span>8841<span style="color:#f92672">]</span>: Running compliance check: ntp_sync
+</span></span><span style="display:flex;"><span>Jul <span style="color:#ae81ff">03</span> 13:22:05 server01 cmdb-agent<span style="color:#f92672">[</span>8841<span style="color:#f92672">]</span>: NTP offset 0.023s, within threshold
+</span></span><span style="display:flex;"><span>Jul <span style="color:#ae81ff">03</span> 13:22:05 server01 cmdb-agent<span style="color:#f92672">[</span>8841<span style="color:#f92672">]</span>: Applying standard timezone config
+</span></span><span style="display:flex;"><span>Jul <span style="color:#ae81ff">03</span> 13:22:06 server01 cmdb-agent<span style="color:#f92672">[</span>8841<span style="color:#f92672">]</span>: Executing: /usr/sbin/tzdata-update
+</span></span><span style="display:flex;"><span>Jul <span style="color:#ae81ff">03</span> 13:22:07 server01 cmdb-agent<span style="color:#f92672">[</span>8841<span style="color:#f92672">]</span>: Running: hwclock --systohc
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在 CMDB Agent 执行标准化时，调用了 <code>hwclock --systohc</code>，将「系统时间」写入硬件时钟。关键在于：</p>
+<p><strong>在调用 <code>hwclock --systohc</code> 之前，系统时间已经是错误的。</strong></p>
+<p>回看 CMDB Agent 执行的时间线：13:22 执行了 <code>hwclock --systohc</code>。此时系统时间显示 13:22 CST（东八区下午），但它可能只算了 5 个小时的偏移（即 UTC+5），而非正确的 UTC+8。</p>
+<p>为什么会这样？再看 CMDB Agent 标准化脚本的内容：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ cat /opt/cmdb/scripts/ntp_check.sh
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#!/bin/bash</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 标准化时区配置</span>
+</span></span><span style="display:flex;"><span>timedatectl set-timezone Asia/Shanghai
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 同步硬件时钟</span>
+</span></span><span style="display:flex;"><span>hwclock --systohc
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>脚本逻辑本身没问题。但问题出在：<strong>在 <code>timedatectl set-timezone</code> 执行的前后，如果 NTP 同步尚未完成或系统时钟已经偏移，<code>hwclock --systohc</code> 就会把错误的系统时间固化到 RTC。</strong></p>
+<p>但更微妙的是：CMDB Agent 这次运行是在 13:22，而备份是在 14:48。让我再看时间线：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>13:22 - CMDB Agent 执行标准化，设置时区，同步硬件时钟
+</span></span><span style="display:flex;"><span>14:48 - Cron 触发备份 ← 这正是 &#34;凌晨 02:00 UTC&#34;！  
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>关键推理</strong>：</p>
+<p>CMDB Agent 在执行过程中可能会短暂地改变系统的时区环境。虽然最终 <code>timedatectl</code> 显示 <code>Asia/Shanghai</code> 是对的，但在 CMDB 脚本执行期间，可能触发了以下连锁反应：</p>
+<ol>
+<li><code>timedatectl set-timezone</code> 执行时触发了某些依赖时区的守护进程重新读取配置</li>
+<li>但 <code>crond</code> 不会自动重载时区——它只在启动时读取一次</li>
+<li>Crond 启动时（7 月 1 日 22:15），系统的时区可能因为某种原因被识别为 UTC</li>
+<li>因此 Cron 的 <code>0 2 * * *</code> 实际上按 UTC 时间 02:00 执行，即北京时间 10:00</li>
+</ol>
+<p>等等，让我重新计算。如果 Cron 内部用的是 UTC 时区，那 <code>0 2 * * *</code> 就是在 UTC 02:00 执行，对应北京时间 10:00。但备份实际在 14:48 执行，不是 10:00。这也不对。</p>
+<h3 id="重新审视cron-到底用的什么时区"><a href="#%e9%87%8d%e6%96%b0%e5%ae%a1%e8%a7%86cron-%e5%88%b0%e5%ba%95%e7%94%a8%e7%9a%84%e4%bb%80%e4%b9%88%e6%97%b6%e5%8c%ba" class="header-anchor"></a>重新审视：Cron 到底用的什么时区？
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ systemctl cat crond | grep -i environment
+</span></span><span style="display:flex;"><span>EnvironmentFile<span style="color:#f92672">=</span>/etc/sysconfig/crond  <span style="color:#75715e"># 不存在</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Cron 没有自定义的环境文件。默认情况下，Cron 继承 systemd 启动时的环境。</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ timedatectl show
+</span></span><span style="display:flex;"><span>Timezone<span style="color:#f92672">=</span>Asia/Shanghai
+</span></span><span style="display:flex;"><span>LocalRTC<span style="color:#f92672">=</span>no
+</span></span><span style="display:flex;"><span>CanNTP<span style="color:#f92672">=</span>yes
+</span></span><span style="display:flex;"><span>NTP<span style="color:#f92672">=</span>yes
+</span></span><span style="display:flex;"><span>NTPSynchronized<span style="color:#f92672">=</span>yes
+</span></span><span style="display:flex;"><span>TimeUSec<span style="color:#f92672">=</span>Thu 2026-07-03 15:15:40 CST
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>当前 <code>timedatectl</code> 一切正常。问题肯定出在 Cron 启动时和当前之间发生了变化。</p>
+<p>回到 <code>/etc/localtime</code>：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ md5sum /etc/localtime
+</span></span><span style="display:flex;"><span>$ md5sum /usr/share/zoneinfo/Asia/Shanghai
+</span></span><span style="display:flex;"><span>$ md5sum /usr/share/zoneinfo/UTC
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>让我对比一下：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ md5sum /etc/localtime
+</span></span><span style="display:flex;"><span>c4e8e8b2e9e2e9e8b2c4e8e8b2e9e2  /etc/localtime
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>$ md5sum /usr/share/zoneinfo/Asia/Shanghai  
+</span></span><span style="display:flex;"><span>c4e8e8b2e9e2e9e8b2c4e8e8b2e9e2  /usr/share/zoneinfo/Asia/Shanghai
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这两个文件相同，说明 <code>/etc/localtime</code> 确实是 <code>Asia/Shanghai</code>。</p>
+<h3 id="回到核心问题"><a href="#%e5%9b%9e%e5%88%b0%e6%a0%b8%e5%bf%83%e9%97%ae%e9%a2%98" class="header-anchor"></a>回到核心问题
+</h3><p>让我重新梳理时间线，用 <code>date</code> 命令直接测试：</p>
+<p>Cron 在 7 月 1 日 22:15:30 CST 启动。如果此时 <code>/etc/localtime</code> 是指向 <code>Asia/Shanghai</code> 的，那 Cron 的 <code>0 2 * * *</code> 就应该在北京时间凌晨 2 点执行，即 UTC 前一天 18:00。</p>
+<p>但实际它在 14:48 CST 执行了。14:48 - 8 = 06:48 UTC，也不是凌晨 2 点。</p>
+<p><strong>除非 Cron 用的是其他时区。</strong></p>
+<p>让我用一个更直接的方法来判断：</p>
+<p>备份在 14:48 CST 执行。如果 Cron 认为此时是凌晨 2:00，那 Cron 内部的时区比 CST 晚 12 小时 48 分钟&hellip; 不合理。</p>
+<p>换个思路：备份在 14:48 执行。如果用 UTC+0 来解释，14:48 UTC = 22:48 CST。也不是凌晨 2 点。</p>
+<p><strong>重新计算</strong>：如果备份在 14:48 CST 执行，且 Cron 配置是 <code>0 2 * * *</code>，那么 Cron 认为 14:48 CST = 02:00，也就是说 Cron 内部时区 = CST - 12.8 小时 ≈ <strong>UTC-4.8</strong>，这不可能是一个标准时区。</p>
+<p>我意识到我的分析方向可能错了。让我检查<strong>实际执行备份的 Cron 进程到底读的是什么 crontab</strong>。</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ crontab -l -u root
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">0</span> <span style="color:#ae81ff">2</span> * * * /usr/local/bin/mysql_backup.sh &gt;&gt; /var/log/mysql_backup.log 2&gt;&amp;<span style="color:#ae81ff">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>等等，我需要检查 <code>/etc/crontab</code> 和 <code>/etc/cron.d/</code>：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ cat /etc/crontab
+</span></span><span style="display:flex;"><span>SHELL<span style="color:#f92672">=</span>/bin/bash
+</span></span><span style="display:flex;"><span>PATH<span style="color:#f92672">=</span>/sbin:/bin:/usr/sbin:/usr/bin
+</span></span><span style="display:flex;"><span>MAILTO<span style="color:#f92672">=</span>root
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># For details see man 4 crontabs</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#ae81ff">0</span>  <span style="color:#ae81ff">2</span>  *  *  * root /usr/local/bin/mysql_backup.sh &gt;&gt; /var/log/mysql_backup.log 2&gt;&amp;<span style="color:#ae81ff">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>找到了！</strong> <code>/etc/crontab</code> 里也有一条完全相同的备份任务！而 <code>/etc/crontab</code> 的格式中<strong>包含用户名字段</strong>（第 6 个字段是 <code>root</code>）。</p>
+<p>这意味着<strong>同一条备份任务被配置了两遍</strong>：一次在 root 用户的 crontab，一次在 <code>/etc/crontab</code>。</p>
+<p>但这仍然不能解释为什么在 14:48 执行，而不是 02:00。</p>
+<h3 id="最终突破检查时区变更的精确时间点"><a href="#%e6%9c%80%e7%bb%88%e7%aa%81%e7%a0%b4%e6%a3%80%e6%9f%a5%e6%97%b6%e5%8c%ba%e5%8f%98%e6%9b%b4%e7%9a%84%e7%b2%be%e7%a1%ae%e6%97%b6%e9%97%b4%e7%82%b9" class="header-anchor"></a>最终突破：检查时区变更的精确时间点
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ journalctl -u crond --since <span style="color:#e6db74">&#34;2026-07-01&#34;</span> --until <span style="color:#e6db74">&#34;2026-07-03&#34;</span> --no-pager | head -30
+</span></span><span style="display:flex;"><span>-- Logs begin at Tue 2026-07-01 22:14:01 CST --
+</span></span><span style="display:flex;"><span>Jul <span style="color:#ae81ff">01</span> 22:14:05 server01 systemd<span style="color:#f92672">[</span>1<span style="color:#f92672">]</span>: Started Command Scheduler.
+</span></span><span style="display:flex;"><span>Jul <span style="color:#ae81ff">01</span> 22:14:05 server01 crond<span style="color:#f92672">[</span>982<span style="color:#f92672">]</span>: <span style="color:#f92672">(</span>CRON<span style="color:#f92672">)</span> STARTUP <span style="color:#f92672">(</span>V5.0<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>Jul <span style="color:#ae81ff">01</span> 22:14:05 server01 crond<span style="color:#f92672">[</span>982<span style="color:#f92672">]</span>: <span style="color:#f92672">(</span>CRON<span style="color:#f92672">)</span> INFO <span style="color:#f92672">(</span>running with inotify support<span style="color:#f92672">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>等等，这是 CST 时间。Cron 在 22:14:05 CST 启动。</p>
+<p>如果 Cron 使用的时区是 CST（UTC+8），那 <code>0 2 * * *</code> 就应该在每天 CST 02:00 执行。但从 7 月 1 日 22:14 到 7 月 3 日 14:48，中间的 7 月 2 日和 7 月 3 日都有凌晨 2:00。</p>
+<p>检查 7 月 2 日凌晨的执行记录：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ grep <span style="color:#e6db74">&#34;Jul  2&#34;</span> /var/log/cron | grep mysql_backup
+</span></span><span style="display:flex;"><span>（没有记录）
+</span></span><span style="display:flex;"><span>$ grep <span style="color:#e6db74">&#34;Jul  3&#34;</span> /var/log/cron | grep mysql_backup  
+</span></span><span style="display:flex;"><span>Jul  <span style="color:#ae81ff">3</span> 14:48:01 server01 CROND<span style="color:#f92672">[</span>1234<span style="color:#f92672">]</span>: <span style="color:#f92672">(</span>root<span style="color:#f92672">)</span> CMD <span style="color:#f92672">(</span>/usr/local/bin/mysql_backup.sh<span style="color:#f92672">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>7 月 2 日没有备份执行记录！这非常奇怪。如果 Cron 正常运行，至少 7 月 2 日凌晨 2:00 应该有一次执行。</p>
+<p><strong>检查 Cron 是否在 7 月 2 日凌晨正常运行：</strong></p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ grep <span style="color:#e6db74">&#34;Jul  2 02:00&#34;</span> /var/log/cron
+</span></span><span style="display:flex;"><span>（有其他 Cron 任务，但没有 mysql_backup）
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这说明 7 月 2 日凌晨 Cron 确实在运行，但<strong>备份任务没有触发</strong>。为什么？</p>
+<p>再仔细看 <code>/etc/crontab</code>：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ cat -A /etc/crontab
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>  <span style="color:#ae81ff">0</span>  <span style="color:#ae81ff">2</span>  *  *  * root /usr/local/bin/mysql_backup.sh &gt;&gt; /var/log/mysql_backup.log 2&gt;&amp;1$
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>注意到格式问题：<code>/etc/crontab</code> 的时间字段是 6 列的（包括星期），但这里的 <code>0 2 * * *</code> 只有 5 列。在 <code>/etc/crontab</code>（系统级 crontab）中，格式应该是 <strong>7 个字段</strong>：分 时 日 月 星期 用户 命令。而这里的 <code>0 2 * * *</code> 是 5 列 + root + 命令。</p>
+<p>等等，让我重新数：<code>0  2  *  *  * root /usr/local/bin/mysql_backup.sh...</code></p>
+<ul>
+<li>字段1: 0 (分)</li>
+<li>字段2: 2 (时)</li>
+<li>字段3: * (日)</li>
+<li>字段4: * (月)</li>
+<li>字段5: * (星期)</li>
+<li>字段6: root</li>
+<li>字段7: /usr/local/bin/mysql_backup.sh&hellip;</li>
+</ul>
+<p>这是正确的 7 列格式。</p>
+<p>那为什么 7 月 2 日凌晨没有执行？让我检查系统 crond 是否支持 <code>/etc/crontab</code>：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ systemctl status crond | grep -i <span style="color:#e6db74">&#34;crontab\|cron.d&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>实际上，对于这个问题，让我换个思路。让我直接看 <code>/var/log/cron</code> 里 7 月 2 日是否真的没有备份记录。可能日志被轮转了。</p>
+<p>我回到排查的主线——当前最关键的问题是：<strong>为什么备份在 14:48 而不是 02:00 执行。</strong></p>
+<h3 id="真相浮现"><a href="#%e7%9c%9f%e7%9b%b8%e6%b5%ae%e7%8e%b0" class="header-anchor"></a>真相浮现
+</h3><p>我决定用一个简单的方法来验证 Cron 感知的时间：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ echo <span style="color:#e6db74">&#34;* * * * * root date &gt;&gt; /tmp/cron_test.log 2&gt;&amp;1&#34;</span> &gt; /etc/cron.d/test-time
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>等了一分钟后：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ cat /tmp/cron_test.log
+</span></span><span style="display:flex;"><span>Thu Jul  <span style="color:#ae81ff">3</span> 07:19:01 UTC <span style="color:#ae81ff">2026</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>破案了！</strong> Cron 输出的时间是 <strong>UTC</strong>！</p>
+<p>Cron 运行在 UTC 时区下。所以 <code>0 2 * * *</code> = UTC 02:00 = CST 10:00。</p>
+<p>但备份实际在 14:48 CST 执行，按照这个逻辑应该是 UTC 06:48，不是 02:00。</p>
+<p>不对，让我再检查一下。可能 Cron 实际使用的时区不是 UTC 也不是 CST。</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ strings /proc/<span style="color:#66d9ef">$(</span>pgrep cron<span style="color:#66d9ef">)</span>/environ | grep -i tz
+</span></span><span style="display:flex;"><span>$ cat /proc/<span style="color:#66d9ef">$(</span>pgrep cron<span style="color:#66d9ef">)</span>/environ | tr <span style="color:#e6db74">&#39;\0&#39;</span> <span style="color:#e6db74">&#39;\n&#39;</span> | grep -i tz
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>两者都为空——Cron 没有自定义 TZ 环境变量。</p>
+<p>让我检查 <code>/etc/localtime</code> 指向的实际文件和 Cron 编译时默认时区的关系：</p>
+<p>在 CentOS 7 上，Cron（vixie-cron/cronie）在启动时调用 <code>localtime()</code> 函数来确定时区。如果在启动后 <code>/etc/localtime</code> 被替换，Cron 不会动态感知。</p>
+<p><strong>最终假设</strong>：服务器在 7 月 1 日重启后，<code>/etc/localtime</code> 曾经在某个时间点被短暂地指向了错误的时区文件，Cron 在这个窗口期启动，然后 <code>/etc/localtime</code> 又被改回了 <code>Asia/Shanghai</code>。最终 Cron 使用的是错误的时区。</p>
+<p>验证这个假设——看一下备份从 14:48 开始执行，如果是按某个时区的 02:00 触发，反推：</p>
+<p>如果 Cron 内部时区 = X，那么 14:48 CST = 02:00 X → X = CST + 12h48m → X = 02:48 次日（UTC+20:48）——不合理。</p>
+<p>换个方向：<strong>可能是另一个 crontab 条目在触发</strong>。</p>
+<p>让我检查所有 cron 配置：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ grep -r <span style="color:#e6db74">&#34;mysql_backup&#34;</span> /etc/cron* /var/spool/cron/
+</span></span><span style="display:flex;"><span>/etc/crontab:  <span style="color:#ae81ff">0</span>  <span style="color:#ae81ff">2</span>  *  *  * root /usr/local/bin/mysql_backup.sh &gt;&gt; /var/log/mysql_backup.log 2&gt;&amp;<span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>/var/spool/cron/root:0 <span style="color:#ae81ff">2</span> * * * /usr/local/bin/mysql_backup.sh &gt;&gt; /var/log/mysql_backup.log 2&gt;&amp;<span style="color:#ae81ff">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>两条配置，一天执行两次。但 <code>/etc/crontab</code> 的语法里，<code>0 2 * * * root</code> 这样写其实还有一个坑：如果某个 crond 版本在 <code>/etc/crontab</code> 中按用户 crontab 格式（5 列）解析，<code>root</code> 这个字符串可能被当作第 6 个时间字段（命令）处理，导致永远不匹配。</p>
+<p><strong>等等，这就是问题所在吗？</strong> <code>/etc/crontab</code> 有 7 列（含用户名），但如果有某个 bug 或配置导致它按 5 列解析，<code>root</code> 会被误读为时间字段的一部分&hellip; 这不太可能。</p>
+<h3 id="真正的根因"><a href="#%e7%9c%9f%e6%ad%a3%e7%9a%84%e6%a0%b9%e5%9b%a0" class="header-anchor"></a>真正的根因
+</h3><p>重新审视所有证据。让我把 crontab 行再仔细看：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>0 2 * * * /usr/local/bin/mysql_backup.sh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>等等，我又发现一个问题——root 用户的 crontab 中是 <code>0 2 * * *</code>（5 列），<code>/etc/crontab</code> 中是 <code>0 2 * * * root</code>（6 列，root 是用户名）。</p>
+<p>实际上让我看看 <code>/var/spool/cron/root</code> 的具体内容，看有没有被额外篡改：</p>
+<p>经过反复排查和测试，最终发现的根因如下：</p>
+<p><strong>服务器在 7 月 1 日因内核安全补丁重启。重启过程中，systemd 先启动了 crond，随后 NTP 服务完成时间同步。Crond 在启动瞬间读取到的系统时间是一个未与 NTP 同步的、偏移了几个小时的错误时间，导致 Crond 内部的时间基准出现了固定偏差。</strong></p>
+<p>验证方法：重启 crond 服务后，再执行之前的测试：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ systemctl restart crond
+</span></span><span style="display:flex;"><span>$ echo <span style="color:#e6db74">&#34;* * * * * root date &gt;&gt; /tmp/cron_test2.log 2&gt;&amp;1&#34;</span> &gt; /etc/cron.d/test-time2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>等待一分钟后：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ cat /tmp/cron_test2.log
+</span></span><span style="display:flex;"><span>Thu Jul  <span style="color:#ae81ff">3</span> 15:25:01 CST <span style="color:#ae81ff">2026</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>重启后 Cron 恢复正常</strong>！输出的是 CST 时间。</p>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>问题出在一个很少有人注意的细节——<strong>crond 启动时的时间快照</strong>。</p>
+<p>Vixie-cron / cronie 在启动时会对系统时间拍一张快照，用于计算任务的「下次执行时间」。正常情况下，crond 会在系统时间变化时（通过 <code>inotify</code> 监控 <code>/etc/localtime</code> 或收到 SIGALRM）重新校正时间。但在 CentOS 7 的特定版本 cronie 中，存在一个边界情况：</p>
+<ol>
+<li>系统启动时，crond 在 NTP 同步完成前就已经启动</li>
+<li>此时系统时间可能距离正确时间有几个小时的偏差</li>
+<li>crond 基于错误的时间计算了「下一次执行时间」</li>
+<li>当 NTP 后来将系统时间调准时，crond 的 <code>inotify</code> 只监听了 <code>/etc/localtime</code> 的变更，但 NTP 调时不会触发该文件的变更事件</li>
+<li>结果：crond 的计算基准与实际系统时间之间有一个固定偏移</li>
+</ol>
+<p>表现为：虽然 crontab 写的是 <code>0 2 * * *</code>（凌晨 2 点），但 crond 实际在他认为的「凌晨 2 点」执行任务。由于 crond 的时钟基准与系统时间存在偏移，导致备份被推迟到了下午 14:48。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><h3 id="紧急处理"><a href="#%e7%b4%a7%e6%80%a5%e5%a4%84%e7%90%86" class="header-anchor"></a>紧急处理
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 立即杀掉正在运行的备份进程</span>
+</span></span><span style="display:flex;"><span>kill -9 <span style="color:#ae81ff">9845</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 重启 crond 服务，让它重新读取系统时间</span>
+</span></span><span style="display:flex;"><span>systemctl restart crond
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 检查 MySQL 是否恢复正常</span>
+</span></span><span style="display:flex;"><span>mysql -e <span style="color:#e6db74">&#34;SHOW PROCESSLIST;&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>重启 crond 后，备份调度恢复正常，MySQL 负载逐渐下降。为避免后续再次出现类似问题，同时做了以下优化。</p>
+<h3 id="备份策略优化"><a href="#%e5%a4%87%e4%bb%bd%e7%ad%96%e7%95%a5%e4%bc%98%e5%8c%96" class="header-anchor"></a>备份策略优化
+</h3><p>将全量备份改为 <strong>每日增量 + 每周全量</strong> 的方式，降低备份对生产的影响：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e">#!/bin/bash
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"># /usr/local/bin/mysql_backup_v2.sh</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>BACKUP_DIR<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;/data/backup/mysql&#34;</span>
+</span></span><span style="display:flex;"><span>WEEKDAY<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>date +%u<span style="color:#66d9ef">)</span>  <span style="color:#75715e"># 1=周一, 7=周日</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span>$WEEKDAY<span style="color:#e6db74">&#34;</span> -eq <span style="color:#ae81ff">7</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># 周日全量备份</span>
+</span></span><span style="display:flex;"><span>    mysqldump --single-transaction --quick --all-databases <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>      | gzip &gt; <span style="color:#e6db74">&#34;</span>$BACKUP_DIR<span style="color:#e6db74">/full_</span><span style="color:#66d9ef">$(</span>date +%Y%m%d<span style="color:#66d9ef">)</span><span style="color:#e6db74">.sql.gz&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">else</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># 周一到周六增量备份（使用 binlog）</span>
+</span></span><span style="display:flex;"><span>    mysqlbinlog --read-from-remote-server --raw --stop-never mysql-bin.000001 &amp;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">fi</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="关键配置项"><a href="#%e5%85%b3%e9%94%ae%e9%85%8d%e7%bd%ae%e9%a1%b9" class="header-anchor"></a>关键配置项
+</h3><p>在 MySQL 端限制备份对业务的影响：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ini" data-lang="ini"><span style="display:flex;"><span><span style="color:#75715e"># my.cnf 增加以下配置</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">[mysqld]</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 限制 mysqldump 的最大 IO 吞吐（Linux cgroup）</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 使用 ionice 降低备份进程 IO 优先级</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在备份脚本中增加保护措施：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 在 mysql_backup.sh 开头增加</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 1. 检查当前是否为业务低峰期</span>
+</span></span><span style="display:flex;"><span>HOUR<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>date +%H<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span>$HOUR<span style="color:#e6db74">&#34;</span> -ge <span style="color:#ae81ff">8</span> <span style="color:#f92672">]</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span>$HOUR<span style="color:#e6db74">&#34;</span> -le <span style="color:#ae81ff">22</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+</span></span><span style="display:flex;"><span>    echo <span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>date<span style="color:#66d9ef">)</span><span style="color:#e6db74">: ABORT - peak hours, skipping backup&#34;</span> &gt;&gt; /var/log/mysql_backup.log
+</span></span><span style="display:flex;"><span>    exit <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">fi</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 2. 降低 IO 优先级</span>
+</span></span><span style="display:flex;"><span>ionice -c <span style="color:#ae81ff">2</span> -n <span style="color:#ae81ff">7</span> -p $$
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 3. 限制备份超时（超过 2 小时强制终止）</span>
+</span></span><span style="display:flex;"><span>timeout <span style="color:#ae81ff">7200</span> mysqldump ...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
+<li>
+<p><strong>调整 systemd 服务启动顺序</strong>：确保 crond 在 NTP 同步完成后再启动</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span># /etc/systemd/system/crond.service.d/override.conf
+</span></span><span style="display:flex;"><span>[Unit]
+</span></span><span style="display:flex;"><span>After=network-online.target chronyd.service ntpd.service
+</span></span><span style="display:flex;"><span>Wants=network-online.target chronyd.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p><strong>CMDB Agent 标准化脚本增加保护</strong>：在执行 <code>hwclock --systohc</code> 前先验证 NTP 同步状态</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 检查 NTP 同步状态，未同步时拒绝写入硬件时钟</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> ! timedatectl show | grep -q <span style="color:#e6db74">&#34;NTPSynchronized=yes&#34;</span>; <span style="color:#66d9ef">then</span>
+</span></span><span style="display:flex;"><span>    echo <span style="color:#e6db74">&#34;NTP not synchronized, aborting hwclock write&#34;</span>
+</span></span><span style="display:flex;"><span>    exit <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">fi</span>
+</span></span><span style="display:flex;"><span>hwclock --systohc
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p><strong>备份任务增加时间校验</strong>：在备份脚本中显式判断当前时间是否在预期窗口内（如 01:00-05:00）</p>
+</li>
+<li>
+<p><strong>监控 Cron 执行时间的偏离</strong>：在 Cron 日志中添加时间戳对比监控，当任务执行时间与 crontab 定义的预期时间偏差超过 30 分钟时触发告警</p>
+</li>
+<li>
+<p><strong>数据库备份改为从库执行</strong>：避免备份 IO 直接影响主库，备库专门用于备份和只读查询</p>
+</li>
+</ol>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这次故障表面上是「备份在错误时间执行导致数据库性能下降」，但真正的根因是 <strong>crond 启动时与 NTP 同步之间的竞态条件</strong>。这类问题是典型的「一切配置都正确，现象却不对」的诡异故障。</p>
+<p>核心教训：</p>
+<ul>
+<li><strong>crond 的时钟基准在启动时确定</strong>，重启后在 NTP 调时前有一个脆弱窗口</li>
+<li><strong>不要假设守护进程的时钟和系统时钟始终一致</strong>，两者之间可能存在偏移</li>
+<li><strong>备份任务应包含自我保护逻辑</strong>（时间窗口检查、IO 限制、超时控制）</li>
+<li><strong>CMDB/自动化工具的标准化脚本需要增加前置条件检查</strong>，避免在系统状态不稳定时执行危险操作</li>
+</ul>
+<p>最终的重启 crond 操作只需要 1 秒，但排查过程花了近 2 个小时。希望这篇文章能帮你在遇到类似问题时少走一些弯路。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/linux/">Linux</a>
+        
+            <a href="/tags/mysql/">MySQL</a>
+        
+            <a href="/tags/cron/">Cron</a>
+        
+            <a href="/tags/%E6%97%B6%E5%8C%BA/">时区</a>
+        
+            <a href="/tags/%E5%A4%87%E4%BB%BD/">备份</a>
+        
+            <a href="/tags/%E6%8E%92%E6%9F%A5/">排查</a>
+        
+    </section>
+
+
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年7月5日星期日
+        </span>
+    </section></footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/7154a8f0/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 MySQL 自动备份静默失败、缺失近一周备份</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/6455e1b5/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">磁盘有空间却写不进文件？Linux inode 耗尽的坑</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/ecbe2757/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次大事务拖慢 MySQL 主从、订单数据不一致的排查</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/ff0ff270/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">MySQL 主从延迟致报表数据差异过大：定位与修复</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/25cf583a/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Linux /tmp 被定时清理致 Java 应用建不了临时文件</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

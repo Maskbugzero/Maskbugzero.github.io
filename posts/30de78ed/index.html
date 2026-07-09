@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="跨机房 MPLS 专线时延突增丢包，主从数据库同步线程报错中断，业务读写分离出现数据不一致。">
+<title>MPLS 专线抖动致跨机房数据库同步中断的定位</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/30de78ed/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="MPLS 专线抖动致跨机房数据库同步中断的定位">
+<meta property='og:description' content="跨机房 MPLS 专线时延突增丢包，主从数据库同步线程报错中断，业务读写分离出现数据不一致。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/30de78ed/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='网络运维' /><meta property='article:tag' content='MPLS' /><meta property='article:tag' content='专线' /><meta property='article:tag' content='数据库同步' /><meta property='article:tag' content='故障排查' /><meta property='article:published_time' content='2025-10-09T12:09:19&#43;00:00'/><meta property='article:modified_time' content='2025-10-09T12:09:19&#43;00:00'/>
+<meta name="twitter:title" content="MPLS 专线抖动致跨机房数据库同步中断的定位">
+<meta name="twitter:description" content="跨机房 MPLS 专线时延突增丢包，主从数据库同步线程报错中断，业务读写分离出现数据不一致。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
+                网络运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/30de78ed/">MPLS 专线抖动致跨机房数据库同步中断的定位</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            跨机房 MPLS 专线时延突增丢包，主从数据库同步线程报错中断，业务读写分离出现数据不一致。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2025-10-09T12:09:19Z'>2025年10月9日星期四</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="一问题背景"><a href="#%e4%b8%80%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>一、问题背景
+</h2><p>我们的核心交易库采用&quot;主机房 A + 备机房 B&quot;跨机房主从架构：A 机房为主（读写），B 机房为从（只读报表/容灾），通过 MySQL 原生的主从复制（基于 binlog 的异步复制）跨机房同步。A、B 两机房之间走一条运营商 MPLS 专线（专线网关为 A 侧 <code>10.0.0.1</code>、B 侧 <code>10.0.0.2</code>，互联地址段 <code>10.0.0.0/30</code>），业务读写分离由中间件按&quot;主写从读&quot;路由。</p>
+<p>2025 年 10 月 9 日上午，报表团队反馈 B 机房查到的数据与 A 机房对不上，随后复制监控告警。</p>
+<h2 id="二故障现象"><a href="#%e4%ba%8c%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>二、故障现象
+</h2><ol>
+<li>10:30 起，B 机房从库 <code>Slave_IO_Running</code> 变为 <code>No</code>，复制线程中断；</li>
+<li><code>Seconds_Behind_Master</code> 在中断前一度飙到 120s 以上，随后线程挂掉；</li>
+<li>业务侧读写分离出现数据不一致：用户在 A 机房刚下的单，在 B 机房报表里查不到；</li>
+<li>从库错误日志反复出现连接主库超时、重试失败：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>[ERROR] Slave I/O: error connecting to master &#39;repl@10.0.0.1:3306&#39; - retry-time: 60 retries: 86400, Error_code: 2013 (Lost connection to server during query)
+</span></span><span style="display:flex;"><span>[ERROR] Slave I/O: Got timeout reading communication packets
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="5">
+<li>但 A 机房主库本身健康，本地读写无异常；B 机房到公网、到其他内网段正常，唯独到 A 机房专线时好时坏。</li>
+</ol>
+<h2 id="三排查过程"><a href="#%e4%b8%89%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>三、排查过程
+</h2><p><strong>第一步：确认是网络问题还是数据库问题。</strong> 在 B 机房从库机器上对主库 IP 做连续 ping 与 mtr：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ping -c <span style="color:#ae81ff">20</span> 10.0.0.1
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 64 bytes from 10.0.0.1: icmp_seq=12 ttl=63 time=1823 ms</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 64 bytes from 10.0.0.1: icmp_seq=13 ttl=63 time=*  (丢包)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># --- 10.0.0.1 ping statistics --- 20 packets transmitted, 15 received, 25% packet loss</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>平时该专线 RTT 在 3–5ms，此刻已到 1.8s 且 25% 丢包，明显是专线质量劣化。再看 mtr 路径：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>mtr -r -c <span style="color:#ae81ff">30</span> 10.0.0.1
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Host   Loss%  Snt  Avg  StDev</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 10.0.0.2  0.0%  30   0.4  0.2   (B 侧网关正常)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 10.0.0.1 25.0%  30 1823  900    (A 侧网关抖动)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>抖动发生在跨机房 MPLS 这一段，而非本地。</p>
+<p><strong>第二步：确认抖动特征。</strong> 持续 5 分钟抓 RTT 分布，发现是周期性突发：每约 40 秒出现一次 1–2 秒的时延尖峰并伴随丢包，低谷期又恢复正常。这种&quot;规律性抖动&quot;典型是运营商侧 MPLS 链路做了某种重路由或存在微突发拥塞。</p>
+<p><strong>第三步：核对带宽与 QoS。</strong> 登录两侧专线网关查接口统计：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>show interfaces TenGigE0/0/0/1
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># input rate 8.2 Gbps, output rate 7.9 Gbps (专线带宽 10G)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 输错: input errors 0, CRC 0, but &#34;input drops&#34; 累计上涨</span>
+</span></span><span style="display:flex;"><span>show policy-map interface TenGigE0/0/0/1 output | inc drop
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#  class-default:  drop 18423 packets  (QoS 默认类丢包)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>发现默认类有持续丢包，说明瞬时流量逼近 10G 带宽上限，突发时被丢弃——这也解释了复制线程在大数据事务（如批量报表回放）时被卡断。</p>
+<p><strong>第四步：关联变更。</strong> 联系运营商后确认，10:25 其对该 MPLS 链路做了一次保护倒换演练（未提前充分通知），部分流量被临时切到备用 LSP，路径变长、Buffer 不足，导致微突发丢包。</p>
+<h2 id="四解决方案"><a href="#%e5%9b%9b%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>四、解决方案
+</h2><ol>
+<li><strong>先恢复复制</strong>：在 B 机房从库手动重启复制线程，并临时调大复制相关超时，避免瞬时抖动再次秒断：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span>STOP SLAVE;
+</span></span><span style="display:flex;"><span>CHANGE MASTER <span style="color:#66d9ef">TO</span> MASTER_CONNECT_RETRY<span style="color:#f92672">=</span><span style="color:#ae81ff">10</span>, MASTER_RETRY_COUNT<span style="color:#f92672">=</span><span style="color:#ae81ff">86400</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">START</span> SLAVE;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">-- 同时调大从库 net_read_timeout / net_write_timeout
+</span></span></span><span style="display:flex;"><span><span style="color:#66d9ef">SET</span> <span style="color:#66d9ef">GLOBAL</span> net_read_timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">120</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">SET</span> <span style="color:#66d9ef">GLOBAL</span> net_write_timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">120</span>;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li><strong>数据库层加复制心跳</strong>，让中断更快被发现、连接更早重建：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#75715e">-- 主库
+</span></span></span><span style="display:flex;"><span>CHANGE MASTER <span style="color:#66d9ef">TO</span> MASTER_HEARTBEAT_PERIOD<span style="color:#f92672">=</span><span style="color:#ae81ff">2</span>;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li><strong>网络层临时规避</strong>：与运营商确认保护倒换演练窗口，将其避开业务高峰；同时对关键复制流量打 MPLS EXP/QoS 高优先级标签，避免被默认类丢弃。</li>
+<li><strong>带宽扩容评估</strong>：将专线从 10G 临时升级保障，错峰跑批量报表，降低瞬时拥塞。</li>
+</ol>
+<p>恢复后 <code>Seconds_Behind_Master</code> 从 120s 逐步回落到 0，数据一致性在约 15 分钟后追平。</p>
+<h2 id="五根因分析"><a href="#%e4%ba%94%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>五、根因分析
+</h2><p>根因是<strong>跨机房 MPLS 专线出现周期性抖动+微突发丢包，击穿了异步复制链路的健壮性</strong>：</p>
+<ul>
+<li>运营商保护倒换演练使部分流量临时走绕路 LSP，路径 RTT 从 3ms 涨到 1.8s，Buffer 不足引发丢包；</li>
+<li>MySQL 异步复制的 IO 线程对网络中断敏感，默认 <code>net_read_timeout</code> 较短，丢包导致 binlog 拉取中断即报错退出；</li>
+<li>复制线程挂掉后，写入仍在 A 机房进行，B 机房数据持续滞后，读写分离架构下用户读到陈旧数据；</li>
+<li>专线接口默认类 QoS 在带宽逼近上限时丢弃复制包，没有为数据库复制流量预留高优先级通道。</li>
+</ul>
+<p>本质是跨机房强一致依赖（复制）跑在一条&quot;无 QoS 保障、又会发生抖动&quot;的单链路上，缺乏超时容错与流量分级。</p>
+<h2 id="六预防措施"><a href="#%e5%85%ad%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>六、预防措施
+</h2><ol>
+<li><strong>复制参数加固</strong>：从库设置合理的 <code>MASTER_CONNECT_RETRY</code>、<code>net_read_timeout</code>/<code>net_write_timeout</code>，并开启 <code>MASTER_HEARTBEAT_PERIOD</code>，让抖动后能快速自愈而非长期挂死。</li>
+<li><strong>专线 QoS 分级</strong>：为数据库复制、存储同步等跨机房关键流量打高优先级 MPLS EXP 标签，保证其在拥塞时不被默认类丢弃。</li>
+<li><strong>双专线/多路径</strong>：关键机房间部署主备两条异构运营商专线，配合 BFD 快速检测 + 动态路由切换，单链路抖动自动切备用。</li>
+<li><strong>变更协同机制</strong>：要求运营商任何 MPLS 倒换、演练必须提前通知并避开业务高峰，纳入变更窗口管理。</li>
+<li><strong>一致性校验与告警</strong>：部署 pt-table-checksum 定期比对主从差异；对 <code>Slave_IO_Running=No</code>、<code>Seconds_Behind_Master</code> 超阈值做秒级告警，避免滞后被业务先发现。</li>
+<li><strong>读写分离降级</strong>：当检测到从库延迟过大时，中间件自动把读请求切回主库，牺牲部分性能换取一致性。</li>
+</ol>
+<h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
+</h2><p>这次故障是典型的&quot;网络抖动用数据一致性买单&quot;：一条 MPLS 专线的保护倒换演练，通过 MySQL 异步复制的脆弱连接，传导成了跨机房数据不一致。</p>
+<p>排查路径很清晰——<strong>从库复制报错 → 网络层对照 ping/mtr 定位专线抖动 → 网关接口统计确认 QoS 丢包 → 关联运营商变更</strong>，一线工程师只要按顺序下钻就能锁定。更深的启示是：跨机房复制这类&quot;看似数据库、实则强依赖网络&quot;的链路，必须在网络侧做 QoS 分级、多路径容灾，在数据库侧做超时与心跳加固，双管齐下才能扛住底层链路的日常抖动。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/">网络运维</a>
+        
+            <a href="/tags/mpls/">MPLS</a>
+        
+            <a href="/tags/%E4%B8%93%E7%BA%BF/">专线</a>
+        
+            <a href="/tags/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%90%8C%E6%AD%A5/">数据库同步</a>
+        
+            <a href="/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/">故障排查</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/66557bdd/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">FortiGate 策略配错，内网 DNS 为何解析失败？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/38f14096/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">公网 DNS 解析超时，CDN 回源为何大面积失败？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/8256a5f2/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">核心交换机 STP 根桥被抢，广播风暴怎么来的？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/5cafffbb/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">分支到总部专线丢包，视频会议为何全程卡顿？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/8ca2b9a4/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 NTP 异常致 Kerberos 认证全失效的排查</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
