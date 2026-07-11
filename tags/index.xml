@@ -12,6 +12,18 @@
             <guid>https://blog.5772447.xyz/tags/%E8%AF%81%E4%B9%A6%E8%BF%87%E6%9C%9F/</guid>
             <description></description>
         </item><item>
+            <title>探针</title>
+            <link>https://blog.5772447.xyz/tags/%E6%8E%A2%E9%92%88/</link>
+            <pubDate>Sat, 11 Jul 2026 07:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%8E%A2%E9%92%88/</guid>
+            <description></description>
+        </item><item>
+            <title>容器化</title>
+            <link>https://blog.5772447.xyz/tags/%E5%AE%B9%E5%99%A8%E5%8C%96/</link>
+            <pubDate>Sat, 11 Jul 2026 07:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%AE%B9%E5%99%A8%E5%8C%96/</guid>
+            <description></description>
+        </item><item>
             <title>故障排查</title>
             <link>https://blog.5772447.xyz/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/</link>
             <pubDate>Sat, 11 Jul 2026 07:00:00 +0000</pubDate>
@@ -42,10 +54,22 @@
             <guid>https://blog.5772447.xyz/tags/tcp/</guid>
             <description></description>
         </item><item>
+            <title>StartupProbe</title>
+            <link>https://blog.5772447.xyz/tags/startupprobe/</link>
+            <pubDate>Sat, 11 Jul 2026 07:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/startupprobe/</guid>
+            <description></description>
+        </item><item>
             <title>SSL</title>
             <link>https://blog.5772447.xyz/tags/ssl/</link>
             <pubDate>Sat, 11 Jul 2026 07:00:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/ssl/</guid>
+            <description></description>
+        </item><item>
+            <title>ReadinessProbe</title>
+            <link>https://blog.5772447.xyz/tags/readinessprobe/</link>
+            <pubDate>Sat, 11 Jul 2026 07:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/readinessprobe/</guid>
             <description></description>
         </item><item>
             <title>Nginx</title>
@@ -54,10 +78,28 @@
             <guid>https://blog.5772447.xyz/tags/nginx/</guid>
             <description></description>
         </item><item>
+            <title>LivenessProbe</title>
+            <link>https://blog.5772447.xyz/tags/livenessprobe/</link>
+            <pubDate>Sat, 11 Jul 2026 07:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/livenessprobe/</guid>
+            <description></description>
+        </item><item>
             <title>Linux</title>
             <link>https://blog.5772447.xyz/tags/linux/</link>
             <pubDate>Sat, 11 Jul 2026 07:00:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/linux/</guid>
+            <description></description>
+        </item><item>
+            <title>Kubernetes</title>
+            <link>https://blog.5772447.xyz/tags/kubernetes/</link>
+            <pubDate>Sat, 11 Jul 2026 07:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/kubernetes/</guid>
+            <description></description>
+        </item><item>
+            <title>CrashLoopBackOff</title>
+            <link>https://blog.5772447.xyz/tags/crashloopbackoff/</link>
+            <pubDate>Sat, 11 Jul 2026 07:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/crashloopbackoff/</guid>
             <description></description>
         </item><item>
             <title>CDN</title>
@@ -226,12 +268,6 @@
             <link>https://blog.5772447.xyz/tags/%E7%BD%91%E7%BB%9C%E6%8E%92%E6%9F%A5/</link>
             <pubDate>Mon, 06 Jul 2026 04:52:26 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/%E7%BD%91%E7%BB%9C%E6%8E%92%E6%9F%A5/</guid>
-            <description></description>
-        </item><item>
-            <title>Kubernetes</title>
-            <link>https://blog.5772447.xyz/tags/kubernetes/</link>
-            <pubDate>Mon, 06 Jul 2026 04:52:26 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/kubernetes/</guid>
             <description></description>
         </item><item>
             <title>Conntrack</title>
