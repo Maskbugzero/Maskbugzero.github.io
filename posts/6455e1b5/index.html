@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content=">-">
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="磁盘 df -h 显示空间充足却无法写入新文件，定位为海量小文件耗尽 inode，清理冗余缓存与日志后释放 inode 恢复正常。">
 <title>磁盘有空间却写不进文件？Linux inode 耗尽的坑</title>
 
 
@@ -13,12 +13,12 @@
 
 
 <link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="磁盘有空间却写不进文件？Linux inode 耗尽的坑">
-<meta property='og:description' content=">-">
+<meta property='og:description' content="磁盘 df -h 显示空间充足却无法写入新文件，定位为海量小文件耗尽 inode，清理冗余缓存与日志后释放 inode 恢复正常。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/6455e1b5/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Linux' /><meta property='article:tag' content='inode' /><meta property='article:tag' content='文件系统' /><meta property='article:tag' content='磁盘故障' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2026-06-27T06:55:00&#43;00:00'/><meta property='article:modified_time' content='2026-06-27T06:55:00&#43;00:00'/>
 <meta name="twitter:title" content="磁盘有空间却写不进文件？Linux inode 耗尽的坑">
-<meta name="twitter:description" content=">-">
+<meta name="twitter:description" content="磁盘 df -h 显示空间充足却无法写入新文件，定位为海量小文件耗尽 inode，清理冗余缓存与日志后释放 inode 恢复正常。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
     </head>
@@ -293,7 +293,7 @@
     
         
         <h3 class="article-subtitle">
-            &gt;-
+            磁盘 df -h 显示空间充足却无法写入新文件，定位为海量小文件耗尽 inode，清理冗余缓存与日志后释放 inode 恢复正常。
         </h3>
         
     </div>

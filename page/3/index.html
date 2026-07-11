@@ -466,7 +466,7 @@
     
         
         <h3 class="article-subtitle">
-            &gt;-
+            Prometheus 触发海量告警形成风暴，邮件与企微通道被限流拖垮，定位为告警规则过于敏感与分组缺失，收敛规则并加抑制后通道恢复。
         </h3>
         
     </div>
@@ -574,7 +574,7 @@
     
         
         <h3 class="article-subtitle">
-            &gt;-
+            GitLab CI Runner 进程卡死，生产部署流水线全部挂起，定位为 Docker 守护进程无响应与 Runner 并发锁死，重启守护进程并清理僵尸任务后恢复。
         </h3>
         
     </div>
@@ -682,7 +682,7 @@
     
         
         <h3 class="article-subtitle">
-            &gt;-
+            磁盘 df -h 显示空间充足却无法写入新文件，定位为海量小文件耗尽 inode，清理冗余缓存与日志后释放 inode 恢复正常。
         </h3>
         
     </div>
@@ -898,7 +898,7 @@
     
         
         <h3 class="article-subtitle">
-            &gt;-
+            Kafka 消费者频繁 Rebalance 引发消费停滞，业务数据延迟近 2 小时，根因是轮询超时与分区再均衡风暴，调大 max.poll.interval 并优化消费逻辑后稳定。
         </h3>
         
     </div>
