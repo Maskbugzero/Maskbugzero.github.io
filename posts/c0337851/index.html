@@ -1,24 +1,24 @@
 <!DOCTYPE html>
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="欢迎来到我的博客！这里是我的 IT 运维实战笔记，记录工作与学习中值得分享的技术经验。\n关于博主\r一名深耕 IT 运维领域的工程师，日常与服务器、网络、安全设备打交道。擅长故障排查与应急响应，相信每一次故障都是成长的机会。\n">
-<title>关于我</title>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="节点磁盘压力触发 kubelet 驱逐，容器日志与镜像未治理致业务 Pod 批量被删、节点反复 NotReady。">
+<title>一次 Kubernetes 节点磁盘压力触发 kubelet 驱逐导致业务 Pod 批量被删的排查记录</title>
 
 
-<link rel="canonical" href="https://blog.5772447.xyz/about/">
+<link rel="canonical" href="https://blog.5772447.xyz/posts/c0337851/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="关于我">
-<meta property='og:description' content="欢迎来到我的博客！这里是我的 IT 运维实战笔记，记录工作与学习中值得分享的技术经验。\n关于博主\r一名深耕 IT 运维领域的工程师，日常与服务器、网络、安全设备打交道。擅长故障排查与应急响应，相信每一次故障都是成长的机会。\n">
-<meta property='og:url' content='https://blog.5772447.xyz/about/'>
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次 Kubernetes 节点磁盘压力触发 kubelet 驱逐导致业务 Pod 批量被删的排查记录">
+<meta property='og:description' content="节点磁盘压力触发 kubelet 驱逐，容器日志与镜像未治理致业务 Pod 批量被删、节点反复 NotReady。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/c0337851/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='' /><meta property='article:published_time' content='2020-02-01T00:00:00&#43;00:00'/><meta property='article:modified_time' content='2020-02-01T00:00:00&#43;00:00'/>
-<meta name="twitter:title" content="关于我">
-<meta name="twitter:description" content="欢迎来到我的博客！这里是我的 IT 运维实战笔记，记录工作与学习中值得分享的技术经验。\n关于博主\r一名深耕 IT 运维领域的工程师，日常与服务器、网络、安全设备打交道。擅长故障排查与应急响应，相信每一次故障都是成长的机会。\n">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-07-13T00:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-07-13T00:00:00&#43;00:00'/>
+<meta name="twitter:title" content="一次 Kubernetes 节点磁盘压力触发 kubelet 驱逐导致业务 Pod 批量被删的排查记录">
+<meta name="twitter:description" content="节点磁盘压力触发 kubelet 驱逐，容器日志与镜像未治理致业务 Pod 批量被删、节点反复 NotReady。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
     </head>
@@ -222,10 +222,13 @@
             <nav class="toc-nav" id="TableOfContents">
                 
   <ul>
-    <li><a href="#关于博主">关于博主</a></li>
-    <li><a href="#技术领域">技术领域</a></li>
-    <li><a href="#关于本站">关于本站</a></li>
-    <li><a href="#联系方式">联系方式</a></li>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
   </ul>
 
             </nav>
@@ -243,12 +246,34 @@
 
     <div class="article-details">
     
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(274, 60%, 84%); color: hsl(274, 60%, 15%);">
+                容器运维
+            </a>
+        
+    </header>
+    
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/about/">关于我</a>
+            <a href="/posts/c0337851/">一次 Kubernetes 节点磁盘压力触发 kubelet 驱逐导致业务 Pod 批量被删的排查记录</a>
         </h2>
     
+        
+        <h3 class="article-subtitle">
+            节点磁盘压力触发 kubelet 驱逐，容器日志与镜像未治理致业务 Pod 批量被删、节点反复 NotReady。
+        </h3>
         
     </div>
 
@@ -272,7 +297,7 @@
   <path d="M3 11h16" />
   <path d="M18 16.496v1.504l1 1" />
 </svg>
-                    <time class="article-time--published" datetime='2020-02-01T00:00:00Z'>2020年2月1日星期六</time>
+                    <time class="article-time--published" datetime='2026-07-13T00:00:00Z'>2026年7月13日星期一</time>
                 
 
                 
@@ -285,7 +310,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 1 分钟
+                        阅读时长: 5 分钟
                     </time>
                 
             </div>
@@ -312,10 +337,13 @@
             <nav class="toc-nav">
                 
   <ul>
-    <li><a href="#关于博主">关于博主</a></li>
-    <li><a href="#技术领域">技术领域</a></li>
-    <li><a href="#关于本站">关于本站</a></li>
-    <li><a href="#联系方式">联系方式</a></li>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
   </ul>
 
             </nav>
@@ -326,29 +354,47 @@
     <section class="article-content">
     
     
-    <p>欢迎来到我的博客！这里是我的 <strong>IT 运维实战笔记</strong>，记录工作与学习中值得分享的技术经验。</p>
-<h2 id="关于博主"><a href="#%e5%85%b3%e4%ba%8e%e5%8d%9a%e4%b8%bb" class="header-anchor"></a>关于博主
-</h2><p>一名深耕 IT 运维领域的工程师，日常与服务器、网络、安全设备打交道。擅长故障排查与应急响应，相信每一次故障都是成长的机会。</p>
-<h2 id="技术领域"><a href="#%e6%8a%80%e6%9c%af%e9%a2%86%e5%9f%9f" class="header-anchor"></a>技术领域
-</h2><ul>
-<li><strong>基础设施运维</strong>：Linux/Windows 服务器、VMware 虚拟化、Docker/Kubernetes 容器化</li>
-<li><strong>网络运维</strong>：交换路由、防火墙（FortiGate）、VPN、无线网络</li>
-<li><strong>数据库运维</strong>：MySQL、PostgreSQL、Redis、Elasticsearch</li>
-<li><strong>自动化运维</strong>：Ansible、Shell/Python 脚本、CI/CD 流水线</li>
-<li><strong>安全运维</strong>：入侵排查、漏洞修复、安全基线加固</li>
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>我们的生产集群由 6 个 kubeadm 搭建的节点组成，容器运行时为 containerd，跑着订单、支付、用户中心等二十余个无状态服务，外加 Prometheus、CoreDNS 等系统组件。节点是云上 ECS，系统盘 100G，且 containerd 的镜像与可写层目录（<code>/var/lib/containerd</code>）、容器日志目录（<code>/var/log/containers</code>、<code>/var/log/pods</code>）都落在同一块系统盘上——也就是说，kubelet 关注的 <code>imagefs</code> 与 <code>nodefs</code> 实际共用一个分区。集群已稳定运行大半年，直到一次常规发版后的第二天上午，告警把人叫醒。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>早上九点，监控群里连续弹出节点状态告警：3 个节点在 5 分钟内从 <code>Ready</code> 反复横跳到 <code>NotReady</code> 再恢复，行为极具节律性。同期业务侧开始抖动——订单接口 P99 从 80ms 飙到 2s 以上，部分请求返回 503。</p>
+<p>登录集群查看，现象更具体：</p>
+<ul>
+<li><code>kubectl get pod -A</code> 里，订单服务（Deployment，期望 5 副本）可用副本在 1~2 之间反复横跳，被驱逐的 Pod 在别的节点重建后不久又被驱逐，形成「驱逐风暴」。</li>
+<li><code>kubectl describe node &lt;node&gt;</code> 的 Conditions 里 <code>DiskPressure</code> 为 <code>True</code>，Taints 出现 <code>node.kubernetes.io/disk-pressure:NoSchedule</code>。</li>
+<li>节点上 kubelet 日志高频刷屏：<code>Evicting pod ... because node had condition: [DiskPressure]</code>。</li>
+<li>登录问题节点 <code>df -h</code>，系统盘使用率 92%，「看起来还有空间」，但关键服务已经崩了。</li>
 </ul>
-<h2 id="关于本站"><a href="#%e5%85%b3%e4%ba%8e%e6%9c%ac%e7%ab%99" class="header-anchor"></a>关于本站
-</h2><ul>
-<li><strong>框架</strong>：Hugo + hugo-theme-stack</li>
-<li><strong>内容</strong>：以真实故障排查案例为主，涵盖网络、系统、安全、数据库等多个方向</li>
-<li><strong>目的</strong>：沉淀经验、复盘总结，也希望能帮到遇到类似问题的同行</li>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><ol>
+<li><strong>确认驱逐类型</strong>：<code>kubectl describe node</code> 直接给出 <code>DiskPressure=True</code> 和对应的 taint，说明是磁盘压力触发了 kubelet 的软/硬驱逐，而非 OOM（内存压力会显示 <code>MemoryPressure</code>）。这把方向从「应用内存问题」扭到了「磁盘空间/阈值」。</li>
+<li><strong>对照默认驱逐阈值</strong>：kubelet 的 <code>eviction-hard</code> 默认是 <code>imagefs.available&lt;15%</code>、<code>nodefs.available&lt;10%</code>。问题节点系统盘可用 8%（100%-92%），已经低于 <code>nodefs.available&lt;10%</code> 的硬阈值；而 <code>imagefs</code> 与 <code>nodefs</code> 共用同一分区，自然也一同越线。这正是「df 看着还有空间却被驱逐」的原因——阈值触发的是「可用量百分比」，不是「是否 100% 满」。</li>
+<li><strong>定位占用大户</strong>：<code>du -sh /var/lib/containerd</code> 占 61G，<code>/var/log/containers</code> + <code>/var/log/pods</code> 占 23G。进一步看，containerd 用默认 <code>json-file</code> 日志驱动且<strong>没有设置 <code>max-size</code>/<code>max-file</code></strong>，某几个业务 Pod 因有人把日志级别临时调到 DEBUG 且忘了改回，单容器日志文件涨到 8G；镜像侧，每次发版都拉新 tag，旧镜像层从未 GC，节点上堆积了同一服务的十几个历史版本。</li>
+<li><strong>还原驱逐风暴链路</strong>：<code>DiskPressure</code> 触发后，kubelet 按 QoS 从低优先级（BestEffort/Burstable）开始驱逐 Pod；被删的 Pod 由 Deployment 在其它节点重建，但新节点同样磁盘吃紧，于是又被驱逐——形成循环。同时 <code>NoSchedule</code> taint 阻止 Pod 调度回原节点，但已运行 Pod 仍会因 <code>imagefs</code> 继续上涨被二次驱逐，节点在 Ready/NotReady 间反复横跳。</li>
+<li><strong>交叉验证</strong>：对比同配置但日志量小的健康节点，使用率 70%，从未触发。锁定根因——<strong>日志无轮转 + 镜像不 GC 导致 imagefs 慢性膨胀，最终越过 15%/10% 阈值</strong>。</li>
+</ol>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><p><strong>止血（先恢复）</strong>：对问题节点 <code>kubectl drain &lt;node&gt; --ignore-daemonsets --delete-emptydir-data</code> 排空；手动清理——<code>crictl rmi $(crictl images -q)</code> 清旧镜像、<code>truncate -s 0</code> 超大日志文件，把使用率压到 60% 以下，节点 <code>DiskPressure</code> 自动解除、回到 <code>Ready</code>，被驱逐的 Pod 在新节点稳定重建。</p>
+<p><strong>根治（调参与治理）</strong>：</p>
+<ul>
+<li>调整 kubelet 驱逐配置，给足缓冲：<code>eviction-hard=imagefs.available&lt;10%,nodefs.available&lt;5%</code>，并设 <code>eviction-minimum-reclaim</code> 保证单次回收量；增大 <code>eviction-pressure-transition-period</code>（默认 5m）避免抖动。</li>
+<li>日志驱动改造：containerd 配置 <code>io.containerd.grpc.v1.cri</code> 下的 <code>log</code> 段，<code>max-size=100m</code>、<code>max-file=3</code>，或对关键业务接 fluentd/采集到 ES，从根上限制单文件体积。</li>
+<li>镜像治理：节点设置 <code>--image-gc-high-threshold=70 --image-gc-low-threshold=50</code>，或加 cron 定期 <code>crictl rmi</code> 清悬空镜像。</li>
+<li>容量隔离：把 containerd 根目录迁移到<strong>独立数据盘</strong>，分离 <code>imagefs</code> 与 <code>nodefs</code>，避免镜像/日志与系统盘互相挤占。</li>
+<li>业务侧：评审并收敛日志级别，禁止生产环境 DEBUG 全量输出。</li>
 </ul>
-<h2 id="联系方式"><a href="#%e8%81%94%e7%b3%bb%e6%96%b9%e5%bc%8f" class="header-anchor"></a>联系方式
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>这次故障表面是「磁盘要满了」，本质是<strong>日志与镜像缺少生命周期管理，导致 imagefs 慢性膨胀越过 kubelet 驱逐阈值</strong>；而 <code>imagefs</code>/<code>nodefs</code> 共用系统盘又把风险放大了一倍。kubelet 的磁盘压力驱逐本是自我保护机制，但当阈值与容量规划不匹配、且增长源（日志/镜像）无人治理时，保护机制反而成了业务抖动源。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
 </h2><ul>
-<li><strong>GitHub</strong>：<a class="link" href="https://github.com/Maskbugzero"  target="_blank" rel="noopener"
-    >Maskbugzero</a></li>
+<li>基础设施层强制：容器日志驱动必须设 <code>max-size</code>/<code>max-file</code>，不允许裸 <code>json-file</code>。</li>
+<li>节点级 <code>imageGC</code> 阈值 + 定期清理脚本，控制镜像层堆积。</li>
+<li>containerd 使用独立数据盘，分离 <code>imagefs</code> 与 <code>nodefs</code>。</li>
+<li>监控前移：对 <code>nodefs.available</code>/<code>imagefs.available</code> 设 20%/25% 告警，<strong>先于</strong> kubelet 阈值；同时监控 <code>Evicted</code>/<code>Terminating</code> Pod 数量与节点 <code>DiskPressure</code> 发生次数。</li>
+<li>建立日志级别评审机制，生产环境默认 INFO，禁止 DEBUG 常开。</li>
 </ul>
-<p>如果你喜欢这里的内容，欢迎 Star 或留言交流！</p>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>磁盘压力驱逐常被误判为「磁盘 100% 满了」。真正要治理的是日志轮转、镜像 GC 与容量隔离这些基础设施层的生命周期问题，以及 eviction 阈值与容量规划的匹配——在基础设施层把增长源管住，远比在应用层一次次救火更根本。</p>
 
 </section>
 
