@@ -1,24 +1,24 @@
 <!DOCTYPE html>
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="在执行任何一键优化命令之前，请确保您了解其作用和可能带来的影响，并在操作之前进行备份以防止意外数据丢失或系统问题。">
-<title>关于群晖优化可以用的一键命令</title>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="升级 AD 域控时旧环境残留 FRS SYSVOL，新 2022 域控无法复制，仓促 seize FSMO 触发 USN 回滚风险，按序回退修复。">
+<title>迁移 AD 域控：SYSVOL 复制断裂与 FSMO 抢占风险的定位与回退复盘</title>
 
 
-<link rel="canonical" href="https://blog.5772447.xyz/posts/b86f5b0a/">
+<link rel="canonical" href="https://blog.5772447.xyz/posts/0f35911f/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="关于群晖优化可以用的一键命令">
-<meta property='og:description' content="在执行任何一键优化命令之前，请确保您了解其作用和可能带来的影响，并在操作之前进行备份以防止意外数据丢失或系统问题。">
-<meta property='og:url' content='https://blog.5772447.xyz/posts/b86f5b0a/'>
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="迁移 AD 域控：SYSVOL 复制断裂与 FSMO 抢占风险的定位与回退复盘">
+<meta property='og:description' content="升级 AD 域控时旧环境残留 FRS SYSVOL，新 2022 域控无法复制，仓促 seize FSMO 触发 USN 回滚风险，按序回退修复。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/0f35911f/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Nas' /><meta property='article:tag' content='群晖' /><meta property='article:tag' content='Synology' /><meta property='article:published_time' content='2021-08-10T17:13:21&#43;00:00'/><meta property='article:modified_time' content='2021-08-10T17:13:21&#43;00:00'/>
-<meta name="twitter:title" content="关于群晖优化可以用的一键命令">
-<meta name="twitter:description" content="在执行任何一键优化命令之前，请确保您了解其作用和可能带来的影响，并在操作之前进行备份以防止意外数据丢失或系统问题。">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-07-14T00:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-07-14T00:00:00&#43;00:00'/>
+<meta name="twitter:title" content="迁移 AD 域控：SYSVOL 复制断裂与 FSMO 抢占风险的定位与回退复盘">
+<meta name="twitter:description" content="升级 AD 域控时旧环境残留 FRS SYSVOL，新 2022 域控无法复制，仓促 seize FSMO 触发 USN 回滚风险，按序回退修复。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
     </head>
@@ -222,8 +222,13 @@
             <nav class="toc-nav" id="TableOfContents">
                 
   <ul>
-    <li><a href="#前言">前言</a></li>
-    <li><a href="#命令内容">命令内容</a></li>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
   </ul>
 
             </nav>
@@ -246,8 +251,15 @@
             
             
             
-            <a href="/categories/synology/" style="background-color: hsl(7, 60%, 84%); color: hsl(7, 60%, 15%);">
-                Synology
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" style="background-color: hsl(195, 60%, 84%); color: hsl(195, 60%, 15%);">
+                桌面运维
             </a>
         
     </header>
@@ -255,12 +267,12 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/b86f5b0a/">关于群晖优化可以用的一键命令</a>
+            <a href="/posts/0f35911f/">迁移 AD 域控：SYSVOL 复制断裂与 FSMO 抢占风险的定位与回退复盘</a>
         </h2>
     
         
         <h3 class="article-subtitle">
-            在执行任何一键优化命令之前，请确保您了解其作用和可能带来的影响，并在操作之前进行备份以防止意外数据丢失或系统问题。
+            升级 AD 域控时旧环境残留 FRS SYSVOL，新 2022 域控无法复制，仓促 seize FSMO 触发 USN 回滚风险，按序回退修复。
         </h3>
         
     </div>
@@ -285,7 +297,7 @@
   <path d="M3 11h16" />
   <path d="M18 16.496v1.504l1 1" />
 </svg>
-                    <time class="article-time--published" datetime='2021-08-10T17:13:21Z'>2021年8月10日星期二</time>
+                    <time class="article-time--published" datetime='2026-07-14T00:00:00Z'>2026年7月14日星期二</time>
                 
 
                 
@@ -298,7 +310,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 1 分钟
+                        阅读时长: 5 分钟
                     </time>
                 
             </div>
@@ -325,8 +337,13 @@
             <nav class="toc-nav">
                 
   <ul>
-    <li><a href="#前言">前言</a></li>
-    <li><a href="#命令内容">命令内容</a></li>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
   </ul>
 
             </nav>
@@ -337,58 +354,70 @@
     <section class="article-content">
     
     
-    <h2 id="前言"><a href="#%e5%89%8d%e8%a8%80" class="header-anchor"></a>前言
-</h2><p>关于群晖优化可以用的一键命令，适用于DSM6.1X和6.2X。</p>
-<h2 id="命令内容"><a href="#%e5%91%bd%e4%bb%a4%e5%86%85%e5%ae%b9" class="header-anchor"></a>命令内容
-</h2><ul>
-<li>一键开启DSM6.1X的root权限，命令行最后面的123456是设置root的密码，可以自己修改再运行，重启后生效。</li>
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司 AD 域环境由两台 Windows Server 2012 R2 域控承载（DC01 为主、DC02 为辅），域中约 1500 个用户账号，下游挂着组策略（GPO）、文件服务器鉴权、Exchange 邮件、基于 802.1x 的 WiFi 认证（NPS 依赖域控）以及多个内部业务系统的 LDAP 登录。2012 R2 已临近停止支持，我们计划在变更窗口内把域控升级到 Windows Server 2022，采用业界标准的「加新域控 → 迁移 FSMO → 降级旧域控」路线。原本以为只是常规的加机器、传角色、退旧机，没想到第一步就踩进了 SYSVOL 复制引擎的兼容性深坑，还因为一次仓促的 FSMO seize 差点酿成 USN 回滚事故。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>新装一台 Windows Server 2022 并提升为域控 DC03 后，问题接踵而至：</p>
+<ul>
+<li><code>repadmin /showrepl</code> 持续报 SYSVOL 相关复制失败；<code>dcdiag</code> 提示 <code>The DFS Replication service is not running</code> 或 SYSVOL 未处于共享状态。</li>
+<li>组策略大面积失效：部分 PC 的 GPO 版本停留在旧值，新上线的密码策略、软件分发、登录脚本都没推下去；个别旧域控重启后卡在「Applying Group Policy」很久，用户登录极慢。</li>
+<li>更危险的一幕：现场同事在 DC03 上手动执行了 <code>netdom /seize</code> 试图抢夺 FSMO，结果 Schema、Naming、RID、PDC、Infrastructure 角色在两台 DC 上的「归属视角」出现不一致，<code>dcdiag</code> 报 <code>FSMO Role Owner</code> 异常，日志里出现 InvocationID 改变但 USN 未正确重置的征兆——典型的 USN 回滚风险信号。</li>
+<li>部分 WiFi 用户认证失败（NPS 回源域控取不到最新信息），偶发无法联网；内部一个依赖 LDAP 登录的工单系统间歇性报错。</li>
 </ul>
-<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
-<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
-</span></code></pre></td>
-<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>synouser --setpw root <span style="color:#ae81ff">123456</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><ul>
-<li>一键开启DSM6.2X的root权限，命令行最后面的123456是设置root的密码，可以自己修改再运行，重启后生效。</li>
-</ul>
-<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
-<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
-</span></code></pre></td>
-<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>chmod <span style="color:#ae81ff">755</span> /etc/ssh/sshd_config <span style="color:#f92672">&amp;&amp;</span> sed -i <span style="color:#e6db74">&#39;s/#PermitRootLogin prohibit-password/PermitRootLogin yes/g&#39;</span> /etc/ssh/sshd_config <span style="color:#f92672">&amp;&amp;</span> synouser --setpw root <span style="color:#ae81ff">123456</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><ul>
-<li>一键屏蔽升级（仅限DSM6.22以之前的版本，不包括DSM6.23及以上版本），运行后生效。</li>
-</ul>
-<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
-<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
-</span></code></pre></td>
-<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;127.0.0.1 updated.synology.com&#34;</span> &gt; /etc/hosts
-</span></span></code></pre></td></tr></table>
-</div>
-</div>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><ol>
+<li>
+<p><strong>定位复制失败对象</strong>：先跑 <code>repadmin /showrepl</code>，确认失败的是跨 DC 的 SYSVOL 复制而非普通目录分区。再用 <code>dfsrmig /getmigrationstate</code> 查看 SYSVOL 复制引擎状态，结果直接显示 <code>Start</code>——意味着整个林从未把 SYSVOL 从 FRS 迁移到 DFSR。2012 R2 默认仍允许 FRS SYSVOL，而 Windows Server 2022 域控<strong>只支持 DFSR SYSVOL</strong>，旧的 FRS 复制链路在新旧混合时直接断裂。</p>
+</li>
+<li>
+<p><strong>确认 FRS 残留</strong>：在旧 DC 上 <code>net share</code> 查看，SYSVOL 仍由 File Replication Service（NtFrs）托管；注册表 <code>HKLM\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters\SysVol</code> 也未切到 DFSR。这就解释了为什么新 DC 死活拉不到 SYSVOL 的组策略模板（GPT）。</p>
+</li>
+<li>
+<p><strong>排查 FSMO 分裂</strong>：用 <code>netdom query fsmo</code> 看各 DC 视角的角色持有者，再用 <code>repadmin /showattr &quot;&lt;DC&gt;&quot; cn=ntdsdsa,cn=&lt;site&gt;,cn=sites,cn=configuration,dc=... &quot;msDS-Behaviour-Version&quot;</code> 与 fSMORoleOwner 比对，发现 seize 之后 RID、Infrastructure 角色在两台 DC 上不一致；DC03 强行 seize 导致其 InvocationID 改变，而 USN 序列未做权威重置，<code>dcdiag /test:fsmo</code> 已亮黄灯——一旦该 DC 继续向外复制，会污染其他域控的更新序列号，后果是对象被静默丢弃。</p>
+</li>
+<li>
+<p><strong>客户端 GPO 失效根因</strong>：SYSVOL 本身不复制，客户端从 DC03 取不到新 GPT；同时 Netlogon 的 SYSVOL 共享在部分 DC 上处于非权威/权威同步的中间态，表现为 <code>\\domain\SYSVOL\domain\Policies</code> 各 DC 内容不一致。配合 <code>dcdiag /test:sysvolcheck</code> 与 <code>dfsrdiag</code>，确认复制状态卡在起始阶段。</p>
+</li>
+</ol>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li>
+<p><strong>立即止血，撤销错误 seize</strong>：DC03 因强行 seize 已不再干净，直接将其强制降级为成员服务器（<code>dcpromo /forceremoval</code>），从林中摘除，避免 USN 回滚向外扩散。FSMO 角色仍由原始 DC01/DC02 持有，先恢复单点真相。</p>
+</li>
+<li>
+<p><strong>先迁 SYSVOL，再谈升级</strong>：在旧 DC 上按官方三阶段把 SYSVOL 从 FRS 迁到 DFSR——<code>dfsrmig /setglobalstate 1</code>（Prepared）、<code>2</code>（Redirected）、<code>3</code>（Eliminated），每阶段待 <code>dfsrmig /getmigrationstate</code> 全部返回 <code>Eliminated</code> 再进下一步；期间用 <code>dfsrdiag replicationstate</code> 确认 SYSVOL 经 DFSR 正常同步。</p>
+</li>
+<li>
+<p><strong>稳妥加新域控</strong>：SYSVOL 已是 DFSR 后，重新提升 DC03 为 2022 域控，等 <code>repadmin /showrepl</code> 全 0 错误、<code>dcdiag</code> 全 passed，再继续后续动作。</p>
+</li>
+<li>
+<p><strong>用 transfer 而非 seize 迁移 FSMO</strong>：通过 <code>Move-ADDirectoryServerOperationMasterRole -Identity DC03 -OperationMasterRole Schema,Naming,RIDMaster,PDCEmulator,InfrastructureMaster</code>（或 <code>netdom transfer</code>）逐一<strong>标准转移</strong>五个角色，绝不在线域控健在时 seize。</p>
+</li>
+<li>
+<p><strong>优雅降级旧域控</strong>：确认 FSMO 全部落到新 DC 后，再用 <code>dcpromo</code> 把 DC01/DC02 降级为成员服务器，再次跑 <code>dcdiag</code>、<code>repadmin</code> 验收全绿。</p>
+</li>
+<li>
+<p><strong>修复 GPO 与客户端</strong>：核对 <code>\\domain\SYSVOL\domain\Policies</code> 各 DC 一致；对卡在 Applying Policy 的 PC 执行 <code>gpupdate /force</code> 并 <code>klist purge</code>，WiFi/NPS 认证随即恢复。</p>
+</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>根因有两个叠加：其一是<strong>复制引擎代差</strong>——旧环境停留在 FRS SYSVOL，而 Windows Server 2022 域控只支持 DFSR，FRS 复制链路在混合版本下必然断裂；其二是<strong>变更顺序错误</strong>——没有先完成 SYSVOL 迁移就加新 DC，且在旧角色持有者仍在线时仓促 seize FSMO，触发 USN 回滚风险。两者都是「升级前未做兼容性体检」与「未遵循标准操作顺序」导致的。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
+<li><strong>升级前体检</strong>：用 <code>dfsrmig /getmigrationstate</code> 确认 SYSVOL 已是 DFSR，FRS 残留一律先迁再升。</li>
+<li><strong>严守顺序</strong>：SYSVOL 迁移 → 加新 DC（等复制完成）→ transfer FSMO → 降级旧 DC，任何一步不过验收不进下一步。</li>
+<li><strong>禁用随意 seize</strong>：仅当旧角色持有者确认永久离线才考虑 seize；seize 后应立即 <code>repadmin /regkey</code> 防 USN 回滚，或直接重装该域控。</li>
+<li><strong>保留回退能力</strong>：变更窗口内旧 DC 全程在线，直到新 DC 跑满观察期再降级，确保一键回退。</li>
+<li><strong>常态化巡检</strong>：定时调度 <code>dcdiag</code> / <code>repadmin /showrepl</code> 并对接告警，SYSVOL 复制异常第一时间发现。</li>
+</ol>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>AD 域控升级是高风险的「牵一发而动全身」变更，最大的两个暗坑是 SYSVOL 复制引擎（FRS → DFSR）的兼容性，以及 FSMO 迁移的顺序与方式。记住三句话：<strong>先迁移后升级、用 transfer 不用 seize、永远保留回退能力</strong>——把这三件事做在变更窗口之前，域控升级就能从「踩雷现场」变成「标准作业」。</p>
+
 </section>
 
 
     <footer class="article-meta article-footer">
     
-    <section class="article-tags">
-        
-            <a href="/tags/nas/">NAS</a>
-        
-            <a href="/tags/%E7%BE%A4%E6%99%96/">群晖</a>
-        
-            <a href="/tags/synology/">Synology</a>
-        
-    </section>
-
 
     </footer>
 
