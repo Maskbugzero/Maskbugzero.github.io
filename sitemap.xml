@@ -3,7 +3,46 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://blog.5772447.xyz/categories/</loc>
-    <lastmod>2026-07-19T07:00:00+08:00</lastmod>
+    <lastmod>2026-07-20T07:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/citrix-pvs/</loc>
+    <lastmod>2026-07-20T07:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/posts/4b5dd03a/</loc>
+    <lastmod>2026-07-20T07:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/post/</loc>
+    <lastmod>2026-07-20T07:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/pvs-versioning/</loc>
+    <lastmod>2026-07-20T07:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/</loc>
+    <lastmod>2026-07-20T07:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/vdisk%E7%89%88%E6%9C%AC%E5%9B%9E%E6%BB%9A/</loc>
+    <lastmod>2026-07-20T07:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/vdi%E8%BF%90%E7%BB%B4/</loc>
+    <lastmod>2026-07-20T07:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/</loc>
+    <lastmod>2026-07-20T07:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/%E9%95%9C%E5%83%8F%E5%8F%98%E6%9B%B4%E5%9B%9E%E6%BB%9A/</loc>
+    <lastmod>2026-07-20T07:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/%E6%97%A0%E7%9B%98%E7%B3%BB%E7%BB%9F/</loc>
+    <lastmod>2026-07-20T07:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/%E8%99%9A%E6%8B%9F%E6%A1%8C%E9%9D%A2%E8%93%9D%E5%B1%8F/</loc>
+    <lastmod>2026-07-20T07:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/categories/%E8%BF%90%E7%BB%B4/</loc>
+    <lastmod>2026-07-20T07:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/</loc>
+    <lastmod>2026-07-20T07:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/ci%E6%9E%84%E5%BB%BA%E5%90%8E%E9%97%A8/</loc>
     <lastmod>2026-07-19T07:00:00+08:00</lastmod>
@@ -11,19 +50,10 @@
     <loc>https://blog.5772447.xyz/tags/npm%E6%8A%95%E6%AF%92/</loc>
     <lastmod>2026-07-19T07:00:00+08:00</lastmod>
   </url><url>
-    <loc>https://blog.5772447.xyz/post/</loc>
-    <lastmod>2026-07-19T07:00:00+08:00</lastmod>
-  </url><url>
     <loc>https://blog.5772447.xyz/tags/sbom/</loc>
     <lastmod>2026-07-19T07:00:00+08:00</lastmod>
   </url><url>
-    <loc>https://blog.5772447.xyz/tags/</loc>
-    <lastmod>2026-07-19T07:00:00+08:00</lastmod>
-  </url><url>
     <loc>https://blog.5772447.xyz/tags/typosquatting/</loc>
-    <lastmod>2026-07-19T07:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/</loc>
     <lastmod>2026-07-19T07:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/</loc>
@@ -42,9 +72,6 @@
     <lastmod>2026-07-19T07:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/%E4%BE%9D%E8%B5%96%E6%8A%95%E6%AF%92/</loc>
-    <lastmod>2026-07-19T07:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/categories/%E8%BF%90%E7%BB%B4/</loc>
     <lastmod>2026-07-19T07:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/failedscheduling/</loc>
@@ -111,9 +138,6 @@
     <lastmod>2026-07-15T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/posts/0f35911f/</loc>
-    <lastmod>2026-07-14T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/</loc>
     <lastmod>2026-07-14T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/posts/c0337851/</loc>

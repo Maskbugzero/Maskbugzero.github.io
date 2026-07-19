@@ -5,52 +5,94 @@
         <description>Recent content in Tags on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Sun, 19 Jul 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Mon, 20 Jul 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>虚拟桌面蓝屏</title>
+            <link>https://blog.5772447.xyz/tags/%E8%99%9A%E6%8B%9F%E6%A1%8C%E9%9D%A2%E8%93%9D%E5%B1%8F/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%99%9A%E6%8B%9F%E6%A1%8C%E9%9D%A2%E8%93%9D%E5%B1%8F/</guid>
+            <description></description>
+        </item><item>
+            <title>无盘系统</title>
+            <link>https://blog.5772447.xyz/tags/%E6%97%A0%E7%9B%98%E7%B3%BB%E7%BB%9F/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%97%A0%E7%9B%98%E7%B3%BB%E7%BB%9F/</guid>
+            <description></description>
+        </item><item>
+            <title>镜像变更回滚</title>
+            <link>https://blog.5772447.xyz/tags/%E9%95%9C%E5%83%8F%E5%8F%98%E6%9B%B4%E5%9B%9E%E6%BB%9A/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E9%95%9C%E5%83%8F%E5%8F%98%E6%9B%B4%E5%9B%9E%E6%BB%9A/</guid>
+            <description></description>
+        </item><item>
+            <title>VDI运维</title>
+            <link>https://blog.5772447.xyz/tags/vdi%E8%BF%90%E7%BB%B4/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/vdi%E8%BF%90%E7%BB%B4/</guid>
+            <description></description>
+        </item><item>
+            <title>VDisk版本回滚</title>
+            <link>https://blog.5772447.xyz/tags/vdisk%E7%89%88%E6%9C%AC%E5%9B%9E%E6%BB%9A/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/vdisk%E7%89%88%E6%9C%AC%E5%9B%9E%E6%BB%9A/</guid>
+            <description></description>
+        </item><item>
+            <title>PVS Versioning</title>
+            <link>https://blog.5772447.xyz/tags/pvs-versioning/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/pvs-versioning/</guid>
+            <description></description>
+        </item><item>
+            <title>Citrix PVS</title>
+            <link>https://blog.5772447.xyz/tags/citrix-pvs/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/citrix-pvs/</guid>
+            <description></description>
+        </item><item>
             <title>依赖投毒</title>
             <link>https://blog.5772447.xyz/tags/%E4%BE%9D%E8%B5%96%E6%8A%95%E6%AF%92/</link>
-            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <pubDate>Sun, 19 Jul 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/%E4%BE%9D%E8%B5%96%E6%8A%95%E6%AF%92/</guid>
             <description></description>
         </item><item>
             <title>软件供应链</title>
             <link>https://blog.5772447.xyz/tags/%E8%BD%AF%E4%BB%B6%E4%BE%9B%E5%BA%94%E9%93%BE/</link>
-            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <pubDate>Sun, 19 Jul 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/%E8%BD%AF%E4%BB%B6%E4%BE%9B%E5%BA%94%E9%93%BE/</guid>
             <description></description>
         </item><item>
             <title>供应链投毒</title>
             <link>https://blog.5772447.xyz/tags/%E4%BE%9B%E5%BA%94%E9%93%BE%E6%8A%95%E6%AF%92/</link>
-            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <pubDate>Sun, 19 Jul 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/%E4%BE%9B%E5%BA%94%E9%93%BE%E6%8A%95%E6%AF%92/</guid>
             <description></description>
         </item><item>
             <title>包投毒</title>
             <link>https://blog.5772447.xyz/tags/%E5%8C%85%E6%8A%95%E6%AF%92/</link>
-            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <pubDate>Sun, 19 Jul 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/%E5%8C%85%E6%8A%95%E6%AF%92/</guid>
             <description></description>
         </item><item>
             <title>Typosquatting</title>
             <link>https://blog.5772447.xyz/tags/typosquatting/</link>
-            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <pubDate>Sun, 19 Jul 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/typosquatting/</guid>
             <description></description>
         </item><item>
             <title>SBOM</title>
             <link>https://blog.5772447.xyz/tags/sbom/</link>
-            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <pubDate>Sun, 19 Jul 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/sbom/</guid>
             <description></description>
         </item><item>
             <title>Npm投毒</title>
             <link>https://blog.5772447.xyz/tags/npm%E6%8A%95%E6%AF%92/</link>
-            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <pubDate>Sun, 19 Jul 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/npm%E6%8A%95%E6%AF%92/</guid>
             <description></description>
         </item><item>
             <title>CI构建后门</title>
             <link>https://blog.5772447.xyz/tags/ci%E6%9E%84%E5%BB%BA%E5%90%8E%E9%97%A8/</link>
-            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <pubDate>Sun, 19 Jul 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/ci%E6%9E%84%E5%BB%BA%E5%90%8E%E9%97%A8/</guid>
             <description></description>
         </item><item>

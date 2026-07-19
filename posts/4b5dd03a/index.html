@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="PVS vDisk 升级后虚拟桌面批量蓝屏，靠 versioning 回滚旧版本分钟级恢复，根因是新镜像驱动不兼容生产环境异构宿主。">
+<title>Citrix PVS 镜像升级后虚拟桌面为何批量蓝屏？一次 vDisk 版本回滚的排查实录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/4b5dd03a/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Citrix PVS 镜像升级后虚拟桌面为何批量蓝屏？一次 vDisk 版本回滚的排查实录">
+<meta property='og:description' content="PVS vDisk 升级后虚拟桌面批量蓝屏，靠 versioning 回滚旧版本分钟级恢复，根因是新镜像驱动不兼容生产环境异构宿主。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/4b5dd03a/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Citrix PVS' /><meta property='article:tag' content='无盘系统' /><meta property='article:tag' content='vDisk版本回滚' /><meta property='article:tag' content='虚拟桌面蓝屏' /><meta property='article:tag' content='VDI运维' /><meta property='article:tag' content='镜像变更回滚' /><meta property='article:tag' content='PVS versioning' /><meta property='article:published_time' content='2026-07-20T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-07-20T07:00:00&#43;08:00'/>
+<meta name="twitter:title" content="Citrix PVS 镜像升级后虚拟桌面为何批量蓝屏？一次 vDisk 版本回滚的排查实录">
+<meta name="twitter:description" content="PVS vDisk 升级后虚拟桌面批量蓝屏，靠 versioning 回滚旧版本分钟级恢复，根因是新镜像驱动不兼容生产环境异构宿主。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" style="background-color: hsl(195, 60%, 84%); color: hsl(195, 60%, 15%);">
+                桌面运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/4b5dd03a/">Citrix PVS 镜像升级后虚拟桌面为何批量蓝屏？一次 vDisk 版本回滚的排查实录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            PVS vDisk 升级后虚拟桌面批量蓝屏，靠 versioning 回滚旧版本分钟级恢复，根因是新镜像驱动不兼容生产环境异构宿主。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-20T07:00:00&#43;08:00'>2026年7月20日星期一</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 6 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="一问题背景"><a href="#%e4%b8%80%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>一、问题背景
+</h2><p>我们生产环境的虚拟桌面（Citrix Virtual Apps and Desktops，约 1200 台 Target Device）全部通过 PVS（Provisioning Services）以单一 vDisk 流式启动，而非传统 MCS 完整克隆。PVS 的好处是&quot;黄金镜像一处更新、全网生效&quot;，运维侧只用维护一个 vDisk 的版本链（versioning）：每次变更基于上一个 version 派生新 version，在维护设备（Maintenance Device）上改完、测试通过后 promote 为 Production。</p>
+<p>7 月中旬的月度维护窗口，我按惯例对生产 vDisk 派生了一个新 version（v17），挂到维护设备装了 Windows 当月累积补丁，并顺手把虚拟显卡驱动从旧版升到厂商最新版（为修一个偶发的显示闪烁）。维护设备上启动、登录、跑业务自测都正常，于是我在 PVS 控制台把 v17 promote 为 Production（高可用 + 负载均衡），准备第二天上班高峰让所有 Target Device 平滑切到新镜像。</p>
+<h2 id="二故障现象"><a href="#%e4%ba%8c%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>二、故障现象
+</h2><p>第二天 8:40 左右，上班登录高峰刚起，服务台电话被打爆：约 1/3 的虚拟桌面无法进入系统。具体表现分两类：</p>
+<ul>
+<li>一部分 Target Device 在 Windows 启动画面后直接蓝屏，最常见的 STOP code 是 <code>0x0000007E (SYSTEM_THREAD_EXCEPTION_NOT_HANDLED)</code>，也有少量 <code>0x000000D1 (DRIVER_IRQL_NOT_LESS_OR_EQUAL)</code>；重启后依旧，陷入&quot;启动→蓝屏→重启&quot;循环。</li>
+<li>另一部分卡在 &ldquo;Starting Windows&rdquo; 或 Citrix 登录前界面反复重启，PVS 控制台里这些设备状态在 <code>Active</code> 与 <code>Unknown</code> 之间跳变，Boot 次数异常偏高。</li>
+</ul>
+<p>诡异的是：并非全部桌面都崩，<strong>同型号瘦客户机、连在同一批 XenServer 主机上的设备几乎必崩，而另一批 ESXi 主机上的设备基本正常</strong>。这立刻排除了&quot;PVS 服务器挂了&quot;这种整体故障，把方向指向&quot;镜像内容与特定宿主环境不兼容&quot;。</p>
+<h2 id="三排查过程"><a href="#%e4%b8%89%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>三、排查过程
+</h2><p><strong>第一步，圈定影响边界。</strong> 在 PVS 控制台按 Target Device 状态排序，发现崩溃集中在两类硬件 profile：一是新采购、跑在 XenServer 8.4 上的设备；二是启用了 vGPU（虚拟显卡）的设备。纯 ESXi 标准 SVGA、无 vGPU 的设备几乎不受影响。说明是新 version 引入的某组件，只在某些虚拟硬件组合下触发异常。</p>
+<p><strong>第二步，抓蓝屏根因。</strong> 对一台反复蓝屏的设备，让它在本地缓存模式（Cache on Device / Private Image）下启动并保留 minidump，把 <code>MEMORY.DMP</code> 拷出来用 WinDbg 跑 <code>!analyze -v</code>。<code>0x0000007E</code> 的异常线程指向第三方显示驱动 <code>vgfxm64.sys</code>（厂商虚拟显卡驱动），<code>0x000000D1</code> 则指向同一驱动的 IRQL 越界访问。基本锁定：升级后的虚拟显卡驱动与部分宿主的虚拟显卡设备（XenServer 的 Citrix SVGAA / vGPU 后端）交互时触发未处理异常。</p>
+<p><strong>第三步，比对 version 差异。</strong> PVS 的 versioning 天然支持差异对比：v17 相对 v16（上一稳定版）只多了两件事——当月 Windows 补丁，以及那次显卡驱动升级。维护设备上&quot;自测通过&quot;是因为它跑在 ESXi + 标准 SVGA、没挂 vGPU，没覆盖到生产里异构的宿主组合。</p>
+<p><strong>第四步，确认触发面与影响面。</strong> 用 PVS 启动日志（Target Device 的 <code>bnistack</code> 日志）和 XenCenter 的事件流交叉验证：崩溃设备的 boot 阶段都停在与显卡驱动初始化相关的环节；受影响占比约 32%，且随高峰到来有扩大趋势（更多设备被调度到问题宿主）。</p>
+<h2 id="四解决方案"><a href="#%e5%9b%9b%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>四、解决方案
+</h2><p><strong>分钟级止血——版本回滚。</strong> PVS 的杀手锏就是 versioning 回退：在控制台选中生产 vDisk，把 Production 版本的&quot;默认启动 version&quot;从 v17 改回 v16，访问模式（Access Mode）保持 Production。Target Device 下一次启动（或手动重启）即改从 v16 流式引导，无需重装、无需逐台处理——约 12 分钟内，崩溃设备陆续恢复登录，业务影响止住。对个别仍卡死的设备，直接在设备级别覆盖指定 version 为 v16 强制纠偏。</p>
+<p><strong>小时级根治——重做版本。</strong> 把 v17 从 Production 降级为 Test，回到维护设备：①卸载那版有问题的虚拟显卡驱动、回退到与 v16 一致的稳定版；②仅保留必要的 Windows 补丁；③在维护设备上分别用&quot;ESXi 标准 SVGA&quot;和&quot;XenServer + vGPU&quot;两种 profile 各测一轮启动与登录；④确认无蓝屏后，派生 v18 重新 promote。</p>
+<h2 id="五根因分析"><a href="#%e4%ba%94%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>五、根因分析
+</h2><p>根因是 <strong>PVS&quot;单镜像、全网生效&quot;的架构特性被一次覆盖不全的测试放大成故障</strong>：</p>
+<ol>
+<li>vDisk 内装的驱动必须适配所有 Target Device 的硬件 profile，而本次新显卡驱动在与部分宿主的虚拟显卡后端（SVGAA / vGPU）交互时存在未处理异常；</li>
+<li>变更前只在单一维护设备（ESXi + 标准 SVGA、无 vGPU）上自测，没覆盖生产环境的宿主异构性，相当于把&quot;灰度验证&quot;省略了；</li>
+<li>promote 时直接切 Production、且未保留&quot;出问题能秒回&quot;的默认 version 指向——好在 versioning 本身支持回退，否则只能逐台重装，恢复时间会从分钟级变成小时级。</li>
+</ol>
+<p>本质是：PVS 把&quot;镜像变更&quot;变成了&quot;对全网的广播&quot;，广播前的测试与回滚预案不再是可选项，而是刚需。</p>
+<h2 id="六预防措施"><a href="#%e5%85%ad%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>六、预防措施
+</h2><ul>
+<li><strong>强制灰度链路</strong>：维护设备自测 → 测试交付组（含 ESXi / XenServer / 有 vGPU 三类 profile）灰度 → 再 promote 生产；禁止&quot;维护设备过了就上生产&quot;。</li>
+<li><strong>版本保留策略</strong>：Production vDisk 至少保留近 2 个稳定 version，确保任何新 version 出问题时能一键回退；变更前把&quot;默认 version&quot;先指向旧版作为安全网。</li>
+<li><strong>驱动统一管理</strong>：生产 vDisk 内只放经过验证的单一虚拟显卡驱动版本，禁止跨宿主混用多厂商驱动；驱动升级单独成 version，不与系统补丁打包，缩小变更面。</li>
+<li><strong>启动健康监控</strong>：对 Target Device 的 boot 失败率、重启风暴、蓝屏事件做告警（PVS 启动日志 + 主机事件联动），高峰前巡检一遍各宿主的启动成功率基线。</li>
+<li><strong>变更窗口与预案</strong>：镜像 promote 放在低峰时段，变更单里强制填写回滚步骤（改默认 version 指向）与预计恢复时间，运维照单执行。</li>
+</ul>
+<h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
+</h2><p>PVS 的版本化（versioning）是把双刃剑：它让&quot;全网镜像更新&quot;从逐台重装变成一次 promote，也把&quot;一次失误&quot;变成&quot;全网广播&quot;。这次事故能分钟级恢复，靠的不是运气，而是 versioning 提供的回退能力——但真正该吸取的教训在前面：<strong>广播之前的异构灰度测试，和随时能回退的版本保留，是 VDI 运维不可省略的两道防线。</strong></p>
+<p>一句话记住：对 PVS 镜像，&ldquo;先在小范围试错、留好旧版本退路&rdquo;，比&quot;上线后才救火&quot;便宜得多。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/citrix-pvs/">Citrix PVS</a>
+        
+            <a href="/tags/%E6%97%A0%E7%9B%98%E7%B3%BB%E7%BB%9F/">无盘系统</a>
+        
+            <a href="/tags/vdisk%E7%89%88%E6%9C%AC%E5%9B%9E%E6%BB%9A/">VDisk版本回滚</a>
+        
+            <a href="/tags/%E8%99%9A%E6%8B%9F%E6%A1%8C%E9%9D%A2%E8%93%9D%E5%B1%8F/">虚拟桌面蓝屏</a>
+        
+            <a href="/tags/vdi%E8%BF%90%E7%BB%B4/">VDI运维</a>
+        
+            <a href="/tags/%E9%95%9C%E5%83%8F%E5%8F%98%E6%9B%B4%E5%9B%9E%E6%BB%9A/">镜像变更回滚</a>
+        
+            <a href="/tags/pvs-versioning/">PVS Versioning</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
