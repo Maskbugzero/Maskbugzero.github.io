@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="集群规模扩张后新增 Pod 批量报 CNI 分配 IP 失败，根因是 Calico IPAM 池耗尽且自动扩容被配置上限卡死。">
+<title>一次 Kubernetes CNI 插件 IP 池耗尽导致新增 Pod 无法分配 IP 的排查记录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/1908b3a5/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次 Kubernetes CNI 插件 IP 池耗尽导致新增 Pod 无法分配 IP 的排查记录">
+<meta property='og:description' content="集群规模扩张后新增 Pod 批量报 CNI 分配 IP 失败，根因是 Calico IPAM 池耗尽且自动扩容被配置上限卡死。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/1908b3a5/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='CNI' /><meta property='article:tag' content='Calico' /><meta property='article:tag' content='IPAM' /><meta property='article:tag' content='IP 池耗尽' /><meta property='article:tag' content='Pod 无法调度' /><meta property='article:tag' content='网络配置' /><meta property='article:published_time' content='2026-07-21T19:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-07-21T19:00:00&#43;08:00'/>
+<meta name="twitter:title" content="一次 Kubernetes CNI 插件 IP 池耗尽导致新增 Pod 无法分配 IP 的排查记录">
+<meta name="twitter:description" content="集群规模扩张后新增 Pod 批量报 CNI 分配 IP 失败，根因是 Calico IPAM 池耗尽且自动扩容被配置上限卡死。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(274, 60%, 84%); color: hsl(274, 60%, 15%);">
+                容器运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/1908b3a5/">一次 Kubernetes CNI 插件 IP 池耗尽导致新增 Pod 无法分配 IP 的排查记录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            集群规模扩张后新增 Pod 批量报 CNI 分配 IP 失败，根因是 Calico IPAM 池耗尽且自动扩容被配置上限卡死。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-21T19:00:00&#43;08:00'>2026年7月21日星期二</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 4 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a></li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="一问题背景"><a href="#%e4%b8%80%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>一、问题背景
+</h2><p>某金融科技公司的 Kubernetes 生产集群原规划 120 个节点，CNI 采用 Calico + IPAM 模式，初始分配了 3 个 <code>/16</code> 的 Pod CIDR 池（共约 19.6 万地址）。随着业务扩容，节点数已接近 200，集群中运行着大量短生命周期的 Job 与 CronJob。某天凌晨开始，发布流水线频繁失败，报错均为「CNI failed to allocate IP: no IP addresses available in pool」。调度器显示 Pod 处于 <code>ContainerCreating</code>，事件日志里反复出现 <code>failed to allocate for range 0: no IP addresses available in range set</code>。</p>
+<h2 id="二故障现象"><a href="#%e4%ba%8c%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>二、故障现象
+</h2><ul>
+<li>新增 Pod 大量卡在 <code>ContainerCreating</code>，<code>kubectl describe</code> 事件显示 <code>Failed create pod sandbox: rpc error: code = Unknown desc = failed to setup network for sandbox ... no IP addresses available</code>。</li>
+<li>已有 Running 的 Pod 网络正常，说明问题仅影响「新分配 IP」的请求。</li>
+<li><code>calicoctl get ippool</code> 显示所有池的 <code>blockSize</code> 仍为默认 <code>/26</code>，但 <code>calicoctl get block</code> 列出已分配的 IP 块数量远超预期，部分节点出现「借用其他节点 block」的现象。</li>
+<li><code>calicoctl get ipam show</code> 报告「Total IPs: 196608，Allocated: 196607，Unallocated: 1」，几乎耗尽。</li>
+<li>新节点加入集群后，kubelet 日志出现 <code>cni.go:237] error adding container to network: failed to allocate for range 0</code>，节点整体 NotReady。</li>
+</ul>
+<h2 id="三排查过程"><a href="#%e4%b8%89%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>三、排查过程
+</h2><p><strong>第一步：确认 CNI 插件状态</strong>。<code>kubectl get pods -n kube-system -l k8s-app=calico-node</code> 显示所有 calico-node Pod 均 Running，<code>calicoctl node status</code> 也正常，排除插件本身 crash。</p>
+<p><strong>第二步：检查 IPAM 配置</strong>。<code>calicoctl get ippool -o yaml</code> 发现默认池配置了 <code>ipipMode: Always</code>、<code>natOutgoing: true</code>，但关键字段 <code>allowedUses: [&quot;Workload&quot;,&quot;Tunnel&quot;]</code> 正常。最可疑的是 <code>blockSize: 26</code>（默认 64 地址/块），而集群规模已从 120 节点涨到 200 节点，理论上需要更多 block。</p>
+<p><strong>第三步：查看 IP 分配详情</strong>。用 <code>calicoctl get block --output wide</code> 发现大量 block 被「借用」——一个节点的 IP 块被其他节点上的 Pod 占用。Calico 的 IPAM 默认会尽量把同一节点的 Pod 分配到同一 block 以减少路由表膨胀，但当池即将耗尽时，会跨节点借用，导致 block 碎片化。</p>
+<p><strong>第四步：定位自动扩容上限</strong>。Calico 支持 IP 池自动扩容（<code>strictAffinity: false</code> + <code>autoAllocateBlocks: true</code>），但在 <code>IPPool</code> CRD 中发现：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">spec</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">cidr</span>: <span style="color:#ae81ff">10.244.0.0</span><span style="color:#ae81ff">/16</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">blockSize</span>: <span style="color:#ae81ff">26</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">ipipMode</span>: <span style="color:#ae81ff">Always</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">natOutgoing</span>: <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">disabled</span>: <span style="color:#66d9ef">false</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>缺少 <code>maxBlocksPerHost</code> 限制，且 <code>allowedUses</code> 只包含 Workload/Tunnel，没有为「新节点自动分配 block」预留空间。更致命的是，集群升级时曾手动把 <code>blockSize</code> 从默认 26 改成 28（16 地址/块）以节省地址，却忘记同步更新 <code>ippool</code> 的 <code>cidr</code> 范围，导致实际可用地址比规划少 75%。</p>
+<p><strong>第五步：确认碎片与借用风暴</strong>。当池中仅剩 1 个地址时，任何新 Pod 都必须「从已有 block 里再挤」，但因为 <code>strictAffinity</code> 为 false，分配器会尝试在全集群范围内找可用 block，造成大量「跨节点借用」请求。calico-node 的 felix 组件在处理这些借用请求时出现延迟，进一步放大分配失败率。</p>
+<h2 id="四解决方案"><a href="#%e5%9b%9b%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>四、解决方案
+</h2><p><strong>立即止血</strong>：</p>
+<ol>
+<li>紧急扩容 IP 池：新增一个 <code>/16</code> 的新池，<code>blockSize</code> 设为 26，并设置 <code>allowedUses: [&quot;Workload&quot;]</code>。
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>calicoctl apply -f - <span style="color:#e6db74">&lt;&lt;EOF
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">apiVersion: projectcalico.org/v3
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">kind: IPPool
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">metadata:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  name: pool-prod-v2
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">spec:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  cidr: 10.245.0.0/16
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  blockSize: 26
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  ipipMode: Always
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  natOutgoing: true
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  disabled: false
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  allowedUses: [&#34;Workload&#34;]
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+<li>对已分配 IP 的 Pod 不做处理，仅让新 Pod 落在新池。Calico 的分配器会优先使用未禁用的池，因此新 Pod 立即能拿到 IP。</li>
+<li>对已处于 <code>ContainerCreating</code> 的 Pod 执行 <code>kubectl delete pod xxx --grace-period=0 --force</code>，让它们重新调度到新池。</li>
+</ol>
+<p><strong>根治</strong>：</p>
+<ul>
+<li>把默认池的 <code>blockSize</code> 改回 26（16→64 地址），并开启 <code>strictAffinity: true</code> 减少跨节点借用。</li>
+<li>设置 <code>maxBlocksPerHost: 8</code>，限制单节点最多借用 8 个 block，避免单点耗尽过多地址。</li>
+<li>在集群规模规划阶段即预留 2~3 个 <code>/16</code> 池，并设置告警：当池利用率 &gt; 70% 时自动扩容或告警。</li>
+<li>升级 Calico 版本到 v3.26+，利用其「IP 池自动扩容」特性（<code>autoAllocateBlocks: true</code> + <code>autoCreateBlocks: true</code>）。</li>
+</ul>
+<h2 id="五根因分析"><a href="#%e4%ba%94%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>五、根因分析
+</h2><p>Calico IPAM 的核心设计是「按需分配 block」，默认 <code>blockSize=/26</code> 意味着每 64 个 Pod 地址占用一个路由条目。当节点数从 120 涨到 200，且业务以短生命周期 Job 为主时，Pod 创建/销毁频率极高，block 分配/释放操作频繁。若池大小规划不足（仅 19.6 万地址对应 3000 Pod 左右），加上 <code>blockSize</code> 曾被误改小，实际可用地址进一步缩水，最终在凌晨高频 Job 集中创建时耗尽。</p>
+<h2 id="六预防措施"><a href="#%e5%85%ad%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>六、预防措施
+</h2><ul>
+<li><strong>容量规划</strong>：节点数 ×（平均 Pod/节点）× 1.5（冗余）作为 IP 池大小，并预留 2~3 个独立池做滚动扩容。</li>
+<li><strong>监控告警</strong>：在 Prometheus 中增加 <code>calico_ipam_blocks_total</code> / <code>calico_ipam_allocations_total</code> 指标，当利用率 &gt; 70% 立即告警。</li>
+<li><strong>配置收敛</strong>：禁止随意修改 <code>blockSize</code>，统一使用 26；设置 <code>maxBlocksPerHost</code> 防止单点借用过多。</li>
+<li><strong>自动扩容演练</strong>：定期在 staging 环境演练「池耗尽 → 新增池 → Pod 自动落新池」的全流程，确保生产环境不会翻车。</li>
+</ul>
+<h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
+</h2><p>CNI 的 IP 池耗尽是「规模化集群的隐形杀手」——它不影响已有 Pod，只在「新增 Pod」时才暴露，且往往在凌晨高频任务集中爆发。防御的关键是「规划时多留一倍地址 + 监控利用率 + 限制单节点 block 借用」，把 IPAM 当成「另一种形式的资源配额」来治理。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/kubernetes/">Kubernetes</a>
+        
+            <a href="/tags/cni/">CNI</a>
+        
+            <a href="/tags/calico/">Calico</a>
+        
+            <a href="/tags/ipam/">IPAM</a>
+        
+            <a href="/tags/ip-%E6%B1%A0%E8%80%97%E5%B0%BD/">IP 池耗尽</a>
+        
+            <a href="/tags/pod-%E6%97%A0%E6%B3%95%E8%B0%83%E5%BA%A6/">Pod 无法调度</a>
+        
+            <a href="/tags/%E7%BD%91%E7%BB%9C%E9%85%8D%E7%BD%AE/">网络配置</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/97876a5b/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次 Kubernetes Pod 长期卡在 Terminating 状态的排查记录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/fb3632b1/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次 Kubernetes 命名空间 ResourceQuota 配额耗尽导致 Pod 卡在 Pending 的排查记录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/cd2f7270/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">K8s 私有镜像仓库凭证过期，Pod 为何卡在 ImagePullBackOff？一次生产镜像拉取失败的排查记录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/21e8a43e/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 Kubernetes 因 liveness 探针配置过严导致 Pod 陷入 CrashLoopBackOff 的排查</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/48576c58/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 K8s 节点 conntrack 表打满导致的服务间 TCP 超时</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
