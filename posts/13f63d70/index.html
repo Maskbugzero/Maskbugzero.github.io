@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="晚高峰 QPS 翻倍但 HPA 副本纹丝不动，kubectl get hpa 的 TARGETS 显示 unknown，根因是 metrics-server 指标链路中断。">
+<title>Kubernetes HPA 为何在流量高峰不再自动扩容？一次 metrics-server 指标链路中断的排查记录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/13f63d70/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Kubernetes HPA 为何在流量高峰不再自动扩容？一次 metrics-server 指标链路中断的排查记录">
+<meta property='og:description' content="晚高峰 QPS 翻倍但 HPA 副本纹丝不动，kubectl get hpa 的 TARGETS 显示 unknown，根因是 metrics-server 指标链路中断。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/13f63d70/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='HPA' /><meta property='article:tag' content='metrics-server' /><meta property='article:tag' content='自动扩容' /><meta property='article:tag' content='Aggregation Layer' /><meta property='article:tag' content='kubelet Summary API' /><meta property='article:tag' content='autoscaling' /><meta property='article:published_time' content='2026-07-22T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-07-22T07:00:00&#43;08:00'/>
+<meta name="twitter:title" content="Kubernetes HPA 为何在流量高峰不再自动扩容？一次 metrics-server 指标链路中断的排查记录">
+<meta name="twitter:description" content="晚高峰 QPS 翻倍但 HPA 副本纹丝不动，kubectl get hpa 的 TARGETS 显示 unknown，根因是 metrics-server 指标链路中断。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a>
+      <ul>
+        <li><a href="#1-先看-hpa-到底为什么读不到指标">1. 先看 HPA 到底为什么读不到指标</a></li>
+        <li><a href="#2-确认-metrics-api-这条路是否通">2. 确认 Metrics API 这条路是否通</a></li>
+        <li><a href="#3-定位-metrics-server-自身状态">3. 定位 metrics-server 自身状态</a></li>
+        <li><a href="#4-为什么三天前改证书今天才爆">4. 为什么三天前改证书、今天才爆</a></li>
+      </ul>
+    </li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(274, 60%, 84%); color: hsl(274, 60%, 15%);">
+                容器运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/13f63d70/">Kubernetes HPA 为何在流量高峰不再自动扩容？一次 metrics-server 指标链路中断的排查记录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            晚高峰 QPS 翻倍但 HPA 副本纹丝不动，kubectl get hpa 的 TARGETS 显示 unknown，根因是 metrics-server 指标链路中断。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-22T07:00:00&#43;08:00'>2026年7月22日星期三</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 6 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#一问题背景">一、问题背景</a></li>
+    <li><a href="#二故障现象">二、故障现象</a></li>
+    <li><a href="#三排查过程">三、排查过程</a>
+      <ul>
+        <li><a href="#1-先看-hpa-到底为什么读不到指标">1. 先看 HPA 到底为什么读不到指标</a></li>
+        <li><a href="#2-确认-metrics-api-这条路是否通">2. 确认 Metrics API 这条路是否通</a></li>
+        <li><a href="#3-定位-metrics-server-自身状态">3. 定位 metrics-server 自身状态</a></li>
+        <li><a href="#4-为什么三天前改证书今天才爆">4. 为什么三天前改证书、今天才爆</a></li>
+      </ul>
+    </li>
+    <li><a href="#四解决方案">四、解决方案</a></li>
+    <li><a href="#五根因分析">五、根因分析</a></li>
+    <li><a href="#六预防措施">六、预防措施</a></li>
+    <li><a href="#七总结">七、总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="一问题背景"><a href="#%e4%b8%80%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>一、问题背景
+</h2><p>我们有一套跑在自建 Kubernetes（v1.27）上的电商中台服务，日常流量呈典型的双峰形态：午间与晚间各一波高峰。为了扛住波峰，核心的 <code>order-api</code> Deployment 早就配了 HorizontalPodAutoscaler（HPA），按 CPU 利用率 60% 自动在 4~20 个副本之间伸缩，稳定运行了大半年，从没出过岔子。</p>
+<p>变更是从一次例行的证书轮换开始的。运维同学按季度给集群组件更新了一批内部 CA 签发的证书，包括 metrics-server 用的服务证书，操作当天一切正常，监控大盘也没报警。谁也没想到,这颗雷会在三天后的晚高峰被引爆——流量上来了，副本却一个都没多起来。</p>
+<h2 id="二故障现象"><a href="#%e4%ba%8c%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>二、故障现象
+</h2><p>晚上 20:10 左右，<code>order-api</code> 的 P99 延迟开始飙升，从平时的 80ms 一路冲到 3s 以上，网关侧大量 504。值班同学第一反应是扩容顶不住了，但打开监控发现更诡异的事情：<strong>Pod 数量始终停在 4 个（HPA 的最小副本数），完全没有随流量增长而扩容</strong>。</p>
+<p>手动敲命令确认：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl get hpa order-api
+</span></span><span style="display:flex;"><span>NAME        REFERENCE              TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+</span></span><span style="display:flex;"><span>order-api   Deployment/order-api   &lt;unknown&gt;/60%   <span style="color:#ae81ff">4</span>         <span style="color:#ae81ff">20</span>        <span style="color:#ae81ff">4</span>          214d
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>关键信号出现了：<code>TARGETS</code> 那一列本该是类似 <code>85%/60%</code> 的实时利用率，此刻却是 <code>&lt;unknown&gt;/60%</code>。也就是说 <strong>HPA 根本读不到当前的 CPU 指标</strong>，自然无从判断该不该扩容，只能维持在最小副本数干瞪眼。</p>
+<p>再看几个横向证据：</p>
+<ul>
+<li><code>kubectl top pod</code> 直接报错：<code>error: Metrics API not available</code>；</li>
+<li><code>kubectl top node</code> 同样失败；</li>
+<li>应用本身、节点资源都没问题，Pod 是活的、能处理请求，只是数量不够。</li>
+</ul>
+<p>问题很清晰了：不是应用挂了，而是<strong>扩容的&quot;眼睛&quot;瞎了</strong>。</p>
+<h2 id="三排查过程"><a href="#%e4%b8%89%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>三、排查过程
+</h2><h3 id="1-先看-hpa-到底为什么读不到指标"><a href="#1-%e5%85%88%e7%9c%8b-hpa-%e5%88%b0%e5%ba%95%e4%b8%ba%e4%bb%80%e4%b9%88%e8%af%bb%e4%b8%8d%e5%88%b0%e6%8c%87%e6%a0%87" class="header-anchor"></a>1. 先看 HPA 到底为什么读不到指标
+</h3><p><code>describe</code> 是最快的入口：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl describe hpa order-api
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>Conditions:
+</span></span><span style="display:flex;"><span>  Type            Status  Reason                   Message
+</span></span><span style="display:flex;"><span>  ----            ------  ------                   -------
+</span></span><span style="display:flex;"><span>  AbleToScale     True    SucceededGetScale        the HPA controller was able to get the target<span style="color:#960050;background-color:#1e0010">&#39;</span>s current scale
+</span></span><span style="display:flex;"><span>  ScalingActive   False   FailedGetResourceMetric  the HPA was unable to compute the replica count: failed to
+</span></span><span style="display:flex;"><span>                          get cpu utilization: unable to get metrics <span style="color:#66d9ef">for</span> resource cpu: no metrics returned from
+</span></span><span style="display:flex;"><span>                          resource metrics API
+</span></span><span style="display:flex;"><span>Events:
+</span></span><span style="display:flex;"><span>  Warning  FailedGetResourceMetric       ... failed to get cpu utilization: unable to get metrics <span style="color:#66d9ef">for</span> resource cpu
+</span></span><span style="display:flex;"><span>  Warning  FailedComputeMetricsReplicas  ... invalid metrics <span style="color:#f92672">(</span><span style="color:#ae81ff">1</span> invalid out of 1<span style="color:#f92672">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>ScalingActive=False</code>、<code>FailedGetResourceMetric</code>，指向的是 <strong>resource metrics API</strong>（也就是 <code>metrics.k8s.io</code>）没有返回数据。HPA 控制器本身没毛病，问题在它依赖的指标源。</p>
+<h3 id="2-确认-metrics-api-这条路是否通"><a href="#2-%e7%a1%ae%e8%ae%a4-metrics-api-%e8%bf%99%e6%9d%a1%e8%b7%af%e6%98%af%e5%90%a6%e9%80%9a" class="header-anchor"></a>2. 确认 Metrics API 这条路是否通
+</h3><p><code>kubectl top</code> 和 HPA 的 CPU 指标，走的都是聚合层暴露出来的 <code>metrics.k8s.io</code> API。直接问 apiserver 这个 API 组还在不在：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl get apiservices | grep metrics
+</span></span><span style="display:flex;"><span>v1beta1.metrics.k8s.io   kube-system/metrics-server   False <span style="color:#f92672">(</span>FailedDiscoveryCheck<span style="color:#f92672">)</span>   214d
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>AVAILABLE</code> 是 <code>False</code>，原因 <code>FailedDiscoveryCheck</code>。说明 apiserver 通过聚合层（Aggregation Layer）去访问 metrics-server 后端时，握手/发现这一步失败了。这是整条链路断裂的核心证据。</p>
+<p>顺手看看 APIService 的详细状态：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl describe apiservice v1beta1.metrics.k8s.io
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>Status:
+</span></span><span style="display:flex;"><span>  Conditions:
+</span></span><span style="display:flex;"><span>    Message: failing or missing response from https://10.96.xx.xx:443/apis/metrics.k8s.io/v1beta1:
+</span></span><span style="display:flex;"><span>             Get <span style="color:#e6db74">&#34;https://10.96.xx.xx:443/...&#34;</span>: x509: certificate signed by unknown authority
+</span></span><span style="display:flex;"><span>    Reason:  FailedDiscoveryCheck
+</span></span><span style="display:flex;"><span>    Status:  False
+</span></span><span style="display:flex;"><span>    Type:    Available
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>x509: certificate signed by unknown authority</code>——问题一下子聚焦了。apiserver 去调 metrics-server 时,校验对方证书失败，说这张证书不是可信 CA 签的。</p>
+<h3 id="3-定位-metrics-server-自身状态"><a href="#3-%e5%ae%9a%e4%bd%8d-metrics-server-%e8%87%aa%e8%ba%ab%e7%8a%b6%e6%80%81" class="header-anchor"></a>3. 定位 metrics-server 自身状态
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl -n kube-system get pod -l k8s-app<span style="color:#f92672">=</span>metrics-server
+</span></span><span style="display:flex;"><span>NAME                              READY   STATUS    RESTARTS      AGE
+</span></span><span style="display:flex;"><span>metrics-server-7d9c8f6b5-abcde    0/1     Running   <span style="color:#ae81ff">0</span>             3d
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>$ kubectl -n kube-system logs metrics-server-7d9c8f6b5-abcde | tail -n <span style="color:#ae81ff">20</span>
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span><span style="color:#e6db74">&#34;Failed to scrape node&#34;</span> node<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;node-3&#34;</span> err<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;Get \&#34;https://10.0.1.13:10250/metrics/resource\&#34;:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  x509: certificate signed by unknown authority&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#e6db74">&#34;Failed probe&#34;</span> probe<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;metric-storage-ready&#34;</span> err<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;no metrics to serve&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>两个关键信息叠加：</p>
+<ol>
+<li>Pod 是 <code>Running</code> 但 <code>READY 0/1</code>——readiness 探针（<code>/readyz</code>，依赖 <code>metric-storage-ready</code>）因为抓不到任何指标而一直不就绪，于是它被从 Service 的 Endpoints 摘掉，apiserver 聚合层自然连不上后端，这解释了上面的 <code>FailedDiscoveryCheck</code>；</li>
+<li>metrics-server 去抓各节点 kubelet 的 <code>:10250/metrics/resource</code> 时，同样报 <code>x509: certificate signed by unknown authority</code>。</li>
+</ol>
+<p>到这里链路彻底清楚：<strong>三天前证书轮换时更新了 kubelet 的服务证书，改用了新的内部 CA 签发；但 metrics-server 的启动参数里还配着信任旧 CA（或压根没配 <code>--kubelet-insecure-tls</code> 也没挂新 CA），于是它拿新证书校验失败，抓不到任何节点指标 → 自己 readiness 不就绪 → 被摘出 Endpoints → apiserver 聚合层 discovery 失败 → <code>metrics.k8s.io</code> 不可用 → HPA 拿不到 CPU → 高峰不扩容。</strong></p>
+<h3 id="4-为什么三天前改证书今天才爆"><a href="#4-%e4%b8%ba%e4%bb%80%e4%b9%88%e4%b8%89%e5%a4%a9%e5%89%8d%e6%94%b9%e8%af%81%e4%b9%a6%e4%bb%8a%e5%a4%a9%e6%89%8d%e7%88%86" class="header-anchor"></a>4. 为什么三天前改证书、今天才爆
+</h3><p>这也是最迷惑的一点。查了下 metrics-server 的重启时间——它并没有随证书轮换重启，一直用着内存里旧的、还能验证通过的连接缓存和已抓到的历史指标数据在&quot;续命&quot;。真正的转折点是<strong>当天早上一次 kubelet 配置滚动生效触发了各节点 kubelet 重启、启用新证书</strong>，metrics-server 的抓取从那一刻起才全面失败。而白天流量平缓，4 个副本足够扛，HPA 即便读不到指标也没暴露问题；直到晚高峰需要扩容，&ldquo;眼睛瞎了&quot;的后果才第一次被真正需要，于是集中爆发。</p>
+<h2 id="四解决方案"><a href="#%e5%9b%9b%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>四、解决方案
+</h2><p><strong>止血（分钟级恢复业务）</strong>：既然自动扩容瘫痪，先手动把副本顶上去，给排查争取时间：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl scale deployment order-api --replicas<span style="color:#f92672">=</span><span style="color:#ae81ff">16</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>副本拉起后延迟迅速回落，504 消失。注意：只要 HPA 还在且 metrics 不可用，它虽然扩不上去，但也<strong>不会把手动扩上来的副本缩回去</strong>（<code>AbleToScale</code> 逻辑在指标缺失时不会误缩），所以手动扩容是安全的临时手段。</p>
+<p><strong>根治（修复指标链路）</strong>：修 metrics-server 的证书信任。让它信任集群 CA 来校验 kubelet 证书，编辑 Deployment 的容器参数：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">args</span>:
+</span></span><span style="display:flex;"><span>  - --<span style="color:#ae81ff">cert-dir=/tmp</span>
+</span></span><span style="display:flex;"><span>  - --<span style="color:#ae81ff">secure-port=10250</span>
+</span></span><span style="display:flex;"><span>  - --<span style="color:#ae81ff">kubelet-preferred-address-types=InternalIP</span>
+</span></span><span style="display:flex;"><span>  - --<span style="color:#ae81ff">kubelet-use-node-status-port</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># 关键：指定信任的 CA，用它校验 kubelet 服务证书</span>
+</span></span><span style="display:flex;"><span>  - --<span style="color:#ae81ff">kubelet-certificate-authority=/etc/kubernetes/pki/ca.crt</span>
+</span></span><span style="display:flex;"><span>  - --<span style="color:#ae81ff">metric-resolution=15s</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>并把新 CA 通过 hostPath/Secret 正确挂进容器。改完滚动重启：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl -n kube-system rollout restart deploy/metrics-server
+</span></span><span style="display:flex;"><span>kubectl -n kube-system rollout status deploy/metrics-server
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>验证链路恢复：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl get apiservices | grep metrics
+</span></span><span style="display:flex;"><span>v1beta1.metrics.k8s.io   kube-system/metrics-server   True    216d
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>$ kubectl top pod -n order
+</span></span><span style="display:flex;"><span>NAME                         CPU<span style="color:#f92672">(</span>cores<span style="color:#f92672">)</span>   MEMORY<span style="color:#f92672">(</span>bytes<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>order-api-xxx                420m         512Mi
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>$ kubectl get hpa order-api
+</span></span><span style="display:flex;"><span>NAME        REFERENCE              TARGETS     MINPODS   MAXPODS   REPLICAS
+</span></span><span style="display:flex;"><span>order-api   Deployment/order-api   78%/60%     <span style="color:#ae81ff">4</span>         <span style="color:#ae81ff">20</span>        <span style="color:#ae81ff">13</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>TARGETS</code> 恢复成真实数值，HPA 重新开始按负载伸缩。确认稳定后把手动扩容的固定副本数交还给 HPA 管理即可。</p>
+<h2 id="五根因分析"><a href="#%e4%ba%94%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>五、根因分析
+</h2><p>根本原因是<strong>证书轮换只更新了链路的一端（kubelet 服务证书），却漏掉了依赖方（metrics-server）对新 CA 的信任配置</strong>，导致一条隐蔽的指标依赖链在证书生效后静默断裂。</p>
+<p>链路的脆弱性被三个因素放大：其一，metrics-server 是<strong>内存态、无历史落盘</strong>的组件，故障后没有任何本地告警，只会安静地&quot;不就绪&rdquo;;其二，故障发生（早上 kubelet 重启）与暴露（晚高峰需扩容）之间存在<strong>时间差</strong>，掩盖了因果关系;其三，<strong>HPA 对指标缺失的降级是&quot;冻结当前副本&quot;而非报错</strong>，从业务视角看就是&quot;扩容不生效&quot;，很容易被误判为 HPA 配置或应用问题，而非上游指标源故障。</p>
+<h2 id="六预防措施"><a href="#%e5%85%ad%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>六、预防措施
+</h2><ol>
+<li><strong>给 Metrics API 本身加监控</strong>：直接探测 <code>kubectl get apiservice v1beta1.metrics.k8s.io</code> 的 <code>Available</code> 状态，或 Prometheus 采集 <code>apiserver_aggregator_unavailable_apiservice</code>；这是最直接的哨兵，比等 HPA 出事早得多。</li>
+<li><strong>给 HPA 加告警</strong>：对 <code>kube_horizontalpodautoscaler_status_condition{condition=&quot;ScalingActive&quot;,status=&quot;false&quot;}</code> 报警，一旦 HPA 无法计算副本立即通知。</li>
+<li><strong>证书轮换纳入变更清单</strong>：凡涉及 kubelet/CA 证书变更，检查清单里必须包含&quot;所有校验 kubelet 证书的组件（metrics-server、Prometheus node 抓取等）的 CA 信任配置同步更新&quot;,并在变更后主动跑一遍 <code>kubectl top node</code>。</li>
+<li><strong>压测扩容能力</strong>：定期在预发环境注入负载，验证 HPA 真能扩上去，而不是只看配置存在。</li>
+<li><strong>关键组件就绪探测纳入巡检</strong>：把 <code>metrics-server</code> 等基础组件的 <code>READY</code> 状态纳入日常巡检，避免&quot;Running 但 0/1&quot;这类半死状态长期潜伏。</li>
+</ol>
+<h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
+</h2><p>这是一次典型的&quot;配置变更埋雷、需求触发引爆&quot;的故障：证书轮换的一个疏漏，让 metrics-server 静默失明，进而让 HPA 在最需要扩容的晚高峰彻底失灵。排查的关键路径其实很短——从 <code>TARGETS</code> 的 <code>&lt;unknown&gt;</code> 一眼看出指标缺失，顺着 <code>describe hpa</code> → <code>apiservices</code> → metrics-server 日志三步就能锁定 <code>x509</code> 证书信任问题。</p>
+<p>真正值得记取的教训有两点：一是<strong>指标链路和监控链路一样是生产的一等公民</strong>，它一旦断裂，自动化能力（扩容、调度决策）就会静默降级，必须为它单独设哨兵；二是<strong>变更影响面要顺着依赖链推演到底</strong>，改一端证书，要问清楚&quot;谁在校验这张证书&quot;，否则埋下的雷只会在最不合适的时刻炸响。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/kubernetes/">Kubernetes</a>
+        
+            <a href="/tags/hpa/">HPA</a>
+        
+            <a href="/tags/metrics-server/">Metrics-Server</a>
+        
+            <a href="/tags/%E8%87%AA%E5%8A%A8%E6%89%A9%E5%AE%B9/">自动扩容</a>
+        
+            <a href="/tags/aggregation-layer/">Aggregation Layer</a>
+        
+            <a href="/tags/kubelet-summary-api/">Kubelet Summary API</a>
+        
+            <a href="/tags/autoscaling/">Autoscaling</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/1908b3a5/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次 Kubernetes CNI 插件 IP 池耗尽导致新增 Pod 无法分配 IP 的排查记录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/97876a5b/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次 Kubernetes Pod 长期卡在 Terminating 状态的排查记录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/fb3632b1/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次 Kubernetes 命名空间 ResourceQuota 配额耗尽导致 Pod 卡在 Pending 的排查记录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/cd2f7270/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">K8s 私有镜像仓库凭证过期，Pod 为何卡在 ImagePullBackOff？一次生产镜像拉取失败的排查记录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/21e8a43e/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 Kubernetes 因 liveness 探针配置过严导致 Pod 陷入 CrashLoopBackOff 的排查</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

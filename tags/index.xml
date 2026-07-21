@@ -5,7 +5,49 @@
         <description>Recent content in Tags on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Tue, 21 Jul 2026 19:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Wed, 22 Jul 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>自动扩容</title>
+            <link>https://blog.5772447.xyz/tags/%E8%87%AA%E5%8A%A8%E6%89%A9%E5%AE%B9/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%87%AA%E5%8A%A8%E6%89%A9%E5%AE%B9/</guid>
+            <description></description>
+        </item><item>
+            <title>Metrics-Server</title>
+            <link>https://blog.5772447.xyz/tags/metrics-server/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/metrics-server/</guid>
+            <description></description>
+        </item><item>
+            <title>Kubernetes</title>
+            <link>https://blog.5772447.xyz/tags/kubernetes/</link>
+            <pubDate>Tue, 21 Jul 2026 19:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/kubernetes/</guid>
+            <description></description>
+        </item><item>
+            <title>Kubelet Summary API</title>
+            <link>https://blog.5772447.xyz/tags/kubelet-summary-api/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/kubelet-summary-api/</guid>
+            <description></description>
+        </item><item>
+            <title>HPA</title>
+            <link>https://blog.5772447.xyz/tags/hpa/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/hpa/</guid>
+            <description></description>
+        </item><item>
+            <title>Autoscaling</title>
+            <link>https://blog.5772447.xyz/tags/autoscaling/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/autoscaling/</guid>
+            <description></description>
+        </item><item>
+            <title>Aggregation Layer</title>
+            <link>https://blog.5772447.xyz/tags/aggregation-layer/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/aggregation-layer/</guid>
+            <description></description>
+        </item><item>
             <title>网络配置</title>
             <link>https://blog.5772447.xyz/tags/%E7%BD%91%E7%BB%9C%E9%85%8D%E7%BD%AE/</link>
             <pubDate>Tue, 21 Jul 2026 19:00:00 +0800</pubDate>
@@ -16,12 +58,6 @@
             <link>https://blog.5772447.xyz/tags/pod-%E6%97%A0%E6%B3%95%E8%B0%83%E5%BA%A6/</link>
             <pubDate>Tue, 21 Jul 2026 19:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/pod-%E6%97%A0%E6%B3%95%E8%B0%83%E5%BA%A6/</guid>
-            <description></description>
-        </item><item>
-            <title>Kubernetes</title>
-            <link>https://blog.5772447.xyz/tags/kubernetes/</link>
-            <pubDate>Tue, 21 Jul 2026 19:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/kubernetes/</guid>
             <description></description>
         </item><item>
             <title>IPAM</title>
@@ -528,7 +564,7 @@
             <guid>https://blog.5772447.xyz/tags/postgresql/</guid>
             <description></description>
         </item><item>
-            <title>Nas</title>
+            <title>NAS</title>
             <link>https://blog.5772447.xyz/tags/nas/</link>
             <pubDate>Thu, 09 Jul 2026 07:00:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/nas/</guid>
