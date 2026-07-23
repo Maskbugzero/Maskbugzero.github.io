@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="一个跑了几天的 Java 服务突然大量报 Too many open files，新连接被拒、健康检查失败，最终定位到 systemd nofile 太小叠加句柄泄漏，用 lsof/proc 定位并根治。">
+<title>定位 Too many open files：一次生产服务文件描述符耗尽的排查与根治</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/6651b58c/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="定位 Too many open files：一次生产服务文件描述符耗尽的排查与根治">
+<meta property='og:description' content="一个跑了几天的 Java 服务突然大量报 Too many open files，新连接被拒、健康检查失败，最终定位到 systemd nofile 太小叠加句柄泄漏，用 lsof/proc 定位并根治。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/6651b58c/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='文件描述符' /><meta property='article:tag' content='Too many open files' /><meta property='article:tag' content='EMFILE' /><meta property='article:tag' content='LimitNOFILE' /><meta property='article:tag' content='句柄泄漏' /><meta property='article:tag' content='lsof' /><meta property='article:tag' content='ulimit' /><meta property='article:tag' content='systemd' /><meta property='article:published_time' content='2026-07-24T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-07-24T07:00:00&#43;08:00'/>
+<meta name="twitter:title" content="定位 Too many open files：一次生产服务文件描述符耗尽的排查与根治">
+<meta name="twitter:description" content="一个跑了几天的 Java 服务突然大量报 Too many open files，新连接被拒、健康检查失败，最终定位到 systemd nofile 太小叠加句柄泄漏，用 lsof/proc 定位并根治。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/6651b58c/">定位 Too many open files：一次生产服务文件描述符耗尽的排查与根治</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            一个跑了几天的 Java 服务突然大量报 Too many open files，新连接被拒、健康检查失败，最终定位到 systemd nofile 太小叠加句柄泄漏，用 lsof/proc 定位并根治。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-24T07:00:00&#43;08:00'>2026年7月24日星期五</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 6 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>我们有一个对外提供接口的 Java 服务（Spring Boot，跑在一台 CentOS 7 的物理机上，直接用 systemd 拉起，没有走容器），日常 QPS 不高，长期稳定运行。某次发版后，服务运行三四天一切正常，但到了第五天早上，监控开始告警：接口 5xx 陡增、健康检查探测失败、部分请求直接连不上。</p>
+<p>奇怪的是，服务进程还活着，CPU、内存、磁盘都不满，网络也通。运维同事第一反应是&quot;重启一下试试&quot;，重启后确实恢复了，但过了几天同样的现象又准时出现——这种&quot;跑一段时间就崩、重启就好、周期性复发&quot;的症状，几乎可以肯定是某种资源在缓慢泄漏。这篇就记录一下把它从现象定位到根因、再到根治的完整过程。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>从应用日志里翻，很快找到了一批扎眼的报错，几乎刷屏：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>java.net.SocketException: Too many open files
+</span></span><span style="display:flex;"><span>  at java.base/sun.nio.ch.Net.accept(Native Method)
+</span></span><span style="display:flex;"><span>  ...
+</span></span><span style="display:flex;"><span>java.io.IOException: Too many open files
+</span></span><span style="display:flex;"><span>  at java.base/java.io.FileInputStream.open0(Native Method)
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>同时系统日志 <code>/var/log/messages</code> 里也有内核层面的记录：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>kernel: VFS: file-max limit reached
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>现象可以归纳为几点：</p>
+<ul>
+<li>报错关键词是 <code>Too many open files</code>，对应系统调用返回 <code>EMFILE</code>（进程级文件描述符耗尽）或 <code>ENFILE</code>（系统级）。</li>
+<li>现象随运行时间推移逐渐恶化：新建 socket、打开文件、accept 新连接全部失败，但已有连接大多还能用。</li>
+<li>重启进程立刻恢复，然后 fd 数量又开始从低位缓慢往上爬。</li>
+<li>业务侧表现为间歇性 5xx 和健康检查失败，容易被误判成&quot;网络抖动&quot;或&quot;下游超时&quot;。</li>
+</ul>
+<p>这类报错的本质很明确：进程持有的文件描述符（file descriptor，简称 fd）数量触到了上限。Linux 里&quot;一切皆文件&quot;，socket、普通文件、pipe、epoll 实例都占 fd，所以&quot;文件描述符耗尽&quot;往往不是真的打开了太多文件，而是连接或句柄泄漏。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p><strong>第一步，确认到底占了多少 fd。</strong> 先拿到进程 PID，然后数它当前打开的 fd 数量：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 找到进程</span>
+</span></span><span style="display:flex;"><span>pid<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>pgrep -f my-app.jar<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 统计当前打开的 fd 数量</span>
+</span></span><span style="display:flex;"><span>ls -l /proc/$pid/fd | wc -l
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 输出：4102</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>第二步，看进程自己的限制是多少。</strong> 不要只看 <code>ulimit -n</code>（那是当前 shell 的），一定要看目标进程实际生效的 limits：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>cat /proc/$pid/limits | grep <span style="color:#e6db74">&#34;open files&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Max open files            4096                 4096                 files</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>真相浮现了一半：这个进程的软硬限制都只有 <strong>4096</strong>，而它当前已经占到 4102（数字略有出入是统计时刻差异），已经顶到天花板。很多人以为改了 <code>/etc/security/limits.conf</code> 就万事大吉，但 <strong>systemd 拉起的服务根本不读 limits.conf</strong>，它只认 unit 文件里的 <code>LimitNOFILE</code>，不写就用一个偏小的默认值。这是第一层坑。</p>
+<p><strong>第三步，判断是&quot;用量合理但上限太小&quot;还是&quot;句柄泄漏&quot;。</strong> 上限小只是诱因，如果 fd 会无限增长，那一定还有泄漏。我按类型统计一下这 4000 多个 fd 都是什么：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ls -l /proc/$pid/fd | awk <span style="color:#e6db74">&#39;{print $NF}&#39;</span> | <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  sed -E <span style="color:#e6db74">&#39;s/[0-9]+$//&#39;</span> | sort | uniq -c | sort -rn | head
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 输出（节选）：</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#   3600 socket:[</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#    210 /data/app/tmp/</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#     80 anon_inode:[eventpoll]</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#     ...</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>3600 个 socket，这个比例极不正常——服务并发没那么高。再用 <code>lsof</code> 看这些 socket 连到哪里、处于什么状态：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>lsof -p $pid | grep -i tcp | awk <span style="color:#e6db74">&#39;{print $NF}&#39;</span> | sort | uniq -c | sort -rn
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#   1900 (CLOSE_WAIT)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#    900 (ESTABLISHED)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#    ...</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>大量 <code>CLOSE_WAIT</code> 是决定性证据。<code>CLOSE_WAIT</code> 意味着对端已经发了 FIN 关闭连接，但<strong>本端应用一直没有调用 close()</strong>，连接卡在半关闭状态，对应的 fd 也就一直不释放。这几乎百分百是代码里连接/流没有正确关闭。</p>
+<p><strong>第四步，定位泄漏点。</strong> 结合 <code>lsof</code> 看到这些 CLOSE_WAIT 大多连向同一个下游 HTTP 服务，去翻调用那个下游的代码，果然发现问题：有一处用 <code>HttpURLConnection</code> 拿响应流，但在异常分支里没有关闭连接，也没有 <code>try-with-resources</code>。平时下游正常返回时走的是正常分支会关闭，但下游偶尔超时/报错时就漏关一个连接，日积月累就攒出了几千个 CLOSE_WAIT。</p>
+<p>至此链条闭环：<strong>下游异常 → 连接漏关 → CLOSE_WAIT 堆积 → fd 缓慢增长 → 触到 4096 上限 → Too many open files → 新连接全废</strong>。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><p>分两步走，先止血再根治。</p>
+<p><strong>止血：调大 fd 上限并让 systemd 生效。</strong> 编辑 unit 文件（不要图省事去改 limits.conf，对 systemd 无效）：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># /etc/systemd/system/my-app.service 的 [Service] 段加上</span>
+</span></span><span style="display:flex;"><span>LimitNOFILE<span style="color:#f92672">=</span><span style="color:#ae81ff">65535</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>systemctl daemon-reload
+</span></span><span style="display:flex;"><span>systemctl restart my-app
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 重启后复核，确认真的生效</span>
+</span></span><span style="display:flex;"><span>cat /proc/<span style="color:#66d9ef">$(</span>pgrep -f my-app.jar<span style="color:#66d9ef">)</span>/limits | grep <span style="color:#e6db74">&#34;open files&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果系统级 <code>file-max</code> 也报限制（<code>VFS: file-max limit reached</code>），再调内核层：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sysctl -w fs.file-max<span style="color:#f92672">=</span><span style="color:#ae81ff">2000000</span>
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;fs.file-max = 2000000&#34;</span> &gt;&gt; /etc/sysctl.d/99-fd.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>根治：修复句柄泄漏。</strong> 把漏关连接的代码改成自动关闭，确保任何分支都会释放：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#75715e">// 用 try-with-resources，异常也会自动关闭</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">try</span> (<span style="color:#66d9ef">var</span> in <span style="color:#f92672">=</span> conn.<span style="color:#a6e22e">getInputStream</span>()) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 读取响应</span>
+</span></span><span style="display:flex;"><span>} <span style="color:#66d9ef">finally</span> {
+</span></span><span style="display:flex;"><span>    conn.<span style="color:#a6e22e">disconnect</span>();
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>更彻底的做法是引入连接池化的 HTTP 客户端（如 Apache HttpClient / OkHttp）并复用，从根上避免这种手工管理连接漏关的问题。上线后持续观察 fd 曲线，确认稳定在低位、不再单调上涨。</p>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>这次故障是<strong>两层原因叠加</strong>才爆发的：</p>
+<ul>
+<li><strong>诱因（上限太小）</strong>：服务用 systemd 拉起，没显式配置 <code>LimitNOFILE</code>，实际生效值只有 4096，天花板本就很低。</li>
+<li><strong>根因（句柄泄漏）</strong>：应用代码在下游异常分支漏调 <code>close()</code>，连接卡在 CLOSE_WAIT 不释放，fd 单调增长只是时间问题。</li>
+</ul>
+<p>只有上限小、没有泄漏，一般不会崩；只有泄漏、上限很大，也只是把爆发时间往后推。两者叠加，才形成了这种&quot;稳定运行几天后周期性崩溃&quot;的迷惑现象。<code>CLOSE_WAIT</code> 堆积是这类泄漏最典型的指纹——它明确指向&quot;应用层没关连接&quot;，而不是网络或内核的问题。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li><strong>服务上线前就设置合理的 <code>LimitNOFILE</code></strong>（systemd 用 unit 文件，容器用 <code>--ulimit nofile</code>），别用默认值裸奔。</li>
+<li><strong>给 fd 使用量加监控</strong>：采集 <code>/proc/&lt;pid&gt;/fd</code> 数量与 <code>/proc/&lt;pid&gt;/limits</code> 的比值，超过 70%~80% 就告警，能在崩溃前几天就发现泄漏趋势。</li>
+<li><strong>代码规范</strong>：所有 socket、流、连接一律用 <code>try-with-resources</code> / <code>defer</code> / <code>with</code> 等语言级机制自动关闭；HTTP 调用统一走连接池化客户端并复用。</li>
+<li><strong>定期巡检 CLOSE_WAIT</strong>：<code>ss -s</code> 或 <code>lsof</code> 看长期存在的 CLOSE_WAIT，是句柄泄漏的早期信号。</li>
+<li><strong>压测覆盖异常路径</strong>：泄漏常藏在下游超时、异常分支里，压测时要故意让下游报错，才能暴露漏关连接的问题。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p><code>Too many open files</code> 看着吓人，排查路径其实很固定：先 <code>cat /proc/&lt;pid&gt;/limits</code> 看上限、<code>ls /proc/&lt;pid&gt;/fd | wc -l</code> 看用量、再用 <code>lsof</code> 按类型和状态拆解占用。如果看到大量 <code>CLOSE_WAIT</code>，基本可以锁定是应用层连接漏关，而不是上限的锅——这时候光调大 <code>LimitNOFILE</code> 只是把爆发时间推后，真正要修的是代码里的句柄泄漏。记住一个判断口诀：<strong>上限决定何时崩，泄漏决定必定崩</strong>。把监控加在 fd 使用率上，让问题在告警里暴露，而不是在凌晨的 5xx 里。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6/">文件描述符</a>
+        
+            <a href="/tags/too-many-open-files/">Too Many Open Files</a>
+        
+            <a href="/tags/emfile/">EMFILE</a>
+        
+            <a href="/tags/limitnofile/">LimitNOFILE</a>
+        
+            <a href="/tags/%E5%8F%A5%E6%9F%84%E6%B3%84%E6%BC%8F/">句柄泄漏</a>
+        
+            <a href="/tags/lsof/">Lsof</a>
+        
+            <a href="/tags/ulimit/">Ulimit</a>
+        
+            <a href="/tags/systemd/">Systemd</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/25cf583a/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Linux /tmp 被定时清理致 Java 应用建不了临时文件</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

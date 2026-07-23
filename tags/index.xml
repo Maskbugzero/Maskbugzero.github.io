@@ -5,40 +5,88 @@
         <description>Recent content in Tags on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Thu, 23 Jul 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Fri, 24 Jul 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>文件描述符</title>
+            <link>https://blog.5772447.xyz/tags/%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6/</guid>
+            <description></description>
+        </item><item>
+            <title>句柄泄漏</title>
+            <link>https://blog.5772447.xyz/tags/%E5%8F%A5%E6%9F%84%E6%B3%84%E6%BC%8F/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%8F%A5%E6%9F%84%E6%B3%84%E6%BC%8F/</guid>
+            <description></description>
+        </item><item>
+            <title>Ulimit</title>
+            <link>https://blog.5772447.xyz/tags/ulimit/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/ulimit/</guid>
+            <description></description>
+        </item><item>
+            <title>Too Many Open Files</title>
+            <link>https://blog.5772447.xyz/tags/too-many-open-files/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/too-many-open-files/</guid>
+            <description></description>
+        </item><item>
+            <title>Systemd</title>
+            <link>https://blog.5772447.xyz/tags/systemd/</link>
+            <pubDate>Fri, 10 Mar 2023 16:20:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/systemd/</guid>
+            <description></description>
+        </item><item>
+            <title>Lsof</title>
+            <link>https://blog.5772447.xyz/tags/lsof/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/lsof/</guid>
+            <description></description>
+        </item><item>
+            <title>LimitNOFILE</title>
+            <link>https://blog.5772447.xyz/tags/limitnofile/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/limitnofile/</guid>
+            <description></description>
+        </item><item>
+            <title>EMFILE</title>
+            <link>https://blog.5772447.xyz/tags/emfile/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/emfile/</guid>
+            <description></description>
+        </item><item>
             <title>VPN</title>
             <link>https://blog.5772447.xyz/tags/vpn/</link>
-            <pubDate>Fri, 26 Jun 2026 08:36:04 +0000</pubDate>
+            <pubDate>Thu, 23 Jul 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/vpn/</guid>
             <description></description>
         </item><item>
             <title>PMTUD</title>
             <link>https://blog.5772447.xyz/tags/pmtud/</link>
-            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <pubDate>Thu, 23 Jul 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/pmtud/</guid>
             <description></description>
         </item><item>
             <title>MTU</title>
             <link>https://blog.5772447.xyz/tags/mtu/</link>
-            <pubDate>Fri, 26 Jun 2026 08:36:04 +0000</pubDate>
+            <pubDate>Thu, 23 Jul 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/mtu/</guid>
             <description></description>
         </item><item>
             <title>MSS</title>
             <link>https://blog.5772447.xyz/tags/mss/</link>
-            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <pubDate>Thu, 23 Jul 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/mss/</guid>
             <description></description>
         </item><item>
             <title>IPSec</title>
             <link>https://blog.5772447.xyz/tags/ipsec/</link>
-            <pubDate>Fri, 26 Jun 2026 08:36:04 +0000</pubDate>
+            <pubDate>Thu, 23 Jul 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/ipsec/</guid>
             <description></description>
         </item><item>
             <title>ICMP</title>
             <link>https://blog.5772447.xyz/tags/icmp/</link>
-            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <pubDate>Thu, 23 Jul 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/icmp/</guid>
             <description></description>
         </item><item>
@@ -1738,12 +1786,6 @@
             <link>https://blog.5772447.xyz/tags/tmp/</link>
             <pubDate>Fri, 10 Mar 2023 16:20:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/tmp/</guid>
-            <description></description>
-        </item><item>
-            <title>Systemd</title>
-            <link>https://blog.5772447.xyz/tags/systemd/</link>
-            <pubDate>Fri, 10 Mar 2023 16:20:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/systemd/</guid>
             <description></description>
         </item><item>
             <title>Java</title>
