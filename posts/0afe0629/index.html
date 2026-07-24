@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="对外门户 Tomcat 疑似加密外联，顺藤摸到文件上传接口被绕过植入哥斯拉 Webshell 的溯源清剿全过程">
+<title>记一次企业门户网站被植入 Webshell 的入侵溯源与清除</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/0afe0629/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次企业门户网站被植入 Webshell 的入侵溯源与清除">
+<meta property='og:description' content="对外门户 Tomcat 疑似加密外联，顺藤摸到文件上传接口被绕过植入哥斯拉 Webshell 的溯源清剿全过程">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/0afe0629/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Webshell' /><meta property='article:tag' content='文件上传漏洞' /><meta property='article:tag' content='入侵溯源' /><meta property='article:tag' content='应急响应' /><meta property='article:tag' content='哥斯拉' /><meta property='article:tag' content='Web日志分析' /><meta property='article:published_time' content='2026-07-25T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-07-25T07:00:00&#43;08:00'/>
+<meta name="twitter:title" content="记一次企业门户网站被植入 Webshell 的入侵溯源与清除">
+<meta name="twitter:description" content="对外门户 Tomcat 疑似加密外联，顺藤摸到文件上传接口被绕过植入哥斯拉 Webshell 的溯源清剿全过程">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
+                安全运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/0afe0629/">记一次企业门户网站被植入 Webshell 的入侵溯源与清除</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            对外门户 Tomcat 疑似加密外联，顺藤摸到文件上传接口被绕过植入哥斯拉 Webshell 的溯源清剿全过程
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-25T07:00:00&#43;08:00'>2026年7月25日星期六</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>我们对外的企业门户网站是一套基于 Tomcat 9 + Spring MVC 的老系统，跑在一台放在 DMZ 区的 Linux 服务器上，前面是 Nginx 反向代理，再往外是防火墙做端口映射。这套系统上线好几年，功能改动不多，一直是&quot;能跑就不动&quot;的状态。</p>
+<p>某天下午，全流量检测设备（NDR）弹出一条告警：这台 Web 服务器在持续向一个境外 IP 发起<strong>可疑加密 HTTP 通信</strong>，特征命中&quot;疑似哥斯拉（Godzilla）Webshell 加密流量&quot;。安全同事把工单转给我时，第一反应是&quot;会不会是误报&quot;——毕竟这台机器只是个门户站，没什么敏感数据。但告警的置信度不低，且外联是持续性的，只能按真出事来应急处理。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>登上服务器先做了一圈粗看，几个现象拼在一起就不像误报了：</p>
+<ul>
+<li><strong>CPU 间歇性飙高</strong>：<code>top</code> 里 Tomcat 的 java 进程偶尔冲到 80% 以上，但门户站访问量并不大，业务上没有理由这么忙。</li>
+<li><strong>异常外联确实存在</strong>：<code>netstat -antp</code> 能看到该 java 进程与告警里那个境外 IP 建立着 ESTABLISHED 连接，端口是 443，流量是加密的，抓包也看不出明文。</li>
+<li><strong>网站被挂了暗链</strong>：用搜索引擎 <code>site:</code> 检索自己的域名，翻到几个根本不存在的博彩、菠菜类页面路径，点进去会 302 跳转到外部站——典型的被挂马 / SEO 暗链。</li>
+<li><strong>上传目录里多了陌生文件</strong>：门户有个&quot;个人头像上传&quot;功能，落地目录 <code>/data/webapp/portal/upload/avatar/</code> 下，除了正常的 jpg/png，还躺着几个 <code>.jsp</code> 文件，修改时间集中在三天前的凌晨。</li>
+</ul>
+<p>到这一步基本可以确认：不是误报，是真被人打进来了，且已经落地了 Webshell、并在拿这台机器做外联跳板和挂暗链。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p><strong>第一步，先确认外联的&quot;主体&quot;是谁。</strong> 用 <code>netstat -antp | grep &lt;境外IP&gt;</code> 拿到连接对应的 PID，再 <code>ps -ef | grep &lt;PID&gt;</code>，结果指向的是 Tomcat 自己的 java 进程，而不是某个独立的挖矿木马或反弹 shell 进程。这说明恶意行为是<strong>跑在 Web 容器进程里的</strong>——要么是落地的脚本 Webshell 被调用，要么是更隐蔽的内存马。</p>
+<p><strong>第二步，翻 Web 访问日志找入口。</strong> 重点看 Nginx 的 <code>access.log</code> 和 Tomcat 的 <code>localhost_access_log</code>。Webshell 的访问有很强的特征，用几个条件一过滤就浮出来了：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 找对单个 URL 高频 POST 的可疑请求</span>
+</span></span><span style="display:flex;"><span>awk <span style="color:#e6db74">&#39;$6==&#34;POST&#34;{print $7}&#39;</span> access.log | sort | uniq -c | sort -rn | head
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 结合异常 UA / 固定 Content-Length 规律进一步收敛</span>
+</span></span><span style="display:flex;"><span>grep <span style="color:#e6db74">&#34;avatar/.*\.jsp&#34;</span> access.log | awk <span style="color:#e6db74">&#39;{print $1,$4,$7,$9,$10}&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>结果非常清楚：<code>/upload/avatar/x1.jsp</code> 这个路径在过去三天里被同一批源 IP 反复 POST，请求体长度呈规律性变化，User-Agent 是 Java 客户端的默认值——这正是哥斯拉客户端连接 Webshell 的典型行为。</p>
+<p><strong>第三步，确认落地文件性质。</strong> 打开那几个 <code>.jsp</code>，内容不是明文，而是一段加载器：接收 <code>pass</code> 参数，做 Base64 解码后再 AES 解密，动态编译执行——标准的哥斯拉加密马，磁盘上和流量里都是密文，普通特征匹配很难抓。</p>
+<p><strong>第四步，回溯 Webshell 是怎么传上来的。</strong> 门户的头像上传接口按理只允许图片。翻代码 + 翻上传接口的请求日志，还原出攻击者的绕过手法：</p>
+<ul>
+<li>服务端对文件类型的校验用的是<strong>黑名单</strong>（只拦 <code>.php</code>、<code>.asp</code>），没拦 <code>.jsp</code>；</li>
+<li>且校验只看了<strong>前端传来的文件后缀字符串</strong>，没有做服务端 MIME / 文件头（magic number）校验；</li>
+<li>最致命的是，<strong>上传目录就在 Web 根目录下，且被 Tomcat 当作可执行的 JSP 目录</strong>——文件传上去就能直接被当脚本解析执行。</li>
+</ul>
+<p>三个问题叠加，就是一条完整的&quot;任意文件上传 → Webshell 落地 → 直接访问执行&quot;的链路。</p>
+<p><strong>第五步，排查有没有内存马。</strong> 落地文件好清，但更怕对方在容器里注册了反射型的 Filter / Servlet 内存马（磁盘无 class、重启才消失）。对比了 Tomcat 当前已加载的 Filter 链与应用 <code>web.xml</code> 声明的差异，又用 <code>arthas</code> 扫了一遍可疑的动态注册组件，确认这次<strong>没有内存马</strong>，攻击者只用了落地脚本马。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><p>确认范围后按应急响应流程处置，顺序很重要：</p>
+<ol>
+<li><strong>先隔离、后动手</strong>：在防火墙上只放行运维跳板的入站、掐掉那条境外外联，但<strong>暂不整机断网、不重启</strong>，先保留现场做取证。</li>
+<li><strong>固定证据</strong>：打包 <code>access.log</code>、Webshell 文件、<code>/tmp</code> 与 upload 目录、进程与网络快照，计算哈希留存。</li>
+<li><strong>清除落地马</strong>：删除 upload 目录下全部 <code>.jsp</code> 文件，全盘 <code>find / -name &quot;*.jsp&quot; -newermt &quot;3 days ago&quot;</code> 复核有没有藏在别处的第二落点。</li>
+<li><strong>清内存并重启</strong>：处理完落地文件后重启 Tomcat，确保即便有残留动态组件也被清掉。</li>
+<li><strong>修上传接口（根治）</strong>：改为<strong>扩展名白名单 + 服务端 magic number 校验 + 随机重命名</strong>，并把上传目录移出 Web 根、改为<strong>独立存储 + 禁止脚本执行</strong>。</li>
+<li><strong>收尾加固</strong>：轮转服务器口令与相关密钥、清理被挂的暗链页面、通知搜索引擎重新收录。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>技术根因是三点缺陷的叠加，缺一不可：<strong>文件类型校验用黑名单且不全（漏了 .jsp）→ 只信前端后缀、无服务端内容校验 → 上传目录与 Web 根同源且可执行脚本</strong>。任何一环补上，这条攻击链都走不通。而管理上的根因是这套&quot;能跑就不动&quot;的老系统长期无人做安全基线审视，暴露面（对外的可上传接口）一直无监控，直到全流量设备兜底才发现。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li><strong>上传接口</strong>：扩展名白名单 + 服务端 MIME / 文件头双重校验 + 上传后随机重命名，从源头堵住可控文件名。</li>
+<li><strong>存储与执行分离</strong>：上传目录独立存放，Nginx / Tomcat 层面<strong>显式禁止该目录解析 jsp/php</strong>（如 location 配置移除脚本 handler），即使传上去也无法执行。</li>
+<li><strong>最小权限运行</strong>：Web 容器用非 root 的低权限用户跑，限制其对系统目录的写权限。</li>
+<li><strong>纵深检测</strong>：部署 RASP / Webshell 检测，定期用河马、D 盾等工具做落地文件基线扫描；保留全流量 NDR 兜底加密马。</li>
+<li><strong>暴露面治理</strong>：对外系统定期做资产梳理与漏洞扫描，把&quot;能跑就不动&quot;的老站纳入常态化安全巡检。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这次事件的隐蔽点在于：外联主体是 Tomcat 自己、木马是加密的、入口是个不起眼的头像上传接口，任何一个单看都容易被当成&quot;业务正常&quot;或&quot;误报&quot;放过。真正把线索串起来的是<strong>全流量告警 + Web 访问日志的高频 POST 特征分析</strong>这两把钥匙。对运维来说，最该记住的不是&quot;哥斯拉长什么样&quot;，而是：<strong>任意文件上传永远要按白名单 + 内容校验 + 存储执行分离三件套来防，而不是靠拦几个危险后缀</strong>；同时对外暴露面必须有日志、有监控、有兜底，别让老系统成为攻击者最舒服的落脚点。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/webshell/">Webshell</a>
+        
+            <a href="/tags/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/">文件上传漏洞</a>
+        
+            <a href="/tags/%E5%85%A5%E4%BE%B5%E6%BA%AF%E6%BA%90/">入侵溯源</a>
+        
+            <a href="/tags/%E5%BA%94%E6%80%A5%E5%93%8D%E5%BA%94/">应急响应</a>
+        
+            <a href="/tags/%E5%93%A5%E6%96%AF%E6%8B%89/">哥斯拉</a>
+        
+            <a href="/tags/web%E6%97%A5%E5%BF%97%E5%88%86%E6%9E%90/">Web日志分析</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/55563ba9/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">清除服务器 XMRig 挖矿木马：入侵路径还原与清剿实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/0a8ea846/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">钓鱼邮件致终端感染远控木马：溯源与处置</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/a801fe3b/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">员工域账号异地登录：告警研判与紧急锁定处置</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
