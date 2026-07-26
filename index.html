@@ -17,7 +17,7 @@
 <meta property='og:description' content="Life Oriented Programming">
 <meta property='og:url' content='https://blog.5772447.xyz/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='website'><meta property='og:updated_time' content=' 2026-07-26T07:00:00&#43;08:00 '/>
+<meta property='og:type' content='website'><meta property='og:updated_time' content=' 2026-07-27T07:00:00&#43;08:00 '/>
 <meta name="twitter:title" content="Zero Day Notes">
 <meta name="twitter:description" content="Life Oriented Programming"><link rel="alternate" type="application/rss&#43;xml" href="https://blog.5772447.xyz/index.xml">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -245,7 +245,7 @@
                     <a href="/page/archives/#2026">
                         
                             <span class="year">2026</span>
-                            <span class="count">46</span>
+                            <span class="count">47</span>
                         
                     </a> 
                 </div>
@@ -433,6 +433,122 @@
 
 
             <main class="main full-width"><section class="article-list">
+        
+            
+<article class="">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/82574309/">一次数据库连接池耗尽导致接口大面积超时的排查记录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            订单服务在流量高峰突然大面积超时，日志刷满 HikariPool Connection is not available，最终定位到长事务里嵌了慢外部调用把连接攥住不放，叠加连接池偏小拖垮全站。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-27T07:00:00&#43;08:00'>2026年7月27日星期一</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 6 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+            <div class="article-tags inline-meta">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                    <a href="/tags/%E6%95%B0%E6%8D%AE%E5%BA%93%E8%BF%9E%E6%8E%A5%E6%B1%A0/" class="link">数据库连接池</a>
+                
+                    <a href="/tags/hikaricp/" class="link">HikariCP</a>
+                
+                    <a href="/tags/%E8%BF%9E%E6%8E%A5%E6%B1%A0%E8%80%97%E5%B0%BD/" class="link">连接池耗尽</a>
+                
+                    <a href="/tags/connection-is-not-available/" class="link">Connection Is Not Available</a>
+                
+                    <a href="/tags/%E9%95%BF%E4%BA%8B%E5%8A%A1/" class="link">长事务</a>
+                
+                    <a href="/tags/%E8%BF%9E%E6%8E%A5%E6%B3%84%E6%BC%8F/" class="link">连接泄漏</a>
+                
+                    <a href="/tags/%E6%85%A2%E6%9F%A5%E8%AF%A2/" class="link">慢查询</a>
+                
+                    <a href="/tags/jdbc/" class="link">JDBC</a>
+                
+                    <a href="/tags/%E6%8E%A5%E5%8F%A3%E8%B6%85%E6%97%B6/" class="link">接口超时</a>
+                
+            </div>
+        
+    </footer>
+    
+</div>
+
+</header>
+</article>
         
             
 <article class="">
@@ -1428,120 +1544,6 @@
                     <a href="/tags/%E9%95%9C%E5%83%8F%E5%8F%98%E6%9B%B4%E5%9B%9E%E6%BB%9A/" class="link">镜像变更回滚</a>
                 
                     <a href="/tags/pvs-versioning/" class="link">PVS Versioning</a>
-                
-            </div>
-        
-    </footer>
-    
-</div>
-
-</header>
-</article>
-        
-            
-<article class="">
-    <header class="article-header">
-
-    <div class="article-details">
-    
-    <header class="article-category">
-        
-            
-            
-            
-            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
-                运维
-            </a>
-        
-            
-            
-            
-            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
-                安全运维
-            </a>
-        
-    </header>
-    
-
-    <div class="article-title-wrapper">
-        <h2 class="article-title">
-            <a href="/posts/fd39f333/">记一次 npm 开源依赖投毒导致 CI 构建产物被植入后门的排查</a>
-        </h2>
-    
-        
-        <h3 class="article-subtitle">
-            CI 构建产物被植入外联后门，溯源发现 npm 间接依赖遭投毒，postinstall 脚本窃走令牌并篡改产物。
-        </h3>
-        
-    </div>
-
-    
-    
-    
-    
-    
-    
-    
-    <footer class="article-meta">
-        
-            <div class="inline-meta">
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
-  <circle cx="18" cy="18" r="4" />
-  <path d="M15 3v4" />
-  <path d="M7 3v4" />
-  <path d="M3 11h16" />
-  <path d="M18 16.496v1.504l1 1" />
-</svg>
-                    <time class="article-time--published" datetime='2026-07-19T07:00:00&#43;08:00'>2026年7月19日星期日</time>
-                
-
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <circle cx="12" cy="12" r="9" />
-  <polyline points="12 7 12 12 15 15" />
-</svg>
-
-
-
-                    <time class="article-time--reading">
-                        阅读时长: 6 分钟
-                    </time>
-                
-            </div>
-        
-
-        
-
-        
-            <div class="article-tags inline-meta">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
-  <circle cx="9" cy="9" r="2" />
-</svg>
-
-
-
-                
-                    <a href="/tags/%E4%BE%9B%E5%BA%94%E9%93%BE%E6%8A%95%E6%AF%92/" class="link">供应链投毒</a>
-                
-                    <a href="/tags/npm%E6%8A%95%E6%AF%92/" class="link">Npm投毒</a>
-                
-                    <a href="/tags/%E4%BE%9D%E8%B5%96%E6%8A%95%E6%AF%92/" class="link">依赖投毒</a>
-                
-                    <a href="/tags/%E8%BD%AF%E4%BB%B6%E4%BE%9B%E5%BA%94%E9%93%BE/" class="link">软件供应链</a>
-                
-                    <a href="/tags/ci%E6%9E%84%E5%BB%BA%E5%90%8E%E9%97%A8/" class="link">CI构建后门</a>
-                
-                    <a href="/tags/%E5%8C%85%E6%8A%95%E6%AF%92/" class="link">包投毒</a>
-                
-                    <a href="/tags/typosquatting/" class="link">Typosquatting</a>
-                
-                    <a href="/tags/sbom/" class="link">SBOM</a>
                 
             </div>
         
