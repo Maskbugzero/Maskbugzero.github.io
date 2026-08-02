@@ -12,6 +12,36 @@
             <guid>https://blog.5772447.xyz/tags/%E5%B9%BD%E7%81%B5%E6%96%87%E4%BB%B6/</guid>
             <description></description>
         </item><item>
+            <title>优雅下线</title>
+            <link>https://blog.5772447.xyz/tags/%E4%BC%98%E9%9B%85%E4%B8%8B%E7%BA%BF/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E4%BC%98%E9%9B%85%E4%B8%8B%E7%BA%BF/</guid>
+            <description></description>
+        </item><item>
+            <title>依赖就绪</title>
+            <link>https://blog.5772447.xyz/tags/%E4%BE%9D%E8%B5%96%E5%B0%B1%E7%BB%AA/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E4%BE%9D%E8%B5%96%E5%B0%B1%E7%BB%AA/</guid>
+            <description></description>
+        </item><item>
+            <title>微服务</title>
+            <link>https://blog.5772447.xyz/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/</link>
+            <pubDate>Mon, 15 Jan 2024 02:45:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/</guid>
+            <description></description>
+        </item><item>
+            <title>探活</title>
+            <link>https://blog.5772447.xyz/tags/%E6%8E%A2%E6%B4%BB/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%8E%A2%E6%B4%BB/</guid>
+            <description></description>
+        </item><item>
+            <title>健康检查</title>
+            <link>https://blog.5772447.xyz/tags/%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5/</link>
+            <pubDate>Wed, 22 Nov 2023 20:10:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5/</guid>
+            <description></description>
+        </item><item>
             <title>磁盘排查</title>
             <link>https://blog.5772447.xyz/tags/%E7%A3%81%E7%9B%98%E6%8E%92%E6%9F%A5/</link>
             <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
@@ -36,6 +66,12 @@
             <guid>https://blog.5772447.xyz/tags/linux/</guid>
             <description></description>
         </item><item>
+            <title>Kubernetes</title>
+            <link>https://blog.5772447.xyz/tags/kubernetes/</link>
+            <pubDate>Wed, 22 Jul 2026 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/kubernetes/</guid>
+            <description></description>
+        </item><item>
             <title>Inode 耗尽</title>
             <link>https://blog.5772447.xyz/tags/inode-%E8%80%97%E5%B0%BD/</link>
             <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
@@ -46,6 +82,12 @@
             <link>https://blog.5772447.xyz/tags/df-du-%E4%B8%8D%E4%B8%80%E8%87%B4/</link>
             <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/df-du-%E4%B8%8D%E4%B8%80%E8%87%B4/</guid>
+            <description></description>
+        </item><item>
+            <title>Checklist</title>
+            <link>https://blog.5772447.xyz/tags/checklist/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/checklist/</guid>
             <description></description>
         </item><item>
             <title>无盘终端</title>
@@ -472,12 +514,6 @@
             <link>https://blog.5772447.xyz/tags/metrics-server/</link>
             <pubDate>Wed, 22 Jul 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/metrics-server/</guid>
-            <description></description>
-        </item><item>
-            <title>Kubernetes</title>
-            <link>https://blog.5772447.xyz/tags/kubernetes/</link>
-            <pubDate>Wed, 22 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/kubernetes/</guid>
             <description></description>
         </item><item>
             <title>Kubelet Summary API</title>
@@ -1854,12 +1890,6 @@
             <guid>https://blog.5772447.xyz/tags/%E9%9B%AA%E5%B4%A9/</guid>
             <description></description>
         </item><item>
-            <title>微服务</title>
-            <link>https://blog.5772447.xyz/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/</link>
-            <pubDate>Mon, 15 Jan 2024 02:45:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/</guid>
-            <description></description>
-        </item><item>
             <title>散热</title>
             <link>https://blog.5772447.xyz/tags/%E6%95%A3%E7%83%AD/</link>
             <pubDate>Wed, 13 Dec 2023 10:35:00 +0000</pubDate>
@@ -1888,12 +1918,6 @@
             <link>https://blog.5772447.xyz/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8/</link>
             <pubDate>Wed, 13 Dec 2023 10:35:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8/</guid>
-            <description></description>
-        </item><item>
-            <title>健康检查</title>
-            <link>https://blog.5772447.xyz/tags/%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5/</link>
-            <pubDate>Wed, 22 Nov 2023 20:10:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5/</guid>
             <description></description>
         </item><item>
             <title>负载均衡</title>
