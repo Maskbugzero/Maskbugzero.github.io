@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="核心三层交换机 OSPF 邻居频繁 Flap 导致全网路由表震荡，BGP 也受影响；根因是相邻设备 Hello/Dead timer 不一致 + passive-interface 误配 + 区域类型漂移，三层配置失配在 90 秒内触发雪崩。">
+<title>核心路由器 OSPF 邻居为何频繁 Flap？一次全网路由震荡的排查记录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/da7616e2/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="核心路由器 OSPF 邻居为何频繁 Flap？一次全网路由震荡的排查记录">
+<meta property='og:description' content="核心三层交换机 OSPF 邻居频繁 Flap 导致全网路由表震荡，BGP 也受影响；根因是相邻设备 Hello/Dead timer 不一致 + passive-interface 误配 + 区域类型漂移，三层配置失配在 90 秒内触发雪崩。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/da7616e2/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='OSPF' /><meta property='article:tag' content='路由震荡' /><meta property='article:tag' content='Flapping' /><meta property='article:tag' content='Hello timer' /><meta property='article:tag' content='Dead timer' /><meta property='article:tag' content='passive-interface' /><meta property='article:tag' content='网络排障' /><meta property='article:published_time' content='2026-08-04T00:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-08-04T00:00:00&#43;00:00'/>
+<meta name="twitter:title" content="核心路由器 OSPF 邻居为何频繁 Flap？一次全网路由震荡的排查记录">
+<meta name="twitter:description" content="核心三层交换机 OSPF 邻居频繁 Flap 导致全网路由表震荡，BGP 也受影响；根因是相邻设备 Hello/Dead timer 不一致 + passive-interface 误配 + 区域类型漂移，三层配置失配在 90 秒内触发雪崩。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步确认-ospf-邻居状态与日志">第一步：确认 OSPF 邻居状态与日志</a></li>
+        <li><a href="#第二步检查-passive-interface-配置">第二步：检查 passive-interface 配置</a></li>
+        <li><a href="#第三步检查区域类型与认证">第三步：检查区域类型与认证</a></li>
+        <li><a href="#第四步全网路由震荡原因">第四步：全网路由震荡原因</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
+                网络运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/da7616e2/">核心路由器 OSPF 邻居为何频繁 Flap？一次全网路由震荡的排查记录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            核心三层交换机 OSPF 邻居频繁 Flap 导致全网路由表震荡，BGP 也受影响；根因是相邻设备 Hello/Dead timer 不一致 &#43; passive-interface 误配 &#43; 区域类型漂移，三层配置失配在 90 秒内触发雪崩。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-08-04T00:00:00Z'>2026年8月4日星期二</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 3 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步确认-ospf-邻居状态与日志">第一步：确认 OSPF 邻居状态与日志</a></li>
+        <li><a href="#第二步检查-passive-interface-配置">第二步：检查 passive-interface 配置</a></li>
+        <li><a href="#第三步检查区域类型与认证">第三步：检查区域类型与认证</a></li>
+        <li><a href="#第四步全网路由震荡原因">第四步：全网路由震荡原因</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>生产网络核心层由两台华为 CE12800 核心三层交换机（CR1/CR2）通过 OSPF Area 0 互联，承载全网 200+ VLAN 的三层路由。2026 年 8 月 3 日 14:20 起，监控系统连续告警「OSPF Neighbor Down/Up」，同时全网出现间歇性丢包、部分业务系统数据库连接超时。BGP（与上游 ISP 做 eBGP）也受影响，出现大量路由撤回与重新注入。初步判断为 OSPF 协议层面的路由震荡。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ol>
+<li><strong>OSPF 邻居反复 Flap</strong>：CR1 与 CR2 的 OSPF 邻居状态在 Full ↔ Init/2-Way 之间切换，平均每 90 秒一次，持续约 40 分钟。</li>
+<li><strong>路由表震荡</strong>：全网路由表（含静态 + OSPF + BGP）出现大规模撤回与重新学习，RIB/FIB 频繁更新。</li>
+<li><strong>业务影响</strong>：核心业务数据库（MySQL 主从）出现大量「Lost connection to MySQL server during query」，部分应用接口返回 504。</li>
+<li><strong>BGP 受波及</strong>：上游 eBGP 会话因大量路由撤回而触发 damping，部分公网路由暂时不可达。</li>
+</ol>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="第一步确认-ospf-邻居状态与日志"><a href="#%e7%ac%ac%e4%b8%80%e6%ad%a5%e7%a1%ae%e8%ae%a4-ospf-%e9%82%bb%e5%b1%85%e7%8a%b6%e6%80%81%e4%b8%8e%e6%97%a5%e5%bf%97" class="header-anchor"></a>第一步：确认 OSPF 邻居状态与日志
+</h3><p>在 CR1 上执行：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>display ospf peer
+</span></span><span style="display:flex;"><span>display ospf interface
+</span></span><span style="display:flex;"><span>display ospf error
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>发现 CR1 与 CR2 的邻居关系频繁在 Full → Init 切换，错误日志提示：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>OSPF/3/IFSM: OSPF 1.1.1.1 Neighbor 10.0.0.2(GE1/0/1) from Full to Init, reason: 1-WayHelloReceived
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>同时发现两台设备上同一个接口的 Hello timer / Dead timer 配置不一致：</p>
+<ul>
+<li>CR1: Hello 10s, Dead 40s</li>
+<li>CR2: Hello 5s, Dead 20s</li>
+</ul>
+<h3 id="第二步检查-passive-interface-配置"><a href="#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e6%a3%80%e6%9f%a5-passive-interface-%e9%85%8d%e7%bd%ae" class="header-anchor"></a>第二步：检查 passive-interface 配置
+</h3><p>继续检查接口配置：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>display current-configuration interface GE1/0/1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>发现 CR2 的上联接口意外配置了 <code>ospf silent-interface</code>，导致 CR2 不再发送 Hello，但仍接收 CR1 的 Hello，形成单向邻居。</p>
+<h3 id="第三步检查区域类型与认证"><a href="#%e7%ac%ac%e4%b8%89%e6%ad%a5%e6%a3%80%e6%9f%a5%e5%8c%ba%e5%9f%9f%e7%b1%bb%e5%9e%8b%e4%b8%8e%e8%ae%a4%e8%af%81" class="header-anchor"></a>第三步：检查区域类型与认证
+</h3><p>进一步对比两台设备的 OSPF Area 配置：</p>
+<ul>
+<li>CR1 Area 0 配置为 <code>nssa no-import-route</code></li>
+<li>CR2 Area 0 配置为 <code>stub no-summary</code></li>
+</ul>
+<p>区域类型不一致导致 LSA 类型不匹配，邻居关系无法稳定建立。</p>
+<h3 id="第四步全网路由震荡原因"><a href="#%e7%ac%ac%e5%9b%9b%e6%ad%a5%e5%85%a8%e7%bd%91%e8%b7%af%e7%94%b1%e9%9c%87%e8%8d%a1%e5%8e%9f%e5%9b%a0" class="header-anchor"></a>第四步：全网路由震荡原因
+</h3><p>OSPF 邻居 Flap 直接导致：</p>
+<ul>
+<li>全网路由表大规模撤回（因为 OSPF 是 IGP，BGP 依赖 IGP 下一跳可达性）</li>
+<li>BGP 收到大量路由撤回后触发 damping</li>
+<li>业务系统因路由瞬断而出现连接超时</li>
+</ul>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>统一 Hello/Dead timer</strong>：在 CR1 与 CR2 的所有 OSPF 接口上统一配置 <code>ospf timer hello 10 dead 40</code>。</li>
+<li><strong>清理 passive-interface</strong>：删除 CR2 上误配置的 <code>ospf silent-interface</code>，恢复双向 Hello 发送。</li>
+<li><strong>统一区域类型</strong>：将 CR1/CR2 Area 0 统一改为 <code>nssa no-import-route</code>，并在边界路由器上配置 <code>import-route direct route-policy</code> 精确控制路由注入。</li>
+<li><strong>增加认证与 BFD</strong>：开启 OSPF MD5 认证 + BFD（双向转发检测），将故障收敛时间从秒级降到毫秒级。</li>
+<li><strong>监控与告警</strong>：增加 OSPF 邻居状态监控 + 路由表变化速率告警，提前发现配置漂移。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>根本原因是<strong>三层配置漂移</strong>：</p>
+<ul>
+<li>不同维护窗口由不同团队操作，Hello/Dead timer、passive-interface、区域类型三项关键参数未做版本化管理。</li>
+<li>90 秒的 Flap 周期刚好是 Dead timer 的 2 倍，属于典型的 timer 不一致导致的单向邻居。</li>
+<li>passive-interface 误配 + 区域类型不匹配形成「三重失配」，任何一项修复都只能短暂缓解，最终必须三者同时统一才能根治。</li>
+</ul>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
+<li><strong>配置版本化与 Review</strong>：所有网络设备配置变更必须走 Git + Review，关键参数（timer、area type、passive）做 diff 检查。</li>
+<li><strong>自动化一致性巡检</strong>：每周运行一次脚本对比全网 OSPF/BGP 配置，检测 timer、area、认证差异。</li>
+<li><strong>BFD + 快速收敛</strong>：核心链路必须开启 BFD，把协议收敛时间控制在 50ms 以内。</li>
+<li><strong>变更窗口隔离</strong>：网络变更必须在业务低峰期执行，变更后立即执行「配置漂移检查清单」。</li>
+<li><strong>监控分层告警</strong>：OSPF 邻居 Flap 告警 → 路由表变化速率告警 → 业务连接超时告警，形成三级响应。</li>
+</ol>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>一次看似普通的 OSPF 邻居 Flap，根源是三层配置漂移累积到临界点后引发的全网级雪崩。通过统一 timer、清理 passive、统一区域类型、开启 BFD + 认证，最终将故障收敛时间从分钟级降到毫秒级。网络排障永远是「配置一致性 &gt; 协议特性」，任何参数漂移都可能成为压垮全网的最后一根稻草。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/ospf/">OSPF</a>
+        
+            <a href="/tags/%E8%B7%AF%E7%94%B1%E9%9C%87%E8%8D%A1/">路由震荡</a>
+        
+            <a href="/tags/flapping/">Flapping</a>
+        
+            <a href="/tags/hello-timer/">Hello Timer</a>
+        
+            <a href="/tags/dead-timer/">Dead Timer</a>
+        
+            <a href="/tags/passive-interface/">Passive-Interface</a>
+        
+            <a href="/tags/%E7%BD%91%E7%BB%9C%E6%8E%92%E9%9A%9C/">网络排障</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/0d552fca/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">OSPF 路由震荡致跨机房业务间歇中断的定位</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
