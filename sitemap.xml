@@ -2,25 +2,34 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://blog.5772447.xyz/categories/</loc>
+    <lastmod>2026-08-06T07:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/post/</loc>
+    <lastmod>2026-08-06T07:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/</loc>
+    <lastmod>2026-08-06T07:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/categories/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/</loc>
+    <lastmod>2026-08-06T07:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/posts/366a6499/</loc>
+    <lastmod>2026-08-06T07:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/categories/%E8%BF%90%E7%BB%B4/</loc>
+    <lastmod>2026-08-06T07:00:00+08:00</lastmod>
+  </url><url>
     <loc>https://blog.5772447.xyz/tags/accesskey%E6%B3%84%E9%9C%B2/</loc>
     <lastmod>2026-08-05T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://blog.5772447.xyz/categories/</loc>
-    <lastmod>2026-08-05T00:00:00+00:00</lastmod>
-  </url><url>
     <loc>https://blog.5772447.xyz/tags/gitleaks/</loc>
-    <lastmod>2026-08-05T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/post/</loc>
     <lastmod>2026-08-05T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/ram%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90/</loc>
     <lastmod>2026-08-05T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/</loc>
-    <lastmod>2026-08-05T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/</loc>
     <lastmod>2026-08-05T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/</loc>
@@ -39,9 +48,6 @@
     <lastmod>2026-08-05T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/%E4%BA%91%E5%AE%89%E5%85%A8/</loc>
-    <lastmod>2026-08-05T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/categories/%E8%BF%90%E7%BB%B4/</loc>
     <lastmod>2026-08-05T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/dead-timer/</loc>
@@ -378,9 +384,6 @@
     <lastmod>2026-07-22T07:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/metrics-server/</loc>
-    <lastmod>2026-07-22T07:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/categories/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/</loc>
     <lastmod>2026-07-22T07:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/%E8%87%AA%E5%8A%A8%E6%89%A9%E5%AE%B9/</loc>
