@@ -5,7 +5,55 @@
         <description>Recent content in Tags on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Wed, 05 Aug 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Fri, 07 Aug 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>最小权限</title>
+            <link>https://blog.5772447.xyz/tags/%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90/</link>
+            <pubDate>Sat, 01 Aug 2026 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90/</guid>
+            <description></description>
+        </item><item>
+            <title>资产盘点</title>
+            <link>https://blog.5772447.xyz/tags/%E8%B5%84%E4%BA%A7%E7%9B%98%E7%82%B9/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%B5%84%E4%BA%A7%E7%9B%98%E7%82%B9/</guid>
+            <description></description>
+        </item><item>
+            <title>主机加固</title>
+            <link>https://blog.5772447.xyz/tags/%E4%B8%BB%E6%9C%BA%E5%8A%A0%E5%9B%BA/</link>
+            <pubDate>Fri, 17 Jul 2026 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E4%B8%BB%E6%9C%BA%E5%8A%A0%E5%9B%BA/</guid>
+            <description></description>
+        </item><item>
+            <title>凭据治理</title>
+            <link>https://blog.5772447.xyz/tags/%E5%87%AD%E6%8D%AE%E6%B2%BB%E7%90%86/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%87%AD%E6%8D%AE%E6%B2%BB%E7%90%86/</guid>
+            <description></description>
+        </item><item>
+            <title>端口扫描</title>
+            <link>https://blog.5772447.xyz/tags/%E7%AB%AF%E5%8F%A3%E6%89%AB%E6%8F%8F/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E7%AB%AF%E5%8F%A3%E6%89%AB%E6%8F%8F/</guid>
+            <description></description>
+        </item><item>
+            <title>暴露面收敛</title>
+            <link>https://blog.5772447.xyz/tags/%E6%9A%B4%E9%9C%B2%E9%9D%A2%E6%94%B6%E6%95%9B/</link>
+            <pubDate>Wed, 29 Jul 2026 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%9A%B4%E9%9C%B2%E9%9D%A2%E6%94%B6%E6%95%9B/</guid>
+            <description></description>
+        </item><item>
+            <title>安全组</title>
+            <link>https://blog.5772447.xyz/tags/%E5%AE%89%E5%85%A8%E7%BB%84/</link>
+            <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%AE%89%E5%85%A8%E7%BB%84/</guid>
+            <description></description>
+        </item><item>
+            <title>Checklist</title>
+            <link>https://blog.5772447.xyz/tags/checklist/</link>
+            <pubDate>Mon, 03 Aug 2026 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/checklist/</guid>
+            <description></description>
+        </item><item>
             <title>云安全</title>
             <link>https://blog.5772447.xyz/tags/%E4%BA%91%E5%AE%89%E5%85%A8/</link>
             <pubDate>Wed, 05 Aug 2026 00:00:00 +0000</pubDate>
@@ -168,12 +216,6 @@
             <guid>https://blog.5772447.xyz/tags/df-du-%E4%B8%8D%E4%B8%80%E8%87%B4/</guid>
             <description></description>
         </item><item>
-            <title>Checklist</title>
-            <link>https://blog.5772447.xyz/tags/checklist/</link>
-            <pubDate>Mon, 03 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/checklist/</guid>
-            <description></description>
-        </item><item>
             <title>无盘终端</title>
             <link>https://blog.5772447.xyz/tags/%E6%97%A0%E7%9B%98%E7%BB%88%E7%AB%AF/</link>
             <pubDate>Sun, 02 Aug 2026 07:00:00 +0800</pubDate>
@@ -220,12 +262,6 @@
             <link>https://blog.5772447.xyz/tags/bootstrap/</link>
             <pubDate>Sun, 02 Aug 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/bootstrap/</guid>
-            <description></description>
-        </item><item>
-            <title>最小权限</title>
-            <link>https://blog.5772447.xyz/tags/%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90/</link>
-            <pubDate>Sat, 01 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90/</guid>
             <description></description>
         </item><item>
             <title>权限提升</title>
@@ -328,12 +364,6 @@
             <link>https://blog.5772447.xyz/tags/%E6%95%B0%E6%8D%AE%E6%B3%84%E9%9C%B2/</link>
             <pubDate>Wed, 29 Jul 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/%E6%95%B0%E6%8D%AE%E6%B3%84%E9%9C%B2/</guid>
-            <description></description>
-        </item><item>
-            <title>暴露面收敛</title>
-            <link>https://blog.5772447.xyz/tags/%E6%9A%B4%E9%9C%B2%E9%9D%A2%E6%94%B6%E6%95%9B/</link>
-            <pubDate>Wed, 29 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%9A%B4%E9%9C%B2%E9%9D%A2%E6%94%B6%E6%95%9B/</guid>
             <description></description>
         </item><item>
             <title>Elasticsearch</title>
@@ -858,12 +888,6 @@
             <guid>https://blog.5772447.xyz/tags/failedscheduling/</guid>
             <description></description>
         </item><item>
-            <title>主机加固</title>
-            <link>https://blog.5772447.xyz/tags/%E4%B8%BB%E6%9C%BA%E5%8A%A0%E5%9B%BA/</link>
-            <pubDate>Fri, 17 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E4%B8%BB%E6%9C%BA%E5%8A%A0%E5%9B%BA/</guid>
-            <description></description>
-        </item><item>
             <title>数据恢复</title>
             <link>https://blog.5772447.xyz/tags/%E6%95%B0%E6%8D%AE%E6%81%A2%E5%A4%8D/</link>
             <pubDate>Fri, 17 Jul 2026 07:00:00 +0800</pubDate>
@@ -1116,7 +1140,7 @@
             <guid>https://blog.5772447.xyz/tags/postgresql/</guid>
             <description></description>
         </item><item>
-            <title>Nas</title>
+            <title>NAS</title>
             <link>https://blog.5772447.xyz/tags/nas/</link>
             <pubDate>Thu, 09 Jul 2026 07:00:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/nas/</guid>
