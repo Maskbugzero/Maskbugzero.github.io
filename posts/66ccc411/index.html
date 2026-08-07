@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="OpenWrt 从 firewall3 升到 firewall4 后，旁路由 FORWARD 默认策略变 DROP，专线回程与东向访问被静默丢弃。">
+<title>OpenWrt旁路由升级后内网专线业务为何全断？一次firewall4默认策略变更的排查实录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/66ccc411/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="OpenWrt旁路由升级后内网专线业务为何全断？一次firewall4默认策略变更的排查实录">
+<meta property='og:description' content="OpenWrt 从 firewall3 升到 firewall4 后，旁路由 FORWARD 默认策略变 DROP，专线回程与东向访问被静默丢弃。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/66ccc411/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='OpenWrt' /><meta property='article:tag' content='firewall4' /><meta property='article:tag' content='nftables' /><meta property='article:tag' content='旁路由' /><meta property='article:tag' content='默认策略' /><meta property='article:tag' content='FORWARD' /><meta property='article:tag' content='软路由' /><meta property='article:tag' content='策略漂移' /><meta property='article:published_time' content='2026-08-08T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-08-08T07:00:00&#43;08:00'/>
+<meta name="twitter:title" content="OpenWrt旁路由升级后内网专线业务为何全断？一次firewall4默认策略变更的排查实录">
+<meta name="twitter:description" content="OpenWrt 从 firewall3 升到 firewall4 后，旁路由 FORWARD 默认策略变 DROP，专线回程与东向访问被静默丢弃。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#1-先定边界是专线死还是某条路径死">1. 先定边界：是专线死，还是“某条路径”死</a></li>
+        <li><a href="#2-看转发面不先看应用">2. 看转发面，不先看应用</a></li>
+        <li><a href="#3-从-iptables-惯性切到-nftables-现实">3. 从 iptables 惯性切到 nftables 现实</a></li>
+        <li><a href="#4-对照升级前备份">4. 对照升级前备份</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#止血分钟级">止血（分钟级）</a></li>
+        <li><a href="#根治">根治</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%B7%AF%E7%94%B1%E5%99%A8/" style="background-color: hsl(353, 60%, 84%); color: hsl(353, 60%, 15%);">
+                路由器
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/66ccc411/">OpenWrt旁路由升级后内网专线业务为何全断？一次firewall4默认策略变更的排查实录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            OpenWrt 从 firewall3 升到 firewall4 后，旁路由 FORWARD 默认策略变 DROP，专线回程与东向访问被静默丢弃。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-08-08T07:00:00&#43;08:00'>2026年8月8日星期六</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 6 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#1-先定边界是专线死还是某条路径死">1. 先定边界：是专线死，还是“某条路径”死</a></li>
+        <li><a href="#2-看转发面不先看应用">2. 看转发面，不先看应用</a></li>
+        <li><a href="#3-从-iptables-惯性切到-nftables-现实">3. 从 iptables 惯性切到 nftables 现实</a></li>
+        <li><a href="#4-对照升级前备份">4. 对照升级前备份</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#止血分钟级">止血（分钟级）</a></li>
+        <li><a href="#根治">根治</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司总部到分支机房有一条专线，出口由主路由承担 PPPoE / 策略路由，一台 x86 小主机刷 OpenWrt 做<strong>旁路由</strong>：只负责科学上网、内网 DNS 分流、部分业务 VLAN 的策略转发，不直接做 NAT 出口。日常几乎零故障，于是变更窗口一拖再拖，固件一直停在 22.03。</p>
+<p>最近为了修几个已知 CVE、顺带把 packages 跟上源，运维在周末凌晨把这台旁路由原地升级到 23.05。LuCI 能开、ping 网关正常、无线客户端上网也没异样。结果周一早高峰一到，分支机房访问总部 ERP、视频会议、打印机映射全部超时；总部侧看起来“线路绿着”，专线运营商检测也说丢包率正常——典型的<strong>看起来通、业务死</strong>。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>现象切得很整齐，几乎是“按路由路径分流”的：</p>
+<ol>
+<li><strong>同网段本机互访正常</strong>：总部办公区访问总部服务器、分支访问分支本地 NAS 都不受影响。</li>
+<li><strong>经旁路由策略转发的跨站业务全挂</strong>：源地址被 PBR（Policy-Based Routing）导入旁路由的流量，目标是对端机房内网网段时，客户端报超时 / 半开连接；抓包能看到 SYN 出去，几乎等不到 SYN-ACK。</li>
+<li><strong>旁路由自身上网正常</strong>：<code>ping 1.1.1.1</code>、访问 LuCI、<code>opkg update</code> 都成功，容易让人误判“路由没问题，一定是专线/应用层”。</li>
+<li><strong>主路由策略路由计数在涨</strong>：对端回程报文其实到了主路由，说明专线物理层与运营商侧无中断。</li>
+<li>升级窗口前一周一切正常；变更 diff 表面只有固件大版本，业务配置“原样保留”。</li>
+</ol>
+<p>最坑的一点是：升级脚本宣称 <em>config migrated</em>，UCI 里 <code>firewall</code> 段看起来还在，没有明显被清空的规则——所以第一反应几乎都不会去怀疑防火墙默认策略。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="1-先定边界是专线死还是某条路径死"><a href="#1-%e5%85%88%e5%ae%9a%e8%be%b9%e7%95%8c%e6%98%af%e4%b8%93%e7%ba%bf%e6%ad%bb%e8%bf%98%e6%98%af%e6%9f%90%e6%9d%a1%e8%b7%af%e5%be%84%e6%ad%bb" class="header-anchor"></a>1. 先定边界：是专线死，还是“某条路径”死
+</h3><p>在分支机房挑一台能复现的 PC，同时做三组对照：</p>
+<ul>
+<li>直连主路由默认网关 → 访问总部指定网段：<strong>通</strong></li>
+<li>强制走旁路由（临时把网关指到旁路由 LAN，或在主路由开一条只匹配这台 PC 的 PBR）→ <strong>不通</strong></li>
+<li>旁路由上 <code>ping</code> 对端网关 / <code>traceroute</code> 对端服务器 → 旁路由<strong>自己</strong>能通</li>
+</ul>
+<p>结论立刻收窄：<strong>专线与主路由正常，问题出在“经过旁路由转发”的那条路径。</strong></p>
+<h3 id="2-看转发面不先看应用"><a href="#2-%e7%9c%8b%e8%bd%ac%e5%8f%91%e9%9d%a2%e4%b8%8d%e5%85%88%e7%9c%8b%e5%ba%94%e7%94%a8" class="header-anchor"></a>2. 看转发面，不先看应用
+</h3><p>旁路由上确认转发已开：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sysctl net.ipv4.ip_forward
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># = 1</span>
+</span></span><span style="display:flex;"><span>ip rule; ip route show table all | head
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>PBR 表项还在，路由条目也指到正确 next-hop。再在旁路由开 <code>tcpdump</code>：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>tcpdump -ni eth0 host &lt;分支客户端IP&gt; and host &lt;总部ERP&gt;
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 能看到进方向 SYN</span>
+</span></span><span style="display:flex;"><span>tcpdump -ni eth1 host &lt;总部ERP&gt;
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 出方向有时有、有时没有；回程 SYN-ACK 经常在 br-lan 侧消失</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>入方向到了、出方向或回程丢——很像 <strong>filter 的 FORWARD 链在丢包</strong>，而不是路由表错。</p>
+<h3 id="3-从-iptables-惯性切到-nftables-现实"><a href="#3-%e4%bb%8e-iptables-%e6%83%af%e6%80%a7%e5%88%87%e5%88%b0-nftables-%e7%8e%b0%e5%ae%9e" class="header-anchor"></a>3. 从 iptables 惯性切到 nftables 现实
+</h3><p>旧印象里 OpenWrt 22.03 及更早多是 <strong>firewall3 + iptables/fw3</strong>。升级后随手敲：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>iptables -L -n -v
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 空的，或提示用 nft</span>
+</span></span><span style="display:flex;"><span>nft list ruleset | less
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>ruleset 赫然是 <strong>firewall4（fw4）基于 nftables</strong> 的表。再看 zone 与默认策略：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>uci show firewall | grep -E <span style="color:#e6db74">&#39;forward|input|output|name&#39;</span>
+</span></span><span style="display:flex;"><span>fw4 print | head -100
+</span></span><span style="display:flex;"><span>nft list chain inet fw4 forward
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>关键发现（不同版本措辞略有差异，语义一致）：</p>
+<ul>
+<li><code>firewall.@defaults[0].forward</code> 在迁移后变成了 <strong><code>REJECT</code> / 等价于 DROP 路径</strong></li>
+<li>旧机依赖的那条“lan → wan / lan → vpn 隐式允许转发”在 fw3 时代靠 zone forward=<code>ACCEPT</code> 顶着</li>
+<li>升级迁移脚本把 <strong>defaults.forward 收紧</strong>，同时部分自定义 <code>firewall.forwarding</code> / <code>firewall.rule</code> 因选项名变更或匿名 section 顺序变化<strong>没有完整落地</strong></li>
+<li>结果：旁路由作为“纯转发节点”时，<strong>本机 INPUT 仍 ACCEPT（所以 LuCI/ping 自己都好）</strong>，但 <strong>FORWARD 默认拒</strong>，跨接口业务包被 nft 静默丢弃</li>
+</ul>
+<p>再核一条最直接的证据：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>nft list chain inet fw4 forward | grep -E <span style="color:#e6db74">&#39;policy|drop|reject&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># policy drop</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 计数器在 counter packets 上持续增加，与业务超时时间线吻合</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>把测试机的一条流固定五元组后，对着 counter 刷一次访问，数字精确跳——根因锁定。</p>
+<h3 id="4-对照升级前备份"><a href="#4-%e5%af%b9%e7%85%a7%e5%8d%87%e7%ba%a7%e5%89%8d%e5%a4%87%e4%bb%bd" class="header-anchor"></a>4. 对照升级前备份
+</h3><p>幸好升级前有 <code>sysupgrade -b</code> 备份。解开对比：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 旧</span>
+</span></span><span style="display:flex;"><span>firewall.@defaults<span style="color:#f92672">[</span>0<span style="color:#f92672">]</span>.forward<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;ACCEPT&#39;</span>   <span style="color:#75715e"># 或 zone lan forward=ACCEPT + 明确 forwarding</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 新</span>
+</span></span><span style="display:flex;"><span>firewall.@defaults<span style="color:#f92672">[</span>0<span style="color:#f92672">]</span>.forward<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;REJECT&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 旧存在的 config forwarding</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#   option src &#39;lan&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#   option dest &#39;offload&#39; / &#39;vpn&#39; / 自定义 zone</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 新配置中对应 section 丢失或 dest zone 名变更后悬空</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>旁路由场景下我们从来不只依赖 “wan 口出去的 masq”，还有 <strong>lan→专线接口 zone、lan→隧道 zone</strong> 的 forwarding。迁移后默认变严 + forwarding 悬空，等于把旁路由从“透明转发器”变成了“只许本机说话的终端”。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><h3 id="止血分钟级"><a href="#%e6%ad%a2%e8%a1%80%e5%88%86%e9%92%9f%e7%ba%a7" class="header-anchor"></a>止血（分钟级）
+</h3><p>目标：先让早高峰业务恢复，再谈优雅配置。</p>
+<ol>
+<li>临时放行旁路由转发（UCI 方式，避免手改 nft 重启丢失）：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>uci set firewall.@defaults<span style="color:#f92672">[</span>0<span style="color:#f92672">]</span>.forward<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;ACCEPT&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 或更稳妥：只补齐业务需要的 zone forwarding，而不是永久放开 defaults</span>
+</span></span><span style="display:flex;"><span>uci add firewall forwarding
+</span></span><span style="display:flex;"><span>uci set firewall.@forwarding<span style="color:#f92672">[</span>-1<span style="color:#f92672">]</span>.src<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;lan&#39;</span>
+</span></span><span style="display:flex;"><span>uci set firewall.@forwarding<span style="color:#f92672">[</span>-1<span style="color:#f92672">]</span>.dest<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;wan&#39;</span>      <span style="color:#75715e"># 按实际 zone 名</span>
+</span></span><span style="display:flex;"><span>uci add firewall forwarding
+</span></span><span style="display:flex;"><span>uci set firewall.@forwarding<span style="color:#f92672">[</span>-1<span style="color:#f92672">]</span>.src<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;lan&#39;</span>
+</span></span><span style="display:flex;"><span>uci set firewall.@forwarding<span style="color:#f92672">[</span>-1<span style="color:#f92672">]</span>.dest<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;s2s&#39;</span>      <span style="color:#75715e"># 专线/隧道 zone 名以现场为准</span>
+</span></span><span style="display:flex;"><span>uci commit firewall
+</span></span><span style="display:flex;"><span>/etc/init.d/firewall restart
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>用业务五元组再打一枪，确认 <code>nft</code> forward 链 counter 不再对应该流增长，SYN-ACK 回来。</li>
+<li>若仍有个别网段不通，检查 <strong>zone 成员网卡是否还在</strong>（升级后网卡名/DSA 口名变化会导致 interface 掉出 zone，表现同样是“能 ping 自己不能转”）。</li>
+</ol>
+<h3 id="根治"><a href="#%e6%a0%b9%e6%b2%bb" class="header-anchor"></a>根治
+</h3><ol>
+<li><strong>按最小权限重建 forwarding 矩阵</strong>，不要长期 <code>defaults.forward=ACCEPT</code>：
+<ul>
+<li>只允许 <code>lan → s2s</code>、<code>lan → vpn</code>、必要的 <code>s2s → lan</code> 回程</li>
+<li>明确 <code>masq</code> 只开在真正做 NAT 的 zone（旁路由很多场景甚至不应开 masq）</li>
+</ul>
+</li>
+<li><strong>为自定义 zone 写死名称与 device</strong>，避免依赖匿名 section 顺序；升级后跑一次：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>fw4 restart
+</span></span><span style="display:flex;"><span>nft list ruleset &gt; /root/fw4-after-upgrade.nft
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 与升级前备份 diff</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li><strong>变更清单里增加 firewall4 专项</strong>：
+<ul>
+<li><code>firewall.@defaults[0].{input,output,forward}</code></li>
+<li>所有 <code>config forwarding</code> / <code>config rule</code> / <code>config redirect</code></li>
+<li><code>option device</code> / <code>option network</code> 是否仍解析得到</li>
+</ul>
+</li>
+<li>旁路由升级改为：<strong>先在同型号备机刷 23.05 → 导入配置 → 用 iperf/业务探针打转发路径 → 再窗口切换</strong>，禁止生产机“原地碰运气”。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>根因不是“OpenWrt 坏了”，而是 <strong>防火墙后端换代带来的安全默认值与配置模型漂移</strong>：</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>层级</th>
+          <th>升级前 (fw3/iptables)</th>
+          <th>升级后 (fw4/nftables)</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>后端</td>
+          <td>iptables + fw3</td>
+          <td>nftables + fw4</td>
+      </tr>
+      <tr>
+          <td>默认转发姿态</td>
+          <td>现场长期 ACCEPT / 宽松 zone</td>
+          <td>迁移后偏 REJECT/DROP</td>
+      </tr>
+      <tr>
+          <td>配置兼容</td>
+          <td>旧 UCI 基本原义</td>
+          <td>部分 option/匿名段迁移不完整</td>
+      </tr>
+      <tr>
+          <td>旁路由特性</td>
+          <td>依赖 FORWARD 放行</td>
+          <td>FORWARD 一收紧业务全死、本机仍“看起来健康”</td>
+      </tr>
+  </tbody>
+</table></div>
+<p>旁路由的故障面具有迷惑性：<strong>管理面（INPUT）健康 ≠ 数据面（FORWARD）健康</strong>。主路由、专线、应用三方都可以“证明自己没问题”，于是锅会在多方之间空转，直到有人在旁路由上直接读 <code>nft</code> 的 forward policy 与 counter。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
+<li><strong>软路由/旁路由纳入变更分级</strong>：大版本跨 <code>firewall3 → firewall4</code>、DSA 改造、内核大版本，一律按“网络割接”做，而不是“打个补丁”。</li>
+<li><strong>升级验收探针必须覆盖转发路径</strong>：
+<ul>
+<li>至少一条：客户端 → 旁路由 → 对端内网 TCP 业务端口</li>
+<li>不要只用“能打开 LuCI / 能 ping 外网”当验收</li>
+</ul>
+</li>
+<li><strong>配置即代码</strong>：<code>/etc/config/firewall</code>、<code>network</code>、PBR 相关配置进 Git；升级前后自动 diff，forwarding 段数量不得无故减少。</li>
+<li><strong>监控</strong>：对旁路由 snmp/prometheus 采 <code>nft</code> counter 或转发流量；业务超时告警与“旁路由 forward drop 速率”关联，避免只盯专线运营商链路灯。</li>
+<li><strong>文档化 zone 矩阵</strong>：一张表写清 src zone / dest zone / 是否 masq / 是否依赖自定义 rule，新人半夜不敢“顺手修”。</li>
+<li><strong>保留 15 分钟回退包</strong>：<code>sysupgrade</code> 前离线保存旧固件 + 完整 backup，确认 SERIAL/电源可进 failsafe。</li>
+</ol>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这次故障的完整链条是：</p>
+<p><strong>OpenWrt 大版本升级 → 防火墙从 fw3 切到 fw4 → 默认 FORWARD 收紧 + 部分 forwarding 迁移丢失 → 旁路由本机仍通但跨站转发静默丢包 → 专线与主路由“背锅”。</strong></p>
+<p>排查口诀可以压成一句：<strong>旁路由疑难，先看 FORWARD policy 与 counter，再看专线。</strong><br>
+处理上止血可以短暂放开 defaults.forward，根治必须按 zone 矩阵最小放行，并把 firewall4 纳入升级验收清单。家里或公司的 x86 软路由如果还在 “能上网就当健康”，下次跨大版本前务必先在备机验证一条真实业务的转发路径——否则周一早上等你的，一定是“专线没问题，就是业务全死”的灵魂拷问。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/openwrt/">OpenWrt</a>
+        
+            <a href="/tags/firewall4/">Firewall4</a>
+        
+            <a href="/tags/nftables/">Nftables</a>
+        
+            <a href="/tags/%E6%97%81%E8%B7%AF%E7%94%B1/">旁路由</a>
+        
+            <a href="/tags/%E9%BB%98%E8%AE%A4%E7%AD%96%E7%95%A5/">默认策略</a>
+        
+            <a href="/tags/forward/">FORWARD</a>
+        
+            <a href="/tags/%E8%BD%AF%E8%B7%AF%E7%94%B1/">软路由</a>
+        
+            <a href="/tags/%E7%AD%96%E7%95%A5%E6%BC%82%E7%A7%BB/">策略漂移</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/500de237/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Netkeeper-OpenWrt——专注闪讯上网</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
