@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="跨机房链路变更只验 ping 通不够；用连通矩阵、回程与 MTU 三道关 Checklist 堵住半通与晚高峰回填。">
+<title>记一次跨机房链路变更验收Checklist的落地：连通矩阵、回程路由与MTU三道关</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/7c686262/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次跨机房链路变更验收Checklist的落地：连通矩阵、回程路由与MTU三道关">
+<meta property='og:description' content="跨机房链路变更只验 ping 通不够；用连通矩阵、回程与 MTU 三道关 Checklist 堵住半通与晚高峰回填。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/7c686262/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-08-12T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-08-12T07:00:00&#43;08:00'/>
+<meta name="twitter:title" content="记一次跨机房链路变更验收Checklist的落地：连通矩阵、回程路由与MTU三道关">
+<meta name="twitter:description" content="跨机房链路变更只验 ping 通不够；用连通矩阵、回程与 MTU 三道关 Checklist 堵住半通与晚高峰回填。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#1-停掉能-ping-就收工的习惯">1. 停掉「能 ping 就收工」的习惯</a></li>
+        <li><a href="#2-第一道关连通矩阵比单点-ping-重要">2. 第一道关：连通矩阵（比单点 ping 重要）</a></li>
+        <li><a href="#3-第二道关回程路由与对称性">3. 第二道关：回程路由与对称性</a></li>
+        <li><a href="#4-第三道关mtu--mss--大包">4. 第三道关：MTU / MSS / 大包</a></li>
+        <li><a href="#5-协议邻居冗余与回退演练">5. 协议邻居、冗余与回退演练</a></li>
+        <li><a href="#6-清单落地时的分工与门禁">6. 清单落地时的分工与门禁</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a>
+      <ul>
+        <li><a href="#a-变更前t-1">A. 变更前（T-1）</a></li>
+        <li><a href="#b-变更中执行">B. 变更中（执行）</a></li>
+        <li><a href="#c-变更后验收三道关缺一不可">C. 变更后（验收三道关，缺一不可）</a></li>
+        <li><a href="#d-制度化">D. 制度化</a></li>
+      </ul>
+    </li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
+                网络运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/7c686262/">记一次跨机房链路变更验收Checklist的落地：连通矩阵、回程路由与MTU三道关</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            跨机房链路变更只验 ping 通不够；用连通矩阵、回程与 MTU 三道关 Checklist 堵住半通与晚高峰回填。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-08-12T07:00:00&#43;08:00'>2026年8月12日星期三</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 7 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#1-停掉能-ping-就收工的习惯">1. 停掉「能 ping 就收工」的习惯</a></li>
+        <li><a href="#2-第一道关连通矩阵比单点-ping-重要">2. 第一道关：连通矩阵（比单点 ping 重要）</a></li>
+        <li><a href="#3-第二道关回程路由与对称性">3. 第二道关：回程路由与对称性</a></li>
+        <li><a href="#4-第三道关mtu--mss--大包">4. 第三道关：MTU / MSS / 大包</a></li>
+        <li><a href="#5-协议邻居冗余与回退演练">5. 协议邻居、冗余与回退演练</a></li>
+        <li><a href="#6-清单落地时的分工与门禁">6. 清单落地时的分工与门禁</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a>
+      <ul>
+        <li><a href="#a-变更前t-1">A. 变更前（T-1）</a></li>
+        <li><a href="#b-变更中执行">B. 变更中（执行）</a></li>
+        <li><a href="#c-变更后验收三道关缺一不可">C. 变更后（验收三道关，缺一不可）</a></li>
+        <li><a href="#d-制度化">D. 制度化</a></li>
+      </ul>
+    </li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>机房搬迁、专线扩容、防火墙替换、VPN 重协商这类跨机房链路变更，现场最常见的验收口径是「两边能 ping 通、核心业务打开页面」。看起来很快，晚上却往往出事：A 到 B 正常、B 到 A 超时；小包没事、大文件/数据库同步卡死；白天流量小看不出来，晚高峰回程路径一拥塞就全面抖。</p>
+<p>结合近年处置过的非对称路由、PMTUD 黑洞、OSPF 配置漂移、专线抖动等案例，我们把零散经验收成一份<strong>跨机房链路变更验收 Checklist</strong>，并在一次生产窗口强制落地。目标不是再写一篇事后复盘，而是让值班在变更当晚按清单逐项打勾，把「半通 / 大包不通 / 路径漂移」挡在业务发现之前。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>变更窗口结束后，监控与值守群一度显示「正常」：</p>
+<ol>
+<li><strong>ICMP 通</strong>：核心交换机、关键服务器双向 <code>ping</code> 延迟稳定，丢包为 0。</li>
+<li><strong>页面通</strong>：运维从办公网打开对端工单/监控，HTTPS 能打开。</li>
+<li><strong>告警静默</strong>：链路 up、BGP/OSPF 邻居 Established、专线 SD-WAN 面板全绿。</li>
+</ol>
+<p>约 40 分钟后问题陆续冒头：</p>
+<ol>
+<li><strong>单向业务失败</strong>：A 机房调用 B 机房内部 API 正常，反向回调/Webhook 超时；部分日志同步只见 half-open。</li>
+<li><strong>大包业务卡死</strong>：跨机房备份、镜像同步、数据库物理复制进度条长时间不动；<code>ping</code> 小包仍正常。</li>
+<li><strong>路径不一致</strong>：<code>traceroute</code> 去程走新专线，回程仍钻旧 VPN 或策略路由旁路；NAT/状态防火墙开始出现「只见半连接」。</li>
+<li><strong>晚高峰放大</strong>：业务量上来后抖动与重传激增，一线又会把锅甩给「应用层超时配置」。</li>
+</ol>
+<p>若只以「能 ping」结单，这类故障会伪装成应用问题，排查成本成倍上升。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="1-停掉能-ping-就收工的习惯"><a href="#1-%e5%81%9c%e6%8e%89%e8%83%bd-ping-%e5%b0%b1%e6%94%b6%e5%b7%a5%e7%9a%84%e4%b9%a0%e6%83%af" class="header-anchor"></a>1. 停掉「能 ping 就收工」的习惯
+</h3><p>窗口负责人没有直接关单，而是拉出验收清单，按<strong>业务矩阵 → 双向路径 → 大包/MTU → 协议与冗余 → 回退点</strong>五段复核。同时保留变更前配置快照、路由表导出与流量基线，避免「修着修着不知道改过什么」。</p>
+<h3 id="2-第一道关连通矩阵比单点-ping-重要"><a href="#2-%e7%ac%ac%e4%b8%80%e9%81%93%e5%85%b3%e8%bf%9e%e9%80%9a%e7%9f%a9%e9%98%b5%e6%af%94%e5%8d%95%e7%82%b9-ping-%e9%87%8d%e8%a6%81" class="header-anchor"></a>2. 第一道关：连通矩阵（比单点 ping 重要）
+</h3><p>列出跨机房真实流量，而不是只测运维跳板机：</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>源区域</th>
+          <th>目标区域</th>
+          <th>代表流量</th>
+          <th>协议/端口</th>
+          <th>期望</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>A 应用区</td>
+          <td>B 数据库区</td>
+          <td>业务读写</td>
+          <td>TCP 业务端口</td>
+          <td>双向可建连</td>
+      </tr>
+      <tr>
+          <td>B 应用区</td>
+          <td>A API 网关</td>
+          <td>回调/Webhook</td>
+          <td>TCP 443/业务口</td>
+          <td><strong>反向同样要通</strong></td>
+      </tr>
+      <tr>
+          <td>A 备份网</td>
+          <td>B 对象存储/NAS</td>
+          <td>备份复制</td>
+          <td>TCP/NFS/专用口</td>
+          <td>持续大流量稳定</td>
+      </tr>
+      <tr>
+          <td>监控区</td>
+          <td>两端主机</td>
+          <td>探针/exporter</td>
+          <td>ICMP+TCP</td>
+          <td>对称可达</td>
+      </tr>
+      <tr>
+          <td>办公运维</td>
+          <td>两端堡垒/带外</td>
+          <td>运维通道</td>
+          <td>SSH/RDP/HTTPS</td>
+          <td>变更中不中断</td>
+      </tr>
+  </tbody>
+</table></div>
+<p>执行要求：</p>
+<ul>
+<li>每个格子用<strong>源侧真实网段主机</strong>测，不拿 NAT 后的跳板机冒充应用源</li>
+<li>同时测 <strong>TCP 端口</strong>（<code>nc</code>/<code>Test-NetConnection</code>/<code>curl</code>），不只靠 ICMP</li>
+<li>关键 <code>conntrack</code>/会话表，确认是 ESTABLISHED，而不是反复 SYN 重试</li>
+<li>任一方「半通」即判验收失败，禁止用「业务侧可绕行」抵赖</li>
+</ul>
+<p>本窗口第一轮就扫出 2 条反向路径缺失：B→A 的回调地址仍指向旧 VIP，A 侧安全策略只放行了新专线网段的入向，出向回包被旧策略路由送进黑洞。</p>
+<h3 id="3-第二道关回程路由与对称性"><a href="#3-%e7%ac%ac%e4%ba%8c%e9%81%93%e5%85%b3%e5%9b%9e%e7%a8%8b%e8%b7%af%e7%94%b1%e4%b8%8e%e5%af%b9%e7%a7%b0%e6%80%a7" class="header-anchor"></a>3. 第二道关：回程路由与对称性
+</h3><p>「去程通、回程不通」是跨机房变更的高频杀手。清单强制做：</p>
+<ol>
+<li><strong>双向 traceroute / 路由查表</strong><br>
+在源、目的各取 2 个真实主机，对打并记录路径哈希（下一跳序列）。去程与回程若不一致，标记为「非对称」，进入高风险清单。</li>
+<li><strong>策略路由 / PBR / 默认路由优先级</strong><br>
+核对静态路由、SD-WAN 选路、防火墙 policy-based route 是否与新链路同步；禁止只改一边的下一跳。</li>
+<li><strong>状态防火墙与 RPF</strong><br>
+对启用 strict uRPF / 会话严格绑定入接口的设备，非对称几乎必然丢回程。能改 loose 的评估影响；不能改的必须把去程回程收敛到同一逻辑路径。</li>
+<li><strong>NAT 边界</strong><br>
+跨机房若存在源 NAT/目的 NAT，验收时确认两端看到的五元组一致，避免「A 以为连的是 10.x，B 回的是公网映射地址」。</li>
+</ol>
+<p>本窗口发现：新专线只在 A 侧注入了更优 metric，B 侧回程仍偏好旧 IPsec。白天流量小时偶发成功（部分流碰巧对称），高峰则大面积超时——典型「验收假绿」。</p>
+<h3 id="4-第三道关mtu--mss--大包"><a href="#4-%e7%ac%ac%e4%b8%89%e9%81%93%e5%85%b3mtu--mss--%e5%a4%a7%e5%8c%85" class="header-anchor"></a>4. 第三道关：MTU / MSS / 大包
+</h3><p>小包通、大文件卡，优先怀疑隧道封装与 PMTUD：</p>
+<ol>
+<li><strong>测路径 MTU</strong><br>
+<code>ping -M do -s &lt;size&gt;</code>（Linux）或等价大包 DF 探测，从 1500 递减找到两端实际可用 MTU；隧道场景常见有效载荷掉到 1400 附近。</li>
+<li><strong>禁止只靠「不分片就缩小包」糊弄</strong><br>
+业务 TCP 若 MSS 未钳制，仍会发接近 1500 的包，中间丢 ICMP「需要分片」时即 PMTUD 黑洞。</li>
+<li><strong>验收项必须含大包业务</strong><br>
+至少跑一轮：<code>iperf</code>/<code>smb</code> 大文件、数据库逻辑同步、对象存储 multipart；持续 3–5 分钟看重传与吞吐是否达到基线 80% 以上。</li>
+<li><strong>设备侧检查</strong><br>
+隧道口 MTU、TCP MSS adjust、是否错误丢弃 ICMP Type3 Code4、是否对 DF 包粗暴 drop。</li>
+</ol>
+<p>本窗口第三关直接复现：ICMP 64 字节完美，1420+ DF 包在防火墙被静默丢弃；备份任务卡在初始化后的大块传输。放通必要 ICMP 差错并在网关做 MSS 钳制后恢复。</p>
+<h3 id="5-协议邻居冗余与回退演练"><a href="#5-%e5%8d%8f%e8%ae%ae%e9%82%bb%e5%b1%85%e5%86%97%e4%bd%99%e4%b8%8e%e5%9b%9e%e9%80%80%e6%bc%94%e7%bb%83" class="header-anchor"></a>5. 协议邻居、冗余与回退演练
+</h3><p>在三道关都绿后，补协议与运维动作：</p>
+<ul>
+<li>路由协议：邻居稳定时长、LSA/前缀数量对比变更前、是否出现 flap damping</li>
+<li>冗余：主断备切、备断主回切各测一次，观察收敛时间与是否双主/黑洞</li>
+<li>DNS/VIP/证书：跨机房域名解析与证书 SAN 是否指向新入口</li>
+<li>回退点：保留旧链路 admin-down 而非物理拆线，直到观察期结束；回退步骤写成 5 分钟内可执行的命令序</li>
+<li>观察期：至少覆盖一个业务高峰 + 一次备份窗，监控丢包、时延、会话失败率、专用链路带宽</li>
+</ul>
+<h3 id="6-清单落地时的分工与门禁"><a href="#6-%e6%b8%85%e5%8d%95%e8%90%bd%e5%9c%b0%e6%97%b6%e7%9a%84%e5%88%86%e5%b7%a5%e4%b8%8e%e9%97%a8%e7%a6%81" class="header-anchor"></a>6. 清单落地时的分工与门禁
+</h3><div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>角色</th>
+          <th>职责</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>变更执行</td>
+          <td>按变更单改配置，输出前后 diff</td>
+      </tr>
+      <tr>
+          <td>网络值班</td>
+          <td>跑连通矩阵与 traceroute，填写路径记录</td>
+      </tr>
+      <tr>
+          <td>业务代表</td>
+          <td>对关键交易/同步链路做真实拨测</td>
+      </tr>
+      <tr>
+          <td>安全/防火墙</td>
+          <td>确认策略与会话、ICMP 差错、NAT</td>
+      </tr>
+      <tr>
+          <td>变更经理</td>
+          <td>三道关全部勾选后才允许「初步完成」</td>
+      </tr>
+  </tbody>
+</table></div>
+<p><strong>门禁规则</strong>：任一关未通过 → 不得关闭变更单；可暂时业务放行但必须保持旧链路可秒级回退，并升级为 P1 跟踪。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><p>当晚按 Checklist 闭环处理，而不是继续和业务「对现象」：</p>
+<ol>
+<li><strong>补齐反向路由与策略</strong>：B 侧注入指向新专线的回程明细；回调 VIP 与安全策略源站网段对齐；清理指向已下线地址的残余静态路由。</li>
+<li><strong>收敛非对称</strong>：短期用策略路由强制关键子网对走同一逻辑隧道；中期把 SD-WAN/动态路由 metric 两端对称发布，取消「只在一端宣告更优」。</li>
+<li><strong>修复 MTU 路径</strong>：放行路径上 ICMP fragmentation needed；隧道口设置合理 MTU；边界做 <code>tcp adjust-mss</code>；用大包业务回归确认吞吐回基线。</li>
+<li><strong>固化验收产出物</strong>：每次跨机房变更强制附件三份——连通矩阵结果表、双向 traceroute 文本、大包测试截图/日志；缺一不结单。</li>
+<li><strong>观察 48 小时</strong>：覆盖一次晚高峰与一次跨机房备份窗，无半通与吞吐塌陷后，再 admin-down 旧链路进入拆除排期。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>表层是「路由/策略/MTU 各改了一点却没形成闭环」，深层是验收标准错误：</p>
+<ol>
+<li><strong>用连通性代替业务性</strong>：ping 通 ≠ 业务双向可用，更不等于大包与长连接可用。</li>
+<li><strong>用单点代替矩阵</strong>：只测运维主机与个别 VIP，漏掉回调、备份、监控等反向与旁路流量。</li>
+<li><strong>去程思维</strong>：变更单习惯写「怎么把包送过去」，很少写「包怎么原路回来」以及防火墙会话是否对称。</li>
+<li><strong>忽视封装开销</strong>：专线/IPsec/GRE/VXLAN 叠加后有效 MTU 下降，PMTUD 若被安全策略误伤，故障只在大包时出现，白天小流量验收永远绿。</li>
+<li><strong>缺少强制门禁</strong>：清单若只是「参考」，窗口压力下仍会被跳过；必须与结单流程绑定。</li>
+</ol>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><h3 id="a-变更前t-1"><a href="#a-%e5%8f%98%e6%9b%b4%e5%89%8dt-1" class="header-anchor"></a>A. 变更前（T-1）
+</h3><ul>
+<li><input disabled="" type="checkbox"> 导出两端路由表、策略路由、NAT、隧道 MTU/MSS、邻居状态</li>
+<li><input disabled="" type="checkbox"> 画清本次流量矩阵（至少含业务、回调、备份、运维、监控）</li>
+<li><input disabled="" type="checkbox"> 明确主路径/回退路径与可接受中断窗口</li>
+<li><input disabled="" type="checkbox"> 预置大包测试账号与 <code>iperf</code>/文件源，不靠临时找业务要包</li>
+</ul>
+<h3 id="b-变更中执行"><a href="#b-%e5%8f%98%e6%9b%b4%e4%b8%ad%e6%89%a7%e8%a1%8c" class="header-anchor"></a>B. 变更中（执行）
+</h3><ul>
+<li><input disabled="" type="checkbox"> 配置 diff 双人复核，禁止口播改生产</li>
+<li><input disabled="" type="checkbox"> 每完成一段切换就跑矩阵对应格子，不做「全部改完再测」</li>
+<li><input disabled="" type="checkbox"> 旧链路保持可回退，直到三道关通过</li>
+</ul>
+<h3 id="c-变更后验收三道关缺一不可"><a href="#c-%e5%8f%98%e6%9b%b4%e5%90%8e%e9%aa%8c%e6%94%b6%e4%b8%89%e9%81%93%e5%85%b3%e7%bc%ba%e4%b8%80%e4%b8%8d%e5%8f%af" class="header-anchor"></a>C. 变更后（验收三道关，缺一不可）
+</h3><ul>
+<li><input disabled="" type="checkbox"> <strong>关 1 连通矩阵</strong>：双向 TCP/业务端口全绿，无半开连接</li>
+<li><input disabled="" type="checkbox"> <strong>关 2 回程对称</strong>：双向 traceroute 路径符合设计，无意外旁路</li>
+<li><input disabled="" type="checkbox"> <strong>关 3 MTU/大包</strong>：DF 大包与真实大流量业务达标</li>
+<li><input disabled="" type="checkbox"> 冗余切换与回切演练完成</li>
+<li><input disabled="" type="checkbox"> 观察期与监控基线对比通过</li>
+</ul>
+<h3 id="d-制度化"><a href="#d-%e5%88%b6%e5%ba%a6%e5%8c%96" class="header-anchor"></a>D. 制度化
+</h3><ul>
+<li>把本 Checklist 嵌入变更管理系统：跨机房/跨专线类别强制模板</li>
+<li>季度抽检历史变更附件，缺矩阵/缺 traceroute 记流程缺陷</li>
+<li>与「机房搬迁割接」「PMTUD/黑洞」「路由震荡」类事故单做关联培训，新人上岗先跑一遍模拟矩阵</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>跨机房链路变更最怕的不是完全不通，而是<strong>半通、大包不通、高峰才爆</strong>。把验收从「ping 一下」升级为 <strong>连通矩阵 + 回程对称 + MTU/大包</strong> 三道关，并用结单门禁卡住，是成本最低、收益最稳的防坑手段。</p>
+<p>本篇作为网络侧方法论/Checklist，和既有的机房搬迁非对称路由、IPSec 大包/PMTUD、OSPF flap 等排查文互补：那些文章回答「出了什么事」，本清单回答「怎样在当晚就证明没出事」。建议团队直接复制表格进变更单模板，按现场拓扑改端口与代表主机，不必等下一次半夜回填再补课。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
