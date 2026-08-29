@@ -5,7 +5,61 @@
         <description>Recent content in Tags on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Sat, 29 Aug 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Sun, 30 Aug 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>性能调优</title>
+            <link>https://blog.5772447.xyz/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/</link>
+            <pubDate>Sun, 30 Aug 2026 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/</guid>
+            <description></description>
+        </item><item>
+            <title>内核排障</title>
+            <link>https://blog.5772447.xyz/tags/%E5%86%85%E6%A0%B8%E6%8E%92%E9%9A%9C/</link>
+            <pubDate>Sun, 30 Aug 2026 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%86%85%E6%A0%B8%E6%8E%92%E9%9A%9C/</guid>
+            <description></description>
+        </item><item>
+            <title>内核参数</title>
+            <link>https://blog.5772447.xyz/tags/%E5%86%85%E6%A0%B8%E5%8F%82%E6%95%B0/</link>
+            <pubDate>Sun, 30 Aug 2026 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%86%85%E6%A0%B8%E5%8F%82%E6%95%B0/</guid>
+            <description></description>
+        </item><item>
+            <title>Tcp_tw_reuse</title>
+            <link>https://blog.5772447.xyz/tags/tcp_tw_reuse/</link>
+            <pubDate>Sun, 30 Aug 2026 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/tcp_tw_reuse/</guid>
+            <description></description>
+        </item><item>
+            <title>TCP</title>
+            <link>https://blog.5772447.xyz/tags/tcp/</link>
+            <pubDate>Sun, 30 Aug 2026 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/tcp/</guid>
+            <description></description>
+        </item><item>
+            <title>Qdisc</title>
+            <link>https://blog.5772447.xyz/tags/qdisc/</link>
+            <pubDate>Sun, 30 Aug 2026 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/qdisc/</guid>
+            <description></description>
+        </item><item>
+            <title>PAWS</title>
+            <link>https://blog.5772447.xyz/tags/paws/</link>
+            <pubDate>Sun, 30 Aug 2026 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/paws/</guid>
+            <description></description>
+        </item><item>
+            <title>Netdev_max_backlog</title>
+            <link>https://blog.5772447.xyz/tags/netdev_max_backlog/</link>
+            <pubDate>Sun, 30 Aug 2026 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/netdev_max_backlog/</guid>
+            <description></description>
+        </item><item>
+            <title>Linux</title>
+            <link>https://blog.5772447.xyz/tags/linux/</link>
+            <pubDate>Sun, 30 Aug 2026 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/linux/</guid>
+            <description></description>
+        </item><item>
             <title>最小权限</title>
             <link>https://blog.5772447.xyz/tags/%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90/</link>
             <pubDate>Sat, 29 Aug 2026 07:00:00 +0800</pubDate>
@@ -292,12 +346,6 @@
             <link>https://blog.5772447.xyz/tags/logrotate/</link>
             <pubDate>Mon, 03 Aug 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/logrotate/</guid>
-            <description></description>
-        </item><item>
-            <title>Linux</title>
-            <link>https://blog.5772447.xyz/tags/linux/</link>
-            <pubDate>Mon, 03 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/linux/</guid>
             <description></description>
         </item><item>
             <title>Kubernetes</title>
@@ -592,12 +640,6 @@
             <link>https://blog.5772447.xyz/tags/syn%E4%B8%A2%E5%BC%83/</link>
             <pubDate>Sun, 26 Jul 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/syn%E4%B8%A2%E5%BC%83/</guid>
-            <description></description>
-        </item><item>
-            <title>PAWS</title>
-            <link>https://blog.5772447.xyz/tags/paws/</link>
-            <pubDate>Sun, 26 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/paws/</guid>
             <description></description>
         </item><item>
             <title>NAT</title>
@@ -1104,12 +1146,6 @@
             <guid>https://blog.5772447.xyz/tags/tls/</guid>
             <description></description>
         </item><item>
-            <title>TCP</title>
-            <link>https://blog.5772447.xyz/tags/tcp/</link>
-            <pubDate>Sat, 11 Jul 2026 07:00:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/tcp/</guid>
-            <description></description>
-        </item><item>
             <title>StartupProbe</title>
             <link>https://blog.5772447.xyz/tags/startupprobe/</link>
             <pubDate>Sat, 11 Jul 2026 07:00:00 +0000</pubDate>
@@ -1462,12 +1498,6 @@
             <link>https://blog.5772447.xyz/tags/%E6%BC%AB%E6%B8%B8%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6/</link>
             <pubDate>Wed, 01 Jul 2026 21:03:24 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/%E6%BC%AB%E6%B8%B8%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6/</guid>
-            <description></description>
-        </item><item>
-            <title>性能调优</title>
-            <link>https://blog.5772447.xyz/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/</link>
-            <pubDate>Tue, 30 Jun 2026 07:34:07 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/</guid>
             <description></description>
         </item><item>
             <title>网络中断</title>
