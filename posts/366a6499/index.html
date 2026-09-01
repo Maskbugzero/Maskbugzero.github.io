@@ -1,606 +1,103 @@
-<!DOCTYPE html>
-<html lang="zh" dir="ltr">
-    <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="命名空间 default-deny 一开、白名单漏写，集群内 HTTP 全断；靠同源测试与事件日志定位，5 分钟回退止血。">
-<title>收紧 NetworkPolicy：一次误配导致集群内服务全隔离的排查与回退</title>
-
-
-<link rel="canonical" href="https://blog.5772447.xyz/posts/366a6499/">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
-
-
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="收紧 NetworkPolicy：一次误配导致集群内服务全隔离的排查与回退">
-<meta property='og:description' content="命名空间 default-deny 一开、白名单漏写，集群内 HTTP 全断；靠同源测试与事件日志定位，5 分钟回退止血。">
-<meta property='og:url' content='https://blog.5772447.xyz/posts/366a6499/'>
-<meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-08-06T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-08-06T07:00:00&#43;08:00'/>
-<meta name="twitter:title" content="收紧 NetworkPolicy：一次误配导致集群内服务全隔离的排查与回退">
-<meta name="twitter:description" content="命名空间 default-deny 一开、白名单漏写，集群内 HTTP 全断；靠同源测试与事件日志定位，5 分钟回退止血。">
-    <link rel="shortcut icon" href="/img/favicon.png" />
-
-    </head>
-    <body class="
-    article-page
-    ">
-    <script>
-        (function() {
-            const colorSchemeKey = 'StackColorScheme';
-            if(!localStorage.getItem(colorSchemeKey)){
-                localStorage.setItem(colorSchemeKey, "auto");
-            }
-        })();
-    </script><script>
-    (function() {
-        const colorSchemeKey = 'StackColorScheme';
-        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
-        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
-
-        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
-            
-
-            document.documentElement.dataset.scheme = 'dark';
-        } else {
-            document.documentElement.dataset.scheme = 'light';
-        }
-    })();
-</script>
-<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
-    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
-        <span class="hamburger-box">
-            <span class="hamburger-inner"></span>
-        </span>
-    </button>
-
-    <header>
-        <figure class="site-avatar">
-                <a href="/">
-                    <img src="/img/avatar.jpg" 
-                        width="300"
-                        height="300"
-                        class="site-logo"
-                        loading="lazy"
-                        alt="Avatar">
-                </a>
-                
-                    <span class="emoji">🛠️</span>
-                
-            </figure>
-        
-        
-        <div class="site-meta">
-            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
-            <h2 class="site-description">IT 运维实战笔记</h2>
-        </div>
-    </header><ol class="menu-social">
-            
-                <li>
-                    <a 
-                        href='https://github.com/Maskbugzero'
-                        
-                        title="GitHub"
-                        rel="me"
-                    >
-                        
-                        
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
-</svg>
-
-
-
-                        
-                    </a>
-                </li>
-            
-        </ol><ol class="menu" id="main-menu">
-        
-        
-        
-        <li >
-            <a href='/page/archives/' >
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <rect x="3" y="4" width="18" height="4" rx="2" />
-  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
-  <line x1="10" y1="12" x2="14" y2="12" />
-</svg>
-
-
-
-                
-                <span>归档</span>
-            </a>
-        </li>
-        
-        
-        <li >
-            <a href='/tags' >
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
-  <circle cx="9" cy="9" r="2" />
-</svg>
-
-
-
-                
-                <span>标签</span>
-            </a>
-        </li>
-        
-        
-        <li >
-            <a href='/categories' >
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <line x1="5" y1="9" x2="19" y2="9" />
-  <line x1="5" y1="15" x2="19" y2="15" />
-  <line x1="11" y1="4" x2="7" y2="20" />
-  <line x1="17" y1="4" x2="13" y2="20" />
-</svg>
-
-
-
-                
-                <span>分类</span>
-            </a>
-        </li>
-        
-        
-        <li >
-            <a href='/about' >
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <circle cx="12" cy="7" r="4" />
-  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
-</svg>
-
-
-
-                
-                <span>关于</span>
-            </a>
-        </li>
-        
-        <li class="menu-bottom-section">
-            <ol class="menu">
-
-                
-                    <li id="dark-mode-toggle">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <circle cx="8" cy="12" r="2" />
-  <rect x="2" y="6" width="20" height="12" rx="6" />
-</svg>
-
-
-
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <circle cx="16" cy="12" r="2" />
-  <rect x="2" y="6" width="20" height="12" rx="6" />
-</svg>
-
-
-
-                        <span>暗色模式</span>
-                    </li>
-                
-            </ol>
-        </li>
-    </ol>
-</aside>
-
-    <aside class="sidebar right-sidebar sticky">
-        
-            
-                
-    <section class="widget archives">
-        <div class="widget-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <line x1="5" y1="9" x2="19" y2="9" />
-  <line x1="5" y1="15" x2="19" y2="15" />
-  <line x1="11" y1="4" x2="7" y2="20" />
-  <line x1="17" y1="4" x2="13" y2="20" />
-</svg>
-
-
-
-        </div>
-        <h2 class="widget-title section-title">目录</h2>
-        
-        <div class="widget--toc">
-            <nav class="toc-nav" id="TableOfContents">
-                
-  <ul>
-    <li><a href="#问题背景">问题背景</a></li>
-    <li><a href="#故障现象">故障现象</a></li>
-    <li><a href="#排查过程">排查过程</a></li>
-    <li><a href="#解决方案">解决方案</a></li>
-    <li><a href="#根因分析">根因分析</a></li>
-    <li><a href="#预防措施">预防措施</a></li>
-    <li><a href="#总结">总结</a></li>
-  </ul>
-
-            </nav>
-        </div>
-    </section>
-
-            
-        
-    </aside>
-
-
-            <main class="main full-width">
-    <article class="main-article">
-    <header class="article-header">
-
-    <div class="article-details">
-    
-    <header class="article-category">
-        
-            
-            
-            
-            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
-                运维
-            </a>
-        
-            
-            
-            
-            <a href="/categories/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(274, 60%, 84%); color: hsl(274, 60%, 15%);">
-                容器运维
-            </a>
-        
-    </header>
-    
-
-    <div class="article-title-wrapper">
-        <h2 class="article-title">
-            <a href="/posts/366a6499/">收紧 NetworkPolicy：一次误配导致集群内服务全隔离的排查与回退</a>
-        </h2>
-    
-        
-        <h3 class="article-subtitle">
-            命名空间 default-deny 一开、白名单漏写，集群内 HTTP 全断；靠同源测试与事件日志定位，5 分钟回退止血。
-        </h3>
-        
-    </div>
-
-    
-    
-    
-    
-    
-    
-    
-    <footer class="article-meta">
-        
-            <div class="inline-meta">
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
-  <circle cx="18" cy="18" r="4" />
-  <path d="M15 3v4" />
-  <path d="M7 3v4" />
-  <path d="M3 11h16" />
-  <path d="M18 16.496v1.504l1 1" />
-</svg>
-                    <time class="article-time--published" datetime='2026-08-06T07:00:00&#43;08:00'>2026年8月6日星期四</time>
-                
-
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <circle cx="12" cy="12" r="9" />
-  <polyline points="12 7 12 12 15 15" />
-</svg>
-
-
-
-                    <time class="article-time--reading">
-                        阅读时长: 6 分钟
-                    </time>
-                
-            </div>
-        
-
-        
-
-        
-    </footer>
-    
-</div>
-
-</header>
-
-    
-    <aside class="article-toc">
-        <details>
-            <summary>
-                <div class="article-toc-title">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
-                    <span>目录</span>
-                </div>
-            </summary>
-            <nav class="toc-nav">
-                
-  <ul>
-    <li><a href="#问题背景">问题背景</a></li>
-    <li><a href="#故障现象">故障现象</a></li>
-    <li><a href="#排查过程">排查过程</a></li>
-    <li><a href="#解决方案">解决方案</a></li>
-    <li><a href="#根因分析">根因分析</a></li>
-    <li><a href="#预防措施">预防措施</a></li>
-    <li><a href="#总结">总结</a></li>
-  </ul>
-
-            </nav>
-        </details>
-    </aside>
-    
-
-    <section class="article-content">
-    
-    
-    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
-</h2><p>公司跑着一套自建 Kubernetes 集群，承载内部订单、库存、积分三套核心微服务，流量都在集群内走 Service 互通，对外只经 Ingress 入口。安全审计后要求「默认拒绝、按需放行」，落地动作是给业务命名空间补上 NetworkPolicy：先加一条 <code>default-deny-all</code>，再按服务依赖补 Ingress / Egress 白名单。</p>
-<p>变更窗口选在业务低峰，运维按表格把三条网段策略 YAML 推上去，<code>kubectl apply</code> 显示成功，当时用 <code>curl</code> 测了 Ingress 入口和同 Pod 内 loopback，都正常，就认为落地完成。半小时后客服开始报「下单页加载中、接口超时」，监控面板上一片服务 5xx 与依赖超时。表面看「网络好像还在」，实际是集群内东西向通信被策略一把掐断，入口探测掩盖了真正的故障面。</p>
-<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
-</h2><p>高峰前的半小时内现象逐步放大：</p>
-<ul>
-<li>前端网关日志大量 <code>upstream timed out</code>，调用订单服务 30 秒无响应。</li>
-<li>订单 Pod 日志频繁 <code>connection refused</code> / <code>i/o timeout</code>，目标正是库存与积分的 ClusterIP。</li>
-<li><code>kubectl get pods</code> 全部 Running、Ready，无 Crash、无重启，节点 NotReady 也没有。</li>
-<li>从跳板机访问 Ingress 公网域名偶发能通（命中本地缓存或未依赖下游的静态接口），容易误判为「业务代码问题」。</li>
-<li>监控上 error rate 从 &lt;0.1% 抬到 40%+，延迟 P99 从 80ms 飙到 20s+，告警刷屏但没有节点级 CPU / 内存尖刺。</li>
-</ul>
-<p>更迷惑的是：<code>kubectl exec</code> 进业务 Pod 里 <code>ping</code> 同命名空间其他 Pod IP 超时，<code>curl</code> ClusterIP 直接 hang；同一节点上 <code>curl</code> 本机 kube-proxy 监听端口却能通。看起来「节点还活着，只是容器网络策略把东西向流量拦了」。</p>
-<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
-</h2><p><strong>第一步：先排除常规宿主机与节点问题。</strong><br>
-<code>kubectl get nodes</code> 全 Ready，<code>dmesg</code> 无 OOM / 网卡 down。<code>ss -s</code> 与 <code>conntrack -C</code> 都在正常水位，排除了 conntrack 打满、本机端口耗尽这类老问题。容器侧 <code>kubectl top pod</code> 也正常，不像资源压垮。</p>
-<p><strong>第二步：把故障面从「应用挂了」收敛到「东西向网络」。</strong><br>
-在入口 Nginx 上抓一条失败请求的 request id，对到订单服务日志，发现失败点都在「调库存 gRPC」。在订单 Pod 里：</p>
-<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
-<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
-</span></code></pre></td>
-<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 同命名空间直连</span>
-</span></span><span style="display:flex;"><span>curl -v --connect-timeout <span style="color:#ae81ff">3</span> http://inventory-svc:8080/healthz
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># 结果：挂起直到超时</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># 看 Endpoints 是否存在</span>
-</span></span><span style="display:flex;"><span>kubectl get endpoints inventory-svc -n prod
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># 后端 Pod IP 都在，说明 kube-proxy 映射正常</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Endpoints 有、Pod Ready，但业务层连不上，基本指向 <strong>网络路径被策略拦</strong>，而不是 Service 空后端。</p>
-<p><strong>第三步：核对近期变更与 NetworkPolicy 现状。</strong><br>
-<code>kubectl get networkpolicy -n prod -o wide</code> 一下蹦出三条新策略，其中一条名字叫 <code>default-deny-all</code>：</p>
-<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
-<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
-</span></code></pre></td>
-<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">spec</span>:
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">podSelector</span>: {}          <span style="color:#75715e"># 选中本 ns 全部 Pod</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">policyTypes</span>:
-</span></span><span style="display:flex;"><span>  - <span style="color:#ae81ff">Ingress</span>
-</span></span><span style="display:flex;"><span>  - <span style="color:#ae81ff">Egress</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># 没有任何 from / to 白名单</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Kubernetes 语义很明确：只要某个方向（Ingress 或 Egress）上<strong>存在任意一条</strong> NetworkPolicy 选中了该 Pod，该方向就切到「只允许策略允许的流量」，其余一律丢弃。默认拒绝本身没错，问题出在配套白名单。</p>
-<p><strong>第四步：对比「该放行」与「实际放行」。</strong><br>
-设计文档里白名单应包含：</p>
-<ol>
-<li>同命名空间内微服务互访（按 app label）</li>
-<li>Ingress Controller 所在命名空间的入站（通常带 <code>ingress-nginx</code> 标签）</li>
-<li>出站到 CoreDNS（<code>kube-system</code> 的 53/UDP+TCP）以及必要的外部依赖</li>
-</ol>
-<p>实际 apply 的另外两条策略只写了：</p>
-<ul>
-<li>允许 Ingress Controller → 前端 gateway Pod（Ingress）</li>
-<li>允许 gateway → 订单（Egress / Ingress 一对）</li>
-</ul>
-<p><strong>漏了：</strong> 订单 → 库存 / 积分、全部服务 → CoreDNS、监控探针（Prometheus）从 monitoring ns 的刮取。结果是：公网经 Ingress 打到 gateway 偶发能通，gateway 再往下调用全死；Pod 内解析域名也开始间歇失败（UDP 53 被 Egress 默认拒绝）。</p>
-<p><strong>第五步：用对照实验一秒定性。</strong><br>
-临时把 <code>default-deny-all</code> 的 <code>policyTypes</code> 里 Egress 注释掉再 apply（仅保留 Ingress 拒绝做小范围验证），订单 → 库存立刻恢复；再把整条 default-deny 删掉，全站 30 秒内 error rate 回落。根因锁定：<strong>策略语义理解偏差 + 白名单覆盖不全</strong>，不是 CNI 插件本身坏了。</p>
-<p>附带排查了一眼 CNI：集群用 Calico，<code>calicoctl get gp</code> 无全局异常，Felix 日志有大量 <code>Drop</code> 计数飙升，与时间线完全吻合，进一步印证是策略丢包而非底层路由。</p>
-<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
-</h2><p><strong>止血（变更窗口内 5 分钟完成）：</strong></p>
-<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
-<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
-</span></code></pre></td>
-<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 先整体回退有问题的策略，恢复默认「无策略=全放行」语义</span>
-</span></span><span style="display:flex;"><span>kubectl delete networkpolicy default-deny-all allow-ingress-to-gateway allow-gateway-to-order -n prod
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>删除后 Calico 立刻收敛，东西向恢复，客服侧超时告警在两分钟内熄火。同步在变更单标记「紧急回退」，并通知安全侧：默认拒绝暂缓，改走「预发验证后再切」。</p>
-<p><strong>根治（隔离环境验证后灰度）：</strong></p>
-<ol>
-<li><strong>拆策略，禁止一条 YAML 包打天下。</strong> 按「DNS / 监控 / 东西向业务 / 南北向 Ingress」四类拆开，每类独立 NetworkPolicy，方便回滚单条。</li>
-<li><strong>白名单用标签选择器，不用拍脑袋写 IP。</strong> 例如：</li>
-</ol>
-<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
-<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
-</span></code></pre></td>
-<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#75715e"># 允许同 ns 内 app 互访（东西向）</span>
-</span></span><span style="display:flex;"><span><span style="color:#f92672">apiVersion</span>: <span style="color:#ae81ff">networking.k8s.io/v1</span>
-</span></span><span style="display:flex;"><span><span style="color:#f92672">kind</span>: <span style="color:#ae81ff">NetworkPolicy</span>
-</span></span><span style="display:flex;"><span><span style="color:#f92672">metadata</span>:
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">name</span>: <span style="color:#ae81ff">allow-intra-ns</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">namespace</span>: <span style="color:#ae81ff">prod</span>
-</span></span><span style="display:flex;"><span><span style="color:#f92672">spec</span>:
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">podSelector</span>: {}
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">policyTypes</span>: [<span style="color:#e6db74">&#34;Ingress&#34;</span>, <span style="color:#e6db74">&#34;Egress&#34;</span>]
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">ingress</span>:
-</span></span><span style="display:flex;"><span>  - <span style="color:#f92672">from</span>:
-</span></span><span style="display:flex;"><span>    - <span style="color:#f92672">podSelector</span>: {}
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">egress</span>:
-</span></span><span style="display:flex;"><span>  - <span style="color:#f92672">to</span>:
-</span></span><span style="display:flex;"><span>    - <span style="color:#f92672">podSelector</span>: {}
-</span></span><span style="display:flex;"><span>  - <span style="color:#f92672">to</span>:   <span style="color:#75715e"># CoreDNS</span>
-</span></span><span style="display:flex;"><span>    - <span style="color:#f92672">namespaceSelector</span>:
-</span></span><span style="display:flex;"><span>        <span style="color:#f92672">matchLabels</span>:
-</span></span><span style="display:flex;"><span>          <span style="color:#f92672">kubernetes.io/metadata.name</span>: <span style="color:#ae81ff">kube-system</span>
-</span></span><span style="display:flex;"><span>      <span style="color:#f92672">podSelector</span>:
-</span></span><span style="display:flex;"><span>        <span style="color:#f92672">matchLabels</span>:
-</span></span><span style="display:flex;"><span>          <span style="color:#f92672">k8s-app</span>: <span style="color:#ae81ff">kube-dns</span>
-</span></span><span style="display:flex;"><span>    <span style="color:#f92672">ports</span>:
-</span></span><span style="display:flex;"><span>    - <span style="color:#f92672">protocol</span>: <span style="color:#ae81ff">UDP</span>
-</span></span><span style="display:flex;"><span>      <span style="color:#f92672">port</span>: <span style="color:#ae81ff">53</span>
-</span></span><span style="display:flex;"><span>    - <span style="color:#f92672">protocol</span>: <span style="color:#ae81ff">TCP</span>
-</span></span><span style="display:flex;"><span>      <span style="color:#f92672">port</span>: <span style="color:#ae81ff">53</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><ol start="3">
-<li><strong>灰度顺序：先监控命名空间 → 预发 → 单个业务 ns → 全量。</strong> 每个阶段用脚本做「同 ns 互访 / 跨 ns 依赖 / DNS / Ingress / 指标刮取」五元组连通性检查，全绿再进下一 ns。</li>
-<li><strong>变更配套：网络策略变更必须附回滚命令与「删除即恢复」预案</strong>；Calico Felix Drop 计数纳入告警，骤升即页。</li>
-</ol>
-<p>按上述清单在预发演练两轮后，再于下一个变更窗分命名空间重新落地，未再出现全站隔离。</p>
-<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
-</h2><p>直接原因是：在命名空间内下发了 <strong>空白名单的 default-deny</strong>（同时覆盖 Ingress 与 Egress），把 Kubernetes「有策略即默认拒绝」的语义触发到了极致，而配套放行策略只覆盖了南北向入口链路，<strong>漏掉东西向服务依赖与 DNS</strong>。</p>
-<p>深层原因有三条：</p>
-<ol>
-<li><strong>把「主机防火墙思维」直接套到 K8s。</strong> 主机上 default-drop 常先放 established；NetworkPolicy 没有状态防火墙那套隐性放行，必须显式写清每一跳。</li>
-<li><strong>验证方法只测了 Ingress 入口和 Pod 内 loopback</strong>，没有测「服务 A → 服务 B」和「Pod → CoreDNS」，用错误探针给了错误信心。</li>
-<li><strong>变更颗粒度过大。</strong> 三条策略一次 apply 到生产全部业务 ns，缺少金丝雀与自动连通性门禁，出问题就是爆炸半径拉满。</li>
-</ol>
-<p>Calico 工作正常，丢包计数上升是策略按设计在 ren_der——锅在策略内容，不在 CNI。</p>
-<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
-</h2><ol>
-<li><strong>NetworkPolicy 变更门禁</strong>：CI 里用 <code>kubectl apply --dry-run=server</code> + 自定义连通性 Job（curl 矩阵）做 PR 检查；无矩阵结果禁止合入。</li>
-<li><strong>策略基线模板化</strong>：平台提供「default-deny + DNS + 同 ns + Ingress + metrics」五件套 Helm chart，业务只填 label，禁止手写空 deny。</li>
-<li><strong>可观测性</strong>：Felix <code>iptables_denied</code> / eBPF drop 指标接入告警；业务 SLI 出现依赖超时时自动附带「近 15 分钟 NetworkPolicy 变更」注解，缩短定位路径。</li>
-<li><strong>演练</strong>：每季度在预发做一次「误删白名单 / 误加 deny」故障注入，验证回退脚本与值班手册。</li>
-<li><strong>权限收敛</strong>：生产 <code>networkpolicies</code> 的 create/update/delete 走变更单 + 双人复核，SA 默认只读。</li>
-<li><strong>文档化依赖图</strong>：服务依赖从代码/网格侧自动生成，生成 NetworkPolicy 时按图补边，减少漏写。</li>
-</ol>
-<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
-</h2><p>这是一起典型的「安全加固动机正确、落地验证残缺」事故：default-deny 本身是最佳实践，但在 Kubernetes 里它是<strong>硬默认拒绝</strong>，白名单少写一跳就是整片东西向网络静默黑洞。排查上不要被「Pod 都 Running」迷惑，Endpoints 在而 TCP 不通时，优先 <code>kubectl get networkpolicy</code> 和 CNI drop 计数；止血优先删策略恢复默认放行，再在预发用连通性矩阵把白名单补全后灰度。</p>
-<p>对日常运维的提醒就一句：<strong>NetworkPolicy 的爆炸半径不亚于改路由，测入口不等于测全图，先矩阵、后全量，随时能 delete 回滚。</strong></p>
-
-</section>
-
-
-    <footer class="article-meta article-footer">
-    
-
-    </footer>
-
-
-    
-</article>
-
-    
-
-    
-
-     
-    
-        
-
-        <div class="disqus-container">
-    
-</div>
-
-<style>
-    .disqus-container {
-        background-color: var(--card-background);
-        border-radius: var(--card-border-radius);
-        box-shadow: var(--shadow-l1);
-        padding: var(--card-padding);
-    }
-</style>
-
-<script>
-    window.addEventListener('onColorSchemeChange', (e) => {
-        if (typeof DISQUS == 'object') {
-            DISQUS.reset({
-                reload: true
-            });
-        }
-    })
-</script>
-
-    
-
-    <footer class="site-footer">
-    <section class="copyright">
-        &copy; 
-        
-            2020 - 
-        
-        2026 Zero Day Notes
-    </section>
-    
-    <section class="powerby">
-        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
-        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
-    </section>
-</footer>
-
-
-    
-
-
-
-<script type="module">
+<!doctype html><html lang=zh dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="命名空间 default-deny 一开、白名单漏写，集群内 HTTP 全断；靠同源测试与事件日志定位，5 分钟回退止血。"><title>收紧 NetworkPolicy：一次误配导致集群内服务全隔离的排查与回退</title><link rel=canonical href=https://blog.5772447.xyz/posts/366a6499/><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href=/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css><meta property='og:title' content="收紧 NetworkPolicy：一次误配导致集群内服务全隔离的排查与回退"><meta property='og:description' content="命名空间 default-deny 一开、白名单漏写，集群内 HTTP 全断；靠同源测试与事件日志定位，5 分钟回退止血。"><meta property='og:url' content='https://blog.5772447.xyz/posts/366a6499/'><meta property='og:site_name' content='Zero Day Notes'><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:published_time' content='2026-08-06T07:00:00+08:00'><meta property='article:modified_time' content='2026-08-06T07:00:00+08:00'><meta name=twitter:title content="收紧 NetworkPolicy：一次误配导致集群内服务全隔离的排查与回退"><meta name=twitter:description content="命名空间 default-deny 一开、白名单漏写，集群内 HTTP 全断；靠同源测试与事件日志定位，5 分钟回退止血。"><link rel="shortcut icon" href=/img/favicon.png></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label=切换菜单>
+<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=/img/avatar.jpg width=300 height=300 class=site-logo loading=lazy alt=Avatar>
+</a><span class=emoji>🛠️</span></figure><div class=site-meta><h1 class=site-name><a href=/>Zero Day Notes</a></h1><h2 class=site-description>IT 运维实战笔记</h2></div></header><ol class=menu-social><li><a href=https://github.com/Maskbugzero title=GitHub rel=me><svg class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6.0 00-1.3-3.2 4.2 4.2.0 00-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3.0 00-6.2.0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2.0 00-.1 3.2A4.6 4.6.0 004 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/page/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+<span>归档</span></a></li><li><a href=/tags><svg class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11 3l9 9a1.5 1.5.0 010 2l-6 6a1.5 1.5.0 01-2 0L3 11V7a4 4 0 014-4h4"/><circle cx="9" cy="9" r="2"/></svg>
+<span>标签</span></a></li><li><a href=/categories><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg>
+<span>分类</span></a></li><li><a href=/about><svg class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
+<span>关于</span></a></li><li class=menu-bottom-section><ol class=menu><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<span>暗色模式</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">目录</h2><div class=widget--toc><nav class=toc-nav id=TableOfContents><ul><li><a href=#问题背景>问题背景</a></li><li><a href=#故障现象>故障现象</a></li><li><a href=#排查过程>排查过程</a></li><li><a href=#解决方案>解决方案</a></li><li><a href=#根因分析>根因分析</a></li><li><a href=#预防措施>预防措施</a></li><li><a href=#总结>总结</a></li></ul></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/%E8%BF%90%E7%BB%B4/ style=background-color:#efe7be;color:#3d360f>运维
+</a><a href=/categories/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/ style=background-color:#d9beef;color:#290f3d>容器运维</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/posts/366a6499/>收紧 NetworkPolicy：一次误配导致集群内服务全隔离的排查与回退</a></h2><h3 class=article-subtitle>命名空间 default-deny 一开、白名单漏写，集群内 HTTP 全断；靠同源测试与事件日志定位，5 分钟回退止血。</h3></div><footer class=article-meta><div class=inline-meta><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
+<time class=article-time--published datetime=2026-08-06T07:00:00+08:00>2026年8月6日星期四</time>
+<svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+<time class=article-time--reading>阅读时长: 6 分钟</time></div></footer></div></header><aside class=article-toc><details><summary><div class=article-toc-title><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6-6 6"/></svg>
+<span>目录</span></div></summary><nav class=toc-nav><ul><li><a href=#问题背景>问题背景</a></li><li><a href=#故障现象>故障现象</a></li><li><a href=#排查过程>排查过程</a></li><li><a href=#解决方案>解决方案</a></li><li><a href=#根因分析>根因分析</a></li><li><a href=#预防措施>预防措施</a></li><li><a href=#总结>总结</a></li></ul></nav></details></aside><section class=article-content><h2 id=问题背景><a href=#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af class=header-anchor></a>问题背景</h2><p>公司跑着一套自建 Kubernetes 集群，承载内部订单、库存、积分三套核心微服务，流量都在集群内走 Service 互通，对外只经 Ingress 入口。安全审计后要求「默认拒绝、按需放行」，落地动作是给业务命名空间补上 NetworkPolicy：先加一条 <code>default-deny-all</code>，再按服务依赖补 Ingress / Egress 白名单。</p><p>变更窗口选在业务低峰，运维按表格把三条网段策略 YAML 推上去，<code>kubectl apply</code> 显示成功，当时用 <code>curl</code> 测了 Ingress 入口和同 Pod 内 loopback，都正常，就认为落地完成。半小时后客服开始报「下单页加载中、接口超时」，监控面板上一片服务 5xx 与依赖超时。表面看「网络好像还在」，实际是集群内东西向通信被策略一把掐断，入口探测掩盖了真正的故障面。</p><h2 id=故障现象><a href=#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1 class=header-anchor></a>故障现象</h2><p>高峰前的半小时内现象逐步放大：</p><ul><li>前端网关日志大量 <code>upstream timed out</code>，调用订单服务 30 秒无响应。</li><li>订单 Pod 日志频繁 <code>connection refused</code> / <code>i/o timeout</code>，目标正是库存与积分的 ClusterIP。</li><li><code>kubectl get pods</code> 全部 Running、Ready，无 Crash、无重启，节点 NotReady 也没有。</li><li>从跳板机访问 Ingress 公网域名偶发能通（命中本地缓存或未依赖下游的静态接口），容易误判为「业务代码问题」。</li><li>监控上 error rate 从 &lt;0.1% 抬到 40%+，延迟 P99 从 80ms 飙到 20s+，告警刷屏但没有节点级 CPU / 内存尖刺。</li></ul><p>更迷惑的是：<code>kubectl exec</code> 进业务 Pod 里 <code>ping</code> 同命名空间其他 Pod IP 超时，<code>curl</code> ClusterIP 直接 hang；同一节点上 <code>curl</code> 本机 kube-proxy 监听端口却能通。看起来「节点还活着，只是容器网络策略把东西向流量拦了」。</p><h2 id=排查过程><a href=#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b class=header-anchor></a>排查过程</h2><p><strong>第一步：先排除常规宿主机与节点问题。</strong><br><code>kubectl get nodes</code> 全 Ready，<code>dmesg</code> 无 OOM / 网卡 down。<code>ss -s</code> 与 <code>conntrack -C</code> 都在正常水位，排除了 conntrack 打满、本机端口耗尽这类老问题。容器侧 <code>kubectl top pod</code> 也正常，不像资源压垮。</p><p><strong>第二步：把故障面从「应用挂了」收敛到「东西向网络」。</strong><br>在入口 Nginx 上抓一条失败请求的 request id，对到订单服务日志，发现失败点都在「调库存 gRPC」。在订单 Pod 里：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e># 同命名空间直连</span>
+</span></span><span style=display:flex><span>curl -v --connect-timeout <span style=color:#ae81ff>3</span> http://inventory-svc:8080/healthz
+</span></span><span style=display:flex><span><span style=color:#75715e># 结果：挂起直到超时</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 看 Endpoints 是否存在</span>
+</span></span><span style=display:flex><span>kubectl get endpoints inventory-svc -n prod
+</span></span><span style=display:flex><span><span style=color:#75715e># 后端 Pod IP 都在，说明 kube-proxy 映射正常</span>
+</span></span></code></pre></td></tr></table></div></div><p>Endpoints 有、Pod Ready，但业务层连不上，基本指向 <strong>网络路径被策略拦</strong>，而不是 Service 空后端。</p><p><strong>第三步：核对近期变更与 NetworkPolicy 现状。</strong><br><code>kubectl get networkpolicy -n prod -o wide</code> 一下蹦出三条新策略，其中一条名字叫 <code>default-deny-all</code>：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-yaml data-lang=yaml><span style=display:flex><span><span style=color:#f92672>spec</span>:
+</span></span><span style=display:flex><span>  <span style=color:#f92672>podSelector</span>: {}          <span style=color:#75715e># 选中本 ns 全部 Pod</span>
+</span></span><span style=display:flex><span>  <span style=color:#f92672>policyTypes</span>:
+</span></span><span style=display:flex><span>  - <span style=color:#ae81ff>Ingress</span>
+</span></span><span style=display:flex><span>  - <span style=color:#ae81ff>Egress</span>
+</span></span><span style=display:flex><span>  <span style=color:#75715e># 没有任何 from / to 白名单</span>
+</span></span></code></pre></td></tr></table></div></div><p>Kubernetes 语义很明确：只要某个方向（Ingress 或 Egress）上<strong>存在任意一条</strong> NetworkPolicy 选中了该 Pod，该方向就切到「只允许策略允许的流量」，其余一律丢弃。默认拒绝本身没错，问题出在配套白名单。</p><p><strong>第四步：对比「该放行」与「实际放行」。</strong><br>设计文档里白名单应包含：</p><ol><li>同命名空间内微服务互访（按 app label）</li><li>Ingress Controller 所在命名空间的入站（通常带 <code>ingress-nginx</code> 标签）</li><li>出站到 CoreDNS（<code>kube-system</code> 的 53/UDP+TCP）以及必要的外部依赖</li></ol><p>实际 apply 的另外两条策略只写了：</p><ul><li>允许 Ingress Controller → 前端 gateway Pod（Ingress）</li><li>允许 gateway → 订单（Egress / Ingress 一对）</li></ul><p><strong>漏了：</strong> 订单 → 库存 / 积分、全部服务 → CoreDNS、监控探针（Prometheus）从 monitoring ns 的刮取。结果是：公网经 Ingress 打到 gateway 偶发能通，gateway 再往下调用全死；Pod 内解析域名也开始间歇失败（UDP 53 被 Egress 默认拒绝）。</p><p><strong>第五步：用对照实验一秒定性。</strong><br>临时把 <code>default-deny-all</code> 的 <code>policyTypes</code> 里 Egress 注释掉再 apply（仅保留 Ingress 拒绝做小范围验证），订单 → 库存立刻恢复；再把整条 default-deny 删掉，全站 30 秒内 error rate 回落。根因锁定：<strong>策略语义理解偏差 + 白名单覆盖不全</strong>，不是 CNI 插件本身坏了。</p><p>附带排查了一眼 CNI：集群用 Calico，<code>calicoctl get gp</code> 无全局异常，Felix 日志有大量 <code>Drop</code> 计数飙升，与时间线完全吻合，进一步印证是策略丢包而非底层路由。</p><h2 id=解决方案><a href=#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88 class=header-anchor></a>解决方案</h2><p><strong>止血（变更窗口内 5 分钟完成）：</strong></p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e># 先整体回退有问题的策略，恢复默认「无策略=全放行」语义</span>
+</span></span><span style=display:flex><span>kubectl delete networkpolicy default-deny-all allow-ingress-to-gateway allow-gateway-to-order -n prod
+</span></span></code></pre></td></tr></table></div></div><p>删除后 Calico 立刻收敛，东西向恢复，客服侧超时告警在两分钟内熄火。同步在变更单标记「紧急回退」，并通知安全侧：默认拒绝暂缓，改走「预发验证后再切」。</p><p><strong>根治（隔离环境验证后灰度）：</strong></p><ol><li><strong>拆策略，禁止一条 YAML 包打天下。</strong> 按「DNS / 监控 / 东西向业务 / 南北向 Ingress」四类拆开，每类独立 NetworkPolicy，方便回滚单条。</li><li><strong>白名单用标签选择器，不用拍脑袋写 IP。</strong> 例如：</li></ol><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">27
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-yaml data-lang=yaml><span style=display:flex><span><span style=color:#75715e># 允许同 ns 内 app 互访（东西向）</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>networking.k8s.io/v1</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>kind</span>: <span style=color:#ae81ff>NetworkPolicy</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>metadata</span>:
+</span></span><span style=display:flex><span>  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>allow-intra-ns</span>
+</span></span><span style=display:flex><span>  <span style=color:#f92672>namespace</span>: <span style=color:#ae81ff>prod</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>spec</span>:
+</span></span><span style=display:flex><span>  <span style=color:#f92672>podSelector</span>: {}
+</span></span><span style=display:flex><span>  <span style=color:#f92672>policyTypes</span>: [<span style=color:#e6db74>&#34;Ingress&#34;</span>, <span style=color:#e6db74>&#34;Egress&#34;</span>]
+</span></span><span style=display:flex><span>  <span style=color:#f92672>ingress</span>:
+</span></span><span style=display:flex><span>  - <span style=color:#f92672>from</span>:
+</span></span><span style=display:flex><span>    - <span style=color:#f92672>podSelector</span>: {}
+</span></span><span style=display:flex><span>  <span style=color:#f92672>egress</span>:
+</span></span><span style=display:flex><span>  - <span style=color:#f92672>to</span>:
+</span></span><span style=display:flex><span>    - <span style=color:#f92672>podSelector</span>: {}
+</span></span><span style=display:flex><span>  - <span style=color:#f92672>to</span>:   <span style=color:#75715e># CoreDNS</span>
+</span></span><span style=display:flex><span>    - <span style=color:#f92672>namespaceSelector</span>:
+</span></span><span style=display:flex><span>        <span style=color:#f92672>matchLabels</span>:
+</span></span><span style=display:flex><span>          <span style=color:#f92672>kubernetes.io/metadata.name</span>: <span style=color:#ae81ff>kube-system</span>
+</span></span><span style=display:flex><span>      <span style=color:#f92672>podSelector</span>:
+</span></span><span style=display:flex><span>        <span style=color:#f92672>matchLabels</span>:
+</span></span><span style=display:flex><span>          <span style=color:#f92672>k8s-app</span>: <span style=color:#ae81ff>kube-dns</span>
+</span></span><span style=display:flex><span>    <span style=color:#f92672>ports</span>:
+</span></span><span style=display:flex><span>    - <span style=color:#f92672>protocol</span>: <span style=color:#ae81ff>UDP</span>
+</span></span><span style=display:flex><span>      <span style=color:#f92672>port</span>: <span style=color:#ae81ff>53</span>
+</span></span><span style=display:flex><span>    - <span style=color:#f92672>protocol</span>: <span style=color:#ae81ff>TCP</span>
+</span></span><span style=display:flex><span>      <span style=color:#f92672>port</span>: <span style=color:#ae81ff>53</span>
+</span></span></code></pre></td></tr></table></div></div><ol start=3><li><strong>灰度顺序：先监控命名空间 → 预发 → 单个业务 ns → 全量。</strong> 每个阶段用脚本做「同 ns 互访 / 跨 ns 依赖 / DNS / Ingress / 指标刮取」五元组连通性检查，全绿再进下一 ns。</li><li><strong>变更配套：网络策略变更必须附回滚命令与「删除即恢复」预案</strong>；Calico Felix Drop 计数纳入告警，骤升即页。</li></ol><p>按上述清单在预发演练两轮后，再于下一个变更窗分命名空间重新落地，未再出现全站隔离。</p><h2 id=根因分析><a href=#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90 class=header-anchor></a>根因分析</h2><p>直接原因是：在命名空间内下发了 <strong>空白名单的 default-deny</strong>（同时覆盖 Ingress 与 Egress），把 Kubernetes「有策略即默认拒绝」的语义触发到了极致，而配套放行策略只覆盖了南北向入口链路，<strong>漏掉东西向服务依赖与 DNS</strong>。</p><p>深层原因有三条：</p><ol><li><strong>把「主机防火墙思维」直接套到 K8s。</strong> 主机上 default-drop 常先放 established；NetworkPolicy 没有状态防火墙那套隐性放行，必须显式写清每一跳。</li><li><strong>验证方法只测了 Ingress 入口和 Pod 内 loopback</strong>，没有测「服务 A → 服务 B」和「Pod → CoreDNS」，用错误探针给了错误信心。</li><li><strong>变更颗粒度过大。</strong> 三条策略一次 apply 到生产全部业务 ns，缺少金丝雀与自动连通性门禁，出问题就是爆炸半径拉满。</li></ol><p>Calico 工作正常，丢包计数上升是策略按设计在 ren_der——锅在策略内容，不在 CNI。</p><h2 id=预防措施><a href=#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd class=header-anchor></a>预防措施</h2><ol><li><strong>NetworkPolicy 变更门禁</strong>：CI 里用 <code>kubectl apply --dry-run=server</code> + 自定义连通性 Job（curl 矩阵）做 PR 检查；无矩阵结果禁止合入。</li><li><strong>策略基线模板化</strong>：平台提供「default-deny + DNS + 同 ns + Ingress + metrics」五件套 Helm chart，业务只填 label，禁止手写空 deny。</li><li><strong>可观测性</strong>：Felix <code>iptables_denied</code> / eBPF drop 指标接入告警；业务 SLI 出现依赖超时时自动附带「近 15 分钟 NetworkPolicy 变更」注解，缩短定位路径。</li><li><strong>演练</strong>：每季度在预发做一次「误删白名单 / 误加 deny」故障注入，验证回退脚本与值班手册。</li><li><strong>权限收敛</strong>：生产 <code>networkpolicies</code> 的 create/update/delete 走变更单 + 双人复核，SA 默认只读。</li><li><strong>文档化依赖图</strong>：服务依赖从代码/网格侧自动生成，生成 NetworkPolicy 时按图补边，减少漏写。</li></ol><h2 id=总结><a href=#%e6%80%bb%e7%bb%93 class=header-anchor></a>总结</h2><p>这是一起典型的「安全加固动机正确、落地验证残缺」事故：default-deny 本身是最佳实践，但在 Kubernetes 里它是<strong>硬默认拒绝</strong>，白名单少写一跳就是整片东西向网络静默黑洞。排查上不要被「Pod 都 Running」迷惑，Endpoints 在而 TCP 不通时，优先 <code>kubectl get networkpolicy</code> 和 CNI drop 计数；止血优先删策略恢复默认放行，再在预发用连通性矩阵把白名单补全后灰度。</p><p>对日常运维的提醒就一句：<strong>NetworkPolicy 的爆炸半径不亚于改路由，测入口不等于测全图，先矩阵、后全量，随时能 delete 回滚。</strong></p></section><footer class="article-meta article-footer"></footer></article><div class=disqus-container></div><style>.disqus-container{background-color:var(--card-background);border-radius:var(--card-border-radius);box-shadow:var(--shadow-l1);padding:var(--card-padding)}</style><script>window.addEventListener("onColorSchemeChange",e=>{typeof DISQUS=="object"&&DISQUS.reset({reload:!0})})</script><footer class=site-footer><section class=copyright>&copy;
+2020 -
+2026 Zero Day Notes</section><section class=powerby>使用 <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a> 构建<br>主题 <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=4.0.3>Stack</a></b> 由 <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a> 设计</section></footer><script type=module>
     import gallery from '\/ts\/gallery.js';
 
     const articleContent = document.querySelector('.article-content');
@@ -624,15 +121,4 @@
         });
         lightbox.init();
     }
-</script>
-
-    
-
-            </main>
-        </div>
-        
-<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
-
-
-    </body>
-</html>
+</script></main></div><script type=text/javascript src=/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js defer></script></body></html>
