@@ -1,43 +1,586 @@
-<!doctype html><html lang=zh dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="ES 9200 端口裸奔公网被扫库，索引遭清空并留下勒索索引，还原暴露成因与应急处置全过程。"><title>堵住裸奔的 Elasticsearch：一次公网未授权访问导致数据泄露的应急处置实录</title><link rel=canonical href=https://blog.5772447.xyz/posts/7480195f/><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href=/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css><meta property='og:title' content="堵住裸奔的 Elasticsearch：一次公网未授权访问导致数据泄露的应急处置实录"><meta property='og:description' content="ES 9200 端口裸奔公网被扫库，索引遭清空并留下勒索索引，还原暴露成因与应急处置全过程。"><meta property='og:url' content='https://blog.5772447.xyz/posts/7480195f/'><meta property='og:site_name' content='Zero Day Notes'><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:tag' content='Elasticsearch'><meta property='article:tag' content='未授权访问'><meta property='article:tag' content='数据泄露'><meta property='article:tag' content='暴露面收敛'><meta property='article:tag' content='应急响应'><meta property='article:published_time' content='2026-07-29T07:00:00+08:00'><meta property='article:modified_time' content='2026-07-29T07:00:00+08:00'><meta name=twitter:title content="堵住裸奔的 Elasticsearch：一次公网未授权访问导致数据泄露的应急处置实录"><meta name=twitter:description content="ES 9200 端口裸奔公网被扫库，索引遭清空并留下勒索索引，还原暴露成因与应急处置全过程。"><link rel="shortcut icon" href=/img/favicon.png></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label=切换菜单>
-<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=/img/avatar.jpg width=300 height=300 class=site-logo loading=lazy alt=Avatar>
-</a><span class=emoji>🛠️</span></figure><div class=site-meta><h1 class=site-name><a href=/>Zero Day Notes</a></h1><h2 class=site-description>IT 运维实战笔记</h2></div></header><ol class=menu-social><li><a href=https://github.com/Maskbugzero title=GitHub rel=me><svg class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6.0 00-1.3-3.2 4.2 4.2.0 00-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3.0 00-6.2.0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2.0 00-.1 3.2A4.6 4.6.0 004 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/page/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
-<span>归档</span></a></li><li><a href=/tags><svg class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11 3l9 9a1.5 1.5.0 010 2l-6 6a1.5 1.5.0 01-2 0L3 11V7a4 4 0 014-4h4"/><circle cx="9" cy="9" r="2"/></svg>
-<span>标签</span></a></li><li><a href=/categories><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg>
-<span>分类</span></a></li><li><a href=/about><svg class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
-<span>关于</span></a></li><li class=menu-bottom-section><ol class=menu><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
-<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
-<span>暗色模式</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">目录</h2><div class=widget--toc><nav class=toc-nav id=TableOfContents><ul><li><a href=#问题背景>问题背景</a></li><li><a href=#故障现象>故障现象</a></li><li><a href=#排查过程>排查过程</a></li><li><a href=#解决方案>解决方案</a></li><li><a href=#根因分析>根因分析</a></li><li><a href=#预防措施>预防措施</a></li><li><a href=#总结>总结</a></li></ul></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/%E8%BF%90%E7%BB%B4/ style=background-color:#efe7be;color:#3d360f>运维
-</a><a href=/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/ style=background-color:#bee7ef;color:#0f363d>安全运维</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/posts/7480195f/>堵住裸奔的 Elasticsearch：一次公网未授权访问导致数据泄露的应急处置实录</a></h2><h3 class=article-subtitle>ES 9200 端口裸奔公网被扫库，索引遭清空并留下勒索索引，还原暴露成因与应急处置全过程。</h3></div><footer class=article-meta><div class=inline-meta><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
-<time class=article-time--published datetime=2026-07-29T07:00:00+08:00>2026年7月29日星期三</time>
-<svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
-<time class=article-time--reading>阅读时长: 6 分钟</time></div></footer></div></header><aside class=article-toc><details><summary><div class=article-toc-title><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6-6 6"/></svg>
-<span>目录</span></div></summary><nav class=toc-nav><ul><li><a href=#问题背景>问题背景</a></li><li><a href=#故障现象>故障现象</a></li><li><a href=#排查过程>排查过程</a></li><li><a href=#解决方案>解决方案</a></li><li><a href=#根因分析>根因分析</a></li><li><a href=#预防措施>预防措施</a></li><li><a href=#总结>总结</a></li></ul></nav></details></aside><section class=article-content><h2 id=问题背景><a href=#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af class=header-anchor></a>问题背景</h2><p>公司内部有一套日志与业务数据检索平台，底层是三节点的 Elasticsearch 7.x 集群，跑在云上的三台 CVM 上，存放了近半年的订单流水日志和部分脱敏不彻底的客户信息，约 4 亿条文档。集群最初由业务组自建，图省事没有开启 X-Pack Security，也就是说——<strong>没有任何认证</strong>，谁能连上 9200 端口，谁就是集群管理员。</p><p>一直以来大家的心理防线是"反正在内网，安全组挡着"。直到某次业务临时联调，有同事为了让驻场外包在家里访问 Kibana，在云安全组上开了一条 <code>0.0.0.0/0 → 9200-9300</code> 的放行规则，联调结束后没人记得收回去。这条规则安静地躺了二十多天。</p><h2 id=故障现象><a href=#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1 class=header-anchor></a>故障现象</h2><p>周一早上 08:40，业务群里陆续有人反馈"检索平台查不到历史数据"。登录 Kibana 一看，情况比"查不到"严重得多：</p><ul><li>原有的 <code>order-log-*</code>、<code>customer-*</code> 等几十个索引<strong>全部消失</strong>；</li><li>集群里只剩下一个陌生索引，名字叫 <code>read_me_to_recover</code>，里面只有一条文档，内容是一段英文勒索信：数据已被"备份"，向指定比特币地址支付 0.05 BTC 可赎回，否则数据将被公开出售；</li><li>集群健康状态是 green——对 ES 来说删库是一次再正常不过的合法操作，它毫无怨言地执行了；</li><li>监控侧回看，凌晨 03:00 前后集群写入 QPS 有一波异常尖峰，随后存储用量从 1.8 TB 断崖式跌到不足 1 GB。</li></ul><p>这是典型的 <strong>Meow 攻击 / ES 勒索擦除</strong>套路：全自动扫描 + 删库 + 留勒索信，大概率根本不存在所谓"备份"。</p><h2 id=排查过程><a href=#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b class=header-anchor></a>排查过程</h2><p>**第一步：确认攻击入口。**先查这台机器的 9200 是否真的暴露在公网。在外部网络直接测试：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span>curl -s http://&lt;公网IP&gt;:9200/
-</span></span><span style=display:flex><span><span style=color:#75715e># 直接返回了集群名、版本号——未授权访问坐实</span>
-</span></span></code></pre></td></tr></table></div></div><p>再翻云安全组规则，找到了那条 <code>0.0.0.0/0</code> 放行 9200-9300 的规则，创建时间正好在二十多天前，备注写着"临时联调"。入口确认。</p><p>**第二步：还原攻击时间线。**ES 本身默认不记审计日志，但还有两个地方可以挖：</p><p>一是 ES 的慢日志和 GC 日志间接佐证了凌晨 03:00 前后有异常批量操作；二是云平台的 VPC 流日志（Flow Log）幸好开着，按目的端口 9200 过滤，抓到了关键证据：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-text data-lang=text><span style=display:flex><span>03:02:11  45.155.x.x  -&gt;  10.0.3.21:9200  ACCEPT
-</span></span><span style=display:flex><span>03:02:38  45.155.x.x  -&gt;  10.0.3.21:9200  ACCEPT  (持续大量会话)
-</span></span><span style=display:flex><span>03:11:47  45.155.x.x  -&gt;  10.0.3.21:9200  ACCEPT
-</span></span></code></pre></td></tr></table></div></div><p>来源 IP 属于境外某扫段大户，威胁情报平台上有大量"ES/MongoDB 勒索擦除"的历史标记。会话总时长约 10 分钟——<strong>4 亿条数据被"拖走"是不可能的，10 分钟只够发几条 <code>DELETE /_all</code> 级别的请求</strong>。这基本可以判断：数据是被直接删除而非被完整窃取，勒索信是吓唬人的标准话术。</p><p>**第三步：评估泄露面。**虽然全量拖库不成立，但无法排除攻击者在删库前用 <code>_search</code> 抽样翻看过数据，且这二十多天里可能不止一波扫描器光顾过。用流日志把窗口期内所有命中 9200 的外部源 IP 拉了个清单，共 17 个不同来源，多数是 Shodan/Censys 类测绘平台的探测节点，有 3 个可疑 IP 存在多次交互会话。结论按最坏情况上报：<strong>存在部分数据被抽样读取的可能，客户信息字段涉及姓名和手机号中段</strong>，触发内部数据安全事件流程。</p><p>**第四步：检查主机层是否失陷。**ES 未授权访问在老版本上还能配合脚本引擎做 RCE，必须排除主机被种马：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span>crontab -l; ls -la /var/spool/cron/          <span style=color:#75715e># 无异常条目</span>
-</span></span><span style=display:flex><span>cat ~/.ssh/authorized_keys                    <span style=color:#75715e># 无陌生公钥</span>
-</span></span><span style=display:flex><span>ps aux --sort<span style=color:#f92672>=</span>-%cpu | head                    <span style=color:#75715e># 无异常进程</span>
-</span></span><span style=display:flex><span>ls -la /tmp /var/tmp                          <span style=color:#75715e># 无可疑落地文件</span>
-</span></span><span style=display:flex><span>last -20                                      <span style=color:#75715e># 无异常登录</span>
-</span></span></code></pre></td></tr></table></div></div><p>三台节点逐一检查，均无持久化痕迹。7.x 已移除危险的动态脚本能力，本次攻击停留在"数据层删库"，主机层干净。</p><p>**第五步：确认恢复手段。**集群没做 snapshot 仓库（又一个欠账），万幸数据源头还在：订单日志的上游 Kafka 保留了 7 天，更早的数据在数仓 Hive 里有 T+1 落盘副本。数据可以重建，只是要花时间。</p><h2 id=解决方案><a href=#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88 class=header-anchor></a>解决方案</h2><p>按"先止血、再恢复、后加固"的顺序处置：</p><ol><li><strong>止血</strong>：立即删除安全组中 <code>0.0.0.0/0 → 9200-9300</code> 规则，恢复为仅允许内网业务网段访问；同时在三台节点的 <code>elasticsearch.yml</code> 确认 <code>network.host</code> 绑定内网地址；</li><li><strong>取证留存</strong>：勒索索引导出存档，流日志窗口期数据打包，供安全团队与合规上报使用；</li><li><strong>开启认证</strong>：启用 X-Pack Security（7.x 基础版免费），配置 <code>elastic</code> 超管强密码，为 Kibana、Logstash、业务应用分别创建最小权限角色，杜绝匿名访问；</li><li><strong>数据重建</strong>：近 7 天数据从 Kafka 重放消费重建索引；更早数据从 Hive 批量导回，历时约 30 小时全部恢复；</li><li><strong>补快照</strong>：挂载对象存储作为 snapshot 仓库，配置 SLM 策略每日自动快照、保留 30 天。</li></ol><p>外包远程联调的合理需求，改用公司 VPN + 堡垒机方案满足，不再直接对公网开数据端口。</p><h2 id=根因分析><a href=#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90 class=header-anchor></a>根因分析</h2><p>直接原因是那条"临时联调"的全网段放行规则——但它只是压垮骆驼的最后一根稻草。真正的根因是三层防线同时缺位：<strong>ES 集群零认证</strong>（第一层没有）、<strong>安全组变更无审批无回收机制</strong>（第二层靠自觉）、<strong>无暴露面持续监测</strong>（第三层不存在，裸奔二十多天无人知晓）。任何一层存在，这次事件都不会发生。数据组件"默认无密码 + 默认监听"的组合，在公网上的平均存活时间以小时计，Meow 类全自动脚本不会给任何侥幸窗口。</p><h2 id=预防措施><a href=#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd class=header-anchor></a>预防措施</h2><ol><li><strong>暴露面持续监测</strong>：用定时任务从外部视角对公司全部公网 IP 做端口扫描（nmap 关键数据端口 9200/27017/6379/3306 等），结果与白名单比对，新增暴露即告警；</li><li><strong>安全组变更管控</strong>：<code>0.0.0.0/0</code> 类规则必须走审批，并强制填写过期时间，到期自动回收；云平台配置审计（Config）对全放行规则设置合规基线告警；</li><li><strong>数据组件强制认证基线</strong>：ES/Redis/MongoDB 等组件上线检查清单中，认证与内网绑定为必检项，零认证实例不允许接入生产 VPC；</li><li><strong>备份底线</strong>：所有有状态服务必须有独立于集群本身的备份（快照 + 异地），并定期做恢复演练；</li><li><strong>联调场景标准化</strong>：外部人员访问一律走 VPN + 堡垒机，禁止以开安全组的方式"给个方便"。</li></ol><h2 id=总结><a href=#%e6%80%bb%e7%bb%93 class=header-anchor></a>总结</h2><p>这次事件损失可控纯属运气好：攻击者是删库勒索的脚本流，而非有耐心的拖库者；上游 Kafka 和数仓恰好能重建数据。复盘时最让人后怕的不是攻击本身，而是那条放行规则安静躺了二十多天没有任何机制能发现它。安全上最贵的不是防火墙和设备，而是"临时"两个字——所有临时的放行、临时的免密、临时的绕过，只要没有强制回收机制，最终都会变成永久的洞。数据端口不上公网、组件必须带认证、备份独立于集群，这三条底线缺一不可。</p></section><footer class="article-meta article-footer"><section class=article-tags><a href=/tags/elasticsearch/>Elasticsearch</a>
-<a href=/tags/%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE/>未授权访问</a>
-<a href=/tags/%E6%95%B0%E6%8D%AE%E6%B3%84%E9%9C%B2/>数据泄露</a>
-<a href=/tags/%E6%9A%B4%E9%9C%B2%E9%9D%A2%E6%94%B6%E6%95%9B/>暴露面收敛</a>
-<a href=/tags/%E5%BA%94%E6%80%A5%E5%93%8D%E5%BA%94/>应急响应</a></section></footer></article><aside><h2 class=section-title>相关文章</h2><div class=subsection-list><div class=article-list--tile><article><a href=/posts/0afe0629/><div class=article-details><h2 class=article-title>记一次企业门户网站被植入 Webshell 的入侵溯源与清除</h2></div></a></article><article><a href=/posts/55563ba9/><div class=article-details><h2 class=article-title>清除服务器 XMRig 挖矿木马：入侵路径还原与清剿实录</h2></div></a></article><article><a href=/posts/0a8ea846/><div class=article-details><h2 class=article-title>钓鱼邮件致终端感染远控木马：溯源与处置</h2></div></a></article><article><a href=/posts/a801fe3b/><div class=article-details><h2 class=article-title>员工域账号异地登录：告警研判与紧急锁定处置</h2></div></a></article><article><a href=/posts/be9e01dc/><div class=article-details><h2 class=article-title>ES 集群变 Red，搜索服务怎么就不可用了？</h2></div></a></article></div></div></aside><div class=disqus-container></div><style>.disqus-container{background-color:var(--card-background);border-radius:var(--card-border-radius);box-shadow:var(--shadow-l1);padding:var(--card-padding)}</style><script>window.addEventListener("onColorSchemeChange",e=>{typeof DISQUS=="object"&&DISQUS.reset({reload:!0})})</script><footer class=site-footer><section class=copyright>&copy;
-2020 -
-2026 Zero Day Notes</section><section class=powerby>使用 <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a> 构建<br>主题 <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=4.0.3>Stack</a></b> 由 <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a> 设计</section></footer><script type=module>
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="ES 9200 端口裸奔公网被扫库，索引遭清空并留下勒索索引，还原暴露成因与应急处置全过程。">
+<title>堵住裸奔的 Elasticsearch：一次公网未授权访问导致数据泄露的应急处置实录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/7480195f/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="堵住裸奔的 Elasticsearch：一次公网未授权访问导致数据泄露的应急处置实录">
+<meta property='og:description' content="ES 9200 端口裸奔公网被扫库，索引遭清空并留下勒索索引，还原暴露成因与应急处置全过程。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/7480195f/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Elasticsearch' /><meta property='article:tag' content='未授权访问' /><meta property='article:tag' content='数据泄露' /><meta property='article:tag' content='暴露面收敛' /><meta property='article:tag' content='应急响应' /><meta property='article:published_time' content='2026-07-29T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-07-29T07:00:00&#43;08:00'/>
+<meta name="twitter:title" content="堵住裸奔的 Elasticsearch：一次公网未授权访问导致数据泄露的应急处置实录">
+<meta name="twitter:description" content="ES 9200 端口裸奔公网被扫库，索引遭清空并留下勒索索引，还原暴露成因与应急处置全过程。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
+                安全运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/7480195f/">堵住裸奔的 Elasticsearch：一次公网未授权访问导致数据泄露的应急处置实录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            ES 9200 端口裸奔公网被扫库，索引遭清空并留下勒索索引，还原暴露成因与应急处置全过程。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-29T07:00:00&#43;08:00'>2026年7月29日星期三</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 6 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司内部有一套日志与业务数据检索平台，底层是三节点的 Elasticsearch 7.x 集群，跑在云上的三台 CVM 上，存放了近半年的订单流水日志和部分脱敏不彻底的客户信息，约 4 亿条文档。集群最初由业务组自建，图省事没有开启 X-Pack Security，也就是说——<strong>没有任何认证</strong>，谁能连上 9200 端口，谁就是集群管理员。</p>
+<p>一直以来大家的心理防线是&quot;反正在内网，安全组挡着&quot;。直到某次业务临时联调，有同事为了让驻场外包在家里访问 Kibana，在云安全组上开了一条 <code>0.0.0.0/0 → 9200-9300</code> 的放行规则，联调结束后没人记得收回去。这条规则安静地躺了二十多天。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>周一早上 08:40，业务群里陆续有人反馈&quot;检索平台查不到历史数据&quot;。登录 Kibana 一看，情况比&quot;查不到&quot;严重得多：</p>
+<ul>
+<li>原有的 <code>order-log-*</code>、<code>customer-*</code> 等几十个索引<strong>全部消失</strong>；</li>
+<li>集群里只剩下一个陌生索引，名字叫 <code>read_me_to_recover</code>，里面只有一条文档，内容是一段英文勒索信：数据已被&quot;备份&quot;，向指定比特币地址支付 0.05 BTC 可赎回，否则数据将被公开出售；</li>
+<li>集群健康状态是 green——对 ES 来说删库是一次再正常不过的合法操作，它毫无怨言地执行了；</li>
+<li>监控侧回看，凌晨 03:00 前后集群写入 QPS 有一波异常尖峰，随后存储用量从 1.8 TB 断崖式跌到不足 1 GB。</li>
+</ul>
+<p>这是典型的 <strong>Meow 攻击 / ES 勒索擦除</strong>套路：全自动扫描 + 删库 + 留勒索信，大概率根本不存在所谓&quot;备份&quot;。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>**第一步：确认攻击入口。**先查这台机器的 9200 是否真的暴露在公网。在外部网络直接测试：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>curl -s http://&lt;公网IP&gt;:9200/
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 直接返回了集群名、版本号——未授权访问坐实</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>再翻云安全组规则，找到了那条 <code>0.0.0.0/0</code> 放行 9200-9300 的规则，创建时间正好在二十多天前，备注写着&quot;临时联调&quot;。入口确认。</p>
+<p>**第二步：还原攻击时间线。**ES 本身默认不记审计日志，但还有两个地方可以挖：</p>
+<p>一是 ES 的慢日志和 GC 日志间接佐证了凌晨 03:00 前后有异常批量操作；二是云平台的 VPC 流日志（Flow Log）幸好开着，按目的端口 9200 过滤，抓到了关键证据：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>03:02:11  45.155.x.x  -&gt;  10.0.3.21:9200  ACCEPT
+</span></span><span style="display:flex;"><span>03:02:38  45.155.x.x  -&gt;  10.0.3.21:9200  ACCEPT  (持续大量会话)
+</span></span><span style="display:flex;"><span>03:11:47  45.155.x.x  -&gt;  10.0.3.21:9200  ACCEPT
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>来源 IP 属于境外某扫段大户，威胁情报平台上有大量&quot;ES/MongoDB 勒索擦除&quot;的历史标记。会话总时长约 10 分钟——<strong>4 亿条数据被&quot;拖走&quot;是不可能的，10 分钟只够发几条 <code>DELETE /_all</code> 级别的请求</strong>。这基本可以判断：数据是被直接删除而非被完整窃取，勒索信是吓唬人的标准话术。</p>
+<p>**第三步：评估泄露面。**虽然全量拖库不成立，但无法排除攻击者在删库前用 <code>_search</code> 抽样翻看过数据，且这二十多天里可能不止一波扫描器光顾过。用流日志把窗口期内所有命中 9200 的外部源 IP 拉了个清单，共 17 个不同来源，多数是 Shodan/Censys 类测绘平台的探测节点，有 3 个可疑 IP 存在多次交互会话。结论按最坏情况上报：<strong>存在部分数据被抽样读取的可能，客户信息字段涉及姓名和手机号中段</strong>，触发内部数据安全事件流程。</p>
+<p>**第四步：检查主机层是否失陷。**ES 未授权访问在老版本上还能配合脚本引擎做 RCE，必须排除主机被种马：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>crontab -l; ls -la /var/spool/cron/          <span style="color:#75715e"># 无异常条目</span>
+</span></span><span style="display:flex;"><span>cat ~/.ssh/authorized_keys                    <span style="color:#75715e"># 无陌生公钥</span>
+</span></span><span style="display:flex;"><span>ps aux --sort<span style="color:#f92672">=</span>-%cpu | head                    <span style="color:#75715e"># 无异常进程</span>
+</span></span><span style="display:flex;"><span>ls -la /tmp /var/tmp                          <span style="color:#75715e"># 无可疑落地文件</span>
+</span></span><span style="display:flex;"><span>last -20                                      <span style="color:#75715e"># 无异常登录</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>三台节点逐一检查，均无持久化痕迹。7.x 已移除危险的动态脚本能力，本次攻击停留在&quot;数据层删库&quot;，主机层干净。</p>
+<p>**第五步：确认恢复手段。**集群没做 snapshot 仓库（又一个欠账），万幸数据源头还在：订单日志的上游 Kafka 保留了 7 天，更早的数据在数仓 Hive 里有 T+1 落盘副本。数据可以重建，只是要花时间。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><p>按&quot;先止血、再恢复、后加固&quot;的顺序处置：</p>
+<ol>
+<li><strong>止血</strong>：立即删除安全组中 <code>0.0.0.0/0 → 9200-9300</code> 规则，恢复为仅允许内网业务网段访问；同时在三台节点的 <code>elasticsearch.yml</code> 确认 <code>network.host</code> 绑定内网地址；</li>
+<li><strong>取证留存</strong>：勒索索引导出存档，流日志窗口期数据打包，供安全团队与合规上报使用；</li>
+<li><strong>开启认证</strong>：启用 X-Pack Security（7.x 基础版免费），配置 <code>elastic</code> 超管强密码，为 Kibana、Logstash、业务应用分别创建最小权限角色，杜绝匿名访问；</li>
+<li><strong>数据重建</strong>：近 7 天数据从 Kafka 重放消费重建索引；更早数据从 Hive 批量导回，历时约 30 小时全部恢复；</li>
+<li><strong>补快照</strong>：挂载对象存储作为 snapshot 仓库，配置 SLM 策略每日自动快照、保留 30 天。</li>
+</ol>
+<p>外包远程联调的合理需求，改用公司 VPN + 堡垒机方案满足，不再直接对公网开数据端口。</p>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接原因是那条&quot;临时联调&quot;的全网段放行规则——但它只是压垮骆驼的最后一根稻草。真正的根因是三层防线同时缺位：<strong>ES 集群零认证</strong>（第一层没有）、<strong>安全组变更无审批无回收机制</strong>（第二层靠自觉）、<strong>无暴露面持续监测</strong>（第三层不存在，裸奔二十多天无人知晓）。任何一层存在，这次事件都不会发生。数据组件&quot;默认无密码 + 默认监听&quot;的组合，在公网上的平均存活时间以小时计，Meow 类全自动脚本不会给任何侥幸窗口。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
+<li><strong>暴露面持续监测</strong>：用定时任务从外部视角对公司全部公网 IP 做端口扫描（nmap 关键数据端口 9200/27017/6379/3306 等），结果与白名单比对，新增暴露即告警；</li>
+<li><strong>安全组变更管控</strong>：<code>0.0.0.0/0</code> 类规则必须走审批，并强制填写过期时间，到期自动回收；云平台配置审计（Config）对全放行规则设置合规基线告警；</li>
+<li><strong>数据组件强制认证基线</strong>：ES/Redis/MongoDB 等组件上线检查清单中，认证与内网绑定为必检项，零认证实例不允许接入生产 VPC；</li>
+<li><strong>备份底线</strong>：所有有状态服务必须有独立于集群本身的备份（快照 + 异地），并定期做恢复演练；</li>
+<li><strong>联调场景标准化</strong>：外部人员访问一律走 VPN + 堡垒机，禁止以开安全组的方式&quot;给个方便&quot;。</li>
+</ol>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这次事件损失可控纯属运气好：攻击者是删库勒索的脚本流，而非有耐心的拖库者；上游 Kafka 和数仓恰好能重建数据。复盘时最让人后怕的不是攻击本身，而是那条放行规则安静躺了二十多天没有任何机制能发现它。安全上最贵的不是防火墙和设备，而是&quot;临时&quot;两个字——所有临时的放行、临时的免密、临时的绕过，只要没有强制回收机制，最终都会变成永久的洞。数据端口不上公网、组件必须带认证、备份独立于集群，这三条底线缺一不可。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/elasticsearch/">Elasticsearch</a>
+        
+            <a href="/tags/%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE/">未授权访问</a>
+        
+            <a href="/tags/%E6%95%B0%E6%8D%AE%E6%B3%84%E9%9C%B2/">数据泄露</a>
+        
+            <a href="/tags/%E6%9A%B4%E9%9C%B2%E9%9D%A2%E6%94%B6%E6%95%9B/">暴露面收敛</a>
+        
+            <a href="/tags/%E5%BA%94%E6%80%A5%E5%93%8D%E5%BA%94/">应急响应</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/0afe0629/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次企业门户网站被植入 Webshell 的入侵溯源与清除</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/55563ba9/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">清除服务器 XMRig 挖矿木马：入侵路径还原与清剿实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/0a8ea846/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">钓鱼邮件致终端感染远控木马：溯源与处置</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/a801fe3b/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">员工域账号异地登录：告警研判与紧急锁定处置</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/be9e01dc/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">ES 集群变 Red，搜索服务怎么就不可用了？</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
     import gallery from '\/ts\/gallery.js';
 
     const articleContent = document.querySelector('.article-content');
@@ -61,4 +604,15 @@
         });
         lightbox.init();
     }
-</script></main></div><script type=text/javascript src=/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js defer></script></body></html>
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

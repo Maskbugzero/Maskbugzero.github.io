@@ -1,62 +1,621 @@
-<!doctype html><html lang=zh dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="心跳VLAN被误剪致VRRP双主，两台核心同抢网关IP引发MAC漂移，内网间歇断网的排查与根治。"><title>一次核心交换机VRRP双主导致内网间歇性断网的排查记录</title><link rel=canonical href=https://blog.5772447.xyz/posts/6ac0d850/><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href=/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css><meta property='og:title' content="一次核心交换机VRRP双主导致内网间歇性断网的排查记录"><meta property='og:description' content="心跳VLAN被误剪致VRRP双主，两台核心同抢网关IP引发MAC漂移，内网间歇断网的排查与根治。"><meta property='og:url' content='https://blog.5772447.xyz/posts/6ac0d850/'><meta property='og:site_name' content='Zero Day Notes'><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:tag' content='VRRP'><meta property='article:tag' content='双主'><meta property='article:tag' content='MAC漂移'><meta property='article:tag' content='网关冗余'><meta property='article:tag' content='交换机'><meta property='article:tag' content='Trunk放行VLAN'><meta property='article:published_time' content='2026-07-31T07:00:00+08:00'><meta property='article:modified_time' content='2026-07-31T07:00:00+08:00'><meta name=twitter:title content="一次核心交换机VRRP双主导致内网间歇性断网的排查记录"><meta name=twitter:description content="心跳VLAN被误剪致VRRP双主，两台核心同抢网关IP引发MAC漂移，内网间歇断网的排查与根治。"><link rel="shortcut icon" href=/img/favicon.png></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label=切换菜单>
-<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=/img/avatar.jpg width=300 height=300 class=site-logo loading=lazy alt=Avatar>
-</a><span class=emoji>🛠️</span></figure><div class=site-meta><h1 class=site-name><a href=/>Zero Day Notes</a></h1><h2 class=site-description>IT 运维实战笔记</h2></div></header><ol class=menu-social><li><a href=https://github.com/Maskbugzero title=GitHub rel=me><svg class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6.0 00-1.3-3.2 4.2 4.2.0 00-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3.0 00-6.2.0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2.0 00-.1 3.2A4.6 4.6.0 004 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/page/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
-<span>归档</span></a></li><li><a href=/tags><svg class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11 3l9 9a1.5 1.5.0 010 2l-6 6a1.5 1.5.0 01-2 0L3 11V7a4 4 0 014-4h4"/><circle cx="9" cy="9" r="2"/></svg>
-<span>标签</span></a></li><li><a href=/categories><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg>
-<span>分类</span></a></li><li><a href=/about><svg class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
-<span>关于</span></a></li><li class=menu-bottom-section><ol class=menu><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
-<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
-<span>暗色模式</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">目录</h2><div class=widget--toc><nav class=toc-nav id=TableOfContents><ul><li><a href=#问题背景>问题背景</a></li><li><a href=#故障现象>故障现象</a></li><li><a href=#排查过程>排查过程</a></li><li><a href=#解决方案>解决方案</a></li><li><a href=#根因分析>根因分析</a></li><li><a href=#预防措施>预防措施</a></li><li><a href=#总结>总结</a></li></ul></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/%E8%BF%90%E7%BB%B4/ style=background-color:#efe7be;color:#3d360f>运维
-</a><a href=/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/ style=background-color:#bec7ef;color:#0f183d>网络运维</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/posts/6ac0d850/>一次核心交换机VRRP双主导致内网间歇性断网的排查记录</a></h2><h3 class=article-subtitle>心跳VLAN被误剪致VRRP双主，两台核心同抢网关IP引发MAC漂移，内网间歇断网的排查与根治。</h3></div><footer class=article-meta><div class=inline-meta><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
-<time class=article-time--published datetime=2026-07-31T07:00:00+08:00>2026年7月31日星期五</time>
-<svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
-<time class=article-time--reading>阅读时长: 5 分钟</time></div></footer></div></header><aside class=article-toc><details><summary><div class=article-toc-title><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6-6 6"/></svg>
-<span>目录</span></div></summary><nav class=toc-nav><ul><li><a href=#问题背景>问题背景</a></li><li><a href=#故障现象>故障现象</a></li><li><a href=#排查过程>排查过程</a></li><li><a href=#解决方案>解决方案</a></li><li><a href=#根因分析>根因分析</a></li><li><a href=#预防措施>预防措施</a></li><li><a href=#总结>总结</a></li></ul></nav></details></aside><section class=article-content><h2 id=问题背景><a href=#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af class=header-anchor></a>问题背景</h2><p>公司内网核心层采用两台三层交换机（下称 CORE-A、CORE-B）做网关冗余：每个业务 VLAN 起一个 VRRP 组，虚拟网关 IP 形如 <code>10.20.x.254</code>，CORE-A 优先级 120 为 Master，CORE-B 优先级 100 为 Backup，并开启 preempt 抢占。两台核心之间跑一条二层 Trunk 互联，VRRP 的 Advertisement 报文（组播 224.0.0.18，协议号 112）就依赖这条 Trunk 在各业务 VLAN 内互通。</p><p>上周五晚上，网络组对两台核心之间的 Trunk 链路做过一次「VLAN 修剪优化」——为了收敛广播域，把 Trunk 上放行的 VLAN 列表按「实际使用」重新梳理了一遍。变更窗口内 ping 测正常，就收工了。</p><h2 id=故障现象><a href=#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1 class=header-anchor></a>故障现象</h2><p>周一早上 9 点起，陆续有多个部门报障，现象很有迷惑性：</p><ul><li>用户表现为「一阵一阵断网」：内网系统访问几秒正常、几秒超时，刷新几次又好了；</li><li>持续 ping 网关 <code>10.20.30.254</code>，丢包呈周期性：连续十几个正常，然后连丢 3~5 个，如此往复；</li><li>只有部分 VLAN 受影响（VLAN 30、40 的用户段），服务器段 VLAN 10、20 完全正常；</li><li>接入交换机上没有端口 up/down 日志，链路层看起来一切正常。</li></ul><p>最诡异的是：受影响用户 <code>arp -a</code> 查网关 MAC，不同时间点看到的值会变——一会儿是 <code>0000-5e00-011e</code>（VRRP 虚 MAC），行为却像是在两台设备之间来回切。</p><h2 id=排查过程><a href=#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b class=header-anchor></a>排查过程</h2><p><strong>第一步：先看两台核心的 VRRP 状态。</strong></p><p>分别登录两台核心查看：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">8
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">9
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-text data-lang=text><span style=display:flex><span>[CORE-A] display vrrp brief
-</span></span><span style=display:flex><span>VRID  State    Interface       Virtual IP
-</span></span><span style=display:flex><span>30    Master   Vlanif30        10.20.30.254
-</span></span><span style=display:flex><span>40    Master   Vlanif40        10.20.40.254
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>[CORE-B] display vrrp brief
-</span></span><span style=display:flex><span>VRID  State    Interface       Virtual IP
-</span></span><span style=display:flex><span>30    Master   Vlanif30        10.20.30.254
-</span></span><span style=display:flex><span>40    Master   Vlanif40        10.20.40.254
-</span></span></code></pre></td></tr></table></div></div><p>问题一目了然：VLAN 30、40 的 VRRP 组<strong>两边都是 Master</strong>——典型的双主（脑裂）。而正常的 VLAN 10、20，CORE-B 显示 Backup。这也解释了为什么只有部分 VLAN 受影响。</p><p><strong>第二步：确认双主的直接后果。</strong></p><p>双主意味着两台核心都认为自己持有虚拟网关，都会用同一个虚 MAC <code>0000-5e00-011e</code> 对外发 ARP 应答和免费 ARP。在接入交换机上查 MAC 表：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-text data-lang=text><span style=display:flex><span>[ACC-3F] display mac-address flapping record
-</span></span><span style=display:flex><span>VLAN 30: MAC 0000-5e00-011e flapping between GE0/0/27 (uplink-to-A) and GE0/0/28 (uplink-to-B), 47 times in 5 minutes
-</span></span></code></pre></td></tr></table></div></div><p>虚 MAC 在通往两台核心的两条上联口之间高频漂移。用户流量一会儿被送往 CORE-A、一会儿被送往 CORE-B，谁的免费 ARP 后到就跟谁走——这正是「周期性丢几个包又恢复」的来源：部分会话的回程路径与去程不一致，且状态在两台设备间来回摇摆。</p><p><strong>第三步：查双主的成因——为什么 Backup 收不到 Master 的通告？</strong></p><p>VRRP 的机制是：Backup 在 3 个通告周期（默认 3 秒多）收不到 Master 的 Advertisement，就自立为 Master。两边同时 Master，说明 VLAN 30、40 的 VRRP 通告在两台核心之间<strong>不通</strong>。通告报文走的是核心互联 Trunk 的对应 VLAN，立刻检查这条 Trunk：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-text data-lang=text><span style=display:flex><span>[CORE-A] display port vlan Eth-Trunk1
-</span></span><span style=display:flex><span>Port         Link Type    PVID    VLAN List
-</span></span><span style=display:flex><span>Eth-Trunk1   trunk        1       1 10 20 100
-</span></span></code></pre></td></tr></table></div></div><p>真相大白：周五的「VLAN 修剪」把 Trunk 放行列表改成了 <code>1 10 20 100</code>——<strong>VLAN 30 和 40 被剪掉了</strong>。变更人梳理"实际使用"时，只统计了跨核心的服务器流量所在 VLAN，漏掉了「用户 VLAN 虽然没有跨核心业务流量，但 VRRP 心跳必须借这条 Trunk 互通」这一层。</p><p><strong>第四步：解释「变更当晚正常、周一才爆发」。</strong></p><p>变更当晚 ping 测正常并不奇怪：剪掉 VLAN 后 3 秒内 CORE-B 就升为 Master，形成双主。但晚上没有用户流量，双主状态下两台设备各自应答、各自转发，低负载下 MAC 漂移的竞争不激烈，ping 网关基本不丢。周一早高峰用户流量上来，ARP 请求/免费 ARP 频繁、两台核心的应答竞争加剧，MAC 表高频翻动，间歇性丢包才被放大成可感知的故障。</p><h2 id=解决方案><a href=#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88 class=header-anchor></a>解决方案</h2><p><strong>止血（5 分钟内）：</strong> 在核心互联 Trunk 上把被剪掉的 VLAN 加回放行列表：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-text data-lang=text><span style=display:flex><span>[CORE-A] interface Eth-Trunk1
-</span></span><span style=display:flex><span>[CORE-A-Eth-Trunk1] port trunk allow-pass vlan 30 40
-</span></span></code></pre></td></tr></table></div></div><p>VLAN 30、40 的 VRRP 通告恢复互通后约 3 秒，CORE-B 收到 CORE-A（优先级 120）的通告，自动降回 Backup：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-text data-lang=text><span style=display:flex><span>[CORE-B] display vrrp brief
-</span></span><span style=display:flex><span>30    Backup   Vlanif30        10.20.30.254
-</span></span><span style=display:flex><span>40    Backup   Vlanif40        10.20.40.254
-</span></span></code></pre></td></tr></table></div></div><p>接入交换机 MAC 漂移记录停止增长，用户侧 ping 网关连续 10 分钟 0 丢包，故障解除。</p><p><strong>加固（当天完成）：</strong></p><ol><li>全网核对所有 VRRP 组两端状态，确认无其他 VLAN 存在同类隐患；</li><li>在两台核心的互联 Trunk 配置注释中显式标注「本 Trunk 承载全部 VRRP 心跳，修剪 VLAN 前必须核对 VRRP 组列表」；</li><li>为 VRRP 状态变化配置 SNMP Trap 上报（vrrpTrapNewMaster），接入网管告警——本次 CORE-B 升 Master 其实周五晚上就发生了，只是没人知道。</li></ol><h2 id=根因分析><a href=#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90 class=header-anchor></a>根因分析</h2><p>直接原因：核心互联 Trunk 做 VLAN 修剪时，误将仍承载 VRRP 心跳的 VLAN 30、40 从放行列表剔除，Backup 收不到 Master 通告，超时自立为 Master，形成双主。</p><p>深层原因有两点：一是<strong>变更影响面评估只看了"业务流量"，没看"协议流量"</strong>——VRRP、STP、组播这些控制平面报文对 VLAN 放行的依赖是隐性的，不体现在流量报表里；二是<strong>缺少 VRRP 状态监控</strong>，双主形成后近 60 小时无人察觉，直到业务高峰把问题放大。</p><h2 id=预防措施><a href=#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd class=header-anchor></a>预防措施</h2><ol><li><strong>变更清单制度</strong>：涉及 Trunk VLAN 放行列表的变更，必须比对该链路承载的 VRRP/HSRP 组、STP 实例、组播组清单，逐项确认后方可执行；</li><li><strong>监控补位</strong>：所有 VRRP 组状态纳入网管轮询，Master 切换、双 Master 检测（同一 VRID 两端同时 Master）触发即时告警；</li><li><strong>变更后验证脚本化</strong>：不能只 ping 网关，加一条「两端 <code>display vrrp brief</code> 状态比对」——一端 Master 一端 Backup 才算通过；</li><li><strong>周期巡检</strong>：把「MAC 漂移记录」纳入接入层周巡检项，虚 MAC 漂移是双主类故障最灵敏的信号；</li><li>有条件的场景，核心互联可将 VRRP 心跳所在 VLAN 与业务修剪解耦（如专用心跳互联），从架构上消除误剪面。</li></ol><h2 id=总结><a href=#%e6%80%bb%e7%bb%93 class=header-anchor></a>总结</h2><p>这是一起「变更遗漏协议流量依赖」导致的经典 VRRP 双主故障。它的教训在于：Trunk 上的 VLAN 不只为业务数据服务，控制平面协议（VRRP 心跳、STP BPDU）同样依赖这些通道；「变更当晚 ping 正常」不代表冗余机制还健康——双主状态在低负载下几乎无感，却是一颗定时炸弹。排查此类间歇性断网，<code>display vrrp brief</code> 两端比对与接入层 MAC 漂移记录是两把最快的钥匙；而根治之道，是让 VRRP 状态变成「看得见、会报警」的指标，而不是等早高峰用户来当探测器。</p></section><footer class="article-meta article-footer"><section class=article-tags><a href=/tags/vrrp/>VRRP</a>
-<a href=/tags/%E5%8F%8C%E4%B8%BB/>双主</a>
-<a href=/tags/mac%E6%BC%82%E7%A7%BB/>MAC漂移</a>
-<a href=/tags/%E7%BD%91%E5%85%B3%E5%86%97%E4%BD%99/>网关冗余</a>
-<a href=/tags/%E4%BA%A4%E6%8D%A2%E6%9C%BA/>交换机</a>
-<a href=/tags/trunk%E6%94%BE%E8%A1%8Cvlan/>Trunk放行VLAN</a></section></footer></article><aside><h2 class=section-title>相关文章</h2><div class=subsection-list><div class=article-list--tile><article><a href=/posts/a3490d86/><div class=article-details><h2 class=article-title>记一次交换机物理环路引发的整栋楼广播风暴</h2></div></a></article><article><a href=/posts/59789918/><div class=article-details><h2 class=article-title>记一次 DHCP 地址池耗尽引发的大面积断网</h2></div></a></article><article><a href=/posts/8256a5f2/><div class=article-details><h2 class=article-title>核心交换机 STP 根桥被抢，广播风暴怎么来的？</h2></div></a></article><article><a href=/posts/518dc9fb/><div class=article-details><h2 class=article-title>记一次 ARP 欺骗攻击导致的楼层网络间歇断网</h2></div></a></article><article><a href=/posts/f7f05e7d/><div class=article-details><h2 class=article-title>记一次核心交换机 LACP 协商失败致带宽骤降</h2></div></a></article></div></div></aside><div class=disqus-container></div><style>.disqus-container{background-color:var(--card-background);border-radius:var(--card-border-radius);box-shadow:var(--shadow-l1);padding:var(--card-padding)}</style><script>window.addEventListener("onColorSchemeChange",e=>{typeof DISQUS=="object"&&DISQUS.reset({reload:!0})})</script><footer class=site-footer><section class=copyright>&copy;
-2020 -
-2026 Zero Day Notes</section><section class=powerby>使用 <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a> 构建<br>主题 <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=4.0.3>Stack</a></b> 由 <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a> 设计</section></footer><script type=module>
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="心跳VLAN被误剪致VRRP双主，两台核心同抢网关IP引发MAC漂移，内网间歇断网的排查与根治。">
+<title>一次核心交换机VRRP双主导致内网间歇性断网的排查记录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/6ac0d850/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="一次核心交换机VRRP双主导致内网间歇性断网的排查记录">
+<meta property='og:description' content="心跳VLAN被误剪致VRRP双主，两台核心同抢网关IP引发MAC漂移，内网间歇断网的排查与根治。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/6ac0d850/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='VRRP' /><meta property='article:tag' content='双主' /><meta property='article:tag' content='MAC漂移' /><meta property='article:tag' content='网关冗余' /><meta property='article:tag' content='交换机' /><meta property='article:tag' content='Trunk放行VLAN' /><meta property='article:published_time' content='2026-07-31T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-07-31T07:00:00&#43;08:00'/>
+<meta name="twitter:title" content="一次核心交换机VRRP双主导致内网间歇性断网的排查记录">
+<meta name="twitter:description" content="心跳VLAN被误剪致VRRP双主，两台核心同抢网关IP引发MAC漂移，内网间歇断网的排查与根治。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
+                网络运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/6ac0d850/">一次核心交换机VRRP双主导致内网间歇性断网的排查记录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            心跳VLAN被误剪致VRRP双主，两台核心同抢网关IP引发MAC漂移，内网间歇断网的排查与根治。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-31T07:00:00&#43;08:00'>2026年7月31日星期五</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司内网核心层采用两台三层交换机（下称 CORE-A、CORE-B）做网关冗余：每个业务 VLAN 起一个 VRRP 组，虚拟网关 IP 形如 <code>10.20.x.254</code>，CORE-A 优先级 120 为 Master，CORE-B 优先级 100 为 Backup，并开启 preempt 抢占。两台核心之间跑一条二层 Trunk 互联，VRRP 的 Advertisement 报文（组播 224.0.0.18，协议号 112）就依赖这条 Trunk 在各业务 VLAN 内互通。</p>
+<p>上周五晚上，网络组对两台核心之间的 Trunk 链路做过一次「VLAN 修剪优化」——为了收敛广播域，把 Trunk 上放行的 VLAN 列表按「实际使用」重新梳理了一遍。变更窗口内 ping 测正常，就收工了。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>周一早上 9 点起，陆续有多个部门报障，现象很有迷惑性：</p>
+<ul>
+<li>用户表现为「一阵一阵断网」：内网系统访问几秒正常、几秒超时，刷新几次又好了；</li>
+<li>持续 ping 网关 <code>10.20.30.254</code>，丢包呈周期性：连续十几个正常，然后连丢 3~5 个，如此往复；</li>
+<li>只有部分 VLAN 受影响（VLAN 30、40 的用户段），服务器段 VLAN 10、20 完全正常；</li>
+<li>接入交换机上没有端口 up/down 日志，链路层看起来一切正常。</li>
+</ul>
+<p>最诡异的是：受影响用户 <code>arp -a</code> 查网关 MAC，不同时间点看到的值会变——一会儿是 <code>0000-5e00-011e</code>（VRRP 虚 MAC），行为却像是在两台设备之间来回切。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p><strong>第一步：先看两台核心的 VRRP 状态。</strong></p>
+<p>分别登录两台核心查看：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>[CORE-A] display vrrp brief
+</span></span><span style="display:flex;"><span>VRID  State    Interface       Virtual IP
+</span></span><span style="display:flex;"><span>30    Master   Vlanif30        10.20.30.254
+</span></span><span style="display:flex;"><span>40    Master   Vlanif40        10.20.40.254
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>[CORE-B] display vrrp brief
+</span></span><span style="display:flex;"><span>VRID  State    Interface       Virtual IP
+</span></span><span style="display:flex;"><span>30    Master   Vlanif30        10.20.30.254
+</span></span><span style="display:flex;"><span>40    Master   Vlanif40        10.20.40.254
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>问题一目了然：VLAN 30、40 的 VRRP 组<strong>两边都是 Master</strong>——典型的双主（脑裂）。而正常的 VLAN 10、20，CORE-B 显示 Backup。这也解释了为什么只有部分 VLAN 受影响。</p>
+<p><strong>第二步：确认双主的直接后果。</strong></p>
+<p>双主意味着两台核心都认为自己持有虚拟网关，都会用同一个虚 MAC <code>0000-5e00-011e</code> 对外发 ARP 应答和免费 ARP。在接入交换机上查 MAC 表：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>[ACC-3F] display mac-address flapping record
+</span></span><span style="display:flex;"><span>VLAN 30: MAC 0000-5e00-011e flapping between GE0/0/27 (uplink-to-A) and GE0/0/28 (uplink-to-B), 47 times in 5 minutes
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>虚 MAC 在通往两台核心的两条上联口之间高频漂移。用户流量一会儿被送往 CORE-A、一会儿被送往 CORE-B，谁的免费 ARP 后到就跟谁走——这正是「周期性丢几个包又恢复」的来源：部分会话的回程路径与去程不一致，且状态在两台设备间来回摇摆。</p>
+<p><strong>第三步：查双主的成因——为什么 Backup 收不到 Master 的通告？</strong></p>
+<p>VRRP 的机制是：Backup 在 3 个通告周期（默认 3 秒多）收不到 Master 的 Advertisement，就自立为 Master。两边同时 Master，说明 VLAN 30、40 的 VRRP 通告在两台核心之间<strong>不通</strong>。通告报文走的是核心互联 Trunk 的对应 VLAN，立刻检查这条 Trunk：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>[CORE-A] display port vlan Eth-Trunk1
+</span></span><span style="display:flex;"><span>Port         Link Type    PVID    VLAN List
+</span></span><span style="display:flex;"><span>Eth-Trunk1   trunk        1       1 10 20 100
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>真相大白：周五的「VLAN 修剪」把 Trunk 放行列表改成了 <code>1 10 20 100</code>——<strong>VLAN 30 和 40 被剪掉了</strong>。变更人梳理&quot;实际使用&quot;时，只统计了跨核心的服务器流量所在 VLAN，漏掉了「用户 VLAN 虽然没有跨核心业务流量，但 VRRP 心跳必须借这条 Trunk 互通」这一层。</p>
+<p><strong>第四步：解释「变更当晚正常、周一才爆发」。</strong></p>
+<p>变更当晚 ping 测正常并不奇怪：剪掉 VLAN 后 3 秒内 CORE-B 就升为 Master，形成双主。但晚上没有用户流量，双主状态下两台设备各自应答、各自转发，低负载下 MAC 漂移的竞争不激烈，ping 网关基本不丢。周一早高峰用户流量上来，ARP 请求/免费 ARP 频繁、两台核心的应答竞争加剧，MAC 表高频翻动，间歇性丢包才被放大成可感知的故障。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><p><strong>止血（5 分钟内）：</strong> 在核心互联 Trunk 上把被剪掉的 VLAN 加回放行列表：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>[CORE-A] interface Eth-Trunk1
+</span></span><span style="display:flex;"><span>[CORE-A-Eth-Trunk1] port trunk allow-pass vlan 30 40
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>VLAN 30、40 的 VRRP 通告恢复互通后约 3 秒，CORE-B 收到 CORE-A（优先级 120）的通告，自动降回 Backup：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>[CORE-B] display vrrp brief
+</span></span><span style="display:flex;"><span>30    Backup   Vlanif30        10.20.30.254
+</span></span><span style="display:flex;"><span>40    Backup   Vlanif40        10.20.40.254
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>接入交换机 MAC 漂移记录停止增长，用户侧 ping 网关连续 10 分钟 0 丢包，故障解除。</p>
+<p><strong>加固（当天完成）：</strong></p>
+<ol>
+<li>全网核对所有 VRRP 组两端状态，确认无其他 VLAN 存在同类隐患；</li>
+<li>在两台核心的互联 Trunk 配置注释中显式标注「本 Trunk 承载全部 VRRP 心跳，修剪 VLAN 前必须核对 VRRP 组列表」；</li>
+<li>为 VRRP 状态变化配置 SNMP Trap 上报（vrrpTrapNewMaster），接入网管告警——本次 CORE-B 升 Master 其实周五晚上就发生了，只是没人知道。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接原因：核心互联 Trunk 做 VLAN 修剪时，误将仍承载 VRRP 心跳的 VLAN 30、40 从放行列表剔除，Backup 收不到 Master 通告，超时自立为 Master，形成双主。</p>
+<p>深层原因有两点：一是<strong>变更影响面评估只看了&quot;业务流量&quot;，没看&quot;协议流量&quot;</strong>——VRRP、STP、组播这些控制平面报文对 VLAN 放行的依赖是隐性的，不体现在流量报表里；二是<strong>缺少 VRRP 状态监控</strong>，双主形成后近 60 小时无人察觉，直到业务高峰把问题放大。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
+<li><strong>变更清单制度</strong>：涉及 Trunk VLAN 放行列表的变更，必须比对该链路承载的 VRRP/HSRP 组、STP 实例、组播组清单，逐项确认后方可执行；</li>
+<li><strong>监控补位</strong>：所有 VRRP 组状态纳入网管轮询，Master 切换、双 Master 检测（同一 VRID 两端同时 Master）触发即时告警；</li>
+<li><strong>变更后验证脚本化</strong>：不能只 ping 网关，加一条「两端 <code>display vrrp brief</code> 状态比对」——一端 Master 一端 Backup 才算通过；</li>
+<li><strong>周期巡检</strong>：把「MAC 漂移记录」纳入接入层周巡检项，虚 MAC 漂移是双主类故障最灵敏的信号；</li>
+<li>有条件的场景，核心互联可将 VRRP 心跳所在 VLAN 与业务修剪解耦（如专用心跳互联），从架构上消除误剪面。</li>
+</ol>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这是一起「变更遗漏协议流量依赖」导致的经典 VRRP 双主故障。它的教训在于：Trunk 上的 VLAN 不只为业务数据服务，控制平面协议（VRRP 心跳、STP BPDU）同样依赖这些通道；「变更当晚 ping 正常」不代表冗余机制还健康——双主状态在低负载下几乎无感，却是一颗定时炸弹。排查此类间歇性断网，<code>display vrrp brief</code> 两端比对与接入层 MAC 漂移记录是两把最快的钥匙；而根治之道，是让 VRRP 状态变成「看得见、会报警」的指标，而不是等早高峰用户来当探测器。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/vrrp/">VRRP</a>
+        
+            <a href="/tags/%E5%8F%8C%E4%B8%BB/">双主</a>
+        
+            <a href="/tags/mac%E6%BC%82%E7%A7%BB/">MAC漂移</a>
+        
+            <a href="/tags/%E7%BD%91%E5%85%B3%E5%86%97%E4%BD%99/">网关冗余</a>
+        
+            <a href="/tags/%E4%BA%A4%E6%8D%A2%E6%9C%BA/">交换机</a>
+        
+            <a href="/tags/trunk%E6%94%BE%E8%A1%8Cvlan/">Trunk放行VLAN</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/a3490d86/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次交换机物理环路引发的整栋楼广播风暴</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/59789918/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 DHCP 地址池耗尽引发的大面积断网</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/8256a5f2/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">核心交换机 STP 根桥被抢，广播风暴怎么来的？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/518dc9fb/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 ARP 欺骗攻击导致的楼层网络间歇断网</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/f7f05e7d/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次核心交换机 LACP 协商失败致带宽骤降</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
     import gallery from '\/ts\/gallery.js';
 
     const articleContent = document.querySelector('.article-content');
@@ -80,4 +639,15 @@
         });
         lightbox.init();
     }
-</script></main></div><script type=text/javascript src=/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js defer></script></body></html>
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

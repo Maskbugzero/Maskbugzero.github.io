@@ -1,58 +1,703 @@
-<!doctype html><html lang=zh dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="堡垒机上线后发现仍有数十台核心服务器允许 root 直登 + 免密跳板，溯源发现老跳板机 + 历史脚本 + 特权账号基线缺失三重失控；按隔离→清免密→建堡垒机策略→全量接管→审计落地上线门禁收口。"><title>收紧堡垒机上线：一次运维账号直连与免密跳板清剿实录</title><link rel=canonical href=https://blog.5772447.xyz/posts/fb201d40/><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href=/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css><meta property='og:title' content="收紧堡垒机上线：一次运维账号直连与免密跳板清剿实录"><meta property='og:description' content="堡垒机上线后发现仍有数十台核心服务器允许 root 直登 + 免密跳板，溯源发现老跳板机 + 历史脚本 + 特权账号基线缺失三重失控；按隔离→清免密→建堡垒机策略→全量接管→审计落地上线门禁收口。"><meta property='og:url' content='https://blog.5772447.xyz/posts/fb201d40/'><meta property='og:site_name' content='Zero Day Notes'><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:tag' content='堡垒机'><meta property='article:tag' content='跳板机'><meta property='article:tag' content='运维账号'><meta property='article:tag' content='免密登录'><meta property='article:tag' content='特权账号治理'><meta property='article:tag' content='审计日志'><meta property='article:tag' content='最小权限'><meta property='article:tag' content='横向移动'><meta property='article:tag' content='凭据泄露'><meta property='article:tag' content='堡垒机上线'><meta property='article:published_time' content='2026-08-29T07:00:00+08:00'><meta property='article:modified_time' content='2026-08-29T07:00:00+08:00'><meta name=twitter:title content="收紧堡垒机上线：一次运维账号直连与免密跳板清剿实录"><meta name=twitter:description content="堡垒机上线后发现仍有数十台核心服务器允许 root 直登 + 免密跳板，溯源发现老跳板机 + 历史脚本 + 特权账号基线缺失三重失控；按隔离→清免密→建堡垒机策略→全量接管→审计落地上线门禁收口。"><link rel="shortcut icon" href=/img/favicon.png></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label=切换菜单>
-<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=/img/avatar.jpg width=300 height=300 class=site-logo loading=lazy alt=Avatar>
-</a><span class=emoji>🛠️</span></figure><div class=site-meta><h1 class=site-name><a href=/>Zero Day Notes</a></h1><h2 class=site-description>IT 运维实战笔记</h2></div></header><ol class=menu-social><li><a href=https://github.com/Maskbugzero title=GitHub rel=me><svg class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6.0 00-1.3-3.2 4.2 4.2.0 00-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3.0 00-6.2.0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2.0 00-.1 3.2A4.6 4.6.0 004 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/page/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
-<span>归档</span></a></li><li><a href=/tags><svg class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11 3l9 9a1.5 1.5.0 010 2l-6 6a1.5 1.5.0 01-2 0L3 11V7a4 4 0 014-4h4"/><circle cx="9" cy="9" r="2"/></svg>
-<span>标签</span></a></li><li><a href=/categories><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg>
-<span>分类</span></a></li><li><a href=/about><svg class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
-<span>关于</span></a></li><li class=menu-bottom-section><ol class=menu><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
-<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
-<span>暗色模式</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">目录</h2><div class=widget--toc><nav class=toc-nav id=TableOfContents><ul><li><a href=#问题背景>问题背景</a></li><li><a href=#故障现象>故障现象</a></li><li><a href=#排查过程>排查过程</a><ul><li><a href=#第一步确认暴露面>第一步：确认暴露面</a></li><li><a href=#第二步溯源免密跳板>第二步：溯源免密跳板</a></li><li><a href=#第三步检查堡垒机策略>第三步：检查堡垒机策略</a></li><li><a href=#第四步审计日志脱钩>第四步：审计日志脱钩</a></li></ul></li><li><a href=#解决方案>解决方案</a><ul><li><a href=#1-紧急止血2-小时内>1. 紧急止血（2 小时内）</a></li><li><a href=#2-堡垒机策略全量覆盖3-天>2. 堡垒机策略全量覆盖（3 天）</a></li><li><a href=#3-免密跳板清零--凭据收口>3. 免密跳板清零 + 凭据收口</a></li><li><a href=#4-审计全链路打通1-周>4. 审计全链路打通（1 周）</a></li><li><a href=#5-上线门禁固化>5. 上线门禁固化</a></li></ul></li><li><a href=#根因分析>根因分析</a></li><li><a href=#预防措施>预防措施</a></li><li><a href=#总结>总结</a></li></ul></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/%E8%BF%90%E7%BB%B4/ style=background-color:#efe7be;color:#3d360f>运维
-</a><a href=/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/ style=background-color:#bee6ef;color:#0f353d>服务运维</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/posts/fb201d40/>收紧堡垒机上线：一次运维账号直连与免密跳板清剿实录</a></h2><h3 class=article-subtitle>堡垒机上线后发现仍有数十台核心服务器允许 root 直登 + 免密跳板，溯源发现老跳板机 + 历史脚本 + 特权账号基线缺失三重失控；按隔离→清免密→建堡垒机策略→全量接管→审计落地上线门禁收口。</h3></div><footer class=article-meta><div class=inline-meta><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
-<time class=article-time--published datetime=2026-08-29T07:00:00+08:00>2026年8月29日星期六</time>
-<svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
-<time class=article-time--reading>阅读时长: 5 分钟</time></div></footer></div></header><aside class=article-toc><details><summary><div class=article-toc-title><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6-6 6"/></svg>
-<span>目录</span></div></summary><nav class=toc-nav><ul><li><a href=#问题背景>问题背景</a></li><li><a href=#故障现象>故障现象</a></li><li><a href=#排查过程>排查过程</a><ul><li><a href=#第一步确认暴露面>第一步：确认暴露面</a></li><li><a href=#第二步溯源免密跳板>第二步：溯源免密跳板</a></li><li><a href=#第三步检查堡垒机策略>第三步：检查堡垒机策略</a></li><li><a href=#第四步审计日志脱钩>第四步：审计日志脱钩</a></li></ul></li><li><a href=#解决方案>解决方案</a><ul><li><a href=#1-紧急止血2-小时内>1. 紧急止血（2 小时内）</a></li><li><a href=#2-堡垒机策略全量覆盖3-天>2. 堡垒机策略全量覆盖（3 天）</a></li><li><a href=#3-免密跳板清零--凭据收口>3. 免密跳板清零 + 凭据收口</a></li><li><a href=#4-审计全链路打通1-周>4. 审计全链路打通（1 周）</a></li><li><a href=#5-上线门禁固化>5. 上线门禁固化</a></li></ul></li><li><a href=#根因分析>根因分析</a></li><li><a href=#预防措施>预防措施</a></li><li><a href=#总结>总结</a></li></ul></nav></details></aside><section class=article-content><h2 id=问题背景><a href=#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af class=header-anchor></a>问题背景</h2><p>公司安全部门推动「所有服务器运维必须走堡垒机 + 审计」已半年，堡垒机（JumpServer）已上线并接管 60% 服务器。但在一次例行安全巡检中，安全团队用 <code>ssh root@10.8.0.0/16 -o PreferredAuthentications=password</code> 在内网批量扫到 47 台服务器仍允许 root 密码登录，其中 19 台存在 <code>authorized_keys</code> 含「运维跳板机」公钥，可免密直达。</p><p>进一步发现：</p><ul><li>3 台核心 MySQL / Redis 集群主节点允许 <code>deploy</code> 用户免密跳板，私钥散落在多台跳板历史镜像中</li><li>堡垒机策略组只覆盖了「新上架」服务器，老系统（2019 年前）因「历史原因」被标记为「临时直连」</li><li><code>/var/log/secure</code> 和堡垒机审计日志完全脱钩，root 直登无任何记录</li></ul><p>这意味着堡垒机上线只是「部分接管」，真实攻击面仍暴露在直连与免密跳板上。</p><h2 id=故障现象><a href=#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1 class=header-anchor></a>故障现象</h2><ol><li><strong>root 直登可达</strong>：内网任意机器可直接 <code>ssh root@prod-db-01</code>，无需 MFA、无堡垒机审批</li><li><strong>免密跳板横行</strong>：老跳板机（10.0.3.45）保存了 8 台核心服务器的 deploy 用户私钥，可直接跳板进生产</li><li><strong>审计完全缺失</strong>：堡垒机 audit log 只记录了「通过堡垒机」的操作，直连/免密跳板零记录；安全部门月报「堡垒机覆盖率 92%」实为假象</li><li><strong>特权账号基线失控</strong>：<code>deploy</code>、<code>app</code>、<code>monitor</code> 等功能账号密码在多台机器上复用，root 密码甚至写在 Wiki「内部运维手册」公开页面</li></ol><p>一次例行漏洞扫描触发了 127 条高危告警（「允许 root 登录」「存在免密跳板」「特权账号基线缺失」）。</p><h2 id=排查过程><a href=#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b class=header-anchor></a>排查过程</h2><h3 id=第一步确认暴露面><a href=#%e7%ac%ac%e4%b8%80%e6%ad%a5%e7%a1%ae%e8%ae%a4%e6%9a%b4%e9%9c%b2%e9%9d%a2 class=header-anchor></a>第一步：确认暴露面</h3><p>用 <code>nmap</code> + <code>ssh-audit</code> 扫全网：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span>nmap -p <span style=color:#ae81ff>22</span> --open 10.0.0.0/8 -oG - | awk <span style=color:#e6db74>&#39;/22\/open/ {print $2}&#39;</span> | <span style=color:#ae81ff>\
-</span></span></span><span style=display:flex><span><span style=color:#66d9ef>while</span> read ip; <span style=color:#66d9ef>do</span>
-</span></span><span style=display:flex><span>  echo <span style=color:#e6db74>&#34;=== </span>$ip<span style=color:#e6db74> ===&#34;</span>
-</span></span><span style=display:flex><span>  ssh -o BatchMode<span style=color:#f92672>=</span>yes -o ConnectTimeout<span style=color:#f92672>=</span><span style=color:#ae81ff>3</span> root@$ip <span style=color:#e6db74>&#34;whoami;lastlog|head -3&#34;</span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>done</span>
-</span></span></code></pre></td></tr></table></div></div><p>结果：47 台允许 root 密码登录，19 台可免密（<code>authorized_keys</code> 含跳板公钥）。</p><h3 id=第二步溯源免密跳板><a href=#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e6%ba%af%e6%ba%90%e5%85%8d%e5%af%86%e8%b7%b3%e6%9d%bf class=header-anchor></a>第二步：溯源免密跳板</h3><p>在老跳板机 10.0.3.45 上发现：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span>ls -l ~/.ssh/
-</span></span><span style=display:flex><span>-rw------- <span style=color:#ae81ff>1</span> ops ops <span style=color:#ae81ff>1679</span> Aug <span style=color:#ae81ff>12</span>  <span style=color:#ae81ff>2023</span> id_rsa_prod
-</span></span><span style=display:flex><span>-rw-r--r-- <span style=color:#ae81ff>1</span> ops ops  <span style=color:#ae81ff>398</span> Aug <span style=color:#ae81ff>12</span>  <span style=color:#ae81ff>2023</span> id_rsa_prod.pub
-</span></span></code></pre></td></tr></table></div></div><p><code>~/.ssh/config</code> 里写满了 Host 别名：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-fallback data-lang=fallback><span style=display:flex><span>Host prod-db-01
-</span></span><span style=display:flex><span>  HostName 10.8.2.11
-</span></span><span style=display:flex><span>  User deploy
-</span></span><span style=display:flex><span>  IdentityFile ~/.ssh/id_rsa_prod
-</span></span></code></pre></td></tr></table></div></div><p>这些私钥散落在 5 台历史跳板机 + 3 台运维笔记本中。</p><h3 id=第三步检查堡垒机策略><a href=#%e7%ac%ac%e4%b8%89%e6%ad%a5%e6%a3%80%e6%9f%a5%e5%a0%a1%e5%9e%92%e6%9c%ba%e7%ad%96%e7%95%a5 class=header-anchor></a>第三步：检查堡垒机策略</h3><p>登录 JumpServer 控制台：</p><ul><li>资产组「生产-数据库」只包含 12 台新 MySQL，缺 3 台老集群</li><li>「允许直连」标签被打在 31 台服务器上，审批流被跳过</li><li>堡垒机与服务器之间无「定期对账」机制，新增服务器不自动入堡垒机</li></ul><h3 id=第四步审计日志脱钩><a href=#%e7%ac%ac%e5%9b%9b%e6%ad%a5%e5%ae%a1%e8%ae%a1%e6%97%a5%e5%bf%97%e8%84%b1%e9%92%a9 class=header-anchor></a>第四步：审计日志脱钩</h3><p>堡垒机只记录「通过堡垒机登录」的操作：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-json data-lang=json><span style=display:flex><span>{<span style=color:#f92672>&#34;session_id&#34;</span>:<span style=color:#e6db74>&#34;xxx&#34;</span>,<span style=color:#f92672>&#34;user&#34;</span>:<span style=color:#e6db74>&#34;zhangsan&#34;</span>,<span style=color:#f92672>&#34;asset&#34;</span>:<span style=color:#e6db74>&#34;prod-web-01&#34;</span>,<span style=color:#f92672>&#34;action&#34;</span>:<span style=color:#e6db74>&#34;login&#34;</span>,<span style=color:#f92672>&#34;timestamp&#34;</span>:<span style=color:#e6db74>&#34;2026-08-28T09:12:00Z&#34;</span>}
-</span></span></code></pre></td></tr></table></div></div><p>而直连 root 的操作完全无痕：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span>last root
-</span></span><span style=display:flex><span>root     pts/0      10.8.1.55    Wed Aug <span style=color:#ae81ff>27</span> 23:45 still logged in
-</span></span></code></pre></td></tr></table></div></div><p><code>/var/log/secure</code> 里全是直登记录，堡垒机 audit log 完全看不到。</p><h2 id=解决方案><a href=#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88 class=header-anchor></a>解决方案</h2><h3 id=1-紧急止血2-小时内><a href=#1-%e7%b4%a7%e6%80%a5%e6%ad%a2%e8%a1%802-%e5%b0%8f%e6%97%b6%e5%86%85 class=header-anchor></a>1. 紧急止血（2 小时内）</h3><ul><li>所有允许 root 密码登录的服务器，立即改 <code>PermitRootLogin prohibit-password</code>，root 密码轮换</li><li>所有 <code>authorized_keys</code> 含跳板公钥的条目删除，私钥从跳板机/笔记本上清零</li><li>临时在核心交换机 ACL 阻断「非堡垒机 IP → 生产网 22 端口」，强制所有运维走堡垒机</li></ul><h3 id=2-堡垒机策略全量覆盖3-天><a href=#2-%e5%a0%a1%e5%9e%92%e6%9c%ba%e7%ad%96%e7%95%a5%e5%85%a8%e9%87%8f%e8%a6%86%e7%9b%963-%e5%a4%a9 class=header-anchor></a>2. 堡垒机策略全量覆盖（3 天）</h3><ul><li>把所有服务器（含老系统）导入 JumpServer，统一用「生产」「预发」「测试」三套资产组</li><li>所有功能账号（deploy/app/monitor）密码由堡垒机托管，禁止明文存储</li><li>堡垒机审批流强制开启「双人复核」（高权限操作需第二人确认）</li></ul><h3 id=3-免密跳板清零--凭据收口><a href=#3-%e5%85%8d%e5%af%86%e8%b7%b3%e6%9d%bf%e6%b8%85%e9%9b%b6--%e5%87%ad%e6%8d%ae%e6%94%b6%e5%8f%a3 class=header-anchor></a>3. 免密跳板清零 + 凭据收口</h3><ul><li>所有历史跳板机 <code>~/.ssh/</code> 目录清空，<code>/etc/ssh/ssh_config</code> 里的 Host 别名删除</li><li>核心服务器的 <code>authorized_keys</code> 只保留堡垒机公钥，禁用 <code>PermitRootLogin</code>、<code>AllowUsers</code> 只允许堡垒机跳板用户</li><li>所有特权账号密码统一由堡垒机托管 + 定期轮换（90 天）</li></ul><h3 id=4-审计全链路打通1-周><a href=#4-%e5%ae%a1%e8%ae%a1%e5%85%a8%e9%93%be%e8%b7%af%e6%89%93%e9%80%9a1-%e5%91%a8 class=header-anchor></a>4. 审计全链路打通（1 周）</h3><ul><li>堡垒机 audit log + 服务器 <code>/var/log/secure</code> + <code>auditd</code> 三层日志集中到 ELK</li><li>堡垒机「会话回放」功能全开，高权限操作 180 天留存</li><li>安全部门每月「堡垒机覆盖率」报表改为「真实覆盖率 = 已入堡垒机服务器数 / 全量服务器数」，禁止用「允许直连」标签美化数据</li></ul><h3 id=5-上线门禁固化><a href=#5-%e4%b8%8a%e7%ba%bf%e9%97%a8%e7%a6%81%e5%9b%ba%e5%8c%96 class=header-anchor></a>5. 上线门禁固化</h3><ul><li>新服务器入网 CheckList 增加「已入堡垒机 + 审批流已配置」硬门禁</li><li>老系统「临时直连」标签每月清理一次，超过 30 天未整改的自动阻断 22 端口</li><li>堡垒机与 CMDB（iTop）打通，服务器下架时自动从堡垒机移除</li></ul><h2 id=根因分析><a href=#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90 class=header-anchor></a>根因分析</h2><ol><li><strong>历史包袱未清零</strong>：堡垒机上线只接管了「新系统」，老系统因「历史原因」被打「允许直连」标签，标签永不清</li><li><strong>免密跳板文化根深蒂固</strong>：运维团队习惯「跳板机 → 目标服务器免密」，堡垒机只是「多加一层」，私钥仍散落</li><li><strong>审计与基线双缺失</strong>：堡垒机只管「自己管辖」的机器，直连/免密跳板零审计；特权账号基线从未建立</li><li><strong>KPI 作假</strong>：安全部门「堡垒机覆盖率 92%」是用「允许直连」标签把分母做小，真实覆盖率只有 60%</li></ol><h2 id=预防措施><a href=#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd class=header-anchor></a>预防措施</h2><ol><li><p><strong>堡垒机全量覆盖 + 定期对账</strong></p><ul><li>每月 1 号跑脚本比对 CMDB 全量服务器 vs 堡垒机资产，差异自动告警 + 工单</li><li>禁止「允许直连」标签，历史标签每月清理</li></ul></li><li><p><strong>免密跳板零容忍</strong></p><ul><li>所有服务器 <code>authorized_keys</code> 只保留堡垒机公钥，私钥统一由堡垒机托管</li><li>跳板机 <code>~/.ssh/</code> 目录定期扫描，出现非堡垒机公钥立即告警</li></ul></li><li><p><strong>特权账号基线 + 定期轮换</strong></p><ul><li>root/deploy/app/monitor 等账号密码全部托管堡垒机，90 天强制轮换</li><li>禁用 root 密码登录，<code>PermitRootLogin prohibit-password</code></li></ul></li><li><p><strong>审计全链路 + 异常告警</strong></p><ul><li>堡垒机 audit log + 服务器 secure/auditd 集中 ELK</li><li>检测到「非堡垒机 IP 登录生产网 22 端口」立即告警 + 封禁 30 分钟</li></ul></li><li><p><strong>上线门禁 + 季度复盘</strong></p><ul><li>新服务器入网必须「已入堡垒机 + 审批流已配置」才能放行</li><li>每季度复盘「堡垒机真实覆盖率」「免密跳板残留数」「特权账号轮换 compliance」</li></ul></li></ol><h2 id=总结><a href=#%e6%80%bb%e7%bb%93 class=header-anchor></a>总结</h2><p>堡垒机上线只是「工具落地」，真正难点是「把历史包袱清零 + 把文化改过来 + 把基线建起来」。本次事件暴露了「部分接管 = 零接管」的残酷现实——只要有一台服务器允许 root 直登或免密跳板，整个堡垒机体系就形同虚设。</p><p><strong>关键教训</strong>：</p><ul><li>堡垒机覆盖率必须「全量真实覆盖」，禁止用「允许直连」标签美化数据</li><li>免密跳板是「定时炸弹」，必须清零 + 私钥托管</li><li>特权账号基线 + 定期轮换是底线，审计全链路是保障</li></ul><p>下阶段计划：把「堡垒机全量覆盖 + 免密跳板清零 + 特权账号基线」做成 Checklist，强制每季度复盘一次，避免历史包袱再次堆积。</p></section><footer class="article-meta article-footer"><section class=article-tags><a href=/tags/%E5%A0%A1%E5%9E%92%E6%9C%BA/>堡垒机</a>
-<a href=/tags/%E8%B7%B3%E6%9D%BF%E6%9C%BA/>跳板机</a>
-<a href=/tags/%E8%BF%90%E7%BB%B4%E8%B4%A6%E5%8F%B7/>运维账号</a>
-<a href=/tags/%E5%85%8D%E5%AF%86%E7%99%BB%E5%BD%95/>免密登录</a>
-<a href=/tags/%E7%89%B9%E6%9D%83%E8%B4%A6%E5%8F%B7%E6%B2%BB%E7%90%86/>特权账号治理</a>
-<a href=/tags/%E5%AE%A1%E8%AE%A1%E6%97%A5%E5%BF%97/>审计日志</a>
-<a href=/tags/%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90/>最小权限</a>
-<a href=/tags/%E6%A8%AA%E5%90%91%E7%A7%BB%E5%8A%A8/>横向移动</a>
-<a href=/tags/%E5%87%AD%E6%8D%AE%E6%B3%84%E9%9C%B2/>凭据泄露</a>
-<a href=/tags/%E5%A0%A1%E5%9E%92%E6%9C%BA%E4%B8%8A%E7%BA%BF/>堡垒机上线</a></section></footer></article><aside><h2 class=section-title>相关文章</h2><div class=subsection-list><div class=article-list--tile><article><a href=/posts/83bf4e7f/><div class=article-details><h2 class=article-title>一次服务器暴露面收敛Checklist：从端口扫描到凭据治理的落地清单</h2></div></a></article><article><a href=/posts/ca7c58b6/><div class=article-details><h2 class=article-title>记一次Web应用账户经sudo配置不当提权到root的入侵溯源与加固</h2></div></a></article><article><a href=/posts/765a54f9/><div class=article-details><h2 class=article-title>记一次堡垒机 SSH 超时致运维无法紧急操作的排查</h2></div></a></article></div></div></aside><div class=disqus-container></div><style>.disqus-container{background-color:var(--card-background);border-radius:var(--card-border-radius);box-shadow:var(--shadow-l1);padding:var(--card-padding)}</style><script>window.addEventListener("onColorSchemeChange",e=>{typeof DISQUS=="object"&&DISQUS.reset({reload:!0})})</script><footer class=site-footer><section class=copyright>&copy;
-2020 -
-2026 Zero Day Notes</section><section class=powerby>使用 <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a> 构建<br>主题 <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=4.0.3>Stack</a></b> 由 <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a> 设计</section></footer><script type=module>
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="堡垒机上线后发现仍有数十台核心服务器允许 root 直登 + 免密跳板，溯源发现老跳板机 + 历史脚本 + 特权账号基线缺失三重失控；按隔离→清免密→建堡垒机策略→全量接管→审计落地上线门禁收口。">
+<title>收紧堡垒机上线：一次运维账号直连与免密跳板清剿实录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/fb201d40/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="收紧堡垒机上线：一次运维账号直连与免密跳板清剿实录">
+<meta property='og:description' content="堡垒机上线后发现仍有数十台核心服务器允许 root 直登 + 免密跳板，溯源发现老跳板机 + 历史脚本 + 特权账号基线缺失三重失控；按隔离→清免密→建堡垒机策略→全量接管→审计落地上线门禁收口。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/fb201d40/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='堡垒机' /><meta property='article:tag' content='跳板机' /><meta property='article:tag' content='运维账号' /><meta property='article:tag' content='免密登录' /><meta property='article:tag' content='特权账号治理' /><meta property='article:tag' content='审计日志' /><meta property='article:tag' content='最小权限' /><meta property='article:tag' content='横向移动' /><meta property='article:tag' content='凭据泄露' /><meta property='article:tag' content='堡垒机上线' /><meta property='article:published_time' content='2026-08-29T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-08-29T07:00:00&#43;08:00'/>
+<meta name="twitter:title" content="收紧堡垒机上线：一次运维账号直连与免密跳板清剿实录">
+<meta name="twitter:description" content="堡垒机上线后发现仍有数十台核心服务器允许 root 直登 + 免密跳板，溯源发现老跳板机 + 历史脚本 + 特权账号基线缺失三重失控；按隔离→清免密→建堡垒机策略→全量接管→审计落地上线门禁收口。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步确认暴露面">第一步：确认暴露面</a></li>
+        <li><a href="#第二步溯源免密跳板">第二步：溯源免密跳板</a></li>
+        <li><a href="#第三步检查堡垒机策略">第三步：检查堡垒机策略</a></li>
+        <li><a href="#第四步审计日志脱钩">第四步：审计日志脱钩</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#1-紧急止血2-小时内">1. 紧急止血（2 小时内）</a></li>
+        <li><a href="#2-堡垒机策略全量覆盖3-天">2. 堡垒机策略全量覆盖（3 天）</a></li>
+        <li><a href="#3-免密跳板清零--凭据收口">3. 免密跳板清零 + 凭据收口</a></li>
+        <li><a href="#4-审计全链路打通1-周">4. 审计全链路打通（1 周）</a></li>
+        <li><a href="#5-上线门禁固化">5. 上线门禁固化</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/fb201d40/">收紧堡垒机上线：一次运维账号直连与免密跳板清剿实录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            堡垒机上线后发现仍有数十台核心服务器允许 root 直登 &#43; 免密跳板，溯源发现老跳板机 &#43; 历史脚本 &#43; 特权账号基线缺失三重失控；按隔离→清免密→建堡垒机策略→全量接管→审计落地上线门禁收口。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-08-29T07:00:00&#43;08:00'>2026年8月29日星期六</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步确认暴露面">第一步：确认暴露面</a></li>
+        <li><a href="#第二步溯源免密跳板">第二步：溯源免密跳板</a></li>
+        <li><a href="#第三步检查堡垒机策略">第三步：检查堡垒机策略</a></li>
+        <li><a href="#第四步审计日志脱钩">第四步：审计日志脱钩</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#1-紧急止血2-小时内">1. 紧急止血（2 小时内）</a></li>
+        <li><a href="#2-堡垒机策略全量覆盖3-天">2. 堡垒机策略全量覆盖（3 天）</a></li>
+        <li><a href="#3-免密跳板清零--凭据收口">3. 免密跳板清零 + 凭据收口</a></li>
+        <li><a href="#4-审计全链路打通1-周">4. 审计全链路打通（1 周）</a></li>
+        <li><a href="#5-上线门禁固化">5. 上线门禁固化</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司安全部门推动「所有服务器运维必须走堡垒机 + 审计」已半年，堡垒机（JumpServer）已上线并接管 60% 服务器。但在一次例行安全巡检中，安全团队用 <code>ssh root@10.8.0.0/16 -o PreferredAuthentications=password</code> 在内网批量扫到 47 台服务器仍允许 root 密码登录，其中 19 台存在 <code>authorized_keys</code> 含「运维跳板机」公钥，可免密直达。</p>
+<p>进一步发现：</p>
+<ul>
+<li>3 台核心 MySQL / Redis 集群主节点允许 <code>deploy</code> 用户免密跳板，私钥散落在多台跳板历史镜像中</li>
+<li>堡垒机策略组只覆盖了「新上架」服务器，老系统（2019 年前）因「历史原因」被标记为「临时直连」</li>
+<li><code>/var/log/secure</code> 和堡垒机审计日志完全脱钩，root 直登无任何记录</li>
+</ul>
+<p>这意味着堡垒机上线只是「部分接管」，真实攻击面仍暴露在直连与免密跳板上。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ol>
+<li><strong>root 直登可达</strong>：内网任意机器可直接 <code>ssh root@prod-db-01</code>，无需 MFA、无堡垒机审批</li>
+<li><strong>免密跳板横行</strong>：老跳板机（10.0.3.45）保存了 8 台核心服务器的 deploy 用户私钥，可直接跳板进生产</li>
+<li><strong>审计完全缺失</strong>：堡垒机 audit log 只记录了「通过堡垒机」的操作，直连/免密跳板零记录；安全部门月报「堡垒机覆盖率 92%」实为假象</li>
+<li><strong>特权账号基线失控</strong>：<code>deploy</code>、<code>app</code>、<code>monitor</code> 等功能账号密码在多台机器上复用，root 密码甚至写在 Wiki「内部运维手册」公开页面</li>
+</ol>
+<p>一次例行漏洞扫描触发了 127 条高危告警（「允许 root 登录」「存在免密跳板」「特权账号基线缺失」）。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="第一步确认暴露面"><a href="#%e7%ac%ac%e4%b8%80%e6%ad%a5%e7%a1%ae%e8%ae%a4%e6%9a%b4%e9%9c%b2%e9%9d%a2" class="header-anchor"></a>第一步：确认暴露面
+</h3><p>用 <code>nmap</code> + <code>ssh-audit</code> 扫全网：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>nmap -p <span style="color:#ae81ff">22</span> --open 10.0.0.0/8 -oG - | awk <span style="color:#e6db74">&#39;/22\/open/ {print $2}&#39;</span> | <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#66d9ef">while</span> read ip; <span style="color:#66d9ef">do</span>
+</span></span><span style="display:flex;"><span>  echo <span style="color:#e6db74">&#34;=== </span>$ip<span style="color:#e6db74"> ===&#34;</span>
+</span></span><span style="display:flex;"><span>  ssh -o BatchMode<span style="color:#f92672">=</span>yes -o ConnectTimeout<span style="color:#f92672">=</span><span style="color:#ae81ff">3</span> root@$ip <span style="color:#e6db74">&#34;whoami;lastlog|head -3&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">done</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>结果：47 台允许 root 密码登录，19 台可免密（<code>authorized_keys</code> 含跳板公钥）。</p>
+<h3 id="第二步溯源免密跳板"><a href="#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e6%ba%af%e6%ba%90%e5%85%8d%e5%af%86%e8%b7%b3%e6%9d%bf" class="header-anchor"></a>第二步：溯源免密跳板
+</h3><p>在老跳板机 10.0.3.45 上发现：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ls -l ~/.ssh/
+</span></span><span style="display:flex;"><span>-rw------- <span style="color:#ae81ff">1</span> ops ops <span style="color:#ae81ff">1679</span> Aug <span style="color:#ae81ff">12</span>  <span style="color:#ae81ff">2023</span> id_rsa_prod
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#ae81ff">1</span> ops ops  <span style="color:#ae81ff">398</span> Aug <span style="color:#ae81ff">12</span>  <span style="color:#ae81ff">2023</span> id_rsa_prod.pub
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>~/.ssh/config</code> 里写满了 Host 别名：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>Host prod-db-01
+</span></span><span style="display:flex;"><span>  HostName 10.8.2.11
+</span></span><span style="display:flex;"><span>  User deploy
+</span></span><span style="display:flex;"><span>  IdentityFile ~/.ssh/id_rsa_prod
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这些私钥散落在 5 台历史跳板机 + 3 台运维笔记本中。</p>
+<h3 id="第三步检查堡垒机策略"><a href="#%e7%ac%ac%e4%b8%89%e6%ad%a5%e6%a3%80%e6%9f%a5%e5%a0%a1%e5%9e%92%e6%9c%ba%e7%ad%96%e7%95%a5" class="header-anchor"></a>第三步：检查堡垒机策略
+</h3><p>登录 JumpServer 控制台：</p>
+<ul>
+<li>资产组「生产-数据库」只包含 12 台新 MySQL，缺 3 台老集群</li>
+<li>「允许直连」标签被打在 31 台服务器上，审批流被跳过</li>
+<li>堡垒机与服务器之间无「定期对账」机制，新增服务器不自动入堡垒机</li>
+</ul>
+<h3 id="第四步审计日志脱钩"><a href="#%e7%ac%ac%e5%9b%9b%e6%ad%a5%e5%ae%a1%e8%ae%a1%e6%97%a5%e5%bf%97%e8%84%b1%e9%92%a9" class="header-anchor"></a>第四步：审计日志脱钩
+</h3><p>堡垒机只记录「通过堡垒机登录」的操作：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{<span style="color:#f92672">&#34;session_id&#34;</span>:<span style="color:#e6db74">&#34;xxx&#34;</span>,<span style="color:#f92672">&#34;user&#34;</span>:<span style="color:#e6db74">&#34;zhangsan&#34;</span>,<span style="color:#f92672">&#34;asset&#34;</span>:<span style="color:#e6db74">&#34;prod-web-01&#34;</span>,<span style="color:#f92672">&#34;action&#34;</span>:<span style="color:#e6db74">&#34;login&#34;</span>,<span style="color:#f92672">&#34;timestamp&#34;</span>:<span style="color:#e6db74">&#34;2026-08-28T09:12:00Z&#34;</span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>而直连 root 的操作完全无痕：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>last root
+</span></span><span style="display:flex;"><span>root     pts/0      10.8.1.55    Wed Aug <span style="color:#ae81ff">27</span> 23:45 still logged in
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>/var/log/secure</code> 里全是直登记录，堡垒机 audit log 完全看不到。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><h3 id="1-紧急止血2-小时内"><a href="#1-%e7%b4%a7%e6%80%a5%e6%ad%a2%e8%a1%802-%e5%b0%8f%e6%97%b6%e5%86%85" class="header-anchor"></a>1. 紧急止血（2 小时内）
+</h3><ul>
+<li>所有允许 root 密码登录的服务器，立即改 <code>PermitRootLogin prohibit-password</code>，root 密码轮换</li>
+<li>所有 <code>authorized_keys</code> 含跳板公钥的条目删除，私钥从跳板机/笔记本上清零</li>
+<li>临时在核心交换机 ACL 阻断「非堡垒机 IP → 生产网 22 端口」，强制所有运维走堡垒机</li>
+</ul>
+<h3 id="2-堡垒机策略全量覆盖3-天"><a href="#2-%e5%a0%a1%e5%9e%92%e6%9c%ba%e7%ad%96%e7%95%a5%e5%85%a8%e9%87%8f%e8%a6%86%e7%9b%963-%e5%a4%a9" class="header-anchor"></a>2. 堡垒机策略全量覆盖（3 天）
+</h3><ul>
+<li>把所有服务器（含老系统）导入 JumpServer，统一用「生产」「预发」「测试」三套资产组</li>
+<li>所有功能账号（deploy/app/monitor）密码由堡垒机托管，禁止明文存储</li>
+<li>堡垒机审批流强制开启「双人复核」（高权限操作需第二人确认）</li>
+</ul>
+<h3 id="3-免密跳板清零--凭据收口"><a href="#3-%e5%85%8d%e5%af%86%e8%b7%b3%e6%9d%bf%e6%b8%85%e9%9b%b6--%e5%87%ad%e6%8d%ae%e6%94%b6%e5%8f%a3" class="header-anchor"></a>3. 免密跳板清零 + 凭据收口
+</h3><ul>
+<li>所有历史跳板机 <code>~/.ssh/</code> 目录清空，<code>/etc/ssh/ssh_config</code> 里的 Host 别名删除</li>
+<li>核心服务器的 <code>authorized_keys</code> 只保留堡垒机公钥，禁用 <code>PermitRootLogin</code>、<code>AllowUsers</code> 只允许堡垒机跳板用户</li>
+<li>所有特权账号密码统一由堡垒机托管 + 定期轮换（90 天）</li>
+</ul>
+<h3 id="4-审计全链路打通1-周"><a href="#4-%e5%ae%a1%e8%ae%a1%e5%85%a8%e9%93%be%e8%b7%af%e6%89%93%e9%80%9a1-%e5%91%a8" class="header-anchor"></a>4. 审计全链路打通（1 周）
+</h3><ul>
+<li>堡垒机 audit log + 服务器 <code>/var/log/secure</code> + <code>auditd</code> 三层日志集中到 ELK</li>
+<li>堡垒机「会话回放」功能全开，高权限操作 180 天留存</li>
+<li>安全部门每月「堡垒机覆盖率」报表改为「真实覆盖率 = 已入堡垒机服务器数 / 全量服务器数」，禁止用「允许直连」标签美化数据</li>
+</ul>
+<h3 id="5-上线门禁固化"><a href="#5-%e4%b8%8a%e7%ba%bf%e9%97%a8%e7%a6%81%e5%9b%ba%e5%8c%96" class="header-anchor"></a>5. 上线门禁固化
+</h3><ul>
+<li>新服务器入网 CheckList 增加「已入堡垒机 + 审批流已配置」硬门禁</li>
+<li>老系统「临时直连」标签每月清理一次，超过 30 天未整改的自动阻断 22 端口</li>
+<li>堡垒机与 CMDB（iTop）打通，服务器下架时自动从堡垒机移除</li>
+</ul>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><ol>
+<li><strong>历史包袱未清零</strong>：堡垒机上线只接管了「新系统」，老系统因「历史原因」被打「允许直连」标签，标签永不清</li>
+<li><strong>免密跳板文化根深蒂固</strong>：运维团队习惯「跳板机 → 目标服务器免密」，堡垒机只是「多加一层」，私钥仍散落</li>
+<li><strong>审计与基线双缺失</strong>：堡垒机只管「自己管辖」的机器，直连/免密跳板零审计；特权账号基线从未建立</li>
+<li><strong>KPI 作假</strong>：安全部门「堡垒机覆盖率 92%」是用「允许直连」标签把分母做小，真实覆盖率只有 60%</li>
+</ol>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
+<li>
+<p><strong>堡垒机全量覆盖 + 定期对账</strong></p>
+<ul>
+<li>每月 1 号跑脚本比对 CMDB 全量服务器 vs 堡垒机资产，差异自动告警 + 工单</li>
+<li>禁止「允许直连」标签，历史标签每月清理</li>
+</ul>
+</li>
+<li>
+<p><strong>免密跳板零容忍</strong></p>
+<ul>
+<li>所有服务器 <code>authorized_keys</code> 只保留堡垒机公钥，私钥统一由堡垒机托管</li>
+<li>跳板机 <code>~/.ssh/</code> 目录定期扫描，出现非堡垒机公钥立即告警</li>
+</ul>
+</li>
+<li>
+<p><strong>特权账号基线 + 定期轮换</strong></p>
+<ul>
+<li>root/deploy/app/monitor 等账号密码全部托管堡垒机，90 天强制轮换</li>
+<li>禁用 root 密码登录，<code>PermitRootLogin prohibit-password</code></li>
+</ul>
+</li>
+<li>
+<p><strong>审计全链路 + 异常告警</strong></p>
+<ul>
+<li>堡垒机 audit log + 服务器 secure/auditd 集中 ELK</li>
+<li>检测到「非堡垒机 IP 登录生产网 22 端口」立即告警 + 封禁 30 分钟</li>
+</ul>
+</li>
+<li>
+<p><strong>上线门禁 + 季度复盘</strong></p>
+<ul>
+<li>新服务器入网必须「已入堡垒机 + 审批流已配置」才能放行</li>
+<li>每季度复盘「堡垒机真实覆盖率」「免密跳板残留数」「特权账号轮换 compliance」</li>
+</ul>
+</li>
+</ol>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>堡垒机上线只是「工具落地」，真正难点是「把历史包袱清零 + 把文化改过来 + 把基线建起来」。本次事件暴露了「部分接管 = 零接管」的残酷现实——只要有一台服务器允许 root 直登或免密跳板，整个堡垒机体系就形同虚设。</p>
+<p><strong>关键教训</strong>：</p>
+<ul>
+<li>堡垒机覆盖率必须「全量真实覆盖」，禁止用「允许直连」标签美化数据</li>
+<li>免密跳板是「定时炸弹」，必须清零 + 私钥托管</li>
+<li>特权账号基线 + 定期轮换是底线，审计全链路是保障</li>
+</ul>
+<p>下阶段计划：把「堡垒机全量覆盖 + 免密跳板清零 + 特权账号基线」做成 Checklist，强制每季度复盘一次，避免历史包袱再次堆积。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E5%A0%A1%E5%9E%92%E6%9C%BA/">堡垒机</a>
+        
+            <a href="/tags/%E8%B7%B3%E6%9D%BF%E6%9C%BA/">跳板机</a>
+        
+            <a href="/tags/%E8%BF%90%E7%BB%B4%E8%B4%A6%E5%8F%B7/">运维账号</a>
+        
+            <a href="/tags/%E5%85%8D%E5%AF%86%E7%99%BB%E5%BD%95/">免密登录</a>
+        
+            <a href="/tags/%E7%89%B9%E6%9D%83%E8%B4%A6%E5%8F%B7%E6%B2%BB%E7%90%86/">特权账号治理</a>
+        
+            <a href="/tags/%E5%AE%A1%E8%AE%A1%E6%97%A5%E5%BF%97/">审计日志</a>
+        
+            <a href="/tags/%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90/">最小权限</a>
+        
+            <a href="/tags/%E6%A8%AA%E5%90%91%E7%A7%BB%E5%8A%A8/">横向移动</a>
+        
+            <a href="/tags/%E5%87%AD%E6%8D%AE%E6%B3%84%E9%9C%B2/">凭据泄露</a>
+        
+            <a href="/tags/%E5%A0%A1%E5%9E%92%E6%9C%BA%E4%B8%8A%E7%BA%BF/">堡垒机上线</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/83bf4e7f/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次服务器暴露面收敛Checklist：从端口扫描到凭据治理的落地清单</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/ca7c58b6/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次Web应用账户经sudo配置不当提权到root的入侵溯源与加固</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/765a54f9/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次堡垒机 SSH 超时致运维无法紧急操作的排查</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
     import gallery from '\/ts\/gallery.js';
 
     const articleContent = document.querySelector('.article-content');
@@ -76,4 +721,15 @@
         });
         lightbox.init();
     }
-</script></main></div><script type=text/javascript src=/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js defer></script></body></html>
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

@@ -1,35 +1,647 @@
-<!doctype html><html lang=zh dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="机房搬迁割接后 A 访 B 通、B 回 A 不通，根因是静态路由与回程策略路由未同步导致非对称路径"><meta name=keywords content="机房搬迁,网络割接,非对称路由,回程路由,策略路由,单向可达,静态路由漂移,容灾切换"><title>记一次机房搬迁网络割接后跨机房业务单向可达的排查</title><link rel=canonical href=https://blog.5772447.xyz/posts/5453de23/><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href=/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css><meta property='og:title' content="记一次机房搬迁网络割接后跨机房业务单向可达的排查"><meta property='og:description' content="机房搬迁割接后 A 访 B 通、B 回 A 不通，根因是静态路由与回程策略路由未同步导致非对称路径"><meta property='og:url' content='https://blog.5772447.xyz/posts/5453de23/'><meta property='og:site_name' content='Zero Day Notes'><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:published_time' content='2026-08-09T07:05:00+08:00'><meta property='article:modified_time' content='2026-08-09T07:05:00+08:00'><meta name=twitter:title content="记一次机房搬迁网络割接后跨机房业务单向可达的排查"><meta name=twitter:description content="机房搬迁割接后 A 访 B 通、B 回 A 不通，根因是静态路由与回程策略路由未同步导致非对称路径"><link rel="shortcut icon" href=/img/favicon.png></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label=切换菜单>
-<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=/img/avatar.jpg width=300 height=300 class=site-logo loading=lazy alt=Avatar>
-</a><span class=emoji>🛠️</span></figure><div class=site-meta><h1 class=site-name><a href=/>Zero Day Notes</a></h1><h2 class=site-description>IT 运维实战笔记</h2></div></header><ol class=menu-social><li><a href=https://github.com/Maskbugzero title=GitHub rel=me><svg class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6.0 00-1.3-3.2 4.2 4.2.0 00-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3.0 00-6.2.0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2.0 00-.1 3.2A4.6 4.6.0 004 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/page/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
-<span>归档</span></a></li><li><a href=/tags><svg class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11 3l9 9a1.5 1.5.0 010 2l-6 6a1.5 1.5.0 01-2 0L3 11V7a4 4 0 014-4h4"/><circle cx="9" cy="9" r="2"/></svg>
-<span>标签</span></a></li><li><a href=/categories><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg>
-<span>分类</span></a></li><li><a href=/about><svg class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
-<span>关于</span></a></li><li class=menu-bottom-section><ol class=menu><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
-<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
-<span>暗色模式</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">目录</h2><div class=widget--toc><nav class=toc-nav id=TableOfContents><ul><li><a href=#问题背景>问题背景</a></li><li><a href=#故障现象>故障现象</a></li><li><a href=#排查过程>排查过程</a><ul><li><a href=#1-先定方向不要一上来改防火墙>1. 先定方向，不要一上来改防火墙</a></li><li><a href=#2-对称抓包暴露非对称路径>2. 对称抓包，暴露非对称路径</a></li><li><a href=#3-对照三张表转发表策略路由nat>3. 对照三张表：转发表、策略路由、NAT</a></li><li><a href=#4-控制面确认不是-ospf-抖动是静态pbr-漂移>4. 控制面确认：不是 OSPF 抖动，是静态/PBR 漂移</a></li><li><a href=#5-业务层二次验证>5. 业务层二次验证</a></li></ul></li><li><a href=#解决方案>解决方案</a><ul><li><a href=#止血分钟级>止血（分钟级）</a></li><li><a href=#根治当天窗口收口>根治（当天窗口收口）</a></li></ul></li><li><a href=#根因分析>根因分析</a></li><li><a href=#预防措施>预防措施</a></li><li><a href=#总结>总结</a></li></ul></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/%E8%BF%90%E7%BB%B4/ style=background-color:#efe7be;color:#3d360f>运维
-</a><a href=/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/ style=background-color:#bec7ef;color:#0f183d>网络运维</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/posts/5453de23/>记一次机房搬迁网络割接后跨机房业务单向可达的排查</a></h2><h3 class=article-subtitle>机房搬迁割接后 A 访 B 通、B 回 A 不通，根因是静态路由与回程策略路由未同步导致非对称路径</h3></div><footer class=article-meta><div class=inline-meta><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
-<time class=article-time--published datetime=2026-08-09T07:05:00+08:00>2026年8月9日星期日</time>
-<svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
-<time class=article-time--reading>阅读时长: 7 分钟</time></div></footer></div></header><aside class=article-toc><details><summary><div class=article-toc-title><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6-6 6"/></svg>
-<span>目录</span></div></summary><nav class=toc-nav><ul><li><a href=#问题背景>问题背景</a></li><li><a href=#故障现象>故障现象</a></li><li><a href=#排查过程>排查过程</a><ul><li><a href=#1-先定方向不要一上来改防火墙>1. 先定方向，不要一上来改防火墙</a></li><li><a href=#2-对称抓包暴露非对称路径>2. 对称抓包，暴露非对称路径</a></li><li><a href=#3-对照三张表转发表策略路由nat>3. 对照三张表：转发表、策略路由、NAT</a></li><li><a href=#4-控制面确认不是-ospf-抖动是静态pbr-漂移>4. 控制面确认：不是 OSPF 抖动，是静态/PBR 漂移</a></li><li><a href=#5-业务层二次验证>5. 业务层二次验证</a></li></ul></li><li><a href=#解决方案>解决方案</a><ul><li><a href=#止血分钟级>止血（分钟级）</a></li><li><a href=#根治当天窗口收口>根治（当天窗口收口）</a></li></ul></li><li><a href=#根因分析>根因分析</a></li><li><a href=#预防措施>预防措施</a></li><li><a href=#总结>总结</a></li></ul></nav></details></aside><section class=article-content><h2 id=问题背景><a href=#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af class=header-anchor></a>问题背景</h2><p>公司把老园区 IDC（机房 A）里一批业务虚机与存储节点整建制迁到新园区机房 B，割接窗口定在周六凌晨 02:00–05:00。方案表面上很「干净」：业务网段整体搬迁、入口防火墙 DNAT/策略按新地址切换、跨机房链路从原有 MPLS 专线切换到新建的双上联 IPSec + 专线混合出口。搬迁前做过 ping/traceroute 抽样和少量应用冒烟，窗口内业务侧汇报「新机房对外正常、监控基本绿」。</p><p>真正的问题在周一早高峰才爆出来——<strong>一部分跨机房调用表现为「半通」</strong>：机房 A 的应用访问机房 B 新地址能建连，反过来 B 访问 A、或 B 回调 A 的回调地址却超时；运维在 B 机跳板机能 <code>ssh</code> 到 A，A 的同事却感觉「B 回不来」。很多人第一反应是防火墙、安全组或应用端口，结果越查越像「路由和回程没在同一张图上」。</p><h2 id=故障现象><a href=#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1 class=header-anchor></a>故障现象</h2><ol><li><strong>方向性矛盾</strong><ul><li>A→B：HTTP/HTTPS、数据库、消息队列客户端侧大都能建立 TCP，偶发超时。</li><li>B→A：同端口大量 <code>connect timeout</code>；部分会话能 SYN 出去，却收不到 SYN-ACK。</li></ul></li><li><strong>工具表象分裂</strong><ul><li>在 B 上 <code>ping</code> A 的网关通，<code>ping</code> A 的业务 VIP 有时通有时不通。</li><li><code>traceroute</code> 在两个方向上路径长度不一致：A→B 走新建专线，B→A 却绕到旧出口或公网边界设备。</li></ul></li><li><strong>业务侧症状</strong><ul><li>双向回调型接口（支付回调、工单状态推送、AD 同步）失败率飙升。</li><li>单向拉取型任务（A 定时拉 B 报表）看似正常，掩盖了回程问题。</li><li>监控对「本机存活」全绿，因为探针都是本机房内部路径，<strong>跨机房回程不在探针路径上</strong>。</li></ul></li><li><strong>变更后漂移</strong><ul><li>割接记录写着「静态路由已切换」，但两台核心三层、边界防火墙、业务侧策略路由（PBR）的生效快照并不一致；部分设备仍保留「迁出前」的下一跳。</li></ul></li></ol><h2 id=排查过程><a href=#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b class=header-anchor></a>排查过程</h2><h3 id=1-先定方向不要一上来改防火墙><a href=#1-%e5%85%88%e5%ae%9a%e6%96%b9%e5%90%91%e4%b8%8d%e8%a6%81%e4%b8%80%e4%b8%8a%e6%9d%a5%e6%94%b9%e9%98%b2%e7%81%ab%e5%a2%99 class=header-anchor></a>1. 先定方向，不要一上来改防火墙</h3><p>先在故障对上做最小对照实验，把「通/不通」钉死为方向问题，而不是端口问题：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e># 在 A 业务机</span>
-</span></span><span style=display:flex><span>curl -v --connect-timeout <span style=color:#ae81ff>3</span> http://B_VIP:8080/health
-</span></span><span style=display:flex><span>tcptraceroute B_VIP <span style=color:#ae81ff>8080</span>
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#75715e># 在 B 业务机</span>
-</span></span><span style=display:flex><span>curl -v --connect-timeout <span style=color:#ae81ff>3</span> http://A_VIP:8080/health
-</span></span><span style=display:flex><span>tcptraceroute A_VIP <span style=color:#ae81ff>8080</span>
-</span></span></code></pre></td></tr></table></div></div><p>结果非常整齐：A→B 三次握手完成；B→A 停在第一次 SYN 之后，抓包在 A 网卡上<strong>根本看不到这个 SYN</strong>。说明问题不在应用监听，而在 <strong>B→A 的包在中间被送丢/送错路径</strong>。</p><h3 id=2-对称抓包暴露非对称路径><a href=#2-%e5%af%b9%e7%a7%b0%e6%8a%93%e5%8c%85%e6%9a%b4%e9%9c%b2%e9%9d%9e%e5%af%b9%e7%a7%b0%e8%b7%af%e5%be%84 class=header-anchor></a>2. 对称抓包，暴露非对称路径</h3><p>在 A/B 业务机、A/B 机房出口防火墙、跨机房专线两端同时抓同一五元组：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-text data-lang=text><span style=display:flex><span>src=B_APP dst=A_VIP sport=随机 dport=8080
-</span></span></code></pre></td></tr></table></div></div><p>时间线对齐后发现：</p><ul><li>B 业务机发出 SYN，下一跳走对；</li><li>B 出口防火墙会话表有 created；</li><li><strong>专线 B 侧有出包，A 侧专线口没有对应入包</strong>；</li><li>同时在 A 的<strong>旧上联/备用出口</strong>上，出现了目的为 A_VIP 的怪异入向流量（且被 antispoof/严格 uRPF 或安全策略丢掉）。</li></ul><p>也就是说：B 以为自己走新专线去 A，但<strong>实际回程/对向某段仍把流量 steers 到旧路径</strong>，形成经典的<strong>非对称路由（asymmetric routing）</strong>；中间任一设备做了状态检测或反向路径校验，就会表现为「单向可达」。</p><h3 id=3-对照三张表转发表策略路由nat><a href=#3-%e5%af%b9%e7%85%a7%e4%b8%89%e5%bc%a0%e8%a1%a8%e8%bd%ac%e5%8f%91%e8%a1%a8%e7%ad%96%e7%95%a5%e8%b7%af%e7%94%b1nat class=header-anchor></a>3. 对照三张表：转发表、策略路由、NAT</h3><p>把割接 checklist 里「已经改完」的对象重新导出对账，而不是只看变更单勾选：</p><div class=table-wrapper><table><thead><tr><th>检查项</th><th>A 核心</th><th>B 核心</th><th>A 边界 FW</th><th>B 边界 FW</th></tr></thead><tbody><tr><td>业务网段路由下一跳</td><td>仍指向旧互联</td><td>新专线</td><td>DNAT 已切</td><td>正常</td></tr><tr><td>回程明细路由</td><td>缺失 B 新网段细路由</td><td>有</td><td>有</td><td>有</td></tr><tr><td>策略路由（PBR）</td><td>旧 match 未删</td><td>新 policy 生效</td><td>—</td><td>源网段 match 半生效</td></tr><tr><td>会话残留</td><td>无</td><td>有旧 SPI/旧隧道</td><td>长连接未清</td><td>已清</td></tr></tbody></table></div><p>关键发现有三条：</p><ol><li><strong>A 侧核心对「B 新业务网段」缺少更优的明细路由</strong>，最长匹配落到一条更宽的默认/汇总，下一跳仍是割接前的旧互联地址。</li><li><strong>B 侧有一条基于源地址的策略路由</strong>：迁移过来的新网段访问「总部/机房 A」应走新专线，但 match ACL 只写了部分子网，<strong>漏写了当晚临时扩容的 /26</strong>。</li><li>边界防火墙上，A→B 的新建连正常；B→A 因路径绕行，包以「非预期入接口」到达 A，被 <strong>strict RPF / 接口防欺骗</strong> 静默丢弃——所以 A 业务机 tcpdump 空白，特别像「没人来连」。</li></ol><h3 id=4-控制面确认不是-ospf-抖动是静态pbr-漂移><a href=#4-%e6%8e%a7%e5%88%b6%e9%9d%a2%e7%a1%ae%e8%ae%a4%e4%b8%8d%e6%98%af-ospf-%e6%8a%96%e5%8a%a8%e6%98%af%e9%9d%99%e6%80%81pbr-%e6%bc%82%e7%a7%bb class=header-anchor></a>4. 控制面确认：不是 OSPF 抖动，是静态/PBR 漂移</h3><p><code>show ip ospf neighbor</code> / 邻居状态稳定，没有 Flap；问题集中在<strong>割接时手工切的静态与 PBR</strong>。再查变更窗口的操作记录，发现执行顺序是：</p><ol><li>先切业务 DNS / VIP；</li><li>再切防火墙 DNAT；</li><li><strong>最后才改路由，且 A/B 两侧不是同一人、同一时间点提交</strong>；</li><li>回退演练只验证了 A→B 主路径，<strong>没有强制做 B→A 与回调路径验收</strong>。</li></ol><p>于是出现了「业务对外看起来活着，跨机房回程悄悄裂开」的窗口。</p><h3 id=5-业务层二次验证><a href=#5-%e4%b8%9a%e5%8a%a1%e5%b1%82%e4%ba%8c%e6%ac%a1%e9%aa%8c%e8%af%81 class=header-anchor></a>5. 业务层二次验证</h3><p>挑三类代表流量复测：</p><ul><li>纯正向：A 批处理拉 B API → 基本成功；</li><li>纯反向：B 同步任务写 A → 失败；</li><li>回调：B 处理完主动 POST A 回调 URL → 失败。</li></ul><p>与网络层结论完全同构，排除「个别应用 bug」干扰。</p><h2 id=解决方案><a href=#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88 class=header-anchor></a>解决方案</h2><h3 id=止血分钟级><a href=#%e6%ad%a2%e8%a1%80%e5%88%86%e9%92%9f%e7%ba%a7 class=header-anchor></a>止血（分钟级）</h3><ol><li><strong>在 A 核心补齐 B 新网段明细静态路由</strong>，下一跳强制指向新专线对端，<code>metric</code> 优于汇总默认。</li><li><strong>修正 B 侧 PBR 的 match ACL</strong>，把漏网的 /26 与临时测试网段一次性纳入，确保源网段回总部/ A 时统一走新专线。</li><li>边界防火墙：<ul><li>临时将相关接口 RPF 从 strict 调整为 loose（或对专线口加例外），避免好路径未完全收敛时误杀；</li><li><code>clear session</code> 清掉绕行产生的半开/错向会话。</li></ul></li><li>业务侧：对回调类任务短暂切到「A 主动拉取」降级模式，减少用户可见失败。</li></ol><p>按此操作约 10 分钟后，B→A 三次握手恢复，回调成功率回到基线。</p><h3 id=根治当天窗口收口><a href=#%e6%a0%b9%e6%b2%bb%e5%bd%93%e5%a4%a9%e7%aa%97%e5%8f%a3%e6%94%b6%e5%8f%a3 class=header-anchor></a>根治（当天窗口收口）</h3><ol><li><strong>路由即代码</strong>：把 A/B 核心静态、PBR、防火墙路线用同一份 inventory（网段、下一跳、接口、优先级）生成，禁止两侧各改各的。</li><li><strong>割接验收改为「双向五元组矩阵」</strong>，至少覆盖：<ul><li>A→B 业务端口；</li><li>B→A 业务端口；</li><li>回调 URL；</li><li>管理面（跳板机、监控、备份）；</li><li>大包（<code>ping -M do -s 1400</code>）防止隐式 MTU 问题夹带进来。</li></ul></li><li><strong>严格 RPF 只在收敛完成后加回</strong>；窗口内对新建互联口使用可观测的 drop 计数告警，而不是静默丢。</li><li>旧互联地址、旧汇总路由设置明确 <strong>撤线时间与只读标记</strong>，防止「先留着保底」变成长期黑洞入口。</li><li>在流量分析/NetFlow 上对「非预期入接口访问本机房 VIP」做基线告警，作为非对称路径的持续探针。</li></ol><h2 id=根因分析><a href=#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90 class=header-anchor></a>根因分析</h2><p>根因不是单一命令写错，而是三类问题叠加：</p><ol><li><strong>路径规划只画了去程</strong>：搬迁方案重点写「业务怎么进新机房」，回程与回调被默认成「对称自愈」，在静态+PBR 环境里不成立。</li><li><strong>两侧变更不同步</strong>：路由、NAT、DNS、策略路由分属不同执行人，缺少同一时刻的配置快照对账，出现「半切」状态。</li><li><strong>验收探针路径不覆盖故障路径</strong>：本机房健康检查与 A→B 主路径全绿，<strong>恰好照不到 B→A 与错误入接口丢包</strong>。再叠加 strict RPF，故障表现从「绕路」升级成「单向黑洞」。</li></ol><p>技术本质是：<strong>跨机房割接中的控制面（静态/PBR）与数据面期望路径不一致，形成非对称路由；状态防火墙/RPF 把不对称放大成业务单向可达。</strong></p><h2 id=预防措施><a href=#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd class=header-anchor></a>预防措施</h2><ol><li><strong>搬迁网络设计强制输出三张图</strong>：去程、回程、管理面；任何网段变更必须三图同时改。</li><li><strong>变更单增加「双向连通矩阵」必填项</strong>，未测双向不得宣布窗口成功。</li><li><strong>PBR/静态路由变更走生成式配置</strong>，ACL 网段从 CMDB 自动展开，避免手写漏网段。</li><li><strong>窗口内保留可快速回退的对称路径</strong>，但回退条目要有 TTL 和自动失效，禁止无限期双路径并存。</li><li><strong>监控补齐路径级探测</strong>：从 A/B 双侧合成「对向 VIP + 关键端口」拨测，而不是只做本机 process up。</li><li><strong>RPF/防欺骗策略与割接 runbook 绑定</strong>：割接中 loose、收敛后 strict，并确认 drop 计数进告警。</li><li><strong>演练要包含「回调失败」场景</strong>：只测浏览器打开首页，测不出这类半通故障。</li></ol><h2 id=总结><a href=#%e6%80%bb%e7%bb%93 class=header-anchor></a>总结</h2><p>这次机房搬迁表面上「业务在新机房活了」，实质上卡在<strong>回程路由与策略路由未同步</strong>，再被严格反向路径校验打成单向黑洞。排障关键不是先改应用，而是：</p><ol><li>用双向 curl/tcptraceroute 把问题钉成方向性；</li><li>多点对称抓包证明非对称路径；</li><li>对账静态路由、PBR match、NAT 与 RPF；</li><li>先补明细回程与 ACL，再收紧安全策略。</li></ol><p>对有搬迁/割接任务的团队，最大教训就一句话：<strong>能通一半往往比全断更危险——因为它能通过错误的验收。</strong> 把回程写进设计、把双向写进验收、把生成式配置写进变更，下一次割接才不会在周一早高峰才暴露「半张网」。</p></section><footer class="article-meta article-footer"></footer></article><div class=disqus-container></div><style>.disqus-container{background-color:var(--card-background);border-radius:var(--card-border-radius);box-shadow:var(--shadow-l1);padding:var(--card-padding)}</style><script>window.addEventListener("onColorSchemeChange",e=>{typeof DISQUS=="object"&&DISQUS.reset({reload:!0})})</script><footer class=site-footer><section class=copyright>&copy;
-2020 -
-2026 Zero Day Notes</section><section class=powerby>使用 <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a> 构建<br>主题 <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=4.0.3>Stack</a></b> 由 <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a> 设计</section></footer><script type=module>
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="机房搬迁割接后 A 访 B 通、B 回 A 不通，根因是静态路由与回程策略路由未同步导致非对称路径">
+<meta name="keywords" content="机房搬迁, 网络割接, 非对称路由, 回程路由, 策略路由, 单向可达, 静态路由漂移, 容灾切换"><title>记一次机房搬迁网络割接后跨机房业务单向可达的排查</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/5453de23/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="记一次机房搬迁网络割接后跨机房业务单向可达的排查">
+<meta property='og:description' content="机房搬迁割接后 A 访 B 通、B 回 A 不通，根因是静态路由与回程策略路由未同步导致非对称路径">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/5453de23/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-08-09T07:05:00&#43;08:00'/><meta property='article:modified_time' content='2026-08-09T07:05:00&#43;08:00'/>
+<meta name="twitter:title" content="记一次机房搬迁网络割接后跨机房业务单向可达的排查">
+<meta name="twitter:description" content="机房搬迁割接后 A 访 B 通、B 回 A 不通，根因是静态路由与回程策略路由未同步导致非对称路径">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#1-先定方向不要一上来改防火墙">1. 先定方向，不要一上来改防火墙</a></li>
+        <li><a href="#2-对称抓包暴露非对称路径">2. 对称抓包，暴露非对称路径</a></li>
+        <li><a href="#3-对照三张表转发表策略路由nat">3. 对照三张表：转发表、策略路由、NAT</a></li>
+        <li><a href="#4-控制面确认不是-ospf-抖动是静态pbr-漂移">4. 控制面确认：不是 OSPF 抖动，是静态/PBR 漂移</a></li>
+        <li><a href="#5-业务层二次验证">5. 业务层二次验证</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#止血分钟级">止血（分钟级）</a></li>
+        <li><a href="#根治当天窗口收口">根治（当天窗口收口）</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
+                网络运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/5453de23/">记一次机房搬迁网络割接后跨机房业务单向可达的排查</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            机房搬迁割接后 A 访 B 通、B 回 A 不通，根因是静态路由与回程策略路由未同步导致非对称路径
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-08-09T07:05:00&#43;08:00'>2026年8月9日星期日</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 7 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#1-先定方向不要一上来改防火墙">1. 先定方向，不要一上来改防火墙</a></li>
+        <li><a href="#2-对称抓包暴露非对称路径">2. 对称抓包，暴露非对称路径</a></li>
+        <li><a href="#3-对照三张表转发表策略路由nat">3. 对照三张表：转发表、策略路由、NAT</a></li>
+        <li><a href="#4-控制面确认不是-ospf-抖动是静态pbr-漂移">4. 控制面确认：不是 OSPF 抖动，是静态/PBR 漂移</a></li>
+        <li><a href="#5-业务层二次验证">5. 业务层二次验证</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#止血分钟级">止血（分钟级）</a></li>
+        <li><a href="#根治当天窗口收口">根治（当天窗口收口）</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司把老园区 IDC（机房 A）里一批业务虚机与存储节点整建制迁到新园区机房 B，割接窗口定在周六凌晨 02:00–05:00。方案表面上很「干净」：业务网段整体搬迁、入口防火墙 DNAT/策略按新地址切换、跨机房链路从原有 MPLS 专线切换到新建的双上联 IPSec + 专线混合出口。搬迁前做过 ping/traceroute 抽样和少量应用冒烟，窗口内业务侧汇报「新机房对外正常、监控基本绿」。</p>
+<p>真正的问题在周一早高峰才爆出来——<strong>一部分跨机房调用表现为「半通」</strong>：机房 A 的应用访问机房 B 新地址能建连，反过来 B 访问 A、或 B 回调 A 的回调地址却超时；运维在 B 机跳板机能 <code>ssh</code> 到 A，A 的同事却感觉「B 回不来」。很多人第一反应是防火墙、安全组或应用端口，结果越查越像「路由和回程没在同一张图上」。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ol>
+<li><strong>方向性矛盾</strong>
+<ul>
+<li>A→B：HTTP/HTTPS、数据库、消息队列客户端侧大都能建立 TCP，偶发超时。</li>
+<li>B→A：同端口大量 <code>connect timeout</code>；部分会话能 SYN 出去，却收不到 SYN-ACK。</li>
+</ul>
+</li>
+<li><strong>工具表象分裂</strong>
+<ul>
+<li>在 B 上 <code>ping</code> A 的网关通，<code>ping</code> A 的业务 VIP 有时通有时不通。</li>
+<li><code>traceroute</code> 在两个方向上路径长度不一致：A→B 走新建专线，B→A 却绕到旧出口或公网边界设备。</li>
+</ul>
+</li>
+<li><strong>业务侧症状</strong>
+<ul>
+<li>双向回调型接口（支付回调、工单状态推送、AD 同步）失败率飙升。</li>
+<li>单向拉取型任务（A 定时拉 B 报表）看似正常，掩盖了回程问题。</li>
+<li>监控对「本机存活」全绿，因为探针都是本机房内部路径，<strong>跨机房回程不在探针路径上</strong>。</li>
+</ul>
+</li>
+<li><strong>变更后漂移</strong>
+<ul>
+<li>割接记录写着「静态路由已切换」，但两台核心三层、边界防火墙、业务侧策略路由（PBR）的生效快照并不一致；部分设备仍保留「迁出前」的下一跳。</li>
+</ul>
+</li>
+</ol>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="1-先定方向不要一上来改防火墙"><a href="#1-%e5%85%88%e5%ae%9a%e6%96%b9%e5%90%91%e4%b8%8d%e8%a6%81%e4%b8%80%e4%b8%8a%e6%9d%a5%e6%94%b9%e9%98%b2%e7%81%ab%e5%a2%99" class="header-anchor"></a>1. 先定方向，不要一上来改防火墙
+</h3><p>先在故障对上做最小对照实验，把「通/不通」钉死为方向问题，而不是端口问题：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 在 A 业务机</span>
+</span></span><span style="display:flex;"><span>curl -v --connect-timeout <span style="color:#ae81ff">3</span> http://B_VIP:8080/health
+</span></span><span style="display:flex;"><span>tcptraceroute B_VIP <span style="color:#ae81ff">8080</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 在 B 业务机</span>
+</span></span><span style="display:flex;"><span>curl -v --connect-timeout <span style="color:#ae81ff">3</span> http://A_VIP:8080/health
+</span></span><span style="display:flex;"><span>tcptraceroute A_VIP <span style="color:#ae81ff">8080</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>结果非常整齐：A→B 三次握手完成；B→A 停在第一次 SYN 之后，抓包在 A 网卡上<strong>根本看不到这个 SYN</strong>。说明问题不在应用监听，而在 <strong>B→A 的包在中间被送丢/送错路径</strong>。</p>
+<h3 id="2-对称抓包暴露非对称路径"><a href="#2-%e5%af%b9%e7%a7%b0%e6%8a%93%e5%8c%85%e6%9a%b4%e9%9c%b2%e9%9d%9e%e5%af%b9%e7%a7%b0%e8%b7%af%e5%be%84" class="header-anchor"></a>2. 对称抓包，暴露非对称路径
+</h3><p>在 A/B 业务机、A/B 机房出口防火墙、跨机房专线两端同时抓同一五元组：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>src=B_APP dst=A_VIP sport=随机 dport=8080
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>时间线对齐后发现：</p>
+<ul>
+<li>B 业务机发出 SYN，下一跳走对；</li>
+<li>B 出口防火墙会话表有 created；</li>
+<li><strong>专线 B 侧有出包，A 侧专线口没有对应入包</strong>；</li>
+<li>同时在 A 的<strong>旧上联/备用出口</strong>上，出现了目的为 A_VIP 的怪异入向流量（且被 antispoof/严格 uRPF 或安全策略丢掉）。</li>
+</ul>
+<p>也就是说：B 以为自己走新专线去 A，但<strong>实际回程/对向某段仍把流量 steers 到旧路径</strong>，形成经典的<strong>非对称路由（asymmetric routing）</strong>；中间任一设备做了状态检测或反向路径校验，就会表现为「单向可达」。</p>
+<h3 id="3-对照三张表转发表策略路由nat"><a href="#3-%e5%af%b9%e7%85%a7%e4%b8%89%e5%bc%a0%e8%a1%a8%e8%bd%ac%e5%8f%91%e8%a1%a8%e7%ad%96%e7%95%a5%e8%b7%af%e7%94%b1nat" class="header-anchor"></a>3. 对照三张表：转发表、策略路由、NAT
+</h3><p>把割接 checklist 里「已经改完」的对象重新导出对账，而不是只看变更单勾选：</p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>检查项</th>
+					<th>A 核心</th>
+					<th>B 核心</th>
+					<th>A 边界 FW</th>
+					<th>B 边界 FW</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>业务网段路由下一跳</td>
+					<td>仍指向旧互联</td>
+					<td>新专线</td>
+					<td>DNAT 已切</td>
+					<td>正常</td>
+			</tr>
+			<tr>
+					<td>回程明细路由</td>
+					<td>缺失 B 新网段细路由</td>
+					<td>有</td>
+					<td>有</td>
+					<td>有</td>
+			</tr>
+			<tr>
+					<td>策略路由（PBR）</td>
+					<td>旧 match 未删</td>
+					<td>新 policy 生效</td>
+					<td>—</td>
+					<td>源网段 match 半生效</td>
+			</tr>
+			<tr>
+					<td>会话残留</td>
+					<td>无</td>
+					<td>有旧 SPI/旧隧道</td>
+					<td>长连接未清</td>
+					<td>已清</td>
+			</tr>
+	</tbody>
+</table></div>
+<p>关键发现有三条：</p>
+<ol>
+<li><strong>A 侧核心对「B 新业务网段」缺少更优的明细路由</strong>，最长匹配落到一条更宽的默认/汇总，下一跳仍是割接前的旧互联地址。</li>
+<li><strong>B 侧有一条基于源地址的策略路由</strong>：迁移过来的新网段访问「总部/机房 A」应走新专线，但 match ACL 只写了部分子网，<strong>漏写了当晚临时扩容的 /26</strong>。</li>
+<li>边界防火墙上，A→B 的新建连正常；B→A 因路径绕行，包以「非预期入接口」到达 A，被 <strong>strict RPF / 接口防欺骗</strong> 静默丢弃——所以 A 业务机 tcpdump 空白，特别像「没人来连」。</li>
+</ol>
+<h3 id="4-控制面确认不是-ospf-抖动是静态pbr-漂移"><a href="#4-%e6%8e%a7%e5%88%b6%e9%9d%a2%e7%a1%ae%e8%ae%a4%e4%b8%8d%e6%98%af-ospf-%e6%8a%96%e5%8a%a8%e6%98%af%e9%9d%99%e6%80%81pbr-%e6%bc%82%e7%a7%bb" class="header-anchor"></a>4. 控制面确认：不是 OSPF 抖动，是静态/PBR 漂移
+</h3><p><code>show ip ospf neighbor</code> / 邻居状态稳定，没有 Flap；问题集中在<strong>割接时手工切的静态与 PBR</strong>。再查变更窗口的操作记录，发现执行顺序是：</p>
+<ol>
+<li>先切业务 DNS / VIP；</li>
+<li>再切防火墙 DNAT；</li>
+<li><strong>最后才改路由，且 A/B 两侧不是同一人、同一时间点提交</strong>；</li>
+<li>回退演练只验证了 A→B 主路径，<strong>没有强制做 B→A 与回调路径验收</strong>。</li>
+</ol>
+<p>于是出现了「业务对外看起来活着，跨机房回程悄悄裂开」的窗口。</p>
+<h3 id="5-业务层二次验证"><a href="#5-%e4%b8%9a%e5%8a%a1%e5%b1%82%e4%ba%8c%e6%ac%a1%e9%aa%8c%e8%af%81" class="header-anchor"></a>5. 业务层二次验证
+</h3><p>挑三类代表流量复测：</p>
+<ul>
+<li>纯正向：A 批处理拉 B API → 基本成功；</li>
+<li>纯反向：B 同步任务写 A → 失败；</li>
+<li>回调：B 处理完主动 POST A 回调 URL → 失败。</li>
+</ul>
+<p>与网络层结论完全同构，排除「个别应用 bug」干扰。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><h3 id="止血分钟级"><a href="#%e6%ad%a2%e8%a1%80%e5%88%86%e9%92%9f%e7%ba%a7" class="header-anchor"></a>止血（分钟级）
+</h3><ol>
+<li><strong>在 A 核心补齐 B 新网段明细静态路由</strong>，下一跳强制指向新专线对端，<code>metric</code> 优于汇总默认。</li>
+<li><strong>修正 B 侧 PBR 的 match ACL</strong>，把漏网的 /26 与临时测试网段一次性纳入，确保源网段回总部/ A 时统一走新专线。</li>
+<li>边界防火墙：
+<ul>
+<li>临时将相关接口 RPF 从 strict 调整为 loose（或对专线口加例外），避免好路径未完全收敛时误杀；</li>
+<li><code>clear session</code> 清掉绕行产生的半开/错向会话。</li>
+</ul>
+</li>
+<li>业务侧：对回调类任务短暂切到「A 主动拉取」降级模式，减少用户可见失败。</li>
+</ol>
+<p>按此操作约 10 分钟后，B→A 三次握手恢复，回调成功率回到基线。</p>
+<h3 id="根治当天窗口收口"><a href="#%e6%a0%b9%e6%b2%bb%e5%bd%93%e5%a4%a9%e7%aa%97%e5%8f%a3%e6%94%b6%e5%8f%a3" class="header-anchor"></a>根治（当天窗口收口）
+</h3><ol>
+<li><strong>路由即代码</strong>：把 A/B 核心静态、PBR、防火墙路线用同一份 inventory（网段、下一跳、接口、优先级）生成，禁止两侧各改各的。</li>
+<li><strong>割接验收改为「双向五元组矩阵」</strong>，至少覆盖：
+<ul>
+<li>A→B 业务端口；</li>
+<li>B→A 业务端口；</li>
+<li>回调 URL；</li>
+<li>管理面（跳板机、监控、备份）；</li>
+<li>大包（<code>ping -M do -s 1400</code>）防止隐式 MTU 问题夹带进来。</li>
+</ul>
+</li>
+<li><strong>严格 RPF 只在收敛完成后加回</strong>；窗口内对新建互联口使用可观测的 drop 计数告警，而不是静默丢。</li>
+<li>旧互联地址、旧汇总路由设置明确 <strong>撤线时间与只读标记</strong>，防止「先留着保底」变成长期黑洞入口。</li>
+<li>在流量分析/NetFlow 上对「非预期入接口访问本机房 VIP」做基线告警，作为非对称路径的持续探针。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>根因不是单一命令写错，而是三类问题叠加：</p>
+<ol>
+<li><strong>路径规划只画了去程</strong>：搬迁方案重点写「业务怎么进新机房」，回程与回调被默认成「对称自愈」，在静态+PBR 环境里不成立。</li>
+<li><strong>两侧变更不同步</strong>：路由、NAT、DNS、策略路由分属不同执行人，缺少同一时刻的配置快照对账，出现「半切」状态。</li>
+<li><strong>验收探针路径不覆盖故障路径</strong>：本机房健康检查与 A→B 主路径全绿，<strong>恰好照不到 B→A 与错误入接口丢包</strong>。再叠加 strict RPF，故障表现从「绕路」升级成「单向黑洞」。</li>
+</ol>
+<p>技术本质是：<strong>跨机房割接中的控制面（静态/PBR）与数据面期望路径不一致，形成非对称路由；状态防火墙/RPF 把不对称放大成业务单向可达。</strong></p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
+<li><strong>搬迁网络设计强制输出三张图</strong>：去程、回程、管理面；任何网段变更必须三图同时改。</li>
+<li><strong>变更单增加「双向连通矩阵」必填项</strong>，未测双向不得宣布窗口成功。</li>
+<li><strong>PBR/静态路由变更走生成式配置</strong>，ACL 网段从 CMDB 自动展开，避免手写漏网段。</li>
+<li><strong>窗口内保留可快速回退的对称路径</strong>，但回退条目要有 TTL 和自动失效，禁止无限期双路径并存。</li>
+<li><strong>监控补齐路径级探测</strong>：从 A/B 双侧合成「对向 VIP + 关键端口」拨测，而不是只做本机 process up。</li>
+<li><strong>RPF/防欺骗策略与割接 runbook 绑定</strong>：割接中 loose、收敛后 strict，并确认 drop 计数进告警。</li>
+<li><strong>演练要包含「回调失败」场景</strong>：只测浏览器打开首页，测不出这类半通故障。</li>
+</ol>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这次机房搬迁表面上「业务在新机房活了」，实质上卡在<strong>回程路由与策略路由未同步</strong>，再被严格反向路径校验打成单向黑洞。排障关键不是先改应用，而是：</p>
+<ol>
+<li>用双向 curl/tcptraceroute 把问题钉成方向性；</li>
+<li>多点对称抓包证明非对称路径；</li>
+<li>对账静态路由、PBR match、NAT 与 RPF；</li>
+<li>先补明细回程与 ACL，再收紧安全策略。</li>
+</ol>
+<p>对有搬迁/割接任务的团队，最大教训就一句话：<strong>能通一半往往比全断更危险——因为它能通过错误的验收。</strong> 把回程写进设计、把双向写进验收、把生成式配置写进变更，下一次割接才不会在周一早高峰才暴露「半张网」。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
     import gallery from '\/ts\/gallery.js';
 
     const articleContent = document.querySelector('.article-content');
@@ -53,4 +665,15 @@
         });
         lightbox.init();
     }
-</script></main></div><script type=text/javascript src=/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js defer></script></body></html>
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

@@ -1,82 +1,679 @@
-<!doctype html><html lang=zh dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="删除大日志后 df 仍显示磁盘爆满，du 与 df 相差 60GB，根因是进程仍持有已删除文件句柄，用 lsof +L1 定位并安全释放。"><title>磁盘空间为何删了大日志也不释放？一次 df 与 du 相差 60GB 的排查记录</title><link rel=canonical href=https://blog.5772447.xyz/posts/76deb068/><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href=/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css><meta property='og:title' content="磁盘空间为何删了大日志也不释放？一次 df 与 du 相差 60GB 的排查记录"><meta property='og:description' content="删除大日志后 df 仍显示磁盘爆满，du 与 df 相差 60GB，根因是进程仍持有已删除文件句柄，用 lsof +L1 定位并安全释放。"><meta property='og:url' content='https://blog.5772447.xyz/posts/76deb068/'><meta property='og:site_name' content='Zero Day Notes'><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:tag' content='Linux'><meta property='article:tag' content='磁盘空间'><meta property='article:tag' content='lsof'><meta property='article:tag' content='文件句柄'><meta property='article:tag' content='logrotate'><meta property='article:tag' content='日志管理'><meta property='article:published_time' content='2026-07-30T07:00:00+08:00'><meta property='article:modified_time' content='2026-07-30T07:00:00+08:00'><meta name=twitter:title content="磁盘空间为何删了大日志也不释放？一次 df 与 du 相差 60GB 的排查记录"><meta name=twitter:description content="删除大日志后 df 仍显示磁盘爆满，du 与 df 相差 60GB，根因是进程仍持有已删除文件句柄，用 lsof +L1 定位并安全释放。"><link rel="shortcut icon" href=/img/favicon.png></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label=切换菜单>
-<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=/img/avatar.jpg width=300 height=300 class=site-logo loading=lazy alt=Avatar>
-</a><span class=emoji>🛠️</span></figure><div class=site-meta><h1 class=site-name><a href=/>Zero Day Notes</a></h1><h2 class=site-description>IT 运维实战笔记</h2></div></header><ol class=menu-social><li><a href=https://github.com/Maskbugzero title=GitHub rel=me><svg class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6.0 00-1.3-3.2 4.2 4.2.0 00-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3.0 00-6.2.0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2.0 00-.1 3.2A4.6 4.6.0 004 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/page/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
-<span>归档</span></a></li><li><a href=/tags><svg class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11 3l9 9a1.5 1.5.0 010 2l-6 6a1.5 1.5.0 01-2 0L3 11V7a4 4 0 014-4h4"/><circle cx="9" cy="9" r="2"/></svg>
-<span>标签</span></a></li><li><a href=/categories><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg>
-<span>分类</span></a></li><li><a href=/about><svg class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
-<span>关于</span></a></li><li class=menu-bottom-section><ol class=menu><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
-<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
-<span>暗色模式</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">目录</h2><div class=widget--toc><nav class=toc-nav id=TableOfContents><ul><li><a href=#问题背景>问题背景</a></li><li><a href=#故障现象>故障现象</a></li><li><a href=#排查过程>排查过程</a><ul><li><a href=#第一步确认不是文件系统统计误差>第一步：确认不是文件系统统计误差</a></li><li><a href=#第二步想到已删除但仍被打开的文件>第二步：想到"已删除但仍被打开"的文件</a></li><li><a href=#第三步确认进程为什么攥着句柄不放>第三步：确认进程为什么攥着句柄不放</a></li><li><a href=#第四步安全释放空间>第四步：安全释放空间</a></li></ul></li><li><a href=#解决方案>解决方案</a></li><li><a href=#根因分析>根因分析</a></li><li><a href=#预防措施>预防措施</a></li><li><a href=#总结>总结</a></li></ul></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/%E8%BF%90%E7%BB%B4/ style=background-color:#efe7be;color:#3d360f>运维
-</a><a href=/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/ style=background-color:#bee6ef;color:#0f353d>服务运维</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/posts/76deb068/>磁盘空间为何删了大日志也不释放？一次 df 与 du 相差 60GB 的排查记录</a></h2><h3 class=article-subtitle>删除大日志后 df 仍显示磁盘爆满，du 与 df 相差 60GB，根因是进程仍持有已删除文件句柄，用 lsof +L1 定位并安全释放。</h3></div><footer class=article-meta><div class=inline-meta><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
-<time class=article-time--published datetime=2026-07-30T07:00:00+08:00>2026年7月30日星期四</time>
-<svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
-<time class=article-time--reading>阅读时长: 5 分钟</time></div></footer></div></header><aside class=article-toc><details><summary><div class=article-toc-title><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6-6 6"/></svg>
-<span>目录</span></div></summary><nav class=toc-nav><ul><li><a href=#问题背景>问题背景</a></li><li><a href=#故障现象>故障现象</a></li><li><a href=#排查过程>排查过程</a><ul><li><a href=#第一步确认不是文件系统统计误差>第一步：确认不是文件系统统计误差</a></li><li><a href=#第二步想到已删除但仍被打开的文件>第二步：想到"已删除但仍被打开"的文件</a></li><li><a href=#第三步确认进程为什么攥着句柄不放>第三步：确认进程为什么攥着句柄不放</a></li><li><a href=#第四步安全释放空间>第四步：安全释放空间</a></li></ul></li><li><a href=#解决方案>解决方案</a></li><li><a href=#根因分析>根因分析</a></li><li><a href=#预防措施>预防措施</a></li><li><a href=#总结>总结</a></li></ul></nav></details></aside><section class=article-content><h2 id=问题背景><a href=#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af class=header-anchor></a>问题背景</h2><p>生产环境一台日志汇聚服务器（CentOS 7.9，数据盘 200GB，挂载在 <code>/data</code>）负责接收十几个业务模块的应用日志，跑着一个自研的 Java 日志收集进程和 rsyslog。凌晨 4 点半，磁盘使用率告警从 90% 一路蹿到 98%，值班同事按惯例上机清理：找到 <code>/data/applog/</code> 下一个 62GB 的 <code>collector.log</code>，直接 <code>rm -f</code> 删掉，告警却迟迟不恢复。早上 8 点交接班时磁盘仍然显示 98%，新日志开始写入失败，部分业务模块报 <code>No space left on device</code>，问题升级到我这里。</p><h2 id=故障现象><a href=#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1 class=header-anchor></a>故障现象</h2><p>上机第一件事就看磁盘：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span>$ df -h /data
-</span></span><span style=display:flex><span>Filesystem      Size  Used Avail Use% Mounted on
-</span></span><span style=display:flex><span>/dev/vdb1       197G  193G  4.2G  98% /data
-</span></span></code></pre></td></tr></table></div></div><p>但用 <code>du</code> 统计目录实际占用，怎么算都对不上：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span>$ du -sh /data
-</span></span><span style=display:flex><span>131G    /data
-</span></span></code></pre></td></tr></table></div></div><p><code>df</code> 说用了 193GB，<code>du</code> 说只有 131GB，凭空差了 60 多GB——恰好接近被删掉的那个大日志的体积。更诡异的是：</p><ul><li>那个 62GB 的 <code>collector.log</code> 确实已经不在了，<code>ls</code> 看不到；</li><li>再删其他小日志文件，<code>df</code> 的 Used 一点都不降；</li><li><code>df -i</code> 看 inode 只用了 3%，排除 inode 耗尽（那是另一类问题，之前写过）；</li><li>业务持续报写入失败，rsyslog 队列开始堆积。</li></ul><p>删了文件、空间却不还回来，这 60GB 去哪了？</p><h2 id=排查过程><a href=#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b class=header-anchor></a>排查过程</h2><h3 id=第一步确认不是文件系统统计误差><a href=#%e7%ac%ac%e4%b8%80%e6%ad%a5%e7%a1%ae%e8%ae%a4%e4%b8%8d%e6%98%af%e6%96%87%e4%bb%b6%e7%b3%bb%e7%bb%9f%e7%bb%9f%e8%ae%a1%e8%af%af%e5%b7%ae class=header-anchor></a>第一步：确认不是文件系统统计误差</h3><p>先排除低级可能。<code>df</code> 统计的是文件系统超级块里的分配信息，<code>du</code> 是遍历目录树累加文件大小，两者天然会有少量差异（预留块、元数据），但 5% 预留块（ext4 默认）对 197GB 盘也就 10GB 左右，且这台机器早就 <code>tune2fs -m 1</code> 调到 1% 了。60GB 的差距绝不是统计口径问题。</p><h3 id=第二步想到已删除但仍被打开的文件><a href=#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e6%83%b3%e5%88%b0%e5%b7%b2%e5%88%a0%e9%99%a4%e4%bd%86%e4%bb%8d%e8%a2%ab%e6%89%93%e5%bc%80%e7%9a%84%e6%96%87%e4%bb%b6 class=header-anchor></a>第二步：想到"已删除但仍被打开"的文件</h3><p>Linux 下 <code>rm</code> 删除文件，本质是把目录项（dentry）和 inode 的链接数减一。<strong>如果还有进程持有这个文件的文件描述符，inode 的引用计数不为零，内核就不会真正释放数据块</strong>——文件从目录里消失了，但磁盘空间还被占着。这正是 <code>df</code>（看块分配）和 <code>du</code>（看目录树）出现巨大差值的最经典原因。</p><p>用 <code>lsof</code> 找被删除但仍被打开的文件：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span>$ lsof +L1 | awk <span style=color:#e6db74>&#39;$7 &gt; 1073741824&#39;</span>
-</span></span><span style=display:flex><span>COMMAND   PID  USER   FD   TYPE DEVICE   SIZE/OFF NLINK    NODE NAME
-</span></span><span style=display:flex><span>java    <span style=color:#ae81ff>12867</span> applog  4w   REG  253,16 <span style=color:#ae81ff>66571993088</span>     <span style=color:#ae81ff>0</span>  <span style=color:#ae81ff>524291</span> /data/applog/collector.log <span style=color:#f92672>(</span>deleted<span style=color:#f92672>)</span>
-</span></span></code></pre></td></tr></table></div></div><p>一目了然：PID 12867 的 Java 日志收集进程还拿着 <code>collector.log</code> 的写句柄（FD 4，<code>w</code> 表示写模式），<code>NLINK 0</code> 表示目录项已删，<code>SIZE/OFF</code> 显示这个"幽灵文件"已经涨到 66GB——<strong>不但没释放，进程还在往里持续写</strong>，所以删完之后 <code>df</code> 不降反升。</p><h3 id=第三步确认进程为什么攥着句柄不放><a href=#%e7%ac%ac%e4%b8%89%e6%ad%a5%e7%a1%ae%e8%ae%a4%e8%bf%9b%e7%a8%8b%e4%b8%ba%e4%bb%80%e4%b9%88%e6%94%a5%e7%9d%80%e5%8f%a5%e6%9f%84%e4%b8%8d%e6%94%be class=header-anchor></a>第三步：确认进程为什么攥着句柄不放</h3><p>看这个 Java 进程的启动方式和日志配置，发现它用的是自研的文件 Appender，打开日志文件后就再也没有重开逻辑。运维侧曾经给它配过 logrotate，翻 <code>/etc/logrotate.d/collector</code>：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-fallback data-lang=fallback><span style=display:flex><span>/data/applog/collector.log {
-</span></span><span style=display:flex><span>    daily
-</span></span><span style=display:flex><span>    rotate 7
-</span></span><span style=display:flex><span>    compress
-</span></span><span style=display:flex><span>    missingok
-</span></span><span style=display:flex><span>}
-</span></span></code></pre></td></tr></table></div></div><p>问题就在这：<strong>这份 logrotate 配置既没有 <code>copytruncate</code>，也没有 <code>postrotate</code> 里通知进程重开文件</strong>。logrotate 默认行为是把 <code>collector.log</code> 改名成 <code>collector.log.1</code> 再建新文件，但 Java 进程的 FD 还指向改名后的旧 inode，继续往旧文件里写；轮转形同虚设，日志越滚越大。翻历史记录，这个配置是三个月前加的，也就是说这个文件其实已经"假轮转"了三个月，最终膨胀成 62GB 被人工 <code>rm</code>，又因为句柄未释放变成幽灵占用。</p><h3 id=第四步安全释放空间><a href=#%e7%ac%ac%e5%9b%9b%e6%ad%a5%e5%ae%89%e5%85%a8%e9%87%8a%e6%94%be%e7%a9%ba%e9%97%b4 class=header-anchor></a>第四步：安全释放空间</h3><p>磁盘只剩 4GB，等不了发版修代码，需要立刻止血。<strong>不能直接 <code>kill -9</code></strong>——日志收集进程内存里还有未落盘的缓冲，粗暴杀掉会丢日志。有两个安全做法：</p><p>方法一（首选）：通过 <code>/proc</code> 直接截断这个已删除文件，不用动进程：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e># 先看看确认目标</span>
-</span></span><span style=display:flex><span>$ ls -l /proc/12867/fd/4
-</span></span><span style=display:flex><span>l-wx------ <span style=color:#ae81ff>1</span> applog applog <span style=color:#ae81ff>64</span> Jul <span style=color:#ae81ff>30</span> 08:41 /proc/12867/fd/4 -&gt; /data/applog/collector.log <span style=color:#f92672>(</span>deleted<span style=color:#f92672>)</span>
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#75715e># 截断为 0，空间立即归还</span>
-</span></span><span style=display:flex><span>$ truncate -s <span style=color:#ae81ff>0</span> /proc/12867/fd/4
-</span></span></code></pre></td></tr></table></div></div><p>执行完再看 <code>df</code>：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span>$ df -h /data
-</span></span><span style=display:flex><span>/dev/vdb1       197G  128G   69G  66% /data
-</span></span></code></pre></td></tr></table></div></div><p>66GB 空间瞬间回来，业务写入恢复。进程完全无感知，只是它后续写入的偏移量还在 66GB 处——ext4 会把前面的空洞做成稀疏文件，不再占实际块，问题不大，但这个进程终归要在低峰期重启一次，让它重开一个干净的日志文件。</p><h2 id=解决方案><a href=#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88 class=header-anchor></a>解决方案</h2><p>止血动作汇总：</p><ol><li><code>lsof +L1</code> 定位持有已删除文件句柄的进程与 FD；</li><li><code>truncate -s 0 /proc/&lt;pid>/fd/&lt;fd></code> 原地截断，立即归还空间，避免重启进程；</li><li>当晚低峰重启日志收集进程，消除稀疏文件残留。</li></ol><p>根治动作：</p><ol><li>修正 logrotate 配置，对无重开日志能力的进程加 <code>copytruncate</code>：</li></ol><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-fallback data-lang=fallback><span style=display:flex><span>/data/applog/collector.log {
-</span></span><span style=display:flex><span>    daily
-</span></span><span style=display:flex><span>    rotate 7
-</span></span><span style=display:flex><span>    compress
-</span></span><span style=display:flex><span>    missingok
-</span></span><span style=display:flex><span>    copytruncate
-</span></span><span style=display:flex><span>}
-</span></span></code></pre></td></tr></table></div></div><ol start=2><li>推动研发在下个版本给自研 Appender 加上 <code>SIGUSR1</code> 信号重开日志文件的能力，之后可切回 <code>postrotate</code> + 信号的标准方案（<code>copytruncate</code> 在复制窗口内有极小概率丢日志，只是过渡）；</li><li>给全组同步操作规范：<strong>清理大日志一律先 <code>> file</code> 截断或走轮转，不要直接 <code>rm</code> 正在被写入的文件</strong>。</li></ol><h2 id=根因分析><a href=#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90 class=header-anchor></a>根因分析</h2><p>三层原因叠加：</p><ul><li><strong>直接原因</strong>：<code>rm</code> 删除了仍被进程打开的日志文件，inode 引用未归零，数据块不释放，形成"df 与 du 差 60GB"的幽灵占用；</li><li><strong>深层原因</strong>：logrotate 配置缺少 <code>copytruncate</code>/<code>postrotate</code> 重开机制，对一个不会自己重开日志的进程做了三个月的无效轮转，把单文件养到 62GB；</li><li><strong>流程原因</strong>：值班清理手册里没有"确认文件是否被进程占用"这一步，直接 <code>rm</code> 成了肌肉记忆。</li></ul><h2 id=预防措施><a href=#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd class=header-anchor></a>预防措施</h2><ol><li><strong>监控加一层</strong>：磁盘告警规则里增加 <code>df</code> 与 <code>du</code> 差值检查（差值超过 10% 触发提示"存在已删除未释放文件"），并把 <code>lsof +L1</code> 输出接入巡检脚本；</li><li><strong>轮转配置审计</strong>：批量检查所有 logrotate 配置，凡目标进程无日志重开能力的，必须有 <code>copytruncate</code> 或 <code>postrotate</code> 通知逻辑，纳入配置上线 checklist；</li><li><strong>单文件体积兜底</strong>：日志目录加单文件大小告警（如超过 5GB 即告警），避免"假轮转"静默养大文件；</li><li><strong>操作规范落地</strong>：值班手册明确"删大文件前先 <code>lsof</code> 确认占用；正在写入的文件用 <code>truncate</code>/<code>></code> 截断而非 <code>rm</code>"。</li></ol><h2 id=总结><a href=#%e6%80%bb%e7%bb%93 class=header-anchor></a>总结</h2><p>这次故障本身不复杂，却是 Linux 运维里辨识度最高的经典题：<code>rm</code> 只删目录项，不删被打开的 inode，<code>df</code> 和 <code>du</code> 的差值就是那些"删而未放"的幽灵文件。两条命令就能定位——<code>lsof +L1</code> 找元凶，<code>truncate -s 0 /proc/&lt;pid>/fd/&lt;fd></code> 无损止血，全程不用重启进程。更值得记住的是链路上游：一份没有 <code>copytruncate</code> 的 logrotate 配置对着不会重开文件的进程空转了三个月，才是把 62GB 巨型日志"养"出来的真正推手。磁盘问题的排查顺序可以固化为：<code>df -h</code> 看块 → <code>df -i</code> 看 inode → <code>du</code> 对账 → 差值大就 <code>lsof +L1</code>，四步走完，九成磁盘疑难都能落地。</p></section><footer class="article-meta article-footer"><section class=article-tags><a href=/tags/linux/>Linux</a>
-<a href=/tags/%E7%A3%81%E7%9B%98%E7%A9%BA%E9%97%B4/>磁盘空间</a>
-<a href=/tags/lsof/>Lsof</a>
-<a href=/tags/%E6%96%87%E4%BB%B6%E5%8F%A5%E6%9F%84/>文件句柄</a>
-<a href=/tags/logrotate/>Logrotate</a>
-<a href=/tags/%E6%97%A5%E5%BF%97%E7%AE%A1%E7%90%86/>日志管理</a></section></footer></article><aside><h2 class=section-title>相关文章</h2><div class=subsection-list><div class=article-list--tile><article><a href=/posts/6651b58c/><div class=article-details><h2 class=article-title>定位 Too many open files：一次生产服务文件描述符耗尽的排查与根治</h2></div></a></article><article><a href=/posts/1925cf22/><div class=article-details><h2 class=article-title>一次服务本地端口耗尽导致对外调用大量 Cannot assign requested address 的排查记录</h2></div></a></article><article><a href=/posts/5961e223/><div class=article-details><h2 class=article-title>一次NFS存储服务端故障导致客户端进程陷入D状态业务整体假死的排查记录</h2></div></a></article><article><a href=/posts/42f874e5/><div class=article-details><h2 class=article-title>系统时区一改，凌晨备份为何跑进业务高峰拖垮 MySQL？</h2></div></a></article><article><a href=/posts/6455e1b5/><div class=article-details><h2 class=article-title>磁盘有空间却写不进文件？Linux inode 耗尽的坑</h2></div></a></article></div></div></aside><div class=disqus-container></div><style>.disqus-container{background-color:var(--card-background);border-radius:var(--card-border-radius);box-shadow:var(--shadow-l1);padding:var(--card-padding)}</style><script>window.addEventListener("onColorSchemeChange",e=>{typeof DISQUS=="object"&&DISQUS.reset({reload:!0})})</script><footer class=site-footer><section class=copyright>&copy;
-2020 -
-2026 Zero Day Notes</section><section class=powerby>使用 <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a> 构建<br>主题 <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=4.0.3>Stack</a></b> 由 <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a> 设计</section></footer><script type=module>
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="删除大日志后 df 仍显示磁盘爆满，du 与 df 相差 60GB，根因是进程仍持有已删除文件句柄，用 lsof +L1 定位并安全释放。">
+<title>磁盘空间为何删了大日志也不释放？一次 df 与 du 相差 60GB 的排查记录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/76deb068/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="磁盘空间为何删了大日志也不释放？一次 df 与 du 相差 60GB 的排查记录">
+<meta property='og:description' content="删除大日志后 df 仍显示磁盘爆满，du 与 df 相差 60GB，根因是进程仍持有已删除文件句柄，用 lsof +L1 定位并安全释放。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/76deb068/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Linux' /><meta property='article:tag' content='磁盘空间' /><meta property='article:tag' content='lsof' /><meta property='article:tag' content='文件句柄' /><meta property='article:tag' content='logrotate' /><meta property='article:tag' content='日志管理' /><meta property='article:published_time' content='2026-07-30T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-07-30T07:00:00&#43;08:00'/>
+<meta name="twitter:title" content="磁盘空间为何删了大日志也不释放？一次 df 与 du 相差 60GB 的排查记录">
+<meta name="twitter:description" content="删除大日志后 df 仍显示磁盘爆满，du 与 df 相差 60GB，根因是进程仍持有已删除文件句柄，用 lsof +L1 定位并安全释放。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步确认不是文件系统统计误差">第一步：确认不是文件系统统计误差</a></li>
+        <li><a href="#第二步想到已删除但仍被打开的文件">第二步：想到&quot;已删除但仍被打开&quot;的文件</a></li>
+        <li><a href="#第三步确认进程为什么攥着句柄不放">第三步：确认进程为什么攥着句柄不放</a></li>
+        <li><a href="#第四步安全释放空间">第四步：安全释放空间</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/76deb068/">磁盘空间为何删了大日志也不释放？一次 df 与 du 相差 60GB 的排查记录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            删除大日志后 df 仍显示磁盘爆满，du 与 df 相差 60GB，根因是进程仍持有已删除文件句柄，用 lsof &#43;L1 定位并安全释放。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-30T07:00:00&#43;08:00'>2026年7月30日星期四</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步确认不是文件系统统计误差">第一步：确认不是文件系统统计误差</a></li>
+        <li><a href="#第二步想到已删除但仍被打开的文件">第二步：想到&quot;已删除但仍被打开&quot;的文件</a></li>
+        <li><a href="#第三步确认进程为什么攥着句柄不放">第三步：确认进程为什么攥着句柄不放</a></li>
+        <li><a href="#第四步安全释放空间">第四步：安全释放空间</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>生产环境一台日志汇聚服务器（CentOS 7.9，数据盘 200GB，挂载在 <code>/data</code>）负责接收十几个业务模块的应用日志，跑着一个自研的 Java 日志收集进程和 rsyslog。凌晨 4 点半，磁盘使用率告警从 90% 一路蹿到 98%，值班同事按惯例上机清理：找到 <code>/data/applog/</code> 下一个 62GB 的 <code>collector.log</code>，直接 <code>rm -f</code> 删掉，告警却迟迟不恢复。早上 8 点交接班时磁盘仍然显示 98%，新日志开始写入失败，部分业务模块报 <code>No space left on device</code>，问题升级到我这里。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>上机第一件事就看磁盘：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ df -h /data
+</span></span><span style="display:flex;"><span>Filesystem      Size  Used Avail Use% Mounted on
+</span></span><span style="display:flex;"><span>/dev/vdb1       197G  193G  4.2G  98% /data
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>但用 <code>du</code> 统计目录实际占用，怎么算都对不上：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ du -sh /data
+</span></span><span style="display:flex;"><span>131G    /data
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>df</code> 说用了 193GB，<code>du</code> 说只有 131GB，凭空差了 60 多GB——恰好接近被删掉的那个大日志的体积。更诡异的是：</p>
+<ul>
+<li>那个 62GB 的 <code>collector.log</code> 确实已经不在了，<code>ls</code> 看不到；</li>
+<li>再删其他小日志文件，<code>df</code> 的 Used 一点都不降；</li>
+<li><code>df -i</code> 看 inode 只用了 3%，排除 inode 耗尽（那是另一类问题，之前写过）；</li>
+<li>业务持续报写入失败，rsyslog 队列开始堆积。</li>
+</ul>
+<p>删了文件、空间却不还回来，这 60GB 去哪了？</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="第一步确认不是文件系统统计误差"><a href="#%e7%ac%ac%e4%b8%80%e6%ad%a5%e7%a1%ae%e8%ae%a4%e4%b8%8d%e6%98%af%e6%96%87%e4%bb%b6%e7%b3%bb%e7%bb%9f%e7%bb%9f%e8%ae%a1%e8%af%af%e5%b7%ae" class="header-anchor"></a>第一步：确认不是文件系统统计误差
+</h3><p>先排除低级可能。<code>df</code> 统计的是文件系统超级块里的分配信息，<code>du</code> 是遍历目录树累加文件大小，两者天然会有少量差异（预留块、元数据），但 5% 预留块（ext4 默认）对 197GB 盘也就 10GB 左右，且这台机器早就 <code>tune2fs -m 1</code> 调到 1% 了。60GB 的差距绝不是统计口径问题。</p>
+<h3 id="第二步想到已删除但仍被打开的文件"><a href="#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e6%83%b3%e5%88%b0%e5%b7%b2%e5%88%a0%e9%99%a4%e4%bd%86%e4%bb%8d%e8%a2%ab%e6%89%93%e5%bc%80%e7%9a%84%e6%96%87%e4%bb%b6" class="header-anchor"></a>第二步：想到&quot;已删除但仍被打开&quot;的文件
+</h3><p>Linux 下 <code>rm</code> 删除文件，本质是把目录项（dentry）和 inode 的链接数减一。<strong>如果还有进程持有这个文件的文件描述符，inode 的引用计数不为零，内核就不会真正释放数据块</strong>——文件从目录里消失了，但磁盘空间还被占着。这正是 <code>df</code>（看块分配）和 <code>du</code>（看目录树）出现巨大差值的最经典原因。</p>
+<p>用 <code>lsof</code> 找被删除但仍被打开的文件：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ lsof +L1 | awk <span style="color:#e6db74">&#39;$7 &gt; 1073741824&#39;</span>
+</span></span><span style="display:flex;"><span>COMMAND   PID  USER   FD   TYPE DEVICE   SIZE/OFF NLINK    NODE NAME
+</span></span><span style="display:flex;"><span>java    <span style="color:#ae81ff">12867</span> applog  4w   REG  253,16 <span style="color:#ae81ff">66571993088</span>     <span style="color:#ae81ff">0</span>  <span style="color:#ae81ff">524291</span> /data/applog/collector.log <span style="color:#f92672">(</span>deleted<span style="color:#f92672">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>一目了然：PID 12867 的 Java 日志收集进程还拿着 <code>collector.log</code> 的写句柄（FD 4，<code>w</code> 表示写模式），<code>NLINK 0</code> 表示目录项已删，<code>SIZE/OFF</code> 显示这个&quot;幽灵文件&quot;已经涨到 66GB——<strong>不但没释放，进程还在往里持续写</strong>，所以删完之后 <code>df</code> 不降反升。</p>
+<h3 id="第三步确认进程为什么攥着句柄不放"><a href="#%e7%ac%ac%e4%b8%89%e6%ad%a5%e7%a1%ae%e8%ae%a4%e8%bf%9b%e7%a8%8b%e4%b8%ba%e4%bb%80%e4%b9%88%e6%94%a5%e7%9d%80%e5%8f%a5%e6%9f%84%e4%b8%8d%e6%94%be" class="header-anchor"></a>第三步：确认进程为什么攥着句柄不放
+</h3><p>看这个 Java 进程的启动方式和日志配置，发现它用的是自研的文件 Appender，打开日志文件后就再也没有重开逻辑。运维侧曾经给它配过 logrotate，翻 <code>/etc/logrotate.d/collector</code>：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>/data/applog/collector.log {
+</span></span><span style="display:flex;"><span>    daily
+</span></span><span style="display:flex;"><span>    rotate 7
+</span></span><span style="display:flex;"><span>    compress
+</span></span><span style="display:flex;"><span>    missingok
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>问题就在这：<strong>这份 logrotate 配置既没有 <code>copytruncate</code>，也没有 <code>postrotate</code> 里通知进程重开文件</strong>。logrotate 默认行为是把 <code>collector.log</code> 改名成 <code>collector.log.1</code> 再建新文件，但 Java 进程的 FD 还指向改名后的旧 inode，继续往旧文件里写；轮转形同虚设，日志越滚越大。翻历史记录，这个配置是三个月前加的，也就是说这个文件其实已经&quot;假轮转&quot;了三个月，最终膨胀成 62GB 被人工 <code>rm</code>，又因为句柄未释放变成幽灵占用。</p>
+<h3 id="第四步安全释放空间"><a href="#%e7%ac%ac%e5%9b%9b%e6%ad%a5%e5%ae%89%e5%85%a8%e9%87%8a%e6%94%be%e7%a9%ba%e9%97%b4" class="header-anchor"></a>第四步：安全释放空间
+</h3><p>磁盘只剩 4GB，等不了发版修代码，需要立刻止血。<strong>不能直接 <code>kill -9</code></strong>——日志收集进程内存里还有未落盘的缓冲，粗暴杀掉会丢日志。有两个安全做法：</p>
+<p>方法一（首选）：通过 <code>/proc</code> 直接截断这个已删除文件，不用动进程：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 先看看确认目标</span>
+</span></span><span style="display:flex;"><span>$ ls -l /proc/12867/fd/4
+</span></span><span style="display:flex;"><span>l-wx------ <span style="color:#ae81ff">1</span> applog applog <span style="color:#ae81ff">64</span> Jul <span style="color:#ae81ff">30</span> 08:41 /proc/12867/fd/4 -&gt; /data/applog/collector.log <span style="color:#f92672">(</span>deleted<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 截断为 0，空间立即归还</span>
+</span></span><span style="display:flex;"><span>$ truncate -s <span style="color:#ae81ff">0</span> /proc/12867/fd/4
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>执行完再看 <code>df</code>：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ df -h /data
+</span></span><span style="display:flex;"><span>/dev/vdb1       197G  128G   69G  66% /data
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>66GB 空间瞬间回来，业务写入恢复。进程完全无感知，只是它后续写入的偏移量还在 66GB 处——ext4 会把前面的空洞做成稀疏文件，不再占实际块，问题不大，但这个进程终归要在低峰期重启一次，让它重开一个干净的日志文件。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><p>止血动作汇总：</p>
+<ol>
+<li><code>lsof +L1</code> 定位持有已删除文件句柄的进程与 FD；</li>
+<li><code>truncate -s 0 /proc/&lt;pid&gt;/fd/&lt;fd&gt;</code> 原地截断，立即归还空间，避免重启进程；</li>
+<li>当晚低峰重启日志收集进程，消除稀疏文件残留。</li>
+</ol>
+<p>根治动作：</p>
+<ol>
+<li>修正 logrotate 配置，对无重开日志能力的进程加 <code>copytruncate</code>：</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>/data/applog/collector.log {
+</span></span><span style="display:flex;"><span>    daily
+</span></span><span style="display:flex;"><span>    rotate 7
+</span></span><span style="display:flex;"><span>    compress
+</span></span><span style="display:flex;"><span>    missingok
+</span></span><span style="display:flex;"><span>    copytruncate
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>推动研发在下个版本给自研 Appender 加上 <code>SIGUSR1</code> 信号重开日志文件的能力，之后可切回 <code>postrotate</code> + 信号的标准方案（<code>copytruncate</code> 在复制窗口内有极小概率丢日志，只是过渡）；</li>
+<li>给全组同步操作规范：<strong>清理大日志一律先 <code>&gt; file</code> 截断或走轮转，不要直接 <code>rm</code> 正在被写入的文件</strong>。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>三层原因叠加：</p>
+<ul>
+<li><strong>直接原因</strong>：<code>rm</code> 删除了仍被进程打开的日志文件，inode 引用未归零，数据块不释放，形成&quot;df 与 du 差 60GB&quot;的幽灵占用；</li>
+<li><strong>深层原因</strong>：logrotate 配置缺少 <code>copytruncate</code>/<code>postrotate</code> 重开机制，对一个不会自己重开日志的进程做了三个月的无效轮转，把单文件养到 62GB；</li>
+<li><strong>流程原因</strong>：值班清理手册里没有&quot;确认文件是否被进程占用&quot;这一步，直接 <code>rm</code> 成了肌肉记忆。</li>
+</ul>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
+<li><strong>监控加一层</strong>：磁盘告警规则里增加 <code>df</code> 与 <code>du</code> 差值检查（差值超过 10% 触发提示&quot;存在已删除未释放文件&quot;），并把 <code>lsof +L1</code> 输出接入巡检脚本；</li>
+<li><strong>轮转配置审计</strong>：批量检查所有 logrotate 配置，凡目标进程无日志重开能力的，必须有 <code>copytruncate</code> 或 <code>postrotate</code> 通知逻辑，纳入配置上线 checklist；</li>
+<li><strong>单文件体积兜底</strong>：日志目录加单文件大小告警（如超过 5GB 即告警），避免&quot;假轮转&quot;静默养大文件；</li>
+<li><strong>操作规范落地</strong>：值班手册明确&quot;删大文件前先 <code>lsof</code> 确认占用；正在写入的文件用 <code>truncate</code>/<code>&gt;</code> 截断而非 <code>rm</code>&quot;。</li>
+</ol>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这次故障本身不复杂，却是 Linux 运维里辨识度最高的经典题：<code>rm</code> 只删目录项，不删被打开的 inode，<code>df</code> 和 <code>du</code> 的差值就是那些&quot;删而未放&quot;的幽灵文件。两条命令就能定位——<code>lsof +L1</code> 找元凶，<code>truncate -s 0 /proc/&lt;pid&gt;/fd/&lt;fd&gt;</code> 无损止血，全程不用重启进程。更值得记住的是链路上游：一份没有 <code>copytruncate</code> 的 logrotate 配置对着不会重开文件的进程空转了三个月，才是把 62GB 巨型日志&quot;养&quot;出来的真正推手。磁盘问题的排查顺序可以固化为：<code>df -h</code> 看块 → <code>df -i</code> 看 inode → <code>du</code> 对账 → 差值大就 <code>lsof +L1</code>，四步走完，九成磁盘疑难都能落地。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/linux/">Linux</a>
+        
+            <a href="/tags/%E7%A3%81%E7%9B%98%E7%A9%BA%E9%97%B4/">磁盘空间</a>
+        
+            <a href="/tags/lsof/">Lsof</a>
+        
+            <a href="/tags/%E6%96%87%E4%BB%B6%E5%8F%A5%E6%9F%84/">文件句柄</a>
+        
+            <a href="/tags/logrotate/">Logrotate</a>
+        
+            <a href="/tags/%E6%97%A5%E5%BF%97%E7%AE%A1%E7%90%86/">日志管理</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/6651b58c/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">定位 Too many open files：一次生产服务文件描述符耗尽的排查与根治</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/1925cf22/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次服务本地端口耗尽导致对外调用大量 Cannot assign requested address 的排查记录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/5961e223/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次NFS存储服务端故障导致客户端进程陷入D状态业务整体假死的排查记录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/42f874e5/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">系统时区一改，凌晨备份为何跑进业务高峰拖垮 MySQL？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/6455e1b5/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">磁盘有空间却写不进文件？Linux inode 耗尽的坑</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
     import gallery from '\/ts\/gallery.js';
 
     const articleContent = document.querySelector('.article-content');
@@ -100,4 +697,15 @@
         });
         lightbox.init();
     }
-</script></main></div><script type=text/javascript src=/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js defer></script></body></html>
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

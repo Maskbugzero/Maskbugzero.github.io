@@ -1,129 +1,892 @@
-<!doctype html><html lang=zh dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="核心服务 unit 配错端口启动秒退，Restart=always 无退避把整机 CPU 与 journal 打爆，靠 StartLimit 与降级策略止血"><meta name=keywords content="systemd,Restart=always,重启风暴,StartLimitBurst,StartLimitIntervalSec,journald,服务启动失败,unit配置错误"><title>刹住systemd重启风暴：一次Restart=always叠加配置错误拖垮整机的排查</title><link rel=canonical href=https://blog.5772447.xyz/posts/49b13065/><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href=/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css><meta property='og:title' content="刹住systemd重启风暴：一次Restart=always叠加配置错误拖垮整机的排查"><meta property='og:description' content="核心服务 unit 配错端口启动秒退，Restart=always 无退避把整机 CPU 与 journal 打爆，靠 StartLimit 与降级策略止血"><meta property='og:url' content='https://blog.5772447.xyz/posts/49b13065/'><meta property='og:site_name' content='Zero Day Notes'><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:published_time' content='2026-08-10T07:05:00+08:00'><meta property='article:modified_time' content='2026-08-10T07:05:00+08:00'><meta name=twitter:title content="刹住systemd重启风暴：一次Restart=always叠加配置错误拖垮整机的排查"><meta name=twitter:description content="核心服务 unit 配错端口启动秒退，Restart=always 无退避把整机 CPU 与 journal 打爆，靠 StartLimit 与降级策略止血"><link rel="shortcut icon" href=/img/favicon.png></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label=切换菜单>
-<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=/img/avatar.jpg width=300 height=300 class=site-logo loading=lazy alt=Avatar>
-</a><span class=emoji>🛠️</span></figure><div class=site-meta><h1 class=site-name><a href=/>Zero Day Notes</a></h1><h2 class=site-description>IT 运维实战笔记</h2></div></header><ol class=menu-social><li><a href=https://github.com/Maskbugzero title=GitHub rel=me><svg class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6.0 00-1.3-3.2 4.2 4.2.0 00-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3.0 00-6.2.0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2.0 00-.1 3.2A4.6 4.6.0 004 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/page/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
-<span>归档</span></a></li><li><a href=/tags><svg class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11 3l9 9a1.5 1.5.0 010 2l-6 6a1.5 1.5.0 01-2 0L3 11V7a4 4 0 014-4h4"/><circle cx="9" cy="9" r="2"/></svg>
-<span>标签</span></a></li><li><a href=/categories><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg>
-<span>分类</span></a></li><li><a href=/about><svg class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
-<span>关于</span></a></li><li class=menu-bottom-section><ol class=menu><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
-<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
-<span>暗色模式</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">目录</h2><div class=widget--toc><nav class=toc-nav id=TableOfContents><ul><li><a href=#问题背景>问题背景</a></li><li><a href=#故障现象>故障现象</a></li><li><a href=#排查过程>排查过程</a><ul><li><a href=#1-先分清被打还是自己打自己>1. 先分清「被打」还是「自己打自己」</a></li><li><a href=#2-锁定刷屏的单元>2. 锁定「刷屏」的单元</a></li><li><a href=#3-读清为什么起不来而不是只看-restart>3. 读清「为什么起不来」——而不是只看 Restart</a></li><li><a href=#4-为何一台配置错会变成整机打满>4. 为何一台配置错会变成「整机打满」</a></li><li><a href=#5-与其他负载高故障的快速鉴别>5. 与其他「负载高」故障的快速鉴别</a></li><li><a href=#6-变更链核实>6. 变更链核实</a></li></ul></li><li><a href=#解决方案>解决方案</a><ul><li><a href=#止血按顺序越前面越快降负载>止血（按顺序，越前面越快降负载）</a></li><li><a href=#根治配置模板写进角色-baseline>根治配置模板（写进角色 baseline）</a></li></ul></li><li><a href=#根因分析>根因分析</a></li><li><a href=#预防措施>预防措施</a></li><li><a href=#总结>总结</a></li></ul></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/%E8%BF%90%E7%BB%B4/ style=background-color:#efe7be;color:#3d360f>运维
-</a><a href=/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/ style=background-color:#bee6ef;color:#0f353d>服务运维</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/posts/49b13065/>刹住systemd重启风暴：一次Restart=always叠加配置错误拖垮整机的排查</a></h2><h3 class=article-subtitle>核心服务 unit 配错端口启动秒退，Restart=always 无退避把整机 CPU 与 journal 打爆，靠 StartLimit 与降级策略止血</h3></div><footer class=article-meta><div class=inline-meta><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
-<time class=article-time--published datetime=2026-08-10T07:05:00+08:00>2026年8月10日星期一</time>
-<svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
-<time class=article-time--reading>阅读时长: 8 分钟</time></div></footer></div></header><aside class=article-toc><details><summary><div class=article-toc-title><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6-6 6"/></svg>
-<span>目录</span></div></summary><nav class=toc-nav><ul><li><a href=#问题背景>问题背景</a></li><li><a href=#故障现象>故障现象</a></li><li><a href=#排查过程>排查过程</a><ul><li><a href=#1-先分清被打还是自己打自己>1. 先分清「被打」还是「自己打自己」</a></li><li><a href=#2-锁定刷屏的单元>2. 锁定「刷屏」的单元</a></li><li><a href=#3-读清为什么起不来而不是只看-restart>3. 读清「为什么起不来」——而不是只看 Restart</a></li><li><a href=#4-为何一台配置错会变成整机打满>4. 为何一台配置错会变成「整机打满」</a></li><li><a href=#5-与其他负载高故障的快速鉴别>5. 与其他「负载高」故障的快速鉴别</a></li><li><a href=#6-变更链核实>6. 变更链核实</a></li></ul></li><li><a href=#解决方案>解决方案</a><ul><li><a href=#止血按顺序越前面越快降负载>止血（按顺序，越前面越快降负载）</a></li><li><a href=#根治配置模板写进角色-baseline>根治配置模板（写进角色 baseline）</a></li></ul></li><li><a href=#根因分析>根因分析</a></li><li><a href=#预防措施>预防措施</a></li><li><a href=#总结>总结</a></li></ul></nav></details></aside><section class=article-content><h2 id=问题背景><a href=#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af class=header-anchor></a>问题背景</h2><p>凌晨 02:40，生产机房一批跑核心 API 与内部网关的 Linux 物理机突然告警：<code>load average</code> 从日常 2～4 冲到 80 以上，监控 agent 间歇超时，跳板机 SSH 登录要等十几秒才出提示符。业务侧同步反馈：网关 502/504 大面积出现，部分接口偶发能通、大多直接拒连。</p><p>当晚刚做过一次「小变更」——网关上游的配置中心里，某台 API 机监听端口从 <code>8080</code> 改到 <code>18080</code>，并同步改了 systemd 的 unit 覆盖文件。变更窗口短、灰度一台后观测几分钟「进程有起来」，就扩到同角色其余节点。谁也没想到，<strong>配置写错 + <code>Restart=always</code> 无节制重试</strong>，会在十几分钟内把整机拖进「重启风暴」：服务永远起不来，CPU、磁盘 I/O、journal 却一起被打满，连排障通道都变慢。</p><p>这类故障的危险处在于：表象是「机器负载高、像被打爆」，根因却常常是<strong>管控平面（systemd）在合法地、疯狂地、毫无冷却地重拉一个必失败的 unit</strong>。</p><h2 id=故障现象><a href=#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1 class=header-anchor></a>故障现象</h2><ol><li><p><strong>业务侧</strong></p><ul><li>网关对多台后端健康检查连续失败，摘掉后上游仍探测「偶有成功」，流量在摘挂间抖动。</li><li>客户端日志里大量 <code>connection refused</code> 与短连接超时并存，不像单纯的慢查询或连接池耗尽。</li></ul></li><li><p><strong>主机侧</strong></p><ul><li><code>top</code>/<code>htop</code> 里 <code>%sy</code> 与短生命周期进程刷屏，反复出现同名服务二进制一闪而过。</li><li><code>load average</code> 1/5/15 分钟全线飙高，但单进程 CPU 并不持久占高——典型的「大量短命进程 + 上下文切换」。</li><li>根分区写入猛增：<code>/var/log/journal</code> 或 rsyslog 落盘的服务日志在几分钟内暴涨数 GB。</li><li><code>systemctl status xxx.service</code> 显示 <code>activating (auto-restart)</code>，Active 在 <code>failed</code> 与重启间隙来回跳。</li></ul></li><li><p><strong>控制面侧</strong></p><ul><li><code>journalctl -u xxx.service -f</code> 几乎刷不完：<code>Failed with result 'exit-code'</code>、<code>Scheduled restart job</code> 成对出现，间隔往往只有 100ms 量级。</li><li>SSH 可登但卡顿；<code>systemctl</code> 本身偶发变慢，因为 dbus/systemd 也在被重启风暴挤占。</li></ul></li><li><p><strong>时间线特征</strong></p><ul><li>告警与变更完成时间高度吻合（扩到全量后 5～15 分钟）。</li><li>回滚应用配置不一定立刻降负载——<strong>只要 unit 仍在 auto-restart，风暴就还在转</strong>。</li></ul></li></ol><h2 id=排查过程><a href=#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b class=header-anchor></a>排查过程</h2><h3 id=1-先分清被打还是自己打自己><a href=#1-%e5%85%88%e5%88%86%e6%b8%85%e8%a2%ab%e6%89%93%e8%bf%98%e6%98%af%e8%87%aa%e5%b7%b1%e6%89%93%e8%87%aa%e5%b7%b1 class=header-anchor></a>1. 先分清「被打」还是「自己打自己」</h3><p>第一反应是 DDoS 或上游重试风暴。快速核对：</p><ul><li>出口/入口网卡 PPS 与连接跟踪：有升高，但远不到历史攻击水位。</li><li>本机 <code>ss -s</code>/<code>conntrack -C</code>：未出现本地端口耗尽或 conntrack 打满那类经典网络型告警。</li><li>同网段未变更机器正常——<strong>故障与「刚改 unit 的角色」强相关</strong>，更像本机自激。</li></ul><p>结论：优先查本机进程生命周期与 systemd 单元状态，而不是先扩容、先限流。</p><h3 id=2-锁定刷屏的单元><a href=#2-%e9%94%81%e5%ae%9a%e5%88%b7%e5%b1%8f%e7%9a%84%e5%8d%95%e5%85%83 class=header-anchor></a>2. 锁定「刷屏」的单元</h3><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e># 谁在反复失败</span>
-</span></span><span style=display:flex><span>systemctl --failed
-</span></span><span style=display:flex><span>journalctl -p err -b --no-pager | tail -n <span style=color:#ae81ff>100</span>
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#75715e># 看哪个 unit 重启最勤</span>
-</span></span><span style=display:flex><span>journalctl -b -u <span style=color:#e6db74>&#39;api-gateway.service&#39;</span> --no-pager | tail -n <span style=color:#ae81ff>50</span>
-</span></span><span style=display:flex><span>systemctl show api-gateway.service -p ActiveState -p SubState -p NRestarts -p Result
-</span></span></code></pre></td></tr></table></div></div><p>关键字段：</p><ul><li><code>NRestarts</code> 已经是几千甚至上万。</li><li><code>SubState=auto-restart</code>。</li><li><code>Result=exit-code</code> 或 <code>start-limit-hit</code>（若已撞上限制；本批机器<strong>没配限制</strong>，所以只见无限 auto-restart）。</li></ul><p>再配合：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span>ps -eo pid,ppid,stat,lstart,cmd --sort<span style=color:#f92672>=</span>start_time | tail
-</span></span><span style=display:flex><span><span style=color:#75715e># 或</span>
-</span></span><span style=display:flex><span>systemd-cgtop
-</span></span></code></pre></td></tr></table></div></div><p>能看到同二进制的大量僵尸/极短寿命子进程，父进程链最终回到 <code>systemd</code>。</p><h3 id=3-读清为什么起不来而不是只看-restart><a href=#3-%e8%af%bb%e6%b8%85%e4%b8%ba%e4%bb%80%e4%b9%88%e8%b5%b7%e4%b8%8d%e6%9d%a5%e8%80%8c%e4%b8%8d%e6%98%af%e5%8f%aa%e7%9c%8b-restart class=header-anchor></a>3. 读清「为什么起不来」——而不是只看 Restart</h3><p>服务日志里反复出现（示例）：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-text data-lang=text><span style=display:flex><span>error: bind: address already in use
-</span></span><span style=display:flex><span># 或
-</span></span><span style=display:flex><span>error: config: listen_port: invalid value &#34;&#34; 
-</span></span><span style=display:flex><span># 或
-</span></span><span style=display:flex><span>FATAL: cannot open /etc/api/app.yaml: no such file or directory
-</span></span></code></pre></td></tr></table></div></div><p>本轮根因落地到 <strong>drop-in 覆盖写错</strong>：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span>systemctl cat api-gateway.service
-</span></span><span style=display:flex><span><span style=color:#75715e># /etc/systemd/system/api-gateway.service.d/override.conf</span>
-</span></span></code></pre></td></tr></table></div></div><p>变更本意：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-ini data-lang=ini><span style=display:flex><span><span style=color:#66d9ef>[Service]</span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>Environment</span><span style=color:#f92672>=</span><span style=color:#e6db74>LISTEN_PORT=18080</span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>ExecStart</span><span style=color:#f92672>=</span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>ExecStart</span><span style=color:#f92672>=</span><span style=color:#e6db74>/usr/local/bin/api-gateway --config /etc/api/app.yaml</span>
-</span></span></code></pre></td></tr></table></div></div><p>实际写成了：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-ini data-lang=ini><span style=display:flex><span><span style=color:#66d9ef>[Service]</span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>Environment</span><span style=color:#f92672>=</span><span style=color:#e6db74>LISTEN_PORT=18080</span>
-</span></span><span style=display:flex><span><span style=color:#75715e># 错误：清空了 ExecStart 后，新命令少了关键参数；或 WorkingDirectory/配置路径笔误</span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>ExecStart</span><span style=color:#f92672>=</span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>ExecStart</span><span style=color:#f92672>=</span><span style=color:#e6db74>/usr/local/bin/api-gateway --config /etc/api/app.ya ml</span>
-</span></span></code></pre></td></tr></table></div></div><p>配置文件路径笔误 / YAML 非法后，进程<strong>启动即非 0 退出</strong>。应用本身没进入 listen 阶段，健康检查当然全红。</p><p>另有一台更隐蔽：端口改到 18080，但 <strong>旧进程未停干净</strong> 或 <strong>socket 单元仍占用</strong>，新进程 <code>bind</code> 失败，同样秒退。表现与「配置文件坏了」在 systemd 层完全一致——都是 start 失败 + 自动拉起。</p><h3 id=4-为何一台配置错会变成整机打满><a href=#4-%e4%b8%ba%e4%bd%95%e4%b8%80%e5%8f%b0%e9%85%8d%e7%bd%ae%e9%94%99%e4%bc%9a%e5%8f%98%e6%88%90%e6%95%b4%e6%9c%ba%e6%89%93%e6%bb%a1 class=header-anchor></a>4. 为何一台配置错会变成「整机打满」</h3><p>核对 unit 默认策略：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span>systemctl show api-gateway.service <span style=color:#ae81ff>\
-</span></span></span><span style=display:flex><span>  -p Restart -p RestartSec -p StartLimitIntervalUSec -p StartLimitBurst -p StartLimitAction
-</span></span></code></pre></td></tr></table></div></div><p>现场读数（问题模式）：</p><div class=table-wrapper><table><thead><tr><th>项</th><th>值</th><th>含义</th></tr></thead><tbody><tr><td>Restart</td><td>always</td><td>任何退出都重启，含配置错误</td></tr><tr><td>RestartSec</td><td>100ms（或默认很短）</td><td>失败后几乎立刻再拉</td></tr><tr><td>StartLimitBurst</td><td>0 / 未生效</td><td><strong>没有滑动窗口熔断</strong></td></tr><tr><td>StartLimitAction</td><td>none</td><td>触顶也不停</td></tr></tbody></table></div><p>于是形成正反馈：</p><ol><li>ExecStart 必失败 → 进程秒退</li><li>systemd 记一次失败并 <code>auto-restart</code></li><li>100ms 后再 start → 再失败</li><li>每次失败写 journal、写应用日志、fork/exec、安全模块检查……</li><li><strong>CPU、磁盘、日志子系统先于业务被拖死</strong>，排障变慢，窗口越拖越长</li></ol><p>这与「应用逻辑死循环占 CPU」不同：这里是 <strong>PID 1 的策略在放大一次变更事故</strong>。</p><h3 id=5-与其他负载高故障的快速鉴别><a href=#5-%e4%b8%8e%e5%85%b6%e4%bb%96%e8%b4%9f%e8%bd%bd%e9%ab%98%e6%95%85%e9%9a%9c%e7%9a%84%e5%bf%ab%e9%80%9f%e9%89%b4%e5%88%ab class=header-anchor></a>5. 与其他「负载高」故障的快速鉴别</h3><div class=table-wrapper><table><thead><tr><th>表象</th><th>更像</th><th>一眼区别</th></tr></thead><tbody><tr><td>NRestarts 暴涨 + auto-restart</td><td>systemd 重启风暴</td><td><code>systemctl show -p NRestarts</code></td></tr><tr><td>单 Java 进程 CPU 100%</td><td>代码/GC/死循环</td><td><code>top</code> 稳定同一 PID</td></tr><tr><td>Too many open files</td><td>fd 泄漏</td><td><code>lsof</code>/<code>/proc/pid/fd</code></td></tr><tr><td>本地端口耗尽</td><td>短连接打满</td><td><code>ss -s</code>、EADDRNOTAVAIL</td></tr><tr><td>journal 涨、服务本身正常</td><td>日志级别/访问日志</td><td>unit 稳定 active (running)</td></tr></tbody></table></div><p>本轮三项同时命中：<code>NRestarts</code> 疯狂涨、服务从未 stable running、journal 与变更同窗暴涨。</p><h3 id=6-变更链核实><a href=#6-%e5%8f%98%e6%9b%b4%e9%93%be%e6%a0%b8%e5%ae%9e class=header-anchor></a>6. 变更链核实</h3><ul><li>GitOps/配置仓库：override 与配置中心端口一致，但 <strong>主机上 <code>systemctl daemon-reload</code> 后的实际 cat 与仓库有一行不可见字符/换行差异</strong>（或人工在机上「临时改一下」未回写）。</li><li>灰度判定失误：只看了 <code>systemctl start</code> 返回和进程表「闪过」，<strong>没等 ActiveState=active (running) 且端口 listen</strong>，也没看 <code>NRestarts</code> 是否为 0。</li><li>监控缺项：有进程存活/端口拨测，但 <strong>没有「unit 重启次数」与「StartLimit 触顶」告警</strong>，风暴在业务大面积 5xx 前已转了几分钟。</li></ul><h2 id=解决方案><a href=#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88 class=header-anchor></a>解决方案</h2><h3 id=止血按顺序越前面越快降负载><a href=#%e6%ad%a2%e8%a1%80%e6%8c%89%e9%a1%ba%e5%ba%8f%e8%b6%8a%e5%89%8d%e9%9d%a2%e8%b6%8a%e5%bf%ab%e9%99%8d%e8%b4%9f%e8%bd%bd class=header-anchor></a>止血（按顺序，越前面越快降负载）</h3><ol><li><strong>立刻停掉自动拉起（治标，但必须先做）</strong></li></ol><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span>systemctl stop api-gateway.service
-</span></span><span style=display:flex><span>systemctl mask api-gateway.service   <span style=color:#75715e># 防手工/依赖再次拉起；确认后可 unmask</span>
-</span></span><span style=display:flex><span><span style=color:#75715e># 或临时：</span>
-</span></span><span style=display:flex><span>systemctl set-property api-gateway.service Restart<span style=color:#f92672>=</span>no   <span style=color:#75715e># 若支持；否则改 drop-in 后 daemon-reload</span>
-</span></span></code></pre></td></tr></table></div></div><p>对已经 <code>auto-restart</code> 的风暴，<code>stop</code> 比继续改配置更重要——<strong>先让 systemd 停止 fork</strong>。</p><ol start=2><li><strong>确认负载下降</strong></li></ol><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span>systemctl show api-gateway.service -p NRestarts -p ActiveState
-</span></span><span style=display:flex><span>uptime
-</span></span><span style=display:flex><span>journalctl -u api-gateway.service -f   <span style=color:#75715e># 应不再刷 Scheduled restart</span>
-</span></span></code></pre></td></tr></table></div></div><ol start=3><li><strong>修正配置后再受控启动</strong></li></ol><ul><li>修正 <code>override.conf</code> / 应用 YAML / 端口占用（<code>ss -lntp | grep 18080</code>）。</li><li><code>systemctl daemon-reload</code></li><li><code>systemctl unmask api-gateway.service</code></li><li><strong>先单台</strong> <code>systemctl start</code>，确认：</li></ul><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-bash data-lang=bash><span style=display:flex><span>systemctl is-active api-gateway.service    <span style=color:#75715e># active</span>
-</span></span><span style=display:flex><span>ss -lntp | grep <span style=color:#ae81ff>18080</span>
-</span></span><span style=display:flex><span>systemctl show api-gateway.service -p NRestarts   <span style=color:#75715e># 启动后应保持 0 或不飙</span>
-</span></span><span style=display:flex><span>curl -sS -o /dev/null -w <span style=color:#e6db74>&#39;%{http_code}\n&#39;</span> http://127.0.0.1:18080/healthz
-</span></span></code></pre></td></tr></table></div></div><ol start=4><li><p><strong>业务侧</strong></p><ul><li>网关把已恢复后端加回；对已雪崩的连接池/线程池视情况滚动重启下游客户端，避免「半开连接」长时间拖尾。</li></ul></li><li><p><strong>日志磁盘</strong></p><ul><li>若 journal 撑满根分区：按规范 <code>journalctl --vacuum-size=</code> 或清理应用错误日志（<strong>先 stop 风暴再清理</strong>，否则边清边写）。</li></ul></li></ol><h3 id=根治配置模板写进角色-baseline><a href=#%e6%a0%b9%e6%b2%bb%e9%85%8d%e7%bd%ae%e6%a8%a1%e6%9d%bf%e5%86%99%e8%bf%9b%e8%a7%92%e8%89%b2-baseline class=header-anchor></a>根治配置模板（写进角色 baseline）</h3><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">16
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-ini data-lang=ini><span style=display:flex><span><span style=color:#66d9ef>[Unit]</span>
-</span></span><span style=display:flex><span><span style=color:#75715e># 滑动窗口内启动次数熔断，避免配置错误打满机器</span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>StartLimitIntervalSec</span><span style=color:#f92672>=</span><span style=color:#e6db74>300</span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>StartLimitBurst</span><span style=color:#f92672>=</span><span style=color:#e6db74>5</span>
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>[Service]</span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>Type</span><span style=color:#f92672>=</span><span style=color:#e6db74>simple</span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>Restart</span><span style=color:#f92672>=</span><span style=color:#e6db74>on-failure</span>
-</span></span><span style=display:flex><span><span style=color:#75715e># 不要无脑 always；若必须 always，务必更长 RestartSec + StartLimit</span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>RestartSec</span><span style=color:#f92672>=</span><span style=color:#e6db74>5</span>
-</span></span><span style=display:flex><span><span style=color:#75715e># 失败触顶后进入 failed，而不是无限打转</span>
-</span></span><span style=display:flex><span><span style=color:#75715e># StartLimitAction=none 保持 failed 便于告警；或 reboot 仅限无状态节点且你真想自动重启整机</span>
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#75715e># 可选：资源顶栏，防止单服务拖死整机</span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>CPUQuota</span><span style=color:#f92672>=</span><span style=color:#e6db74>200%</span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>MemoryMax</span><span style=color:#f92672>=</span><span style=color:#e6db74>4G</span>
-</span></span></code></pre></td></tr></table></div></div><p>要点：</p><ul><li><strong><code>Restart=always</code> 不等于高可用</strong>；配置错误、依赖未就绪时它是自攻击。优先 <code>on-failure</code>，并对「正常退出码」语义定义清楚（<code>SuccessExitStatus=</code>）。</li><li><strong><code>RestartSec</code> 至少秒级</strong>，给依赖与排障留呼吸空间。</li><li><strong><code>StartLimitIntervalSec</code> + <code>StartLimitBurst</code> 是重启风暴的安全带</strong>，默认不配等于裸奔。</li><li>变更后验收清单必须包含：<code>ActiveState</code>、<code>listen</code> 端口、<code>NRestarts</code>、健康检查连续成功 N 次——而不是「进程列表里看见过」。</li></ul><h2 id=根因分析><a href=#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90 class=header-anchor></a>根因分析</h2><ol><li><p><strong>直接原因</strong><br>unit / 应用配置错误（路径笔误、端口冲突、环境变量未生效）导致进程启动即退出，服务从未进入稳定 <code>running</code>。</p></li><li><p><strong>放大原因</strong><br><code>Restart=always</code> + 极短 <code>RestartSec</code> + <strong>无 StartLimit</strong>，使 systemd 以极高频率反复 fork/exec 同一失败路径，CPU、日志 I/O、磁盘被合法管控动作打满，形成「重启风暴」。</p></li><li><p><strong>过程原因</strong></p><ul><li>灰度验收只看「有没有进程/命令是否返回」，不看 unit 稳态与重启计数。</li><li>监控缺少 <code>systemd unit NRestarts</code> / <code>ActiveState!=active</code> 的及时告警。</li><li>变更把「端口/路径」与「重启策略」视为无关项，未评估失败路径下的控制面行为。</li></ul></li><li><p><strong>本质</strong><br>高可用策略（自动拉起）在<strong>不可恢复的配置错误</strong>上没有熔断，把应用故障升级成主机级可用性事故。</p></li></ol><h2 id=预防措施><a href=#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd class=header-anchor></a>预防措施</h2><ol><li><p><strong>Unit 基线强制带熔断</strong><br>所有生产 service 模板审查：<code>Restart</code> 语义、<code>RestartSec</code>、<code>StartLimit*</code>、必要时 <code>CPUQuota</code>/<code>MemoryMax</code>。禁止裸 <code>Restart=always</code> 无 StartLimit 上线。</p></li><li><p><strong>变更验收 Checklist（发布门禁）</strong></p><ul><li><input disabled type=checkbox> <code>systemctl cat</code> 与仓库一致，<code>daemon-reload</code> 已执行</li><li><input disabled type=checkbox> <code>ActiveState=active</code> 且持续 ≥ 1～2 分钟</li><li><input disabled type=checkbox> 端口 <code>LISTEN</code> 与配置端口一致</li><li><input disabled type=checkbox> <code>NRestarts</code> 在观察窗内不增长</li><li><input disabled type=checkbox> 本地 + 经负载均衡的健康检查连续成功</li><li><input disabled type=checkbox> journal 无秒级 <code>Scheduled restart job</code> 刷屏</li></ul></li><li><p><strong>监控与告警</strong></p><ul><li>采集 <code>node_systemd_unit_state</code>、<code>systemd_unit_restarts_total</code>（或等价 exporter）。</li><li>规则示例：5 分钟内重启次数 > 3 告警；<code>activating</code> 持续 > 1 分钟告警；journal 错误速率突增联动。</li></ul></li><li><p><strong>发布策略</strong></p><ul><li>先改配置再 reload 的路径，<strong>串行单台</strong>，观察 Restart 指标后再下一批。</li><li>端口变更坚持「先起新端口旁路验证 → 再切流量 → 再停旧」，避免 bind 冲突秒退。</li><li>配置渲染进 CI：校验 YAML/端口区间/文件存在性，拒绝明显坏配置进仓库。</li></ul></li><li><p><strong>排障预案</strong></p><ul><li>Runbook 第一条写清：怀疑重启风暴时 <strong>先 <code>systemctl stop/mask</code> 停叉，再查配置</strong>。</li><li>演练：故意提交坏 ExecStart，验证 StartLimit 与告警是否在业务大面积 5xx 前触发。</li></ul></li><li><p><strong>与日志系统协同</strong></p><ul><li>失败启动日志限速（应用侧）、journald rate limit 复核，避免风暴二次填满磁盘导致连环故障。</li></ul></li></ol><h2 id=总结><a href=#%e6%80%bb%e7%bb%93 class=header-anchor></a>总结</h2><p>这是一起典型的「<strong>管控平面放大配置错误</strong>」事故：应用其实已经「明确失败」，但 <code>Restart=always</code> 在无 StartLimit、短 RestartSec 下把失败变成每秒数十次的自攻击，主机 load、journal 与排障通道一起垮掉，业务表现为大面积 502 与间歇恢复的假象。</p><p>处理顺序应当是 <strong>停风暴 → 修配置 → 受控拉起 → 补熔断与监控</strong>，而不是在 auto-restart 刷屏时继续叠变更。预防上，把 StartLimit、重启语义、NRestarts 验收和 unit 状态告警写进基线，比再写一百行业务重试更管用。</p><p>一句话：<strong>自动重启是保险丝，不是永动机；该熔断时必须熔断，否则 systemd 会比攻击者更早打满你的机器。</strong></p></section><footer class="article-meta article-footer"></footer></article><div class=disqus-container></div><style>.disqus-container{background-color:var(--card-background);border-radius:var(--card-border-radius);box-shadow:var(--shadow-l1);padding:var(--card-padding)}</style><script>window.addEventListener("onColorSchemeChange",e=>{typeof DISQUS=="object"&&DISQUS.reset({reload:!0})})</script><footer class=site-footer><section class=copyright>&copy;
-2020 -
-2026 Zero Day Notes</section><section class=powerby>使用 <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a> 构建<br>主题 <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=4.0.3>Stack</a></b> 由 <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a> 设计</section></footer><script type=module>
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="核心服务 unit 配错端口启动秒退，Restart=always 无退避把整机 CPU 与 journal 打爆，靠 StartLimit 与降级策略止血">
+<meta name="keywords" content="systemd, Restart=always, 重启风暴, StartLimitBurst, StartLimitIntervalSec, journald, 服务启动失败, unit配置错误"><title>刹住systemd重启风暴：一次Restart=always叠加配置错误拖垮整机的排查</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/49b13065/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="刹住systemd重启风暴：一次Restart=always叠加配置错误拖垮整机的排查">
+<meta property='og:description' content="核心服务 unit 配错端口启动秒退，Restart=always 无退避把整机 CPU 与 journal 打爆，靠 StartLimit 与降级策略止血">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/49b13065/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-08-10T07:05:00&#43;08:00'/><meta property='article:modified_time' content='2026-08-10T07:05:00&#43;08:00'/>
+<meta name="twitter:title" content="刹住systemd重启风暴：一次Restart=always叠加配置错误拖垮整机的排查">
+<meta name="twitter:description" content="核心服务 unit 配错端口启动秒退，Restart=always 无退避把整机 CPU 与 journal 打爆，靠 StartLimit 与降级策略止血">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#1-先分清被打还是自己打自己">1. 先分清「被打」还是「自己打自己」</a></li>
+        <li><a href="#2-锁定刷屏的单元">2. 锁定「刷屏」的单元</a></li>
+        <li><a href="#3-读清为什么起不来而不是只看-restart">3. 读清「为什么起不来」——而不是只看 Restart</a></li>
+        <li><a href="#4-为何一台配置错会变成整机打满">4. 为何一台配置错会变成「整机打满」</a></li>
+        <li><a href="#5-与其他负载高故障的快速鉴别">5. 与其他「负载高」故障的快速鉴别</a></li>
+        <li><a href="#6-变更链核实">6. 变更链核实</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#止血按顺序越前面越快降负载">止血（按顺序，越前面越快降负载）</a></li>
+        <li><a href="#根治配置模板写进角色-baseline">根治配置模板（写进角色 baseline）</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/49b13065/">刹住systemd重启风暴：一次Restart=always叠加配置错误拖垮整机的排查</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            核心服务 unit 配错端口启动秒退，Restart=always 无退避把整机 CPU 与 journal 打爆，靠 StartLimit 与降级策略止血
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-08-10T07:05:00&#43;08:00'>2026年8月10日星期一</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 8 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#1-先分清被打还是自己打自己">1. 先分清「被打」还是「自己打自己」</a></li>
+        <li><a href="#2-锁定刷屏的单元">2. 锁定「刷屏」的单元</a></li>
+        <li><a href="#3-读清为什么起不来而不是只看-restart">3. 读清「为什么起不来」——而不是只看 Restart</a></li>
+        <li><a href="#4-为何一台配置错会变成整机打满">4. 为何一台配置错会变成「整机打满」</a></li>
+        <li><a href="#5-与其他负载高故障的快速鉴别">5. 与其他「负载高」故障的快速鉴别</a></li>
+        <li><a href="#6-变更链核实">6. 变更链核实</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#止血按顺序越前面越快降负载">止血（按顺序，越前面越快降负载）</a></li>
+        <li><a href="#根治配置模板写进角色-baseline">根治配置模板（写进角色 baseline）</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>凌晨 02:40，生产机房一批跑核心 API 与内部网关的 Linux 物理机突然告警：<code>load average</code> 从日常 2～4 冲到 80 以上，监控 agent 间歇超时，跳板机 SSH 登录要等十几秒才出提示符。业务侧同步反馈：网关 502/504 大面积出现，部分接口偶发能通、大多直接拒连。</p>
+<p>当晚刚做过一次「小变更」——网关上游的配置中心里，某台 API 机监听端口从 <code>8080</code> 改到 <code>18080</code>，并同步改了 systemd 的 unit 覆盖文件。变更窗口短、灰度一台后观测几分钟「进程有起来」，就扩到同角色其余节点。谁也没想到，<strong>配置写错 + <code>Restart=always</code> 无节制重试</strong>，会在十几分钟内把整机拖进「重启风暴」：服务永远起不来，CPU、磁盘 I/O、journal 却一起被打满，连排障通道都变慢。</p>
+<p>这类故障的危险处在于：表象是「机器负载高、像被打爆」，根因却常常是<strong>管控平面（systemd）在合法地、疯狂地、毫无冷却地重拉一个必失败的 unit</strong>。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ol>
+<li>
+<p><strong>业务侧</strong></p>
+<ul>
+<li>网关对多台后端健康检查连续失败，摘掉后上游仍探测「偶有成功」，流量在摘挂间抖动。</li>
+<li>客户端日志里大量 <code>connection refused</code> 与短连接超时并存，不像单纯的慢查询或连接池耗尽。</li>
+</ul>
+</li>
+<li>
+<p><strong>主机侧</strong></p>
+<ul>
+<li><code>top</code>/<code>htop</code> 里 <code>%sy</code> 与短生命周期进程刷屏，反复出现同名服务二进制一闪而过。</li>
+<li><code>load average</code> 1/5/15 分钟全线飙高，但单进程 CPU 并不持久占高——典型的「大量短命进程 + 上下文切换」。</li>
+<li>根分区写入猛增：<code>/var/log/journal</code> 或 rsyslog 落盘的服务日志在几分钟内暴涨数 GB。</li>
+<li><code>systemctl status xxx.service</code> 显示 <code>activating (auto-restart)</code>，Active 在 <code>failed</code> 与重启间隙来回跳。</li>
+</ul>
+</li>
+<li>
+<p><strong>控制面侧</strong></p>
+<ul>
+<li><code>journalctl -u xxx.service -f</code> 几乎刷不完：<code>Failed with result 'exit-code'</code>、<code>Scheduled restart job</code> 成对出现，间隔往往只有 100ms 量级。</li>
+<li>SSH 可登但卡顿；<code>systemctl</code> 本身偶发变慢，因为 dbus/systemd 也在被重启风暴挤占。</li>
+</ul>
+</li>
+<li>
+<p><strong>时间线特征</strong></p>
+<ul>
+<li>告警与变更完成时间高度吻合（扩到全量后 5～15 分钟）。</li>
+<li>回滚应用配置不一定立刻降负载——<strong>只要 unit 仍在 auto-restart，风暴就还在转</strong>。</li>
+</ul>
+</li>
+</ol>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="1-先分清被打还是自己打自己"><a href="#1-%e5%85%88%e5%88%86%e6%b8%85%e8%a2%ab%e6%89%93%e8%bf%98%e6%98%af%e8%87%aa%e5%b7%b1%e6%89%93%e8%87%aa%e5%b7%b1" class="header-anchor"></a>1. 先分清「被打」还是「自己打自己」
+</h3><p>第一反应是 DDoS 或上游重试风暴。快速核对：</p>
+<ul>
+<li>出口/入口网卡 PPS 与连接跟踪：有升高，但远不到历史攻击水位。</li>
+<li>本机 <code>ss -s</code>/<code>conntrack -C</code>：未出现本地端口耗尽或 conntrack 打满那类经典网络型告警。</li>
+<li>同网段未变更机器正常——<strong>故障与「刚改 unit 的角色」强相关</strong>，更像本机自激。</li>
+</ul>
+<p>结论：优先查本机进程生命周期与 systemd 单元状态，而不是先扩容、先限流。</p>
+<h3 id="2-锁定刷屏的单元"><a href="#2-%e9%94%81%e5%ae%9a%e5%88%b7%e5%b1%8f%e7%9a%84%e5%8d%95%e5%85%83" class="header-anchor"></a>2. 锁定「刷屏」的单元
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 谁在反复失败</span>
+</span></span><span style="display:flex;"><span>systemctl --failed
+</span></span><span style="display:flex;"><span>journalctl -p err -b --no-pager | tail -n <span style="color:#ae81ff">100</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 看哪个 unit 重启最勤</span>
+</span></span><span style="display:flex;"><span>journalctl -b -u <span style="color:#e6db74">&#39;api-gateway.service&#39;</span> --no-pager | tail -n <span style="color:#ae81ff">50</span>
+</span></span><span style="display:flex;"><span>systemctl show api-gateway.service -p ActiveState -p SubState -p NRestarts -p Result
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>关键字段：</p>
+<ul>
+<li><code>NRestarts</code> 已经是几千甚至上万。</li>
+<li><code>SubState=auto-restart</code>。</li>
+<li><code>Result=exit-code</code> 或 <code>start-limit-hit</code>（若已撞上限制；本批机器<strong>没配限制</strong>，所以只见无限 auto-restart）。</li>
+</ul>
+<p>再配合：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ps -eo pid,ppid,stat,lstart,cmd --sort<span style="color:#f92672">=</span>start_time | tail
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 或</span>
+</span></span><span style="display:flex;"><span>systemd-cgtop
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>能看到同二进制的大量僵尸/极短寿命子进程，父进程链最终回到 <code>systemd</code>。</p>
+<h3 id="3-读清为什么起不来而不是只看-restart"><a href="#3-%e8%af%bb%e6%b8%85%e4%b8%ba%e4%bb%80%e4%b9%88%e8%b5%b7%e4%b8%8d%e6%9d%a5%e8%80%8c%e4%b8%8d%e6%98%af%e5%8f%aa%e7%9c%8b-restart" class="header-anchor"></a>3. 读清「为什么起不来」——而不是只看 Restart
+</h3><p>服务日志里反复出现（示例）：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>error: bind: address already in use
+</span></span><span style="display:flex;"><span># 或
+</span></span><span style="display:flex;"><span>error: config: listen_port: invalid value &#34;&#34; 
+</span></span><span style="display:flex;"><span># 或
+</span></span><span style="display:flex;"><span>FATAL: cannot open /etc/api/app.yaml: no such file or directory
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>本轮根因落地到 <strong>drop-in 覆盖写错</strong>：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl cat api-gateway.service
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># /etc/systemd/system/api-gateway.service.d/override.conf</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>变更本意：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ini" data-lang="ini"><span style="display:flex;"><span><span style="color:#66d9ef">[Service]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Environment</span><span style="color:#f92672">=</span><span style="color:#e6db74">LISTEN_PORT=18080</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">ExecStart</span><span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">ExecStart</span><span style="color:#f92672">=</span><span style="color:#e6db74">/usr/local/bin/api-gateway --config /etc/api/app.yaml</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>实际写成了：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ini" data-lang="ini"><span style="display:flex;"><span><span style="color:#66d9ef">[Service]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Environment</span><span style="color:#f92672">=</span><span style="color:#e6db74">LISTEN_PORT=18080</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 错误：清空了 ExecStart 后，新命令少了关键参数；或 WorkingDirectory/配置路径笔误</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">ExecStart</span><span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">ExecStart</span><span style="color:#f92672">=</span><span style="color:#e6db74">/usr/local/bin/api-gateway --config /etc/api/app.ya ml</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>配置文件路径笔误 / YAML 非法后，进程<strong>启动即非 0 退出</strong>。应用本身没进入 listen 阶段，健康检查当然全红。</p>
+<p>另有一台更隐蔽：端口改到 18080，但 <strong>旧进程未停干净</strong> 或 <strong>socket 单元仍占用</strong>，新进程 <code>bind</code> 失败，同样秒退。表现与「配置文件坏了」在 systemd 层完全一致——都是 start 失败 + 自动拉起。</p>
+<h3 id="4-为何一台配置错会变成整机打满"><a href="#4-%e4%b8%ba%e4%bd%95%e4%b8%80%e5%8f%b0%e9%85%8d%e7%bd%ae%e9%94%99%e4%bc%9a%e5%8f%98%e6%88%90%e6%95%b4%e6%9c%ba%e6%89%93%e6%bb%a1" class="header-anchor"></a>4. 为何一台配置错会变成「整机打满」
+</h3><p>核对 unit 默认策略：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl show api-gateway.service <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  -p Restart -p RestartSec -p StartLimitIntervalUSec -p StartLimitBurst -p StartLimitAction
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>现场读数（问题模式）：</p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>项</th>
+					<th>值</th>
+					<th>含义</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>Restart</td>
+					<td>always</td>
+					<td>任何退出都重启，含配置错误</td>
+			</tr>
+			<tr>
+					<td>RestartSec</td>
+					<td>100ms（或默认很短）</td>
+					<td>失败后几乎立刻再拉</td>
+			</tr>
+			<tr>
+					<td>StartLimitBurst</td>
+					<td>0 / 未生效</td>
+					<td><strong>没有滑动窗口熔断</strong></td>
+			</tr>
+			<tr>
+					<td>StartLimitAction</td>
+					<td>none</td>
+					<td>触顶也不停</td>
+			</tr>
+	</tbody>
+</table></div>
+<p>于是形成正反馈：</p>
+<ol>
+<li>ExecStart 必失败 → 进程秒退</li>
+<li>systemd 记一次失败并 <code>auto-restart</code></li>
+<li>100ms 后再 start → 再失败</li>
+<li>每次失败写 journal、写应用日志、fork/exec、安全模块检查……</li>
+<li><strong>CPU、磁盘、日志子系统先于业务被拖死</strong>，排障变慢，窗口越拖越长</li>
+</ol>
+<p>这与「应用逻辑死循环占 CPU」不同：这里是 <strong>PID 1 的策略在放大一次变更事故</strong>。</p>
+<h3 id="5-与其他负载高故障的快速鉴别"><a href="#5-%e4%b8%8e%e5%85%b6%e4%bb%96%e8%b4%9f%e8%bd%bd%e9%ab%98%e6%95%85%e9%9a%9c%e7%9a%84%e5%bf%ab%e9%80%9f%e9%89%b4%e5%88%ab" class="header-anchor"></a>5. 与其他「负载高」故障的快速鉴别
+</h3><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>表象</th>
+					<th>更像</th>
+					<th>一眼区别</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>NRestarts 暴涨 + auto-restart</td>
+					<td>systemd 重启风暴</td>
+					<td><code>systemctl show -p NRestarts</code></td>
+			</tr>
+			<tr>
+					<td>单 Java 进程 CPU 100%</td>
+					<td>代码/GC/死循环</td>
+					<td><code>top</code> 稳定同一 PID</td>
+			</tr>
+			<tr>
+					<td>Too many open files</td>
+					<td>fd 泄漏</td>
+					<td><code>lsof</code>/<code>/proc/pid/fd</code></td>
+			</tr>
+			<tr>
+					<td>本地端口耗尽</td>
+					<td>短连接打满</td>
+					<td><code>ss -s</code>、EADDRNOTAVAIL</td>
+			</tr>
+			<tr>
+					<td>journal 涨、服务本身正常</td>
+					<td>日志级别/访问日志</td>
+					<td>unit 稳定 active (running)</td>
+			</tr>
+	</tbody>
+</table></div>
+<p>本轮三项同时命中：<code>NRestarts</code> 疯狂涨、服务从未 stable running、journal 与变更同窗暴涨。</p>
+<h3 id="6-变更链核实"><a href="#6-%e5%8f%98%e6%9b%b4%e9%93%be%e6%a0%b8%e5%ae%9e" class="header-anchor"></a>6. 变更链核实
+</h3><ul>
+<li>GitOps/配置仓库：override 与配置中心端口一致，但 <strong>主机上 <code>systemctl daemon-reload</code> 后的实际 cat 与仓库有一行不可见字符/换行差异</strong>（或人工在机上「临时改一下」未回写）。</li>
+<li>灰度判定失误：只看了 <code>systemctl start</code> 返回和进程表「闪过」，<strong>没等 ActiveState=active (running) 且端口 listen</strong>，也没看 <code>NRestarts</code> 是否为 0。</li>
+<li>监控缺项：有进程存活/端口拨测，但 <strong>没有「unit 重启次数」与「StartLimit 触顶」告警</strong>，风暴在业务大面积 5xx 前已转了几分钟。</li>
+</ul>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><h3 id="止血按顺序越前面越快降负载"><a href="#%e6%ad%a2%e8%a1%80%e6%8c%89%e9%a1%ba%e5%ba%8f%e8%b6%8a%e5%89%8d%e9%9d%a2%e8%b6%8a%e5%bf%ab%e9%99%8d%e8%b4%9f%e8%bd%bd" class="header-anchor"></a>止血（按顺序，越前面越快降负载）
+</h3><ol>
+<li><strong>立刻停掉自动拉起（治标，但必须先做）</strong></li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl stop api-gateway.service
+</span></span><span style="display:flex;"><span>systemctl mask api-gateway.service   <span style="color:#75715e"># 防手工/依赖再次拉起；确认后可 unmask</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 或临时：</span>
+</span></span><span style="display:flex;"><span>systemctl set-property api-gateway.service Restart<span style="color:#f92672">=</span>no   <span style="color:#75715e"># 若支持；否则改 drop-in 后 daemon-reload</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>对已经 <code>auto-restart</code> 的风暴，<code>stop</code> 比继续改配置更重要——<strong>先让 systemd 停止 fork</strong>。</p>
+<ol start="2">
+<li><strong>确认负载下降</strong></li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl show api-gateway.service -p NRestarts -p ActiveState
+</span></span><span style="display:flex;"><span>uptime
+</span></span><span style="display:flex;"><span>journalctl -u api-gateway.service -f   <span style="color:#75715e"># 应不再刷 Scheduled restart</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li><strong>修正配置后再受控启动</strong></li>
+</ol>
+<ul>
+<li>修正 <code>override.conf</code> / 应用 YAML / 端口占用（<code>ss -lntp | grep 18080</code>）。</li>
+<li><code>systemctl daemon-reload</code></li>
+<li><code>systemctl unmask api-gateway.service</code></li>
+<li><strong>先单台</strong> <code>systemctl start</code>，确认：</li>
+</ul>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl is-active api-gateway.service    <span style="color:#75715e"># active</span>
+</span></span><span style="display:flex;"><span>ss -lntp | grep <span style="color:#ae81ff">18080</span>
+</span></span><span style="display:flex;"><span>systemctl show api-gateway.service -p NRestarts   <span style="color:#75715e"># 启动后应保持 0 或不飙</span>
+</span></span><span style="display:flex;"><span>curl -sS -o /dev/null -w <span style="color:#e6db74">&#39;%{http_code}\n&#39;</span> http://127.0.0.1:18080/healthz
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="4">
+<li>
+<p><strong>业务侧</strong></p>
+<ul>
+<li>网关把已恢复后端加回；对已雪崩的连接池/线程池视情况滚动重启下游客户端，避免「半开连接」长时间拖尾。</li>
+</ul>
+</li>
+<li>
+<p><strong>日志磁盘</strong></p>
+<ul>
+<li>若 journal 撑满根分区：按规范 <code>journalctl --vacuum-size=</code> 或清理应用错误日志（<strong>先 stop 风暴再清理</strong>，否则边清边写）。</li>
+</ul>
+</li>
+</ol>
+<h3 id="根治配置模板写进角色-baseline"><a href="#%e6%a0%b9%e6%b2%bb%e9%85%8d%e7%bd%ae%e6%a8%a1%e6%9d%bf%e5%86%99%e8%bf%9b%e8%a7%92%e8%89%b2-baseline" class="header-anchor"></a>根治配置模板（写进角色 baseline）
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ini" data-lang="ini"><span style="display:flex;"><span><span style="color:#66d9ef">[Unit]</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 滑动窗口内启动次数熔断，避免配置错误打满机器</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">StartLimitIntervalSec</span><span style="color:#f92672">=</span><span style="color:#e6db74">300</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">StartLimitBurst</span><span style="color:#f92672">=</span><span style="color:#e6db74">5</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">[Service]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Type</span><span style="color:#f92672">=</span><span style="color:#e6db74">simple</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Restart</span><span style="color:#f92672">=</span><span style="color:#e6db74">on-failure</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 不要无脑 always；若必须 always，务必更长 RestartSec + StartLimit</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">RestartSec</span><span style="color:#f92672">=</span><span style="color:#e6db74">5</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 失败触顶后进入 failed，而不是无限打转</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># StartLimitAction=none 保持 failed 便于告警；或 reboot 仅限无状态节点且你真想自动重启整机</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 可选：资源顶栏，防止单服务拖死整机</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">CPUQuota</span><span style="color:#f92672">=</span><span style="color:#e6db74">200%</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">MemoryMax</span><span style="color:#f92672">=</span><span style="color:#e6db74">4G</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>要点：</p>
+<ul>
+<li><strong><code>Restart=always</code> 不等于高可用</strong>；配置错误、依赖未就绪时它是自攻击。优先 <code>on-failure</code>，并对「正常退出码」语义定义清楚（<code>SuccessExitStatus=</code>）。</li>
+<li><strong><code>RestartSec</code> 至少秒级</strong>，给依赖与排障留呼吸空间。</li>
+<li><strong><code>StartLimitIntervalSec</code> + <code>StartLimitBurst</code> 是重启风暴的安全带</strong>，默认不配等于裸奔。</li>
+<li>变更后验收清单必须包含：<code>ActiveState</code>、<code>listen</code> 端口、<code>NRestarts</code>、健康检查连续成功 N 次——而不是「进程列表里看见过」。</li>
+</ul>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><ol>
+<li>
+<p><strong>直接原因</strong><br>
+unit / 应用配置错误（路径笔误、端口冲突、环境变量未生效）导致进程启动即退出，服务从未进入稳定 <code>running</code>。</p>
+</li>
+<li>
+<p><strong>放大原因</strong><br>
+<code>Restart=always</code> + 极短 <code>RestartSec</code> + <strong>无 StartLimit</strong>，使 systemd 以极高频率反复 fork/exec 同一失败路径，CPU、日志 I/O、磁盘被合法管控动作打满，形成「重启风暴」。</p>
+</li>
+<li>
+<p><strong>过程原因</strong></p>
+<ul>
+<li>灰度验收只看「有没有进程/命令是否返回」，不看 unit 稳态与重启计数。</li>
+<li>监控缺少 <code>systemd unit NRestarts</code> / <code>ActiveState!=active</code> 的及时告警。</li>
+<li>变更把「端口/路径」与「重启策略」视为无关项，未评估失败路径下的控制面行为。</li>
+</ul>
+</li>
+<li>
+<p><strong>本质</strong><br>
+高可用策略（自动拉起）在<strong>不可恢复的配置错误</strong>上没有熔断，把应用故障升级成主机级可用性事故。</p>
+</li>
+</ol>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
+<li>
+<p><strong>Unit 基线强制带熔断</strong><br>
+所有生产 service 模板审查：<code>Restart</code> 语义、<code>RestartSec</code>、<code>StartLimit*</code>、必要时 <code>CPUQuota</code>/<code>MemoryMax</code>。禁止裸 <code>Restart=always</code> 无 StartLimit 上线。</p>
+</li>
+<li>
+<p><strong>变更验收 Checklist（发布门禁）</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> <code>systemctl cat</code> 与仓库一致，<code>daemon-reload</code> 已执行</li>
+<li><input disabled="" type="checkbox"> <code>ActiveState=active</code> 且持续 ≥ 1～2 分钟</li>
+<li><input disabled="" type="checkbox"> 端口 <code>LISTEN</code> 与配置端口一致</li>
+<li><input disabled="" type="checkbox"> <code>NRestarts</code> 在观察窗内不增长</li>
+<li><input disabled="" type="checkbox"> 本地 + 经负载均衡的健康检查连续成功</li>
+<li><input disabled="" type="checkbox"> journal 无秒级 <code>Scheduled restart job</code> 刷屏</li>
+</ul>
+</li>
+<li>
+<p><strong>监控与告警</strong></p>
+<ul>
+<li>采集 <code>node_systemd_unit_state</code>、<code>systemd_unit_restarts_total</code>（或等价 exporter）。</li>
+<li>规则示例：5 分钟内重启次数 &gt; 3 告警；<code>activating</code> 持续 &gt; 1 分钟告警；journal 错误速率突增联动。</li>
+</ul>
+</li>
+<li>
+<p><strong>发布策略</strong></p>
+<ul>
+<li>先改配置再 reload 的路径，<strong>串行单台</strong>，观察 Restart 指标后再下一批。</li>
+<li>端口变更坚持「先起新端口旁路验证 → 再切流量 → 再停旧」，避免 bind 冲突秒退。</li>
+<li>配置渲染进 CI：校验 YAML/端口区间/文件存在性，拒绝明显坏配置进仓库。</li>
+</ul>
+</li>
+<li>
+<p><strong>排障预案</strong></p>
+<ul>
+<li>Runbook 第一条写清：怀疑重启风暴时 <strong>先 <code>systemctl stop/mask</code> 停叉，再查配置</strong>。</li>
+<li>演练：故意提交坏 ExecStart，验证 StartLimit 与告警是否在业务大面积 5xx 前触发。</li>
+</ul>
+</li>
+<li>
+<p><strong>与日志系统协同</strong></p>
+<ul>
+<li>失败启动日志限速（应用侧）、journald rate limit 复核，避免风暴二次填满磁盘导致连环故障。</li>
+</ul>
+</li>
+</ol>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这是一起典型的「<strong>管控平面放大配置错误</strong>」事故：应用其实已经「明确失败」，但 <code>Restart=always</code> 在无 StartLimit、短 RestartSec 下把失败变成每秒数十次的自攻击，主机 load、journal 与排障通道一起垮掉，业务表现为大面积 502 与间歇恢复的假象。</p>
+<p>处理顺序应当是 <strong>停风暴 → 修配置 → 受控拉起 → 补熔断与监控</strong>，而不是在 auto-restart 刷屏时继续叠变更。预防上，把 StartLimit、重启语义、NRestarts 验收和 unit 状态告警写进基线，比再写一百行业务重试更管用。</p>
+<p>一句话：<strong>自动重启是保险丝，不是永动机；该熔断时必须熔断，否则 systemd 会比攻击者更早打满你的机器。</strong></p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
     import gallery from '\/ts\/gallery.js';
 
     const articleContent = document.querySelector('.article-content');
@@ -147,4 +910,15 @@
         });
         lightbox.init();
     }
-</script></main></div><script type=text/javascript src=/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js defer></script></body></html>
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

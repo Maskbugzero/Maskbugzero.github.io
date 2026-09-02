@@ -1,19 +1,652 @@
-<!doctype html><html lang=zh dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="管理员手机被轰炸 MFA 推送，习惯性点同意后账号被接管；还原疲劳攻击链路并收口推送认证风险。"><title>一次MFA疲劳攻击导致管理员账号被接管的排查记录</title><link rel=canonical href=https://blog.5772447.xyz/posts/24188414/><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href=/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css><meta property='og:title' content="一次MFA疲劳攻击导致管理员账号被接管的排查记录"><meta property='og:description' content="管理员手机被轰炸 MFA 推送，习惯性点同意后账号被接管；还原疲劳攻击链路并收口推送认证风险。"><meta property='og:url' content='https://blog.5772447.xyz/posts/24188414/'><meta property='og:site_name' content='Zero Day Notes'><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:published_time' content='2026-08-11T07:00:00+08:00'><meta property='article:modified_time' content='2026-08-11T07:00:00+08:00'><meta name=twitter:title content="一次MFA疲劳攻击导致管理员账号被接管的排查记录"><meta name=twitter:description content="管理员手机被轰炸 MFA 推送，习惯性点同意后账号被接管；还原疲劳攻击链路并收口推送认证风险。"><link rel="shortcut icon" href=/img/favicon.png></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label=切换菜单>
-<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=/img/avatar.jpg width=300 height=300 class=site-logo loading=lazy alt=Avatar>
-</a><span class=emoji>🛠️</span></figure><div class=site-meta><h1 class=site-name><a href=/>Zero Day Notes</a></h1><h2 class=site-description>IT 运维实战笔记</h2></div></header><ol class=menu-social><li><a href=https://github.com/Maskbugzero title=GitHub rel=me><svg class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6.0 00-1.3-3.2 4.2 4.2.0 00-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3.0 00-6.2.0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2.0 00-.1 3.2A4.6 4.6.0 004 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/page/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
-<span>归档</span></a></li><li><a href=/tags><svg class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11 3l9 9a1.5 1.5.0 010 2l-6 6a1.5 1.5.0 01-2 0L3 11V7a4 4 0 014-4h4"/><circle cx="9" cy="9" r="2"/></svg>
-<span>标签</span></a></li><li><a href=/categories><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg>
-<span>分类</span></a></li><li><a href=/about><svg class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
-<span>关于</span></a></li><li class=menu-bottom-section><ol class=menu><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
-<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
-<span>暗色模式</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">目录</h2><div class=widget--toc><nav class=toc-nav id=TableOfContents><ul><li><a href=#问题背景>问题背景</a></li><li><a href=#故障现象>故障现象</a></li><li><a href=#排查过程>排查过程</a><ul><li><a href=#1-先按账号被接管应急而不是先争辩是不是本人点的>1. 先按账号被接管应急，而不是先争辩「是不是本人点的」</a></li><li><a href=#2-对照-mfa-推送时间线与登录审计>2. 对照 MFA 推送时间线与登录审计</a></li><li><a href=#3-核实密码从哪来排除纯撞库碰运气>3. 核实密码从哪来，排除「纯撞库碰运气」</a></li><li><a href=#4-评估横向与持久化是否已落地>4. 评估横向与持久化是否已落地</a></li><li><a href=#5-对照控制策略定位为何推送能被炸-20-多次>5. 对照控制策略，定位「为何推送能被炸 20 多次」</a></li></ul></li><li><a href=#解决方案>解决方案</a><ul><li><a href=#止血分钟级>止血（分钟级）</a></li><li><a href=#根治策略与形态改造>根治（策略与形态改造）</a></li></ul></li><li><a href=#根因分析>根因分析</a></li><li><a href=#预防措施>预防措施</a></li><li><a href=#总结>总结</a></li></ul></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/%E8%BF%90%E7%BB%B4/ style=background-color:#efe7be;color:#3d360f>运维
-</a><a href=/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/ style=background-color:#bee7ef;color:#0f363d>安全运维</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/posts/24188414/>一次MFA疲劳攻击导致管理员账号被接管的排查记录</a></h2><h3 class=article-subtitle>管理员手机被轰炸 MFA 推送，习惯性点同意后账号被接管；还原疲劳攻击链路并收口推送认证风险。</h3></div><footer class=article-meta><div class=inline-meta><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
-<time class=article-time--published datetime=2026-08-11T07:00:00+08:00>2026年8月11日星期二</time>
-<svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
-<time class=article-time--reading>阅读时长: 7 分钟</time></div></footer></div></header><aside class=article-toc><details><summary><div class=article-toc-title><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6-6 6"/></svg>
-<span>目录</span></div></summary><nav class=toc-nav><ul><li><a href=#问题背景>问题背景</a></li><li><a href=#故障现象>故障现象</a></li><li><a href=#排查过程>排查过程</a><ul><li><a href=#1-先按账号被接管应急而不是先争辩是不是本人点的>1. 先按账号被接管应急，而不是先争辩「是不是本人点的」</a></li><li><a href=#2-对照-mfa-推送时间线与登录审计>2. 对照 MFA 推送时间线与登录审计</a></li><li><a href=#3-核实密码从哪来排除纯撞库碰运气>3. 核实密码从哪来，排除「纯撞库碰运气」</a></li><li><a href=#4-评估横向与持久化是否已落地>4. 评估横向与持久化是否已落地</a></li><li><a href=#5-对照控制策略定位为何推送能被炸-20-多次>5. 对照控制策略，定位「为何推送能被炸 20 多次」</a></li></ul></li><li><a href=#解决方案>解决方案</a><ul><li><a href=#止血分钟级>止血（分钟级）</a></li><li><a href=#根治策略与形态改造>根治（策略与形态改造）</a></li></ul></li><li><a href=#根因分析>根因分析</a></li><li><a href=#预防措施>预防措施</a></li><li><a href=#总结>总结</a></li></ul></nav></details></aside><section class=article-content><h2 id=问题背景><a href=#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af class=header-anchor></a>问题背景</h2><p>公司办公协作与 VPN 入口接入了统一身份认证平台，管理员与高权限账号普遍开启了「推送确认」式 MFA：手机 App 弹出「是否允许登录」→ 点同意即可完成第二因子。表面上比短信 OTP 更省事，也规避了短信被劫持的风险，因此在推广时被当作「最佳实践」全量落地。</p><p>某周一早高峰前约 20 分钟，值班群突然收到 NDR 告警：境外 IP 成功登录了一名域管理员的 SaaS 控制台，随后出现了异常 API 调用与新建子账号尝试。当事人坚称自己没在出差、没丢手机，但也承认「凌晨手机弹了十几次登录确认，烦得不行随手点了一次同意」。看似「MFA 都开了还被打穿」的诡异事故，实际指向一类近年明显抬头、却仍常被忽视的攻击手法——<strong>MFA 疲劳攻击（MFA Fatigue / Push Bombing）</strong>。</p><h2 id=故障现象><a href=#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1 class=header-anchor></a>故障现象</h2><ol><li><strong>告警侧</strong>：安全平台在 06:12 报「高权限账号异地登录成功」；来源 IP 归属境外云厂商 ASN，与当事人常用出口完全不符；UA 为常见自动化库特征，并非公司标准浏览器。</li><li><strong>当事人侧</strong>：凌晨 01:30–02:10 期间手机 Authenticator / 企业 MFA App 连续弹出 20 余次登录确认；当事人在半睡半醒状态点过至少一次「允许」，之后把通知静音继续睡。</li><li><strong>会话侧</strong>：控制台审计显示该账号在同意推送后约 40 秒建立会话，随即枚举组织成员、尝试创建低权限运维子账号、拉取部分敏感配置导出任务；部分动作被既有 Conditional Access / 权限边界拦下，但已完成的登录会话本身合法。</li><li><strong>表象矛盾</strong>：密码没有泄露告警（实际可能已通过钓鱼/凭证库撞库获得）、MFA 日志显示「用户已批准」，SIEM 初看像「本人误操作」，容易被误判为误报而放过。</li></ol><p>业务侧暂时没有大规模中断，但若攻击者再走一步完成权限持久化或改邮件转发规则，后果会从「惊出一身汗」变成「真出事」。</p><h2 id=排查过程><a href=#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b class=header-anchor></a>排查过程</h2><h3 id=1-先按账号被接管应急而不是先争辩是不是本人点的><a href=#1-%e5%85%88%e6%8c%89%e8%b4%a6%e5%8f%b7%e8%a2%ab%e6%8e%a5%e7%ae%a1%e5%ba%94%e6%80%a5%e8%80%8c%e4%b8%8d%e6%98%af%e5%85%88%e4%ba%89%e8%be%a9%e6%98%af%e4%b8%8d%e6%98%af%e6%9c%ac%e4%ba%ba%e7%82%b9%e7%9a%84 class=header-anchor></a>1. 先按账号被接管应急，而不是先争辩「是不是本人点的」</h3><p>接到告警后，值班按高权限账号失陷流程处理，而不是跟当事人纠缠「你到底点没点」：</p><ul><li>立即在 IdP 强制签退该账号全部活动会话（SaaS + VPN + 邮箱相关 SSO）</li><li>禁用该账号临时登录，改由备用紧急管理员接管变更窗口</li><li>吊销其现有 Refresh Token / App Password / 个人访问令牌（PAT）</li><li>保留完整审计日志与 MFA 推送记录，禁止「先重置再看」把证据冲掉</li></ul><p>这一步很关键：疲劳攻击的特点是 <strong>第二因子在日志里显示「用户批准」</strong>，如果先按误报关闭工单，会把真正的会话窗口白白留给攻击者。</p><h3 id=2-对照-mfa-推送时间线与登录审计><a href=#2-%e5%af%b9%e7%85%a7-mfa-%e6%8e%a8%e9%80%81%e6%97%b6%e9%97%b4%e7%ba%bf%e4%b8%8e%e7%99%bb%e5%bd%95%e5%ae%a1%e8%ae%a1 class=header-anchor></a>2. 对照 MFA 推送时间线与登录审计</h3><p>把 IdP 的 MFA challenge 日志与 sign-in 日志按时间对齐后，时间线非常干净：</p><div class=table-wrapper><table><thead><tr><th>时间</th><th>事件</th></tr></thead><tbody><tr><td>01:31–02:08</td><td>连续 23 次 MFA push 发送到当事人手机，来源 IP 均为同一境外段</td></tr><tr><td>01:31–02:07</td><td>前 22 次挑战均为超时/拒绝/未响应</td></tr><tr><td>02:08</td><td>第 23 次挑战状态变为 <strong>Approved</strong></td></tr><tr><td>02:08:41</td><td>同一源 IP 完成 OAuth/OIDC 登录，拿到会话</td></tr><tr><td>02:09–02:18</td><td>枚举目录、尝试建号、触发敏感导出</td></tr></tbody></table></div><p>当事人口述与日志高度吻合。攻击者不需要拦截短信，也不需要突破 TOTP 种子，只需要：<strong>已经掌握密码 + 把推送点得你生不如死 + 赌你会有一次手滑点同意</strong>。</p><h3 id=3-核实密码从哪来排除纯撞库碰运气><a href=#3-%e6%a0%b8%e5%ae%9e%e5%af%86%e7%a0%81%e4%bb%8e%e5%93%aa%e6%9d%a5%e6%8e%92%e9%99%a4%e7%ba%af%e6%92%9e%e5%ba%93%e7%a2%b0%e8%bf%90%e6%b0%94 class=header-anchor></a>3. 核实密码从哪来，排除「纯撞库碰运气」</h3><p>继续追查第一因子：</p><ul><li>密码管理/暗网监测：该管理员旧邮箱曾出现在历史泄露集合（一年前某外部站点），存在凭证复用可能</li><li>邮件网关：前两周有一封仿冒「VPN 证书即将过期，请立即重登」的钓鱼邮件被当事人点过链接；链接指向高度仿冒的 SSO 页（证书与域名只差一个字符级欺骗）</li><li>浏览器扩展与主机 EDR：未发现木马或会话劫持痕迹，主机本身干净</li></ul><p>综合判断：<strong>第一因子大概率来自钓鱼页收获的当前密码</strong>，第二因子则靠疲劳攻击「社会工程掉」。这不是 MFA 失效，而是 <strong>推送确认这种「用户可被烦到投降」的 MFA 形态被针对了</strong>。</p><h3 id=4-评估横向与持久化是否已落地><a href=#4-%e8%af%84%e4%bc%b0%e6%a8%aa%e5%90%91%e4%b8%8e%e6%8c%81%e4%b9%85%e5%8c%96%e6%98%af%e5%90%a6%e5%b7%b2%e8%90%bd%e5%9c%b0 class=header-anchor></a>4. 评估横向与持久化是否已落地</h3><p>接管窗口大约 10 分钟，我们重点核验：</p><ul><li>是否新建了后门用户 / 应用注册（Enterprise Application）/ 高权限 OAuth 授权</li><li>是否改了邮箱收发规则、委派、邮件转发</li><li>是否下载了密钥、证书、备份码、API Token</li><li>是否在 VPN / 堡垒机侧留下新的设备信任</li></ul><p>结果：新建子账号动作被角色边界拒绝；发现 1 条草稿态的邮件转发规则未生效即被我们删掉；未发现新的应用注册与持久化令牌。整体属于 <strong>早期发现、损失可控</strong>，但路径已经完整跑通，绝不能只「重置密码了事」。</p><h3 id=5-对照控制策略定位为何推送能被炸-20-多次><a href=#5-%e5%af%b9%e7%85%a7%e6%8e%a7%e5%88%b6%e7%ad%96%e7%95%a5%e5%ae%9a%e4%bd%8d%e4%b8%ba%e4%bd%95%e6%8e%a8%e9%80%81%e8%83%bd%e8%a2%ab%e7%82%b8-20-%e5%a4%9a%e6%ac%a1 class=header-anchor></a>5. 对照控制策略，定位「为何推送能被炸 20 多次」</h3><p>在 IdP 策略里发现几个放大问题的配置：</p><ol><li><strong>MFA 方法优先级</strong>把「手机推送」放在第一位，未对管理员强制更强因子（FIDO2 / 硬件密钥 / 数字 TOTP）</li><li><strong>无「推送频率/拒绝阈值」熔断</strong>：同一账号短时间海量 push 不会自动锁定或降级验证</li><li><strong>异地 + 高风险登录</strong>只做了告警，没有「必须强校验」的 Conditional Access 阻断</li><li><strong>管理员备份码</strong>存在个人备忘录明文，存在二次泄露面（本次未用到，但是隐患）</li><li>用户侧 <strong>没有「我并未尝试登录，一键举报并锁号」的显式入口教育</strong>，大多数人只知道点允许/忽略</li></ol><p>到这里根因链完整：密码被钓鱼 → 推送 MFA 可被轰炸 → 用户疲劳误点 → 会话建立 → 高权限操作窗口打开。</p><h2 id=解决方案><a href=#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88 class=header-anchor></a>解决方案</h2><h3 id=止血分钟级><a href=#%e6%ad%a2%e8%a1%80%e5%88%86%e9%92%9f%e7%ba%a7 class=header-anchor></a>止血（分钟级）</h3><ol><li>强制下线并临时禁用被接管账号，轮换密码与全部会话令牌</li><li>撤销可疑 OAuth 授权、删除未生效转发规则，全量审计近 24h 目录变更</li><li>对该管理员改用 <strong>临时硬件密钥 + 排除推送</strong> 的紧急登录方式恢复工作</li><li>对同类高权限账号做一次「是否存在异常 Approved 推送」回溯扫描</li></ol><h3 id=根治策略与形态改造><a href=#%e6%a0%b9%e6%b2%bb%e7%ad%96%e7%95%a5%e4%b8%8e%e5%bd%a2%e6%80%81%e6%94%b9%e9%80%a0 class=header-anchor></a>根治（策略与形态改造）</h3><ol><li><p><strong>高权限账号禁用纯推送 MFA</strong><br>域管、云管、VPN 超级管理员、CI 管理员一律改为：</p><ul><li>FIDO2 / 安全密钥（首选）</li><li>或 号码匹配（Number Matching）推送（必须输入屏幕随机码，不能盲点同意）</li><li>或 TOTP 作为过渡，但禁止「一键 Allow」</li></ul></li><li><p><strong>打开号码匹配与推送风暴防护</strong></p><ul><li>启用来源侧显示的两位数/三位数核对，用户必须输入才能通过</li><li>同一账号 N 分钟内推送超过阈值 → 自动锁定 + 告警到 SOC</li><li>连续拒绝/超时达到阈值 → 视为攻击，触发密码重置工单</li></ul></li><li><p><strong>Conditional Access 收紧</strong></p><ul><li>管理员角色：禁止未知国家/非托管设备直接过</li><li>高风险登录：强制「更强因子」而不是「再推一次同样的 Allow」</li><li>敏感操作（改 MFA 方法、加全局管理员、导出密钥）二次认证且审计</li></ul></li><li><p><strong>第一因子治理同步做</strong></p><ul><li>全员禁用已知泄露密码复用（与 Have I Been Pwned 类接口对接）</li><li>高仿冒 SSO 域名加入网关拦截与浏览器安全标记</li><li>管理员禁止在个人备忘录存备份码，改用离线保险柜/密封信封流程</li></ul></li><li><p><strong>演练与宣教</strong></p><ul><li>把「手机半夜疯狂弹 MFA」写进安全意识课：正确动作是 <strong>全部拒绝 + 上报 + 改密</strong>，而不是点掉了事</li><li>红队每季度做一次可控的疲劳攻击演练，验证熔断是否生效</li></ul></li></ol><h2 id=根因分析><a href=#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90 class=header-anchor></a>根因分析</h2><div class=table-wrapper><table><thead><tr><th>层级</th><th>问题</th><th>说明</th></tr></thead><tbody><tr><td>认证形态</td><td>一键推送可被社会工程</td><td>用户被打扰成本低于攻击者重试成本</td></tr><tr><td>账户防护</td><td>无推送频率熔断</td><td>23 次轰炸仍可继续，直到点同意</td></tr><tr><td>身份基线</td><td>管理员可用弱第二因子</td><td>高权限与普通员工同一套「图方便」策略</td></tr><tr><td>第一因子</td><td>钓鱼 + 可能的密码复用</td><td>MFA 从未承诺能兜住「密码已经给人」后的所有形态</td></tr><tr><td>运营</td><td>告警有、阻断弱</td><td>异地成功登录能告警，但未在 Approved 前形成硬门槛</td></tr></tbody></table></div><p>一句话：<strong>不是“开了 MFA 就安全”，而是“开了哪种 MFA、对谁开、炸了会不会熔断”共同决定上限。</strong> 疲劳攻击精准打在「人会烦、会手滑」这一环。</p><h2 id=预防措施><a href=#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd class=header-anchor></a>预防措施</h2><ol><li><p><strong>权限分级 MFA 矩阵</strong>（写进制度，不只是建议）</p><ul><li>普通员工：号码匹配推送或 TOTP</li><li>管理员 / 能碰生产变更的角色：FIDO2 强制，禁用一键 Allow</li><li>突破玻璃账号：双人保管硬件密钥</li></ul></li><li><p><strong>把「推送轰炸」做成独立检测用例</strong><br>SIEM 规则示例：<code>mfa_push_count > 5 in 10min AND approved == true AND impossible_travel</code> → 自动锁号 + P1 工单，不等人工研判。</p></li><li><p><strong>定期审计 MFA 方法登记表</strong><br>谁还在用 SMS、谁还在用无号码匹配的 push、谁登记了过多备份设备，按季度出清单整改。</p></li><li><p><strong>钓鱼与凭证泄露前置拦截</strong><br>邮件网关强化仿冒 SSO 检测；密码策略禁止复用；高权限账号缩短会话寿命、禁用长期 PAT。</p></li><li><p><strong>应急手册补一页</strong><br>「收到异常 MFA 推送」标准动作：全部拒绝 → 官方渠道改密 → 通知 SOC → 检查邮箱转发/应用授权。把「点同意图清静」明确列为违规操作。</p></li></ol><h2 id=总结><a href=#%e6%80%bb%e7%bb%93 class=header-anchor></a>总结</h2><p>这起事故里，攻击者没有绕过密码哈希，也没有攻破 TOTP 种子，只是用已经到手的密码配上一轮「推送到你崩溃」的社会工程，让管理员自己完成了第二因子。日志里干干净净写着 Approved，若只看表面，会误判成「用户误操作」。</p><p>处理顺序应当是：<strong>先当失陷封会话，再对齐推送与登录时间线，再追第一因子来源，最后改 MFA 形态与熔断策略</strong>。技术上优先把管理员从「一键 Allow」迁到 FIDO2 或号码匹配；运营上把推送风暴做成自动锁号信号。MFA 仍然值得做，但选错形态、又缺少阈值防护时，它会从盾牌变成催人点同意的门铃。</p></section><footer class="article-meta article-footer"></footer></article><div class=disqus-container></div><style>.disqus-container{background-color:var(--card-background);border-radius:var(--card-border-radius);box-shadow:var(--shadow-l1);padding:var(--card-padding)}</style><script>window.addEventListener("onColorSchemeChange",e=>{typeof DISQUS=="object"&&DISQUS.reset({reload:!0})})</script><footer class=site-footer><section class=copyright>&copy;
-2020 -
-2026 Zero Day Notes</section><section class=powerby>使用 <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a> 构建<br>主题 <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=4.0.3>Stack</a></b> 由 <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a> 设计</section></footer><script type=module>
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="管理员手机被轰炸 MFA 推送，习惯性点同意后账号被接管；还原疲劳攻击链路并收口推送认证风险。">
+<title>一次MFA疲劳攻击导致管理员账号被接管的排查记录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/24188414/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="一次MFA疲劳攻击导致管理员账号被接管的排查记录">
+<meta property='og:description' content="管理员手机被轰炸 MFA 推送，习惯性点同意后账号被接管；还原疲劳攻击链路并收口推送认证风险。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/24188414/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-08-11T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-08-11T07:00:00&#43;08:00'/>
+<meta name="twitter:title" content="一次MFA疲劳攻击导致管理员账号被接管的排查记录">
+<meta name="twitter:description" content="管理员手机被轰炸 MFA 推送，习惯性点同意后账号被接管；还原疲劳攻击链路并收口推送认证风险。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#1-先按账号被接管应急而不是先争辩是不是本人点的">1. 先按账号被接管应急，而不是先争辩「是不是本人点的」</a></li>
+        <li><a href="#2-对照-mfa-推送时间线与登录审计">2. 对照 MFA 推送时间线与登录审计</a></li>
+        <li><a href="#3-核实密码从哪来排除纯撞库碰运气">3. 核实密码从哪来，排除「纯撞库碰运气」</a></li>
+        <li><a href="#4-评估横向与持久化是否已落地">4. 评估横向与持久化是否已落地</a></li>
+        <li><a href="#5-对照控制策略定位为何推送能被炸-20-多次">5. 对照控制策略，定位「为何推送能被炸 20 多次」</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#止血分钟级">止血（分钟级）</a></li>
+        <li><a href="#根治策略与形态改造">根治（策略与形态改造）</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
+                安全运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/24188414/">一次MFA疲劳攻击导致管理员账号被接管的排查记录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            管理员手机被轰炸 MFA 推送，习惯性点同意后账号被接管；还原疲劳攻击链路并收口推送认证风险。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-08-11T07:00:00&#43;08:00'>2026年8月11日星期二</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 7 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#1-先按账号被接管应急而不是先争辩是不是本人点的">1. 先按账号被接管应急，而不是先争辩「是不是本人点的」</a></li>
+        <li><a href="#2-对照-mfa-推送时间线与登录审计">2. 对照 MFA 推送时间线与登录审计</a></li>
+        <li><a href="#3-核实密码从哪来排除纯撞库碰运气">3. 核实密码从哪来，排除「纯撞库碰运气」</a></li>
+        <li><a href="#4-评估横向与持久化是否已落地">4. 评估横向与持久化是否已落地</a></li>
+        <li><a href="#5-对照控制策略定位为何推送能被炸-20-多次">5. 对照控制策略，定位「为何推送能被炸 20 多次」</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#止血分钟级">止血（分钟级）</a></li>
+        <li><a href="#根治策略与形态改造">根治（策略与形态改造）</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司办公协作与 VPN 入口接入了统一身份认证平台，管理员与高权限账号普遍开启了「推送确认」式 MFA：手机 App 弹出「是否允许登录」→ 点同意即可完成第二因子。表面上比短信 OTP 更省事，也规避了短信被劫持的风险，因此在推广时被当作「最佳实践」全量落地。</p>
+<p>某周一早高峰前约 20 分钟，值班群突然收到 NDR 告警：境外 IP 成功登录了一名域管理员的 SaaS 控制台，随后出现了异常 API 调用与新建子账号尝试。当事人坚称自己没在出差、没丢手机，但也承认「凌晨手机弹了十几次登录确认，烦得不行随手点了一次同意」。看似「MFA 都开了还被打穿」的诡异事故，实际指向一类近年明显抬头、却仍常被忽视的攻击手法——<strong>MFA 疲劳攻击（MFA Fatigue / Push Bombing）</strong>。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ol>
+<li><strong>告警侧</strong>：安全平台在 06:12 报「高权限账号异地登录成功」；来源 IP 归属境外云厂商 ASN，与当事人常用出口完全不符；UA 为常见自动化库特征，并非公司标准浏览器。</li>
+<li><strong>当事人侧</strong>：凌晨 01:30–02:10 期间手机 Authenticator / 企业 MFA App 连续弹出 20 余次登录确认；当事人在半睡半醒状态点过至少一次「允许」，之后把通知静音继续睡。</li>
+<li><strong>会话侧</strong>：控制台审计显示该账号在同意推送后约 40 秒建立会话，随即枚举组织成员、尝试创建低权限运维子账号、拉取部分敏感配置导出任务；部分动作被既有 Conditional Access / 权限边界拦下，但已完成的登录会话本身合法。</li>
+<li><strong>表象矛盾</strong>：密码没有泄露告警（实际可能已通过钓鱼/凭证库撞库获得）、MFA 日志显示「用户已批准」，SIEM 初看像「本人误操作」，容易被误判为误报而放过。</li>
+</ol>
+<p>业务侧暂时没有大规模中断，但若攻击者再走一步完成权限持久化或改邮件转发规则，后果会从「惊出一身汗」变成「真出事」。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="1-先按账号被接管应急而不是先争辩是不是本人点的"><a href="#1-%e5%85%88%e6%8c%89%e8%b4%a6%e5%8f%b7%e8%a2%ab%e6%8e%a5%e7%ae%a1%e5%ba%94%e6%80%a5%e8%80%8c%e4%b8%8d%e6%98%af%e5%85%88%e4%ba%89%e8%be%a9%e6%98%af%e4%b8%8d%e6%98%af%e6%9c%ac%e4%ba%ba%e7%82%b9%e7%9a%84" class="header-anchor"></a>1. 先按账号被接管应急，而不是先争辩「是不是本人点的」
+</h3><p>接到告警后，值班按高权限账号失陷流程处理，而不是跟当事人纠缠「你到底点没点」：</p>
+<ul>
+<li>立即在 IdP 强制签退该账号全部活动会话（SaaS + VPN + 邮箱相关 SSO）</li>
+<li>禁用该账号临时登录，改由备用紧急管理员接管变更窗口</li>
+<li>吊销其现有 Refresh Token / App Password / 个人访问令牌（PAT）</li>
+<li>保留完整审计日志与 MFA 推送记录，禁止「先重置再看」把证据冲掉</li>
+</ul>
+<p>这一步很关键：疲劳攻击的特点是 <strong>第二因子在日志里显示「用户批准」</strong>，如果先按误报关闭工单，会把真正的会话窗口白白留给攻击者。</p>
+<h3 id="2-对照-mfa-推送时间线与登录审计"><a href="#2-%e5%af%b9%e7%85%a7-mfa-%e6%8e%a8%e9%80%81%e6%97%b6%e9%97%b4%e7%ba%bf%e4%b8%8e%e7%99%bb%e5%bd%95%e5%ae%a1%e8%ae%a1" class="header-anchor"></a>2. 对照 MFA 推送时间线与登录审计
+</h3><p>把 IdP 的 MFA challenge 日志与 sign-in 日志按时间对齐后，时间线非常干净：</p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>时间</th>
+					<th>事件</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>01:31–02:08</td>
+					<td>连续 23 次 MFA push 发送到当事人手机，来源 IP 均为同一境外段</td>
+			</tr>
+			<tr>
+					<td>01:31–02:07</td>
+					<td>前 22 次挑战均为超时/拒绝/未响应</td>
+			</tr>
+			<tr>
+					<td>02:08</td>
+					<td>第 23 次挑战状态变为 <strong>Approved</strong></td>
+			</tr>
+			<tr>
+					<td>02:08:41</td>
+					<td>同一源 IP 完成 OAuth/OIDC 登录，拿到会话</td>
+			</tr>
+			<tr>
+					<td>02:09–02:18</td>
+					<td>枚举目录、尝试建号、触发敏感导出</td>
+			</tr>
+	</tbody>
+</table></div>
+<p>当事人口述与日志高度吻合。攻击者不需要拦截短信，也不需要突破 TOTP 种子，只需要：<strong>已经掌握密码 + 把推送点得你生不如死 + 赌你会有一次手滑点同意</strong>。</p>
+<h3 id="3-核实密码从哪来排除纯撞库碰运气"><a href="#3-%e6%a0%b8%e5%ae%9e%e5%af%86%e7%a0%81%e4%bb%8e%e5%93%aa%e6%9d%a5%e6%8e%92%e9%99%a4%e7%ba%af%e6%92%9e%e5%ba%93%e7%a2%b0%e8%bf%90%e6%b0%94" class="header-anchor"></a>3. 核实密码从哪来，排除「纯撞库碰运气」
+</h3><p>继续追查第一因子：</p>
+<ul>
+<li>密码管理/暗网监测：该管理员旧邮箱曾出现在历史泄露集合（一年前某外部站点），存在凭证复用可能</li>
+<li>邮件网关：前两周有一封仿冒「VPN 证书即将过期，请立即重登」的钓鱼邮件被当事人点过链接；链接指向高度仿冒的 SSO 页（证书与域名只差一个字符级欺骗）</li>
+<li>浏览器扩展与主机 EDR：未发现木马或会话劫持痕迹，主机本身干净</li>
+</ul>
+<p>综合判断：<strong>第一因子大概率来自钓鱼页收获的当前密码</strong>，第二因子则靠疲劳攻击「社会工程掉」。这不是 MFA 失效，而是 <strong>推送确认这种「用户可被烦到投降」的 MFA 形态被针对了</strong>。</p>
+<h3 id="4-评估横向与持久化是否已落地"><a href="#4-%e8%af%84%e4%bc%b0%e6%a8%aa%e5%90%91%e4%b8%8e%e6%8c%81%e4%b9%85%e5%8c%96%e6%98%af%e5%90%a6%e5%b7%b2%e8%90%bd%e5%9c%b0" class="header-anchor"></a>4. 评估横向与持久化是否已落地
+</h3><p>接管窗口大约 10 分钟，我们重点核验：</p>
+<ul>
+<li>是否新建了后门用户 / 应用注册（Enterprise Application）/ 高权限 OAuth 授权</li>
+<li>是否改了邮箱收发规则、委派、邮件转发</li>
+<li>是否下载了密钥、证书、备份码、API Token</li>
+<li>是否在 VPN / 堡垒机侧留下新的设备信任</li>
+</ul>
+<p>结果：新建子账号动作被角色边界拒绝；发现 1 条草稿态的邮件转发规则未生效即被我们删掉；未发现新的应用注册与持久化令牌。整体属于 <strong>早期发现、损失可控</strong>，但路径已经完整跑通，绝不能只「重置密码了事」。</p>
+<h3 id="5-对照控制策略定位为何推送能被炸-20-多次"><a href="#5-%e5%af%b9%e7%85%a7%e6%8e%a7%e5%88%b6%e7%ad%96%e7%95%a5%e5%ae%9a%e4%bd%8d%e4%b8%ba%e4%bd%95%e6%8e%a8%e9%80%81%e8%83%bd%e8%a2%ab%e7%82%b8-20-%e5%a4%9a%e6%ac%a1" class="header-anchor"></a>5. 对照控制策略，定位「为何推送能被炸 20 多次」
+</h3><p>在 IdP 策略里发现几个放大问题的配置：</p>
+<ol>
+<li><strong>MFA 方法优先级</strong>把「手机推送」放在第一位，未对管理员强制更强因子（FIDO2 / 硬件密钥 / 数字 TOTP）</li>
+<li><strong>无「推送频率/拒绝阈值」熔断</strong>：同一账号短时间海量 push 不会自动锁定或降级验证</li>
+<li><strong>异地 + 高风险登录</strong>只做了告警，没有「必须强校验」的 Conditional Access 阻断</li>
+<li><strong>管理员备份码</strong>存在个人备忘录明文，存在二次泄露面（本次未用到，但是隐患）</li>
+<li>用户侧 <strong>没有「我并未尝试登录，一键举报并锁号」的显式入口教育</strong>，大多数人只知道点允许/忽略</li>
+</ol>
+<p>到这里根因链完整：密码被钓鱼 → 推送 MFA 可被轰炸 → 用户疲劳误点 → 会话建立 → 高权限操作窗口打开。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><h3 id="止血分钟级"><a href="#%e6%ad%a2%e8%a1%80%e5%88%86%e9%92%9f%e7%ba%a7" class="header-anchor"></a>止血（分钟级）
+</h3><ol>
+<li>强制下线并临时禁用被接管账号，轮换密码与全部会话令牌</li>
+<li>撤销可疑 OAuth 授权、删除未生效转发规则，全量审计近 24h 目录变更</li>
+<li>对该管理员改用 <strong>临时硬件密钥 + 排除推送</strong> 的紧急登录方式恢复工作</li>
+<li>对同类高权限账号做一次「是否存在异常 Approved 推送」回溯扫描</li>
+</ol>
+<h3 id="根治策略与形态改造"><a href="#%e6%a0%b9%e6%b2%bb%e7%ad%96%e7%95%a5%e4%b8%8e%e5%bd%a2%e6%80%81%e6%94%b9%e9%80%a0" class="header-anchor"></a>根治（策略与形态改造）
+</h3><ol>
+<li>
+<p><strong>高权限账号禁用纯推送 MFA</strong><br>
+域管、云管、VPN 超级管理员、CI 管理员一律改为：</p>
+<ul>
+<li>FIDO2 / 安全密钥（首选）</li>
+<li>或 号码匹配（Number Matching）推送（必须输入屏幕随机码，不能盲点同意）</li>
+<li>或 TOTP 作为过渡，但禁止「一键 Allow」</li>
+</ul>
+</li>
+<li>
+<p><strong>打开号码匹配与推送风暴防护</strong></p>
+<ul>
+<li>启用来源侧显示的两位数/三位数核对，用户必须输入才能通过</li>
+<li>同一账号 N 分钟内推送超过阈值 → 自动锁定 + 告警到 SOC</li>
+<li>连续拒绝/超时达到阈值 → 视为攻击，触发密码重置工单</li>
+</ul>
+</li>
+<li>
+<p><strong>Conditional Access 收紧</strong></p>
+<ul>
+<li>管理员角色：禁止未知国家/非托管设备直接过</li>
+<li>高风险登录：强制「更强因子」而不是「再推一次同样的 Allow」</li>
+<li>敏感操作（改 MFA 方法、加全局管理员、导出密钥）二次认证且审计</li>
+</ul>
+</li>
+<li>
+<p><strong>第一因子治理同步做</strong></p>
+<ul>
+<li>全员禁用已知泄露密码复用（与 Have I Been Pwned 类接口对接）</li>
+<li>高仿冒 SSO 域名加入网关拦截与浏览器安全标记</li>
+<li>管理员禁止在个人备忘录存备份码，改用离线保险柜/密封信封流程</li>
+</ul>
+</li>
+<li>
+<p><strong>演练与宣教</strong></p>
+<ul>
+<li>把「手机半夜疯狂弹 MFA」写进安全意识课：正确动作是 <strong>全部拒绝 + 上报 + 改密</strong>，而不是点掉了事</li>
+<li>红队每季度做一次可控的疲劳攻击演练，验证熔断是否生效</li>
+</ul>
+</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>层级</th>
+					<th>问题</th>
+					<th>说明</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>认证形态</td>
+					<td>一键推送可被社会工程</td>
+					<td>用户被打扰成本低于攻击者重试成本</td>
+			</tr>
+			<tr>
+					<td>账户防护</td>
+					<td>无推送频率熔断</td>
+					<td>23 次轰炸仍可继续，直到点同意</td>
+			</tr>
+			<tr>
+					<td>身份基线</td>
+					<td>管理员可用弱第二因子</td>
+					<td>高权限与普通员工同一套「图方便」策略</td>
+			</tr>
+			<tr>
+					<td>第一因子</td>
+					<td>钓鱼 + 可能的密码复用</td>
+					<td>MFA 从未承诺能兜住「密码已经给人」后的所有形态</td>
+			</tr>
+			<tr>
+					<td>运营</td>
+					<td>告警有、阻断弱</td>
+					<td>异地成功登录能告警，但未在 Approved 前形成硬门槛</td>
+			</tr>
+	</tbody>
+</table></div>
+<p>一句话：<strong>不是“开了 MFA 就安全”，而是“开了哪种 MFA、对谁开、炸了会不会熔断”共同决定上限。</strong> 疲劳攻击精准打在「人会烦、会手滑」这一环。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
+<li>
+<p><strong>权限分级 MFA 矩阵</strong>（写进制度，不只是建议）</p>
+<ul>
+<li>普通员工：号码匹配推送或 TOTP</li>
+<li>管理员 / 能碰生产变更的角色：FIDO2 强制，禁用一键 Allow</li>
+<li>突破玻璃账号：双人保管硬件密钥</li>
+</ul>
+</li>
+<li>
+<p><strong>把「推送轰炸」做成独立检测用例</strong><br>
+SIEM 规则示例：<code>mfa_push_count &gt; 5 in 10min AND approved == true AND impossible_travel</code> → 自动锁号 + P1 工单，不等人工研判。</p>
+</li>
+<li>
+<p><strong>定期审计 MFA 方法登记表</strong><br>
+谁还在用 SMS、谁还在用无号码匹配的 push、谁登记了过多备份设备，按季度出清单整改。</p>
+</li>
+<li>
+<p><strong>钓鱼与凭证泄露前置拦截</strong><br>
+邮件网关强化仿冒 SSO 检测；密码策略禁止复用；高权限账号缩短会话寿命、禁用长期 PAT。</p>
+</li>
+<li>
+<p><strong>应急手册补一页</strong><br>
+「收到异常 MFA 推送」标准动作：全部拒绝 → 官方渠道改密 → 通知 SOC → 检查邮箱转发/应用授权。把「点同意图清静」明确列为违规操作。</p>
+</li>
+</ol>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这起事故里，攻击者没有绕过密码哈希，也没有攻破 TOTP 种子，只是用已经到手的密码配上一轮「推送到你崩溃」的社会工程，让管理员自己完成了第二因子。日志里干干净净写着 Approved，若只看表面，会误判成「用户误操作」。</p>
+<p>处理顺序应当是：<strong>先当失陷封会话，再对齐推送与登录时间线，再追第一因子来源，最后改 MFA 形态与熔断策略</strong>。技术上优先把管理员从「一键 Allow」迁到 FIDO2 或号码匹配；运营上把推送风暴做成自动锁号信号。MFA 仍然值得做，但选错形态、又缺少阈值防护时，它会从盾牌变成催人点同意的门铃。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
     import gallery from '\/ts\/gallery.js';
 
     const articleContent = document.querySelector('.article-content');
@@ -37,4 +670,15 @@
         });
         lightbox.init();
     }
-</script></main></div><script type=text/javascript src=/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js defer></script></body></html>
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
