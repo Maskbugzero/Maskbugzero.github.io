@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="记一次云账号 AccessKey 泄露导致云上资源被恶意开机挖矿的溯源与处置">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次云账号 AccessKey 泄露导致云上资源被恶意开机挖矿的溯源与处置">
 <meta property='og:description' content="实习生把硬编码 AccessKey 的脚本推上公开仓库，11 分钟后被扫描机器人捡走，攻击者在多地域批量开高配实例挖矿，账单一夜暴涨。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/e10fe42a/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -476,26 +476,26 @@
 </ol>
 <p>时间线一对，脊背发凉：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>时间</th>
-					<th>事件</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>00:52</td>
-					<td>该 commit 推送到公开仓库</td>
-			</tr>
-			<tr>
-					<td>01:03</td>
-					<td>攻击者首次 <code>GetCallerIdentity</code> 调用</td>
-			</tr>
-			<tr>
-					<td>01:12</td>
-					<td>首批恶意实例创建</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>时间</th>
+          <th>事件</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>00:52</td>
+          <td>该 commit 推送到公开仓库</td>
+      </tr>
+      <tr>
+          <td>01:03</td>
+          <td>攻击者首次 <code>GetCallerIdentity</code> 调用</td>
+      </tr>
+      <tr>
+          <td>01:12</td>
+          <td>首批恶意实例创建</td>
+      </tr>
+  </tbody>
 </table></div>
 <p><strong>从密钥进入公网到被用来开机，只隔了 20 分钟，其中「被发现」这一步只用了 11 分钟。</strong> 这不是有人盯着我们，而是全网都有扫描机器人在实时抓取公开提交里的密钥特征，秒级触发。</p>
 <h3 id="第四步为什么一把-ci-密钥能开机器"><a href="#%e7%ac%ac%e5%9b%9b%e6%ad%a5%e4%b8%ba%e4%bb%80%e4%b9%88%e4%b8%80%e6%8a%8a-ci-%e5%af%86%e9%92%a5%e8%83%bd%e5%bc%80%e6%9c%ba%e5%99%a8" class="header-anchor"></a>第四步：为什么一把 CI 密钥能开机器

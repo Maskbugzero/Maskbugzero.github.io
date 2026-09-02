@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="疏通PVC挂载：一次CSI插件超时导致业务Pod起不来的排查">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="疏通PVC挂载：一次CSI插件超时导致业务Pod起不来的排查">
 <meta property='og:description' content="有节点有配额PVC却Pending：CSI Controller超时+节点multipath卡死致挂载失败，扩超时与修节点通道后恢复。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/fa6beef6/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -545,35 +545,35 @@
 <h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
 </h2><p>本故障是 <strong>数据面僵死 × 控制面超时策略</strong> 的叠加：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>层次</th>
-					<th>问题</th>
-					<th>作用</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>节点存储栈</td>
-					<td>iSCSI session / multipath path 异常，设备节点迟迟不出现</td>
-					<td>直接导致 NodeStage/NodePublish 失败</td>
-			</tr>
-			<tr>
-					<td>CSI 插件</td>
-					<td>Attach/Mount 超时偏紧、重试密集</td>
-					<td>把偶发慢变成队列堆积与大面积 DeadlineExceeded</td>
-			</tr>
-			<tr>
-					<td>发布与调度</td>
-					<td>新副本摊到坏节点，无存储健康门禁</td>
-					<td>把节点级问题放大成版本发布失败</td>
-			</tr>
-			<tr>
-					<td>观测</td>
-					<td>只盯应用/节点 CPU，不盯 VolumeAttachment 与 CSI 日志</td>
-					<td>延长误判时间，浪费黄金止血窗口</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>层次</th>
+          <th>问题</th>
+          <th>作用</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>节点存储栈</td>
+          <td>iSCSI session / multipath path 异常，设备节点迟迟不出现</td>
+          <td>直接导致 NodeStage/NodePublish 失败</td>
+      </tr>
+      <tr>
+          <td>CSI 插件</td>
+          <td>Attach/Mount 超时偏紧、重试密集</td>
+          <td>把偶发慢变成队列堆积与大面积 DeadlineExceeded</td>
+      </tr>
+      <tr>
+          <td>发布与调度</td>
+          <td>新副本摊到坏节点，无存储健康门禁</td>
+          <td>把节点级问题放大成版本发布失败</td>
+      </tr>
+      <tr>
+          <td>观测</td>
+          <td>只盯应用/节点 CPU，不盯 VolumeAttachment 与 CSI 日志</td>
+          <td>延长误判时间，浪费黄金止血窗口</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>存储控制台“卷已创建”只能证明 <strong>Provision 成功</strong>，不能证明 <strong>Attach/Mount 成功</strong>；K8s 有状态故障排查必须按 CSI 生命周期逐段取证。</p>
 <h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施

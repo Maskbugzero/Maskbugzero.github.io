@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="一次服务器暴露面收敛Checklist：从端口扫描到凭据治理的落地清单">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次服务器暴露面收敛Checklist：从端口扫描到凭据治理的落地清单">
 <meta property='og:description' content="把暴露面收敛拆成资产盘点、端口收敛、身份凭据、云侧边界、持续扫描五步 Checklist，避免公网裸奔与密钥外泄再发生。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/83bf4e7f/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -428,30 +428,30 @@
 </div>
 </div><p>对账结果常见三类漂移：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>漂移类型</th>
-					<th>典型表现</th>
-					<th>风险</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>台账有、实际无</td>
-					<td>CMDB 记着 8080，进程早下线</td>
-					<td>低，但干扰优先级</td>
-			</tr>
-			<tr>
-					<td>实际有、台账无</td>
-					<td>临时 NodePort / 调试端口未登记</td>
-					<td><strong>高</strong>，盲区</td>
-			</tr>
-			<tr>
-					<td>规则宽、业务窄</td>
-					<td>安全组放 0-65535，应用只听 443</td>
-					<td><strong>高</strong>，横向面过大</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>漂移类型</th>
+          <th>典型表现</th>
+          <th>风险</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>台账有、实际无</td>
+          <td>CMDB 记着 8080，进程早下线</td>
+          <td>低，但干扰优先级</td>
+      </tr>
+      <tr>
+          <td>实际有、台账无</td>
+          <td>临时 NodePort / 调试端口未登记</td>
+          <td><strong>高</strong>，盲区</td>
+      </tr>
+      <tr>
+          <td>规则宽、业务窄</td>
+          <td>安全组放 0-65535，应用只听 443</td>
+          <td><strong>高</strong>，横向面过大</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>容器节点还要多查一层：</p>
 <div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
@@ -541,40 +541,40 @@
 <h3 id="5-持续扫描收敛不是项目是节奏"><a href="#5-%e6%8c%81%e7%bb%ad%e6%89%ab%e6%8f%8f%e6%94%b6%e6%95%9b%e4%b8%8d%e6%98%af%e9%a1%b9%e7%9b%ae%e6%98%af%e8%8a%82%e5%a5%8f" class="header-anchor"></a>5. 持续扫描：收敛不是项目，是节奏
 </h3><p>一次性收敛做完，三个月后必然回潮。最低可行节奏：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>频率</th>
-					<th>动作</th>
-					<th>工具/产出</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>每日</td>
-					<td>公网高危端口变化 diff</td>
-					<td>masscan/nmap + 基线对比；或云厂商「暴露面」产品</td>
-			</tr>
-			<tr>
-					<td>每周</td>
-					<td>新增 <code>0.0.0.0/0</code> 规则工单抽检</td>
-					<td>云配置审计 / Config</td>
-			</tr>
-			<tr>
-					<td>每月</td>
-					<td>全量监听端口 vs CMDB 对账</td>
-					<td>主机 Agent 采集 + 报表</td>
-			</tr>
-			<tr>
-					<td>每季</td>
-					<td>密钥轮换与权限右转</td>
-					<td>RAM/IAM 权限分析 + 密钥年龄报表</td>
-			</tr>
-			<tr>
-					<td>每半年</td>
-					<td>红队/外部扫描复测</td>
-					<td>第三方或自建漏洞扫描</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>频率</th>
+          <th>动作</th>
+          <th>工具/产出</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>每日</td>
+          <td>公网高危端口变化 diff</td>
+          <td>masscan/nmap + 基线对比；或云厂商「暴露面」产品</td>
+      </tr>
+      <tr>
+          <td>每周</td>
+          <td>新增 <code>0.0.0.0/0</code> 规则工单抽检</td>
+          <td>云配置审计 / Config</td>
+      </tr>
+      <tr>
+          <td>每月</td>
+          <td>全量监听端口 vs CMDB 对账</td>
+          <td>主机 Agent 采集 + 报表</td>
+      </tr>
+      <tr>
+          <td>每季</td>
+          <td>密钥轮换与权限右转</td>
+          <td>RAM/IAM 权限分析 + 密钥年龄报表</td>
+      </tr>
+      <tr>
+          <td>每半年</td>
+          <td>红队/外部扫描复测</td>
+          <td>第三方或自建漏洞扫描</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>告警必须「可行动」：只报「发现 9200 对公网开放」不够，要带 <strong>实例 ID、安全组规则 ID、首次发现时间、负责人、工单链接</strong>。</p>
 <h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案

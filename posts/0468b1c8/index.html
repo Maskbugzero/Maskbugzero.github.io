@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="Prometheus 告警风暴，怎么把邮件和企微通道全拖垮了？">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Prometheus 告警风暴，怎么把邮件和企微通道全拖垮了？">
 <meta property='og:description' content="Prometheus 触发海量告警形成风暴，邮件与企微通道被限流拖垮，定位为告警规则过于敏感与分组缺失，收敛规则并加抑制后通道恢复。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/0468b1c8/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -466,40 +466,40 @@
 </h3><p>止血之后开始查根因。打开 Alertmanager 的 Web UI（<code>http://alertmanager:9093</code>），在 Alerts 页面看到 <code>Active</code> 状态的告警有 <strong>2,347 条</strong>。这显然不正常——我每秒钟大概只有 5~10 个真实异常指标会被触发，绝大部分都是抖动。</p>
 <p>我抽样了几条告警，看它们的 <code>Active Since</code> 和 <code>Labels</code>：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>告警名称</th>
-					<th>触发数</th>
-					<th>Active Since</th>
-					<th>severity</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>HighRequestLatency</td>
-					<td>487</td>
-					<td>14:18:42</td>
-					<td>warning</td>
-			</tr>
-			<tr>
-					<td>RedisSlowQuery</td>
-					<td>156</td>
-					<td>14:19:03</td>
-					<td>warning</td>
-			</tr>
-			<tr>
-					<td>ContainerCPUThrottled</td>
-					<td>312</td>
-					<td>14:19:18</td>
-					<td>warning</td>
-			</tr>
-			<tr>
-					<td>NodeDiskIOHigh</td>
-					<td>88</td>
-					<td>14:19:31</td>
-					<td>warning</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>告警名称</th>
+          <th>触发数</th>
+          <th>Active Since</th>
+          <th>severity</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>HighRequestLatency</td>
+          <td>487</td>
+          <td>14:18:42</td>
+          <td>warning</td>
+      </tr>
+      <tr>
+          <td>RedisSlowQuery</td>
+          <td>156</td>
+          <td>14:19:03</td>
+          <td>warning</td>
+      </tr>
+      <tr>
+          <td>ContainerCPUThrottled</td>
+          <td>312</td>
+          <td>14:19:18</td>
+          <td>warning</td>
+      </tr>
+      <tr>
+          <td>NodeDiskIOHigh</td>
+          <td>88</td>
+          <td>14:19:31</td>
+          <td>warning</td>
+      </tr>
+  </tbody>
 </table></div>
 <p><strong>所有告警的 Active Since 都集中在 14:18~14:19 这 1 分钟内</strong>。这说明不是&quot;业务真的出了这么多问题&rdquo;，而是某个时间点发生了一次&quot;集体抖动&quot;。</p>
 <p>接着我去查 Prometheus 的告警规则文件 <code>/etc/prometheus/rules/</code>，发现一个被忽视的配置：</p>

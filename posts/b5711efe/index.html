@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="出口防火墙会话表打满后为何ping通却打开不了网页？一次新建会话被静默丢弃的排查记录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="出口防火墙会话表打满后为何ping通却打开不了网页？一次新建会话被静默丢弃的排查记录">
 <meta property='og:description' content="早高峰出口防火墙会话表打满，ping通但HTTP建连失败；根因会话超时过长叠加无空闲回收，靠扩表、缩timeout与路由拆分流根治。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/b5711efe/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -448,35 +448,35 @@
 <h3 id="4-谁把表吃满了容量--超时--流量模型"><a href="#4-%e8%b0%81%e6%8a%8a%e8%a1%a8%e5%90%83%e6%bb%a1%e4%ba%86%e5%ae%b9%e9%87%8f--%e8%b6%85%e6%97%b6--%e6%b5%81%e9%87%8f%e6%a8%a1%e5%9e%8b" class="header-anchor"></a>4. 谁把表吃满了？——容量 × 超时 × 流量模型
 </h3><p>会话表满很少是「今天突然多了相同用户」，更多是三者乘积：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>因素</th>
-					<th>本例观察</th>
-					<th>影响</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>硬件/许可上限</td>
-					<td>会话容量规格约 50 万，早高峰 used 顶满</td>
-					<td>硬天花板</td>
-			</tr>
-			<tr>
-					<td>超时过长</td>
-					<td>TCP 会话默认 timeout 达 3600s 量级；UDP/DNS 也偏长</td>
-					<td>死亡连接迟迟不回收</td>
-			</tr>
-			<tr>
-					<td>无业务识别的粗放 SNAT</td>
-					<td>办公 + 访客 + 扫码枪云同步 + Windows 更新同一出口</td>
-					<td>短连接风暴放大占用</td>
-			</tr>
-			<tr>
-					<td>应用侧</td>
-					<td>部分胖客户端异常重试、杀毒云查杀高峰、自动更新窗口与上班重叠</td>
-					<td>短生命周期流暴涨</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>因素</th>
+          <th>本例观察</th>
+          <th>影响</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>硬件/许可上限</td>
+          <td>会话容量规格约 50 万，早高峰 used 顶满</td>
+          <td>硬天花板</td>
+      </tr>
+      <tr>
+          <td>超时过长</td>
+          <td>TCP 会话默认 timeout 达 3600s 量级；UDP/DNS 也偏长</td>
+          <td>死亡连接迟迟不回收</td>
+      </tr>
+      <tr>
+          <td>无业务识别的粗放 SNAT</td>
+          <td>办公 + 访客 + 扫码枪云同步 + Windows 更新同一出口</td>
+          <td>短连接风暴放大占用</td>
+      </tr>
+      <tr>
+          <td>应用侧</td>
+          <td>部分胖客户端异常重试、杀毒云查杀高峰、自动更新窗口与上班重叠</td>
+          <td>短生命周期流暴涨</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>进一步抽样 top talker：某楼层测试网段一台用于压测的客户端在循环拉取外网 API（脚本忘记关）；同时访客 Wi-Fi 未做独立出口/会话配额，早高峰手机推送与视频预加载占了大量短 UDP/TCP。把压测源熔断后，表占用从 100% 缓慢降到 85%，新建开始恢复——证实是<strong>容量被异常 + 正常高峰叠加打穿</strong>，而不是单条规则写错。</p>
 <h3 id="5-和本机端口耗尽如何区分"><a href="#5-%e5%92%8c%e6%9c%ac%e6%9c%ba%e7%ab%af%e5%8f%a3%e8%80%97%e5%b0%bd%e5%a6%82%e4%bd%95%e5%8c%ba%e5%88%86" class="header-anchor"></a>5. 和「本机端口耗尽」如何区分？

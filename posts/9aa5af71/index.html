@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="一次接入交换机storm-control阈值过低误杀正常广播导致整层间歇卡顿的排查记录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次接入交换机storm-control阈值过低误杀正常广播导致整层间歇卡顿的排查记录">
 <meta property='og:description' content="接入层 storm-control 阈值过低，正常 ARP/DHCP 广播被当风暴丢弃，整层办公网间歇卡顿；按基线重算定值后恢复。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/9aa5af71/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -407,30 +407,30 @@
 <h3 id="2-对比变更窗口安全基线何时改了-storm-control"><a href="#2-%e5%af%b9%e6%af%94%e5%8f%98%e6%9b%b4%e7%aa%97%e5%8f%a3%e5%ae%89%e5%85%a8%e5%9f%ba%e7%ba%bf%e4%bd%95%e6%97%b6%e6%94%b9%e4%ba%86-storm-control" class="header-anchor"></a>2. 对比变更窗口：安全基线何时改了 storm-control
 </h3><p>变更平台与配置备份对账：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>时间</th>
-					<th>变更</th>
-					<th>备注</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>T-12 天</td>
-					<td>接入模板统一下发 storm-control</td>
-					<td>广播/组播/未知单播均启用</td>
-			</tr>
-			<tr>
-					<td>T-12 天</td>
-					<td>阈值写法从「按端口速率百分比」改为「绝对值 pps」</td>
-					<td>模板来自数据中心万兆口经验值</td>
-			</tr>
-			<tr>
-					<td>T 日起</td>
-					<td>早高峰工单抬头</td>
-					<td>与 DHCP 租约集中续期日叠加后更重</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>时间</th>
+          <th>变更</th>
+          <th>备注</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>T-12 天</td>
+          <td>接入模板统一下发 storm-control</td>
+          <td>广播/组播/未知单播均启用</td>
+      </tr>
+      <tr>
+          <td>T-12 天</td>
+          <td>阈值写法从「按端口速率百分比」改为「绝对值 pps」</td>
+          <td>模板来自数据中心万兆口经验值</td>
+      </tr>
+      <tr>
+          <td>T 日起</td>
+          <td>早高峰工单抬头</td>
+          <td>与 DHCP 租约集中续期日叠加后更重</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>关键点：模板里广播抑制写的是类似「每口 100～200 pps」量级，对空闲口「看起来够用」，但对 <strong>/24 办公 VLAN + 早高峰集中开机</strong> 远远不够——一次合法的 ARP 解析风暴、DHCP Discover/Request、Windows 网络发现，就可能把计数顶穿。</p>
 <h3 id="3-接口计数与-aclqos-误区"><a href="#3-%e6%8e%a5%e5%8f%a3%e8%ae%a1%e6%95%b0%e4%b8%8e-aclqos-%e8%af%af%e5%8c%ba" class="header-anchor"></a>3. 接口计数与 ACL/QoS 误区

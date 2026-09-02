@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="OpenWrt旁路由升级后内网专线业务为何全断？一次firewall4默认策略变更的排查实录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="OpenWrt旁路由升级后内网专线业务为何全断？一次firewall4默认策略变更的排查实录">
 <meta property='og:description' content="OpenWrt 从 firewall3 升到 firewall4 后，旁路由 FORWARD 默认策略变 DROP，专线回程与东向访问被静默丢弃。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/66ccc411/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -574,35 +574,35 @@
 <h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
 </h2><p>根因不是“OpenWrt 坏了”，而是 <strong>防火墙后端换代带来的安全默认值与配置模型漂移</strong>：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>层级</th>
-					<th>升级前 (fw3/iptables)</th>
-					<th>升级后 (fw4/nftables)</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>后端</td>
-					<td>iptables + fw3</td>
-					<td>nftables + fw4</td>
-			</tr>
-			<tr>
-					<td>默认转发姿态</td>
-					<td>现场长期 ACCEPT / 宽松 zone</td>
-					<td>迁移后偏 REJECT/DROP</td>
-			</tr>
-			<tr>
-					<td>配置兼容</td>
-					<td>旧 UCI 基本原义</td>
-					<td>部分 option/匿名段迁移不完整</td>
-			</tr>
-			<tr>
-					<td>旁路由特性</td>
-					<td>依赖 FORWARD 放行</td>
-					<td>FORWARD 一收紧业务全死、本机仍“看起来健康”</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>层级</th>
+          <th>升级前 (fw3/iptables)</th>
+          <th>升级后 (fw4/nftables)</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>后端</td>
+          <td>iptables + fw3</td>
+          <td>nftables + fw4</td>
+      </tr>
+      <tr>
+          <td>默认转发姿态</td>
+          <td>现场长期 ACCEPT / 宽松 zone</td>
+          <td>迁移后偏 REJECT/DROP</td>
+      </tr>
+      <tr>
+          <td>配置兼容</td>
+          <td>旧 UCI 基本原义</td>
+          <td>部分 option/匿名段迁移不完整</td>
+      </tr>
+      <tr>
+          <td>旁路由特性</td>
+          <td>依赖 FORWARD 放行</td>
+          <td>FORWARD 一收紧业务全死、本机仍“看起来健康”</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>旁路由的故障面具有迷惑性：<strong>管理面（INPUT）健康 ≠ 数据面（FORWARD）健康</strong>。主路由、专线、应用三方都可以“证明自己没问题”，于是锅会在多方之间空转，直到有人在旁路由上直接读 <code>nft</code> 的 forward policy 与 counter。</p>
 <h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施

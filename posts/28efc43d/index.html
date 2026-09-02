@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="FortiGate HA 主备切换，业务为何大规模中断？">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="FortiGate HA 主备切换，业务为何大规模中断？">
 <meta property='og:description' content="企业双机热备主防火墙因风扇故障自动切换到备机，但会话表仅同步43%，导致VPN隧道、ERP、SSH等数千条长连接全部中断，业务停摆40分钟">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/28efc43d/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -633,45 +633,45 @@
 <h3 id="第六步查看备机切换后的会话重建情况"><a href="#%e7%ac%ac%e5%85%ad%e6%ad%a5%e6%9f%a5%e7%9c%8b%e5%a4%87%e6%9c%ba%e5%88%87%e6%8d%a2%e5%90%8e%e7%9a%84%e4%bc%9a%e8%af%9d%e9%87%8d%e5%bb%ba%e6%83%85%e5%86%b5" class="header-anchor"></a>第六步：查看备机切换后的会话重建情况
 </h3><p>备机成为 Active 后，丢失的会话需要由客户端重新建立。我们统计了业务恢复时间线：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>时间</th>
-					<th>事件</th>
-					<th>活跃会话数</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>09:15</td>
-					<td>HA 切换完成</td>
-					<td>48213（同步过来的）</td>
-			</tr>
-			<tr>
-					<td>09:16</td>
-					<td>VPN Phase 1 重新协商开始</td>
-					<td>48500</td>
-			</tr>
-			<tr>
-					<td>09:20</td>
-					<td>6 条 VPN 隧道恢复 4 条</td>
-					<td>52300</td>
-			</tr>
-			<tr>
-					<td>09:30</td>
-					<td>VPN 全部恢复</td>
-					<td>61200</td>
-			</tr>
-			<tr>
-					<td>09:55</td>
-					<td>业务连接基本恢复</td>
-					<td>108000</td>
-			</tr>
-			<tr>
-					<td>10:20</td>
-					<td>会话数恢复到正常水平</td>
-					<td>112000+</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>时间</th>
+          <th>事件</th>
+          <th>活跃会话数</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>09:15</td>
+          <td>HA 切换完成</td>
+          <td>48213（同步过来的）</td>
+      </tr>
+      <tr>
+          <td>09:16</td>
+          <td>VPN Phase 1 重新协商开始</td>
+          <td>48500</td>
+      </tr>
+      <tr>
+          <td>09:20</td>
+          <td>6 条 VPN 隧道恢复 4 条</td>
+          <td>52300</td>
+      </tr>
+      <tr>
+          <td>09:30</td>
+          <td>VPN 全部恢复</td>
+          <td>61200</td>
+      </tr>
+      <tr>
+          <td>09:55</td>
+          <td>业务连接基本恢复</td>
+          <td>108000</td>
+      </tr>
+      <tr>
+          <td>10:20</td>
+          <td>会话数恢复到正常水平</td>
+          <td>112000+</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>从 48213 恢复到正常水平用了约 1 小时，但核心业务（VPN、ERP）在 40 分钟后才基本可用。原因是 VPN 隧道的 IKE 协商需要多轮密钥交换，加上分支 FortiGate 的 DPD（Dead Peer Detection）检测间隔为 30 秒，隧道重建有较长的等待窗口。</p>
 <h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
@@ -833,34 +833,34 @@
 </h2><h3 id="1-ha-配置基线标准化"><a href="#1-ha-%e9%85%8d%e7%bd%ae%e5%9f%ba%e7%ba%bf%e6%a0%87%e5%87%86%e5%8c%96" class="header-anchor"></a>1. HA 配置基线标准化
 </h3><p>将上述优化后的 HA 配置纳入 FortiGate 标准配置模板，所有新部署和现有集群统一升级。特别关注三个关键参数：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>参数</th>
-					<th>原值</th>
-					<th>优化值</th>
-					<th>说明</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>ha-session-sync-frequency</td>
-					<td>50ms</td>
-					<td>1ms</td>
-					<td>同步频率最大化</td>
-			</tr>
-			<tr>
-					<td>session-sync-dev</td>
-					<td>ha1</td>
-					<td>ha1+ha2</td>
-					<td>双通道冗余</td>
-			</tr>
-			<tr>
-					<td>hb-interval</td>
-					<td>2000ms</td>
-					<td>500ms</td>
-					<td>快速故障检测</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>参数</th>
+          <th>原值</th>
+          <th>优化值</th>
+          <th>说明</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>ha-session-sync-frequency</td>
+          <td>50ms</td>
+          <td>1ms</td>
+          <td>同步频率最大化</td>
+      </tr>
+      <tr>
+          <td>session-sync-dev</td>
+          <td>ha1</td>
+          <td>ha1+ha2</td>
+          <td>双通道冗余</td>
+      </tr>
+      <tr>
+          <td>hb-interval</td>
+          <td>2000ms</td>
+          <td>500ms</td>
+          <td>快速故障检测</td>
+      </tr>
+  </tbody>
 </table></div>
 <h3 id="2-建立-ha-同步率监控"><a href="#2-%e5%bb%ba%e7%ab%8b-ha-%e5%90%8c%e6%ad%a5%e7%8e%87%e7%9b%91%e6%8e%a7" class="header-anchor"></a>2. 建立 HA 同步率监控
 </h3><p>在 Zabbix 中新增 FortiGate HA 同步率监控项：</p>

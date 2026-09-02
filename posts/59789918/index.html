@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="记一次 DHCP 地址池耗尽引发的大面积断网">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次 DHCP 地址池耗尽引发的大面积断网">
 <meta property='og:description' content="企业办公网突发大面积断网，排查发现DHCP地址池被大量非法设备耗尽，通过端口安全与ACL策略彻底根治">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/59789918/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -466,40 +466,40 @@
 </div>
 </div><p>拿到全部 151 条记录后，我重点关注 MAC 地址的前缀（OUI），用来识别设备类型：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>MAC 前缀</th>
-					<th>设备类型</th>
-					<th>数量</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>00e0-4c</td>
-					<td>Realtek（PC 网卡）</td>
-					<td>68</td>
-			</tr>
-			<tr>
-					<td>a860-b1</td>
-					<td>Apple（iPhone/Mac）</td>
-					<td>42</td>
-			</tr>
-			<tr>
-					<td>dc:a6:32</td>
-					<td>Raspberry Pi</td>
-					<td>12</td>
-			</tr>
-			<tr>
-					<td>88:15:44</td>
-					<td>智能家居/IoT 设备</td>
-					<td>15</td>
-			</tr>
-			<tr>
-					<td>ac:de:48</td>
-					<td>私有 MAC（随机化）</td>
-					<td>14</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>MAC 前缀</th>
+          <th>设备类型</th>
+          <th>数量</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>00e0-4c</td>
+          <td>Realtek（PC 网卡）</td>
+          <td>68</td>
+      </tr>
+      <tr>
+          <td>a860-b1</td>
+          <td>Apple（iPhone/Mac）</td>
+          <td>42</td>
+      </tr>
+      <tr>
+          <td>dc:a6:32</td>
+          <td>Raspberry Pi</td>
+          <td>12</td>
+      </tr>
+      <tr>
+          <td>88:15:44</td>
+          <td>智能家居/IoT 设备</td>
+          <td>15</td>
+      </tr>
+      <tr>
+          <td>ac:de:48</td>
+          <td>私有 MAC（随机化）</td>
+          <td>14</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>发现了！<strong>42 台 iPhone + 15 台 IoT 设备 + 12 台 Raspberry Pi + 14 台随机化 MAC 设备 = 83 台非办公设备</strong>，它们占用了大量 DHCP 地址。这些是员工个人手机、测试设备以及不明 IoT 设备。</p>
 <p>VLAN 20 的情况更严重：二楼有 110 台办公电脑，地址池只有 151 个，被 48 台手机和一堆 IoT 设备挤占后，留给办公电脑的只有不到 100 个——根本不够用。</p>

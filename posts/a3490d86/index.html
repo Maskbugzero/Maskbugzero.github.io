@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="记一次交换机物理环路引发的整栋楼广播风暴">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次交换机物理环路引发的整栋楼广播风暴">
 <meta property='og:description' content="楼层接入交换机误接形成物理环路，整栋楼广播风暴网络瘫痪，定位为未启用 STP 防护，开启 BPDU 防护并拔除环路后恢复。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/a3490d86/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -483,40 +483,40 @@
 <h3 id="第二步判断环路类型"><a href="#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e5%88%a4%e6%96%ad%e7%8e%af%e8%b7%af%e7%b1%bb%e5%9e%8b" class="header-anchor"></a>第二步：判断环路类型
 </h3><p>广播风暴的常见原因有三：物理环路、ARP风暴攻击、蠕虫病毒扩散。通过以下特征快速判断：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>特征</th>
-					<th>物理环路</th>
-					<th>ARP攻击</th>
-					<th>蠕虫病毒</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>MAC漂移</td>
-					<td>两个端口间高频往复</td>
-					<td>分散，无规律</td>
-					<td>分散</td>
-			</tr>
-			<tr>
-					<td>广播包占比</td>
-					<td>&gt;95%</td>
-					<td>ARP包为主</td>
-					<td>混合流量</td>
-			</tr>
-			<tr>
-					<td>全F广播MAC漂移</td>
-					<td>有</td>
-					<td>无</td>
-					<td>偶尔</td>
-			</tr>
-			<tr>
-					<td>流量对称性</td>
-					<td>两个端口双向跑满</td>
-					<td>单向为主</td>
-					<td>不定</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>特征</th>
+          <th>物理环路</th>
+          <th>ARP攻击</th>
+          <th>蠕虫病毒</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>MAC漂移</td>
+          <td>两个端口间高频往复</td>
+          <td>分散，无规律</td>
+          <td>分散</td>
+      </tr>
+      <tr>
+          <td>广播包占比</td>
+          <td>&gt;95%</td>
+          <td>ARP包为主</td>
+          <td>混合流量</td>
+      </tr>
+      <tr>
+          <td>全F广播MAC漂移</td>
+          <td>有</td>
+          <td>无</td>
+          <td>偶尔</td>
+      </tr>
+      <tr>
+          <td>流量对称性</td>
+          <td>两个端口双向跑满</td>
+          <td>单向为主</td>
+          <td>不定</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>SW-F6-01的MAC漂移集中在GE0/0/5和GE0/0/22两个端口之间，且双向流量都跑到线速——<strong>典型物理环路特征</strong>。</p>
 <h3 id="第三步定位环路端口"><a href="#%e7%ac%ac%e4%b8%89%e6%ad%a5%e5%ae%9a%e4%bd%8d%e7%8e%af%e8%b7%af%e7%ab%af%e5%8f%a3" class="header-anchor"></a>第三步：定位环路端口
@@ -807,40 +807,40 @@
 <h3 id="2-交换机上线sop完善"><a href="#2-%e4%ba%a4%e6%8d%a2%e6%9c%ba%e4%b8%8a%e7%ba%bfsop%e5%ae%8c%e5%96%84" class="header-anchor"></a>2. 交换机上线SOP完善
 </h3><p>新增交换机上线检查清单中的必检项：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>检查项</th>
-					<th>命令</th>
-					<th>期望结果</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>MSTP全局启用</td>
-					<td><code>display stp global</code></td>
-					<td>MSTP is enabled</td>
-			</tr>
-			<tr>
-					<td>MSTP域配置</td>
-					<td><code>display stp region-configuration</code></td>
-					<td>Region与核心一致</td>
-			</tr>
-			<tr>
-					<td>BPDU Guard</td>
-					<td><code>display stp bpdu-protection</code></td>
-					<td>至少48个边缘端口启用</td>
-			</tr>
-			<tr>
-					<td>环路检测</td>
-					<td><code>display loop-detect</code></td>
-					<td>Loop detect is enabled</td>
-			</tr>
-			<tr>
-					<td>端口安全</td>
-					<td><code>display port-security</code></td>
-					<td>已配置</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>检查项</th>
+          <th>命令</th>
+          <th>期望结果</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>MSTP全局启用</td>
+          <td><code>display stp global</code></td>
+          <td>MSTP is enabled</td>
+      </tr>
+      <tr>
+          <td>MSTP域配置</td>
+          <td><code>display stp region-configuration</code></td>
+          <td>Region与核心一致</td>
+      </tr>
+      <tr>
+          <td>BPDU Guard</td>
+          <td><code>display stp bpdu-protection</code></td>
+          <td>至少48个边缘端口启用</td>
+      </tr>
+      <tr>
+          <td>环路检测</td>
+          <td><code>display loop-detect</code></td>
+          <td>Loop detect is enabled</td>
+      </tr>
+      <tr>
+          <td>端口安全</td>
+          <td><code>display port-security</code></td>
+          <td>已配置</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>上线后必须由第二人复核并签字确认。</p>
 <h3 id="3-会议室信息点管理"><a href="#3-%e4%bc%9a%e8%ae%ae%e5%ae%a4%e4%bf%a1%e6%81%af%e7%82%b9%e7%ae%a1%e7%90%86" class="header-anchor"></a>3. 会议室信息点管理

@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="Kafka 消费者组积压，订单为何延迟两小时才处理？">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Kafka 消费者组积压，订单为何延迟两小时才处理？">
 <meta property='og:description' content="Kafka某消费组消息大量积压，订单处理延迟达2小时，定位为消费线程阻塞与分区分配不均。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/3863dad1/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -440,7 +440,7 @@
 </span></code></pre></td>
 <td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
 <pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span>2024<span style="color:#f92672">-</span>10<span style="color:#f92672">-</span>11 16:03:21.<span style="color:#a6e22e">456</span> ERROR <span style="color:#f92672">[</span>pool<span style="color:#f92672">-</span>2<span style="color:#f92672">-</span>thread<span style="color:#f92672">-</span>1<span style="color:#f92672">]</span> c.<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">order</span>.<span style="color:#a6e22e">consumer</span>.<span style="color:#a6e22e">OrderConsumer</span> <span style="color:#f92672">-</span> 
-</span></span><span style="display:flex;"><span>  Failed <span style="color:#66d9ef">to</span> deserialize message, partition<span style="color:#f92672">=</span>3, offset<span style="color:#f92672">=</span>13981234
+</span></span><span style="display:flex;"><span>  Failed to deserialize message, partition<span style="color:#f92672">=</span>3, offset<span style="color:#f92672">=</span>13981234
 </span></span><span style="display:flex;"><span>com.<span style="color:#a6e22e">fasterxml</span>.<span style="color:#a6e22e">jackson</span>.<span style="color:#a6e22e">databind</span>.<span style="color:#a6e22e">exc</span>.<span style="color:#a6e22e">UnrecognizedPropertyException</span>: 
 </span></span><span style="display:flex;"><span>  Unrecognized field <span style="color:#e6db74">&#34;paymentChannel&#34;</span> (<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">com</span>.<span style="color:#a6e22e">company</span>.<span style="color:#a6e22e">order</span>.<span style="color:#a6e22e">dto</span>.<span style="color:#a6e22e">OrderMessage</span>), 
 </span></span><span style="display:flex;"><span>  not marked as <span style="color:#a6e22e">ignorable</span> (5 known properties: <span style="color:#e6db74">&#34;orderId&#34;</span>, <span style="color:#e6db74">&#34;userId&#34;</span>, <span style="color:#e6db74">&#34;amount&#34;</span>, 

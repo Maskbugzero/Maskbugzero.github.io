@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="记一次机房搬迁网络割接后跨机房业务单向可达的排查">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次机房搬迁网络割接后跨机房业务单向可达的排查">
 <meta property='og:description' content="机房搬迁割接后 A 访 B 通、B 回 A 不通，根因是静态路由与回程策略路由未同步导致非对称路径">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/5453de23/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -455,45 +455,45 @@
 <h3 id="3-对照三张表转发表策略路由nat"><a href="#3-%e5%af%b9%e7%85%a7%e4%b8%89%e5%bc%a0%e8%a1%a8%e8%bd%ac%e5%8f%91%e8%a1%a8%e7%ad%96%e7%95%a5%e8%b7%af%e7%94%b1nat" class="header-anchor"></a>3. 对照三张表：转发表、策略路由、NAT
 </h3><p>把割接 checklist 里「已经改完」的对象重新导出对账，而不是只看变更单勾选：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>检查项</th>
-					<th>A 核心</th>
-					<th>B 核心</th>
-					<th>A 边界 FW</th>
-					<th>B 边界 FW</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>业务网段路由下一跳</td>
-					<td>仍指向旧互联</td>
-					<td>新专线</td>
-					<td>DNAT 已切</td>
-					<td>正常</td>
-			</tr>
-			<tr>
-					<td>回程明细路由</td>
-					<td>缺失 B 新网段细路由</td>
-					<td>有</td>
-					<td>有</td>
-					<td>有</td>
-			</tr>
-			<tr>
-					<td>策略路由（PBR）</td>
-					<td>旧 match 未删</td>
-					<td>新 policy 生效</td>
-					<td>—</td>
-					<td>源网段 match 半生效</td>
-			</tr>
-			<tr>
-					<td>会话残留</td>
-					<td>无</td>
-					<td>有旧 SPI/旧隧道</td>
-					<td>长连接未清</td>
-					<td>已清</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>检查项</th>
+          <th>A 核心</th>
+          <th>B 核心</th>
+          <th>A 边界 FW</th>
+          <th>B 边界 FW</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>业务网段路由下一跳</td>
+          <td>仍指向旧互联</td>
+          <td>新专线</td>
+          <td>DNAT 已切</td>
+          <td>正常</td>
+      </tr>
+      <tr>
+          <td>回程明细路由</td>
+          <td>缺失 B 新网段细路由</td>
+          <td>有</td>
+          <td>有</td>
+          <td>有</td>
+      </tr>
+      <tr>
+          <td>策略路由（PBR）</td>
+          <td>旧 match 未删</td>
+          <td>新 policy 生效</td>
+          <td>—</td>
+          <td>源网段 match 半生效</td>
+      </tr>
+      <tr>
+          <td>会话残留</td>
+          <td>无</td>
+          <td>有旧 SPI/旧隧道</td>
+          <td>长连接未清</td>
+          <td>已清</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>关键发现有三条：</p>
 <ol>

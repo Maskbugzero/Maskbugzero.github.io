@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="BGP 双线 AS-PATH 配错，业务流量为何全走错运营商">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="BGP 双线 AS-PATH 配错，业务流量为何全走错运营商">
 <meta property='og:description' content="总部机房双线BGP接入电信联通，因误配AS-PATH正则表达式把学到的合法运营商路由全部拒绝，业务流量全部走错运营商导致关键业务延迟飙升400ms。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/d11b5134/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -512,30 +512,30 @@
 <p><strong>增加BGP邻居级监控</strong></p>
 <p>在Zabbix上对每个BGP邻居的关键指标做模板化：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>指标</th>
-					<th>告警阈值</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>收到的BGP路由前缀数</td>
-					<td>±20% baseline</td>
-			</tr>
-			<tr>
-					<td>AS-PATH 拒绝计数</td>
-					<td>&gt; 0</td>
-			</tr>
-			<tr>
-					<td>Update 报文频率</td>
-					<td>&gt; 1000/分钟</td>
-			</tr>
-			<tr>
-					<td>BGP邻居翻动次数</td>
-					<td>&gt; 0/小时</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>指标</th>
+          <th>告警阈值</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>收到的BGP路由前缀数</td>
+          <td>±20% baseline</td>
+      </tr>
+      <tr>
+          <td>AS-PATH 拒绝计数</td>
+          <td>&gt; 0</td>
+      </tr>
+      <tr>
+          <td>Update 报文频率</td>
+          <td>&gt; 1000/分钟</td>
+      </tr>
+      <tr>
+          <td>BGP邻居翻动次数</td>
+          <td>&gt; 0/小时</td>
+      </tr>
+  </tbody>
 </table></div>
 <p><strong>关键配置变更走代码评审</strong></p>
 <p>这条<code>ip as-path 20 permit _100_200_</code>是去年一个临时调试遗留的命令，没有走严格的code review，从那之后就一直在线上跑了——是典型的&quot;运行久了就以为是正确的&quot;陷阱。</p>

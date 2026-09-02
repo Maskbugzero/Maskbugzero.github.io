@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="一次MFA疲劳攻击导致管理员账号被接管的排查记录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次MFA疲劳攻击导致管理员账号被接管的排查记录">
 <meta property='og:description' content="管理员手机被轰炸 MFA 推送，习惯性点同意后账号被接管；还原疲劳攻击链路并收口推送认证风险。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/24188414/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -404,34 +404,34 @@
 <h3 id="2-对照-mfa-推送时间线与登录审计"><a href="#2-%e5%af%b9%e7%85%a7-mfa-%e6%8e%a8%e9%80%81%e6%97%b6%e9%97%b4%e7%ba%bf%e4%b8%8e%e7%99%bb%e5%bd%95%e5%ae%a1%e8%ae%a1" class="header-anchor"></a>2. 对照 MFA 推送时间线与登录审计
 </h3><p>把 IdP 的 MFA challenge 日志与 sign-in 日志按时间对齐后，时间线非常干净：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>时间</th>
-					<th>事件</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>01:31–02:08</td>
-					<td>连续 23 次 MFA push 发送到当事人手机，来源 IP 均为同一境外段</td>
-			</tr>
-			<tr>
-					<td>01:31–02:07</td>
-					<td>前 22 次挑战均为超时/拒绝/未响应</td>
-			</tr>
-			<tr>
-					<td>02:08</td>
-					<td>第 23 次挑战状态变为 <strong>Approved</strong></td>
-			</tr>
-			<tr>
-					<td>02:08:41</td>
-					<td>同一源 IP 完成 OAuth/OIDC 登录，拿到会话</td>
-			</tr>
-			<tr>
-					<td>02:09–02:18</td>
-					<td>枚举目录、尝试建号、触发敏感导出</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>时间</th>
+          <th>事件</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>01:31–02:08</td>
+          <td>连续 23 次 MFA push 发送到当事人手机，来源 IP 均为同一境外段</td>
+      </tr>
+      <tr>
+          <td>01:31–02:07</td>
+          <td>前 22 次挑战均为超时/拒绝/未响应</td>
+      </tr>
+      <tr>
+          <td>02:08</td>
+          <td>第 23 次挑战状态变为 <strong>Approved</strong></td>
+      </tr>
+      <tr>
+          <td>02:08:41</td>
+          <td>同一源 IP 完成 OAuth/OIDC 登录，拿到会话</td>
+      </tr>
+      <tr>
+          <td>02:09–02:18</td>
+          <td>枚举目录、尝试建号、触发敏感导出</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>当事人口述与日志高度吻合。攻击者不需要拦截短信，也不需要突破 TOTP 种子，只需要：<strong>已经掌握密码 + 把推送点得你生不如死 + 赌你会有一次手滑点同意</strong>。</p>
 <h3 id="3-核实密码从哪来排除纯撞库碰运气"><a href="#3-%e6%a0%b8%e5%ae%9e%e5%af%86%e7%a0%81%e4%bb%8e%e5%93%aa%e6%9d%a5%e6%8e%92%e9%99%a4%e7%ba%af%e6%92%9e%e5%ba%93%e7%a2%b0%e8%bf%90%e6%b0%94" class="header-anchor"></a>3. 核实密码从哪来，排除「纯撞库碰运气」
@@ -514,40 +514,40 @@
 </ol>
 <h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
 </h2><div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>层级</th>
-					<th>问题</th>
-					<th>说明</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>认证形态</td>
-					<td>一键推送可被社会工程</td>
-					<td>用户被打扰成本低于攻击者重试成本</td>
-			</tr>
-			<tr>
-					<td>账户防护</td>
-					<td>无推送频率熔断</td>
-					<td>23 次轰炸仍可继续，直到点同意</td>
-			</tr>
-			<tr>
-					<td>身份基线</td>
-					<td>管理员可用弱第二因子</td>
-					<td>高权限与普通员工同一套「图方便」策略</td>
-			</tr>
-			<tr>
-					<td>第一因子</td>
-					<td>钓鱼 + 可能的密码复用</td>
-					<td>MFA 从未承诺能兜住「密码已经给人」后的所有形态</td>
-			</tr>
-			<tr>
-					<td>运营</td>
-					<td>告警有、阻断弱</td>
-					<td>异地成功登录能告警，但未在 Approved 前形成硬门槛</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>层级</th>
+          <th>问题</th>
+          <th>说明</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>认证形态</td>
+          <td>一键推送可被社会工程</td>
+          <td>用户被打扰成本低于攻击者重试成本</td>
+      </tr>
+      <tr>
+          <td>账户防护</td>
+          <td>无推送频率熔断</td>
+          <td>23 次轰炸仍可继续，直到点同意</td>
+      </tr>
+      <tr>
+          <td>身份基线</td>
+          <td>管理员可用弱第二因子</td>
+          <td>高权限与普通员工同一套「图方便」策略</td>
+      </tr>
+      <tr>
+          <td>第一因子</td>
+          <td>钓鱼 + 可能的密码复用</td>
+          <td>MFA 从未承诺能兜住「密码已经给人」后的所有形态</td>
+      </tr>
+      <tr>
+          <td>运营</td>
+          <td>告警有、阻断弱</td>
+          <td>异地成功登录能告警，但未在 Approved 前形成硬门槛</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>一句话：<strong>不是“开了 MFA 就安全”，而是“开了哪种 MFA、对谁开、炸了会不会熔断”共同决定上限。</strong> 疲劳攻击精准打在「人会烦、会手滑」这一环。</p>
 <h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施

@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="FortiGate 策略配错，内网 DNS 为何解析失败？">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="FortiGate 策略配错，内网 DNS 为何解析失败？">
 <meta property='og:description' content="某分公司内网用户反映网页打开缓慢、部分域名无法解析，排查发现是新上线FortiGate防火墙的策略配置错误导致DNS流量被误拦截，本文记录完整排查过程。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/66557bdd/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -597,30 +597,30 @@
 <h3 id="3-优化dns服务器转发器配置"><a href="#3-%e4%bc%98%e5%8c%96dns%e6%9c%8d%e5%8a%a1%e5%99%a8%e8%bd%ac%e5%8f%91%e5%99%a8%e9%85%8d%e7%bd%ae" class="header-anchor"></a>3. 优化DNS服务器转发器配置
 </h3><p>原先DNS转发器配置了四个，其中8.8.8.8和8.8.4.4从分公司网络访问延迟较高（分公司出口是电信专线，访问Google DNS需要绕路）。优化后的转发器列表：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>优先级</th>
-					<th>DNS服务器</th>
-					<th>说明</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>1</td>
-					<td>202.96.128.86</td>
-					<td>本地电信DNS，延迟最低</td>
-			</tr>
-			<tr>
-					<td>2</td>
-					<td>114.114.114.114</td>
-					<td>国内公共DNS，备用</td>
-			</tr>
-			<tr>
-					<td>3</td>
-					<td>内网根提示</td>
-					<td>直接迭代查询，最后兜底</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>优先级</th>
+          <th>DNS服务器</th>
+          <th>说明</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>1</td>
+          <td>202.96.128.86</td>
+          <td>本地电信DNS，延迟最低</td>
+      </tr>
+      <tr>
+          <td>2</td>
+          <td>114.114.114.114</td>
+          <td>国内公共DNS，备用</td>
+      </tr>
+      <tr>
+          <td>3</td>
+          <td>内网根提示</td>
+          <td>直接迭代查询，最后兜底</td>
+      </tr>
+  </tbody>
 </table></div>
 <h3 id="4-在fortigate上启用dns过滤的安全功能"><a href="#4-%e5%9c%a8fortigate%e4%b8%8a%e5%90%af%e7%94%a8dns%e8%bf%87%e6%bb%a4%e7%9a%84%e5%ae%89%e5%85%a8%e5%8a%9f%e8%83%bd" class="header-anchor"></a>4. 在FortiGate上启用DNS过滤的安全功能
 </h3><p>FortiGate有内置的DNS过滤功能，可以阻断恶意域名解析。在优化后的策略上启用了此功能：</p>

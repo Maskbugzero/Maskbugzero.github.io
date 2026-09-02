@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="一次备份恢复演练失败：监控全绿却还原不出可用业务的排查记录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次备份恢复演练失败：监控全绿却还原不出可用业务的排查记录">
 <meta property='og:description' content="年度备份恢复演练中任务全绿却还原不出可用业务；根因是一致性快照失效与备份范围漏项，按可恢复性验收重建体系。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/7760e3e7/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -412,45 +412,45 @@
 <h3 id="2-对照备份范围与业务依赖清单"><a href="#2-%e5%af%b9%e7%85%a7%e5%a4%87%e4%bb%bd%e8%8c%83%e5%9b%b4%e4%b8%8e%e4%b8%9a%e5%8a%a1%e4%be%9d%e8%b5%96%e6%b8%85%e5%8d%95" class="header-anchor"></a>2. 对照备份范围与业务依赖清单
 </h3><p>把订单中台的运行依赖画成清单，逐项对备份策略：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>依赖项</th>
-					<th>是否在备份集</th>
-					<th>演练结果</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>PG 数据目录</td>
-					<td>是（崩溃一致）</td>
-					<td>还原后无法稳定启动/数据损坏</td>
-			</tr>
-			<tr>
-					<td>应用机 <code>/opt/app</code></td>
-					<td>是</td>
-					<td>可用</td>
-			</tr>
-			<tr>
-					<td><code>/etc</code> 与 systemd unit</td>
-					<td>部分（镜像重装后重配）</td>
-					<td>耗时不可控</td>
-			</tr>
-			<tr>
-					<td>配置中心密钥 / KMS</td>
-					<td><strong>否</strong></td>
-					<td>卡审批</td>
-			</tr>
-			<tr>
-					<td>对象存储附件桶</td>
-					<td><strong>否</strong>（仅生命周期）</td>
-					<td>历史附件丢失</td>
-			</tr>
-			<tr>
-					<td>调度元数据 / 本地临时回执盘</td>
-					<td><strong>否</strong></td>
-					<td>补偿任务无法重放</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>依赖项</th>
+          <th>是否在备份集</th>
+          <th>演练结果</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>PG 数据目录</td>
+          <td>是（崩溃一致）</td>
+          <td>还原后无法稳定启动/数据损坏</td>
+      </tr>
+      <tr>
+          <td>应用机 <code>/opt/app</code></td>
+          <td>是</td>
+          <td>可用</td>
+      </tr>
+      <tr>
+          <td><code>/etc</code> 与 systemd unit</td>
+          <td>部分（镜像重装后重配）</td>
+          <td>耗时不可控</td>
+      </tr>
+      <tr>
+          <td>配置中心密钥 / KMS</td>
+          <td><strong>否</strong></td>
+          <td>卡审批</td>
+      </tr>
+      <tr>
+          <td>对象存储附件桶</td>
+          <td><strong>否</strong>（仅生命周期）</td>
+          <td>历史附件丢失</td>
+      </tr>
+      <tr>
+          <td>调度元数据 / 本地临时回执盘</td>
+          <td><strong>否</strong></td>
+          <td>补偿任务无法重放</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>缺口一目了然：备份策略按「虚拟机/磁盘」购买，业务按「数据面 + 控制面 + 密钥 + 非结构化对象」运行，<strong>两张清单从未对过账</strong>。</p>
 <h3 id="3-复现数据库损坏点"><a href="#3-%e5%a4%8d%e7%8e%b0%e6%95%b0%e6%8d%ae%e5%ba%93%e6%8d%9f%e5%9d%8f%e7%82%b9" class="header-anchor"></a>3. 复现数据库损坏点

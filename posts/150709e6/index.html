@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="记一次生产服务变更验收Checklist落地：预检、灰度与回滚三道闸">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次生产服务变更验收Checklist落地：预检、灰度与回滚三道闸">
 <meta property='og:description' content="生产服务变更靠口头发版易漏验，把预检、灰度、回滚做成可勾选三道闸，把可发布变成可证明。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/150709e6/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -401,30 +401,30 @@
 </h2><h3 id="1-先对齐变更失败的分型而不是先骂人"><a href="#1-%e5%85%88%e5%af%b9%e9%bd%90%e5%8f%98%e6%9b%b4%e5%a4%b1%e8%b4%a5%e7%9a%84%e5%88%86%e5%9e%8b%e8%80%8c%e4%b8%8d%e6%98%af%e5%85%88%e9%aa%82%e4%ba%ba" class="header-anchor"></a>1. 先对齐：变更失败的分型，而不是先骂人
 </h3><p>把近一年服务侧变更事故按「闸门失效位置」归三类，比按技术栈归类更有用：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>失效闸门</th>
-					<th>典型漏项</th>
-					<th>结果</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>预检闸</td>
-					<td>配置键、权限、磁盘/fd/连接池水位、依赖版本未核对</td>
-					<td>带病上线</td>
-			</tr>
-			<tr>
-					<td>灰度闸</td>
-					<td>一次全量、只看进程存活、不做核心路径冒烟</td>
-					<td>爆炸半径全站</td>
-			</tr>
-			<tr>
-					<td>回滚闸</td>
-					<td>无版本锚点、有状态变更不可逆、无人有权执行</td>
-					<td>MTTR 失控</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>失效闸门</th>
+          <th>典型漏项</th>
+          <th>结果</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>预检闸</td>
+          <td>配置键、权限、磁盘/fd/连接池水位、依赖版本未核对</td>
+          <td>带病上线</td>
+      </tr>
+      <tr>
+          <td>灰度闸</td>
+          <td>一次全量、只看进程存活、不做核心路径冒烟</td>
+          <td>爆炸半径全站</td>
+      </tr>
+      <tr>
+          <td>回滚闸</td>
+          <td>无版本锚点、有状态变更不可逆、无人有权执行</td>
+          <td>MTTR 失控</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>结论：清单必须按「闸」组织，而不是按「中间件名词」堆砌命令。</p>
 <h3 id="2-第一道闸预检change-readiness"><a href="#2-%e7%ac%ac%e4%b8%80%e9%81%93%e9%97%b8%e9%a2%84%e6%a3%80change-readiness" class="header-anchor"></a>2. 第一道闸：预检（Change Readiness）
@@ -486,35 +486,35 @@
 </ol>
 <p><strong>业务冒烟矩阵（必须人工或自动化勾选，禁止只看 HTTP 200）：</strong></p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>路径类型</th>
-					<th>示例</th>
-					<th>验收点</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>读多路径</td>
-					<td>登录、列表、详情</td>
-					<td>错误率、P95、缓存命中</td>
-			</tr>
-			<tr>
-					<td>写多路径</td>
-					<td>下单、支付回调、审批提交</td>
-					<td>成功落库、幂等、重复提交</td>
-			</tr>
-			<tr>
-					<td>异步路径</td>
-					<td>发消息、出库任务、报表生成</td>
-					<td>入队成功、消费延迟、死信</td>
-			</tr>
-			<tr>
-					<td>管理路径</td>
-					<td>导出、批量、对账</td>
-					<td>超时、连接池、磁盘</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>路径类型</th>
+          <th>示例</th>
+          <th>验收点</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>读多路径</td>
+          <td>登录、列表、详情</td>
+          <td>错误率、P95、缓存命中</td>
+      </tr>
+      <tr>
+          <td>写多路径</td>
+          <td>下单、支付回调、审批提交</td>
+          <td>成功落库、幂等、重复提交</td>
+      </tr>
+      <tr>
+          <td>异步路径</td>
+          <td>发消息、出库任务、报表生成</td>
+          <td>入队成功、消费延迟、死信</td>
+      </tr>
+      <tr>
+          <td>管理路径</td>
+          <td>导出、批量、对账</td>
+          <td>超时、连接池、磁盘</td>
+      </tr>
+  </tbody>
 </table></div>
 <p><strong>灰度期技术观察（勾选即截图或贴链接）：</strong></p>
 <div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
@@ -537,35 +537,35 @@
 <h3 id="4-第三道闸回滚rollback-readiness发布前就要能演"><a href="#4-%e7%ac%ac%e4%b8%89%e9%81%93%e9%97%b8%e5%9b%9e%e6%bb%9arollback-readiness%e5%8f%91%e5%b8%83%e5%89%8d%e5%b0%b1%e8%a6%81%e8%83%bd%e6%bc%94" class="header-anchor"></a>4. 第三道闸：回滚（Rollback Readiness，发布前就要能演）
 </h3><p>回滚不是出事时再设计的选项，而是预检就必须可执行的动作：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>变更类型</th>
-					<th>推荐回滚方式</th>
-					<th>禁止依赖</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>无状态服务镜像/包</td>
-					<td>上一 tag 滚动 / 流量切回</td>
-					<td>手工改代码热修当第一手段</td>
-			</tr>
-			<tr>
-					<td>配置中心</td>
-					<td>回滚到变更前 revision</td>
-					<td>「再改一版配置试试」拖时间</td>
-			</tr>
-			<tr>
-					<td>兼容性 DDL</td>
-					<td>双版本窗口内停写新列/新表路径</td>
-					<td>未验证的 drop 反向脚本</td>
-			</tr>
-			<tr>
-					<td>不兼容数据变更</td>
-					<td>变更窗口内禁止上线；或预置可逆脚本+备份点</td>
-					<td>边写数据边赌</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>变更类型</th>
+          <th>推荐回滚方式</th>
+          <th>禁止依赖</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>无状态服务镜像/包</td>
+          <td>上一 tag 滚动 / 流量切回</td>
+          <td>手工改代码热修当第一手段</td>
+      </tr>
+      <tr>
+          <td>配置中心</td>
+          <td>回滚到变更前 revision</td>
+          <td>「再改一版配置试试」拖时间</td>
+      </tr>
+      <tr>
+          <td>兼容性 DDL</td>
+          <td>双版本窗口内停写新列/新表路径</td>
+          <td>未验证的 drop 反向脚本</td>
+      </tr>
+      <tr>
+          <td>不兼容数据变更</td>
+          <td>变更窗口内禁止上线；或预置可逆脚本+备份点</td>
+          <td>边写数据边赌</td>
+      </tr>
+  </tbody>
 </table></div>
 <p><strong>回滚检查清单：</strong></p>
 <ul>

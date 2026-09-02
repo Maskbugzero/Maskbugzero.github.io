@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="Netkeeper-OpenWrt——专注闪讯上网">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Netkeeper-OpenWrt——专注闪讯上网">
 <meta property='og:description' content="介绍在 OpenWrt 路由器上部署 Netkeeper（闪讯）拨号方案，实现校园/运营商定制宽带共享上网的配置要点与注意事项。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/500de237/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -383,50 +383,50 @@
     >Openwrt-x86-64</a></p>
 <h3 id="文件说明"><a href="#%e6%96%87%e4%bb%b6%e8%af%b4%e6%98%8e" class="header-anchor"></a>文件说明
 </h3><div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th style="text-align: left">文件名</th>
-					<th style="text-align: left">描述</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td style="text-align: left">sha256sums</td>
-					<td style="text-align: left">固件完整性校验文件</td>
-			</tr>
-			<tr>
-					<td style="text-align: left">config.buildinfo</td>
-					<td style="text-align: left">OpenWrt 编译配置文件</td>
-			</tr>
-			<tr>
-					<td style="text-align: left">openwrt-x86-64-generic.manifest</td>
-					<td style="text-align: left">固件内已集成软件包列表</td>
-			</tr>
-			<tr>
-					<td style="text-align: left">openwrt-x86-64-generic-generic-rootfs.tar.gz</td>
-					<td style="text-align: left">RootFS 文件</td>
-			</tr>
-			<tr>
-					<td style="text-align: left">openwrt-x86-64-generic-rootfs-ext4.img.gz</td>
-					<td style="text-align: left">不带引导的 RootFS 镜像</td>
-			</tr>
-			<tr>
-					<td style="text-align: left"><strong>openwrt-x86-64-generic-squashfs-combined.vmdk</strong></td>
-					<td style="text-align: left"><strong>VMDK 虚拟磁盘映像 (Legacy 引导)</strong></td>
-			</tr>
-			<tr>
-					<td style="text-align: left"><strong>openwrt-x86-64-generic-squashfs-combined-efi.vmdk</strong></td>
-					<td style="text-align: left"><strong>VMDK 虚拟磁盘映像 (UEFI 引导)</strong></td>
-			</tr>
-			<tr>
-					<td style="text-align: left"><strong>openwrt-x86-64-generic-squashfs-combined.img.gz</strong></td>
-					<td style="text-align: left"><strong>Squashfs 格式安装 / 升级固件 (Legacy 引导)</strong></td>
-			</tr>
-			<tr>
-					<td style="text-align: left"><strong>openwrt-x86-64-generic-squashfs-combined-efi.img.gz</strong></td>
-					<td style="text-align: left"><strong>Squashfs 格式安装 / 升级固件 (UEFI 引导)</strong></td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th style="text-align: left">文件名</th>
+          <th style="text-align: left">描述</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td style="text-align: left">sha256sums</td>
+          <td style="text-align: left">固件完整性校验文件</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">config.buildinfo</td>
+          <td style="text-align: left">OpenWrt 编译配置文件</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">openwrt-x86-64-generic.manifest</td>
+          <td style="text-align: left">固件内已集成软件包列表</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">openwrt-x86-64-generic-generic-rootfs.tar.gz</td>
+          <td style="text-align: left">RootFS 文件</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">openwrt-x86-64-generic-rootfs-ext4.img.gz</td>
+          <td style="text-align: left">不带引导的 RootFS 镜像</td>
+      </tr>
+      <tr>
+          <td style="text-align: left"><strong>openwrt-x86-64-generic-squashfs-combined.vmdk</strong></td>
+          <td style="text-align: left"><strong>VMDK 虚拟磁盘映像 (Legacy 引导)</strong></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"><strong>openwrt-x86-64-generic-squashfs-combined-efi.vmdk</strong></td>
+          <td style="text-align: left"><strong>VMDK 虚拟磁盘映像 (UEFI 引导)</strong></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"><strong>openwrt-x86-64-generic-squashfs-combined.img.gz</strong></td>
+          <td style="text-align: left"><strong>Squashfs 格式安装 / 升级固件 (Legacy 引导)</strong></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"><strong>openwrt-x86-64-generic-squashfs-combined-efi.img.gz</strong></td>
+          <td style="text-align: left"><strong>Squashfs 格式安装 / 升级固件 (UEFI 引导)</strong></td>
+      </tr>
+  </tbody>
 </table></div>
 <h2 id="登录页面"><a href="#%e7%99%bb%e5%bd%95%e9%a1%b5%e9%9d%a2" class="header-anchor"></a>登录页面
 </h2><ul>

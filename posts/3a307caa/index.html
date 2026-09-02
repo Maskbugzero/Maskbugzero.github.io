@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="域电脑重启后为何登不上？一次工作站与主域信任关系失败的排查记录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="域电脑重启后为何登不上？一次工作站与主域信任关系失败的排查记录">
 <meta property='og:description' content="终端重启后报信任关系失败无法登域；机器账号密码不同步是根因，Reset-ComputerMachinePassword 与改计算机名切记后的再加域流程收口。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/3a307caa/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -497,30 +497,30 @@
 </ol>
 <h3 id="根治修复分类处理"><a href="#%e6%a0%b9%e6%b2%bb%e4%bf%ae%e5%a4%8d%e5%88%86%e7%b1%bb%e5%a4%84%e7%90%86" class="header-anchor"></a>根治修复分类处理
 </h3><div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>类型</th>
-					<th>处置</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>克隆 VM 且仍用正确主机名</td>
-					<td>优先 Repair/Reset 机器密码；仍失败者脱域→删残缺对象→sysprep 或清理后重加域</td>
-			</tr>
-			<tr>
-					<td>本地改名未同步 AD</td>
-					<td>脱域 → 处理旧 Computer 对象（改名或清理）→ 以目标名重新加域 → 复测 GPO</td>
-			</tr>
-			<tr>
-					<td>对象已被误删</td>
-					<td>在正确 OU 重建加域，或从备份恢复对象后 Reset 通道</td>
-			</tr>
-			<tr>
-					<td>离线超久（月级）</td>
-					<td>多数可 Repair；反复失败者按重加域流程</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>类型</th>
+          <th>处置</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>克隆 VM 且仍用正确主机名</td>
+          <td>优先 Repair/Reset 机器密码；仍失败者脱域→删残缺对象→sysprep 或清理后重加域</td>
+      </tr>
+      <tr>
+          <td>本地改名未同步 AD</td>
+          <td>脱域 → 处理旧 Computer 对象（改名或清理）→ 以目标名重新加域 → 复测 GPO</td>
+      </tr>
+      <tr>
+          <td>对象已被误删</td>
+          <td>在正确 OU 重建加域，或从备份恢复对象后 Reset 通道</td>
+      </tr>
+      <tr>
+          <td>离线超久（月级）</td>
+          <td>多数可 Repair；反复失败者按重加域流程</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>PowerShell 批量探测（在仍可 WinRM/远程的子集）：</p>
 <div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">

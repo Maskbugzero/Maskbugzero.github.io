@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="AHK实现DD驱动按键连发（v2.0 GUI版）">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="AHK实现DD驱动按键连发（v2.0 GUI版）">
 <meta property='og:description' content="使用AutoHotkey v2.0结合DD驱动实现的按键连发工具，支持录制按键、多键复选、间隔可调，带GUI界面，适配反作弊检测场景。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/973246e2/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -385,46 +385,46 @@
 <p>如果你不熟悉 DD 驱动：它是一个硬件级的键鼠模拟驱动，走的是内核层的模拟路径，比 AHK 原生的 <code>Send</code> / <code>ControlSend</code> 更底层，某些游戏或软件只认 DD 驱动的模拟输入。</p>
 <h2 id="功能概览"><a href="#%e5%8a%9f%e8%83%bd%e6%a6%82%e8%a7%88" class="header-anchor"></a>功能概览
 </h2><div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>功能</th>
-					<th>说明</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>GUI 界面</td>
-					<td>告别纯脚本，可视化操作</td>
-			</tr>
-			<tr>
-					<td>按键录制</td>
-					<td>按一个键即可添加到连发列表，不用查码表</td>
-			</tr>
-			<tr>
-					<td>多键连发</td>
-					<td>支持勾选多个按键同时连发</td>
-			</tr>
-			<tr>
-					<td>鼠标支持</td>
-					<td>支持左键、右键、中键连发</td>
-			</tr>
-			<tr>
-					<td>间隔可调</td>
-					<td>1~9999ms 自由设置</td>
-			</tr>
-			<tr>
-					<td>随机抖动</td>
-					<td>30% 随机延迟，对抗反作弊检测</td>
-			</tr>
-			<tr>
-					<td>配置持久化</td>
-					<td>自动保存到 <code>config.ini</code>，重启保留设置</td>
-			</tr>
-			<tr>
-					<td>管理员权限</td>
-					<td>自动检测并提权</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>功能</th>
+          <th>说明</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>GUI 界面</td>
+          <td>告别纯脚本，可视化操作</td>
+      </tr>
+      <tr>
+          <td>按键录制</td>
+          <td>按一个键即可添加到连发列表，不用查码表</td>
+      </tr>
+      <tr>
+          <td>多键连发</td>
+          <td>支持勾选多个按键同时连发</td>
+      </tr>
+      <tr>
+          <td>鼠标支持</td>
+          <td>支持左键、右键、中键连发</td>
+      </tr>
+      <tr>
+          <td>间隔可调</td>
+          <td>1~9999ms 自由设置</td>
+      </tr>
+      <tr>
+          <td>随机抖动</td>
+          <td>30% 随机延迟，对抗反作弊检测</td>
+      </tr>
+      <tr>
+          <td>配置持久化</td>
+          <td>自动保存到 <code>config.ini</code>，重启保留设置</td>
+      </tr>
+      <tr>
+          <td>管理员权限</td>
+          <td>自动检测并提权</td>
+      </tr>
+  </tbody>
 </table></div>
 <h2 id="实现细节"><a href="#%e5%ae%9e%e7%8e%b0%e7%bb%86%e8%8a%82" class="header-anchor"></a>实现细节
 </h2><h3 id="1-管理员权限检查"><a href="#1-%e7%ae%a1%e7%90%86%e5%91%98%e6%9d%83%e9%99%90%e6%a3%80%e6%9f%a5" class="header-anchor"></a>1. 管理员权限检查
@@ -638,22 +638,22 @@
 </div>
 </div><h3 id="9-热键"><a href="#9-%e7%83%ad%e9%94%ae" class="header-anchor"></a>9. 热键
 </h3><div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>热键</th>
-					<th>功能</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>`（反引号，SC029）</td>
-					<td>启动/停止连发</td>
-			</tr>
-			<tr>
-					<td>F12</td>
-					<td>彻底退出脚本</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>热键</th>
+          <th>功能</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>`（反引号，SC029）</td>
+          <td>启动/停止连发</td>
+      </tr>
+      <tr>
+          <td>F12</td>
+          <td>彻底退出脚本</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>反引号键放在 ESC 下面，方便左手操作，不影响正常打字。</p>
 <h2 id="完整源码"><a href="#%e5%ae%8c%e6%95%b4%e6%ba%90%e7%a0%81" class="header-anchor"></a>完整源码
@@ -1161,65 +1161,65 @@
 </div>
 </div><h2 id="新旧版本对比"><a href="#%e6%96%b0%e6%97%a7%e7%89%88%e6%9c%ac%e5%af%b9%e6%af%94" class="header-anchor"></a>新旧版本对比
 </h2><div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>维度</th>
-					<th>旧版 (v1)</th>
-					<th>新版 (v2)</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>AHK 版本</td>
-					<td>v1</td>
-					<td>v2.0</td>
-			</tr>
-			<tr>
-					<td>界面</td>
-					<td>无（纯脚本）</td>
-					<td>GUI 界面</td>
-			</tr>
-			<tr>
-					<td>按键管理</td>
-					<td>硬编码键码</td>
-					<td>录制 + 列表 + 勾选</td>
-			</tr>
-			<tr>
-					<td>支持按键数</td>
-					<td>1 个</td>
-					<td>不限（多键同时）</td>
-			</tr>
-			<tr>
-					<td>鼠标支持</td>
-					<td>不支持</td>
-					<td>左/右/中键</td>
-			</tr>
-			<tr>
-					<td>间隔调节</td>
-					<td>固定 20ms</td>
-					<td>可自定义</td>
-			</tr>
-			<tr>
-					<td>反作弊</td>
-					<td>无</td>
-					<td>30% 随机抖动</td>
-			</tr>
-			<tr>
-					<td>配置保存</td>
-					<td>无</td>
-					<td>INI 持久化</td>
-			</tr>
-			<tr>
-					<td>DD 加载</td>
-					<td>Class_DD.ahk 封装</td>
-					<td>直接 DllCall</td>
-			</tr>
-			<tr>
-					<td>权限处理</td>
-					<td>无</td>
-					<td>自动提权</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>维度</th>
+          <th>旧版 (v1)</th>
+          <th>新版 (v2)</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>AHK 版本</td>
+          <td>v1</td>
+          <td>v2.0</td>
+      </tr>
+      <tr>
+          <td>界面</td>
+          <td>无（纯脚本）</td>
+          <td>GUI 界面</td>
+      </tr>
+      <tr>
+          <td>按键管理</td>
+          <td>硬编码键码</td>
+          <td>录制 + 列表 + 勾选</td>
+      </tr>
+      <tr>
+          <td>支持按键数</td>
+          <td>1 个</td>
+          <td>不限（多键同时）</td>
+      </tr>
+      <tr>
+          <td>鼠标支持</td>
+          <td>不支持</td>
+          <td>左/右/中键</td>
+      </tr>
+      <tr>
+          <td>间隔调节</td>
+          <td>固定 20ms</td>
+          <td>可自定义</td>
+      </tr>
+      <tr>
+          <td>反作弊</td>
+          <td>无</td>
+          <td>30% 随机抖动</td>
+      </tr>
+      <tr>
+          <td>配置保存</td>
+          <td>无</td>
+          <td>INI 持久化</td>
+      </tr>
+      <tr>
+          <td>DD 加载</td>
+          <td>Class_DD.ahk 封装</td>
+          <td>直接 DllCall</td>
+      </tr>
+      <tr>
+          <td>权限处理</td>
+          <td>无</td>
+          <td>自动提权</td>
+      </tr>
+  </tbody>
 </table></div>
 <h2 id="使用方法"><a href="#%e4%bd%bf%e7%94%a8%e6%96%b9%e6%b3%95" class="header-anchor"></a>使用方法
 </h2><ol>

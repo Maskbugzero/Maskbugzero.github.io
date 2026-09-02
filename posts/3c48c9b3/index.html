@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="IPSec VPN MTU 不匹配致 ERP 远程访问异常：定位与修复">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="IPSec VPN MTU 不匹配致 ERP 远程访问异常：定位与修复">
 <meta property='og:description' content="分支机构通过IPSec VPN访问总部ERP时频繁超时卡死，Ping正常但大包传输失败，最终定位为隧道MTU与TCP MSS协商不匹配所致">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/3c48c9b3/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -795,34 +795,34 @@
 <h3 id="5-文档化mtu计算方法"><a href="#5-%e6%96%87%e6%a1%a3%e5%8c%96mtu%e8%ae%a1%e7%ae%97%e6%96%b9%e6%b3%95" class="header-anchor"></a>5. 文档化MTU计算方法
 </h3><p>编写内部网络运维手册中的MTU计算章节，记录所有VPN隧道的：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>隧道名称</th>
-					<th>封装方式</th>
-					<th>预留开销</th>
-					<th>隧道MTU</th>
-					<th>MSS值</th>
-					<th>物理接口MTU</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>vpn-HN</td>
-					<td>ESP+NAT-T</td>
-					<td>64字节</td>
-					<td>1436</td>
-					<td>1396</td>
-					<td>1500</td>
-			</tr>
-			<tr>
-					<td>vpn-HD</td>
-					<td>ESP</td>
-					<td>42字节</td>
-					<td>1458</td>
-					<td>1418</td>
-					<td>1500</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>隧道名称</th>
+          <th>封装方式</th>
+          <th>预留开销</th>
+          <th>隧道MTU</th>
+          <th>MSS值</th>
+          <th>物理接口MTU</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>vpn-HN</td>
+          <td>ESP+NAT-T</td>
+          <td>64字节</td>
+          <td>1436</td>
+          <td>1396</td>
+          <td>1500</td>
+      </tr>
+      <tr>
+          <td>vpn-HD</td>
+          <td>ESP</td>
+          <td>42字节</td>
+          <td>1458</td>
+          <td>1418</td>
+          <td>1500</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>让每位运维工程师都能快速查阅和计算正确的MSS值。</p>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结

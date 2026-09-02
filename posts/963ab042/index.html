@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="一次服务健康检查设计Checklist：探活、依赖、就绪、优雅下线三件套">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次服务健康检查设计Checklist：探活、依赖、就绪、优雅下线三件套">
 <meta property='og:description' content="一次服务健康检查设计Checklist，系统性梳理探活、依赖、就绪、优雅下线四类检查的配置原则与常见陷阱。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/963ab042/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -458,45 +458,45 @@
 <h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
 </h2><h3 id="四类健康检查-checklist生产必配"><a href="#%e5%9b%9b%e7%b1%bb%e5%81%a5%e5%ba%b7%e6%a3%80%e6%9f%a5-checklist%e7%94%9f%e4%ba%a7%e5%bf%85%e9%85%8d" class="header-anchor"></a>四类健康检查 Checklist（生产必配）
 </h3><div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>检查类型</th>
-					<th>目的</th>
-					<th>推荐配置</th>
-					<th>常见陷阱</th>
-					<th>验证命令</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td><strong>Startup Probe</strong></td>
-					<td>防止启动慢应用被 liveness 误杀</td>
-					<td><code>failureThreshold: 30, periodSeconds: 5</code>（最多 150s）</td>
-					<td>initialDelay 写死</td>
-					<td><code>kubectl describe pod</code> 看 Started</td>
-			</tr>
-			<tr>
-					<td><strong>Liveness Probe</strong></td>
-					<td>杀死真正死掉的进程</td>
-					<td>只检查本地 JVM/进程存活，路径 <code>/livez</code>，不查依赖</td>
-					<td>查下游导致级联</td>
-					<td><code>curl -I http://localhost:8080/livez</code></td>
-			</tr>
-			<tr>
-					<td><strong>Readiness Probe</strong></td>
-					<td>决定是否接收流量</td>
-					<td>真实检查所有下游（DB、Redis、Kafka、订单服务）</td>
-					<td>readiness = liveness</td>
-					<td><code>kubectl get endpoints</code> 观察就绪数</td>
-			</tr>
-			<tr>
-					<td><strong>PreStop Hook</strong></td>
-					<td>优雅下线</td>
-					<td><code>sleep</code> 时长 ≥ JVM shutdown hook + 连接释放 + 负载均衡移除时间</td>
-					<td>固定 30s</td>
-					<td><code>kubectl logs</code> 看 shutdown hook 完成时间</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>检查类型</th>
+          <th>目的</th>
+          <th>推荐配置</th>
+          <th>常见陷阱</th>
+          <th>验证命令</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Startup Probe</strong></td>
+          <td>防止启动慢应用被 liveness 误杀</td>
+          <td><code>failureThreshold: 30, periodSeconds: 5</code>（最多 150s）</td>
+          <td>initialDelay 写死</td>
+          <td><code>kubectl describe pod</code> 看 Started</td>
+      </tr>
+      <tr>
+          <td><strong>Liveness Probe</strong></td>
+          <td>杀死真正死掉的进程</td>
+          <td>只检查本地 JVM/进程存活，路径 <code>/livez</code>，不查依赖</td>
+          <td>查下游导致级联</td>
+          <td><code>curl -I http://localhost:8080/livez</code></td>
+      </tr>
+      <tr>
+          <td><strong>Readiness Probe</strong></td>
+          <td>决定是否接收流量</td>
+          <td>真实检查所有下游（DB、Redis、Kafka、订单服务）</td>
+          <td>readiness = liveness</td>
+          <td><code>kubectl get endpoints</code> 观察就绪数</td>
+      </tr>
+      <tr>
+          <td><strong>PreStop Hook</strong></td>
+          <td>优雅下线</td>
+          <td><code>sleep</code> 时长 ≥ JVM shutdown hook + 连接释放 + 负载均衡移除时间</td>
+          <td>固定 30s</td>
+          <td><code>kubectl logs</code> 看 shutdown hook 完成时间</td>
+      </tr>
+  </tbody>
 </table></div>
 <h3 id="参考配置spring-boot--kubernetes"><a href="#%e5%8f%82%e8%80%83%e9%85%8d%e7%bd%aespring-boot--kubernetes" class="header-anchor"></a>参考配置（Spring Boot + Kubernetes）
 </h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">

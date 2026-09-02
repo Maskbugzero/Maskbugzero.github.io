@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="域控 NTP 时间源失效，全公司 Kerberos 为何大面积失败？">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="域控 NTP 时间源失效，全公司 Kerberos 为何大面积失败？">
 <meta property='og:description' content="域控 NTP 时间源失效引发全公司时间漂移，Kerberos 认证大面积失败，排查为上层时间服务器不可达，切换冗余时间源并校准后恢复。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/f78d7f76/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -844,30 +844,30 @@
 </h2><p>直接原因一目了然：域控 PDC 仿真器与外部 NTP 授时源失联 62 天，CMOS 硬件时钟漂移累积超过 Kerberos 5 分钟时钟偏差容忍阈值，导致 KDC 拒绝签发 TGT 票据。</p>
 <p>但深入拆解，这是一起由<strong>三个独立故障叠加</strong>引发的连锁事件：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>层级</th>
-					<th>故障点</th>
-					<th>描述</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>防火墙</td>
-					<td>安全策略收紧遗漏 NTP 协议</td>
-					<td>阻断 DC01 → 外部 NTP 源通信</td>
-			</tr>
-			<tr>
-					<td>配置</td>
-					<td>VMICTimeProvider 启用</td>
-					<td>虚拟化时间同步争抢 w32time 控制权</td>
-			</tr>
-			<tr>
-					<td>监控</td>
-					<td>时间偏差监控盲区</td>
-					<td>Zabbix 只做域内相对比对，无外部绝对基准</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>层级</th>
+          <th>故障点</th>
+          <th>描述</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>防火墙</td>
+          <td>安全策略收紧遗漏 NTP 协议</td>
+          <td>阻断 DC01 → 外部 NTP 源通信</td>
+      </tr>
+      <tr>
+          <td>配置</td>
+          <td>VMICTimeProvider 启用</td>
+          <td>虚拟化时间同步争抢 w32time 控制权</td>
+      </tr>
+      <tr>
+          <td>监控</td>
+          <td>时间偏差监控盲区</td>
+          <td>Zabbix 只做域内相对比对，无外部绝对基准</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>这三个组件构成了一个经典的故障&quot;瑞士奶酪模型&quot;——每一层都有空洞，恰好对齐时故障穿透。</p>
 <p>更深层的组织问题在于：安全团队更改防火墙策略的变更流程中，<strong>影响范围评估只关注了业务系统的服务端口（HTTP/HTTPS/DB），没有审视基础设施依赖的基础协议</strong>（NTP、SNMP、Syslog）。这是运维与安全职责边界模糊地带的一个典型案例。</p>
@@ -934,46 +934,46 @@
 <h3 id="63-防火墙变更预检清单"><a href="#63-%e9%98%b2%e7%81%ab%e5%a2%99%e5%8f%98%e6%9b%b4%e9%a2%84%e6%a3%80%e6%b8%85%e5%8d%95" class="header-anchor"></a>6.3 防火墙变更预检清单
 </h3><p>将以下基础设施协议纳入防火墙变更的<strong>强制影响范围评估清单</strong>：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>协议</th>
-					<th>端口</th>
-					<th>用途</th>
-					<th>受影响系统</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>NTP</td>
-					<td>123/UDP</td>
-					<td>时间同步</td>
-					<td>DC、网络设备、服务器</td>
-			</tr>
-			<tr>
-					<td>SNMP</td>
-					<td>161/UDP</td>
-					<td>设备监控</td>
-					<td>交换机、防火墙、UPS</td>
-			</tr>
-			<tr>
-					<td>Syslog</td>
-					<td>514/UDP</td>
-					<td>日志集中</td>
-					<td>网络设备、安全设备</td>
-			</tr>
-			<tr>
-					<td>LDAP</td>
-					<td>389/TCP</td>
-					<td>目录查询</td>
-					<td>所有域成员</td>
-			</tr>
-			<tr>
-					<td>Kerberos</td>
-					<td>88/TCP,UDP</td>
-					<td>域认证</td>
-					<td>所有域成员</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>协议</th>
+          <th>端口</th>
+          <th>用途</th>
+          <th>受影响系统</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>NTP</td>
+          <td>123/UDP</td>
+          <td>时间同步</td>
+          <td>DC、网络设备、服务器</td>
+      </tr>
+      <tr>
+          <td>SNMP</td>
+          <td>161/UDP</td>
+          <td>设备监控</td>
+          <td>交换机、防火墙、UPS</td>
+      </tr>
+      <tr>
+          <td>Syslog</td>
+          <td>514/UDP</td>
+          <td>日志集中</td>
+          <td>网络设备、安全设备</td>
+      </tr>
+      <tr>
+          <td>LDAP</td>
+          <td>389/TCP</td>
+          <td>目录查询</td>
+          <td>所有域成员</td>
+      </tr>
+      <tr>
+          <td>Kerberos</td>
+          <td>88/TCP,UDP</td>
+          <td>域认证</td>
+          <td>所有域成员</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>任何变更只要触碰到 <code>DENY ALL</code> 前面规则的白名单范围，必须对照此清单逐项确认。</p>
 <h3 id="64-域控健康基线巡检脚本"><a href="#64-%e5%9f%9f%e6%8e%a7%e5%81%a5%e5%ba%b7%e5%9f%ba%e7%ba%bf%e5%b7%a1%e6%a3%80%e8%84%9a%e6%9c%ac" class="header-anchor"></a>6.4 域控健康基线巡检脚本

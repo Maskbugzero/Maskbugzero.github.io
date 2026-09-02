@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh" dir="ltr">
     <head>
-	<meta name="generator" content="Hugo 0.165.0"><meta charset='utf-8'>
+	<meta name="generator" content="Hugo 0.160.0"><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Life Oriented Programming">
 <title>Zero Day Notes</title>
 
@@ -13,11 +13,11 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="Zero Day Notes">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Zero Day Notes">
 <meta property='og:description' content="Life Oriented Programming">
 <meta property='og:url' content='https://blog.5772447.xyz/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='website'><meta property='og:updated_time' content=' 2026-09-02T00:00:00&#43;00:00 '/>
+<meta property='og:type' content='website'><meta property='og:updated_time' content=' 2026-09-02T07:00:00&#43;08:00 '/>
 <meta name="twitter:title" content="Zero Day Notes">
 <meta name="twitter:description" content="Life Oriented Programming"><link rel="alternate" type="application/rss&#43;xml" href="https://blog.5772447.xyz/index.xml">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -445,8 +445,8 @@
             
             
             
-            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
-                安全运维
+            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
+                网络运维
             </a>
         
     </header>
@@ -454,12 +454,12 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/4dd61a4e/">记一次 K8s 默认 ServiceAccount Token 自动挂载引发的横向权限泄露排查</a>
+            <a href="/posts/f11611fb/">记一次跨机房 IPSec VPN 大包分片黑洞导致应用超时但小包正常的排查实录</a>
         </h2>
     
         
         <h3 class="article-subtitle">
-            一次因 default ServiceAccount Token 自动挂载导致权限泄露的真实排查记录，涵盖 Token 发现、权限枚举、横向移动路径与最终加固。
+            机房搬迁后跨机房 IPSec VPN 大包分片黑洞，应用小包正常但大包超时，PMTUD 黑洞 &#43; MSS 钳制缺失导致。
         </h3>
         
     </div>
@@ -484,7 +484,7 @@
   <path d="M3 11h16" />
   <path d="M18 16.496v1.504l1 1" />
 </svg>
-                    <time class="article-time--published" datetime='2026-09-02T00:00:00Z'>2026年9月2日星期三</time>
+                    <time class="article-time--published" datetime='2026-09-02T07:00:00&#43;08:00'>2026年9月2日星期三</time>
                 
 
                 
@@ -505,6 +505,30 @@
 
         
 
+        
+            <div class="article-tags inline-meta">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                    <a href="/tags/ipsec/" class="link">IPSec</a>
+                
+                    <a href="/tags/mtu/" class="link">MTU</a>
+                
+                    <a href="/tags/pmtud/" class="link">PMTUD</a>
+                
+                    <a href="/tags/%E5%88%86%E7%89%87%E9%BB%91%E6%B4%9E/" class="link">分片黑洞</a>
+                
+                    <a href="/tags/%E6%9C%BA%E6%88%BF%E6%90%AC%E8%BF%81/" class="link">机房搬迁</a>
+                
+                    <a href="/tags/vpn/" class="link">VPN</a>
+                
+            </div>
         
     </footer>
     

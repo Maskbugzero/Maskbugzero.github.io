@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="组策略共享权限配错致全公司无法访问共享文件夹">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="组策略共享权限配错致全公司无法访问共享文件夹">
 <meta property='og:description' content="组策略中SMB共享权限与NTFS权限叠加冲突，导致全公司共享文件夹访问全部报拒绝访问错误的全流程排查">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/ac8933af/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -451,46 +451,46 @@
 </h2><h3 id="第一步确认故障范围与影响面"><a href="#%e7%ac%ac%e4%b8%80%e6%ad%a5%e7%a1%ae%e8%ae%a4%e6%95%85%e9%9a%9c%e8%8c%83%e5%9b%b4%e4%b8%8e%e5%bd%b1%e5%93%8d%e9%9d%a2" class="header-anchor"></a>第一步：确认故障范围与影响面
 </h3><p>我首先在多台终端上测试不同的共享路径，结果如下：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>共享名称</th>
-					<th>管理员账号</th>
-					<th>普通用户账号</th>
-					<th>结果</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>财务报表</td>
-					<td>可访问</td>
-					<td>拒绝访问</td>
-					<td>管理员正常</td>
-			</tr>
-			<tr>
-					<td>人事档案</td>
-					<td>可访问</td>
-					<td>拒绝访问</td>
-					<td>管理员正常</td>
-			</tr>
-			<tr>
-					<td>项目文档</td>
-					<td>可访问</td>
-					<td>拒绝访问</td>
-					<td>管理员正常</td>
-			</tr>
-			<tr>
-					<td>IT工具库</td>
-					<td>可访问</td>
-					<td>拒绝访问</td>
-					<td>管理员正常</td>
-			</tr>
-			<tr>
-					<td>Public模板</td>
-					<td>可访问</td>
-					<td>拒绝访问</td>
-					<td>管理员正常</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>共享名称</th>
+          <th>管理员账号</th>
+          <th>普通用户账号</th>
+          <th>结果</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>财务报表</td>
+          <td>可访问</td>
+          <td>拒绝访问</td>
+          <td>管理员正常</td>
+      </tr>
+      <tr>
+          <td>人事档案</td>
+          <td>可访问</td>
+          <td>拒绝访问</td>
+          <td>管理员正常</td>
+      </tr>
+      <tr>
+          <td>项目文档</td>
+          <td>可访问</td>
+          <td>拒绝访问</td>
+          <td>管理员正常</td>
+      </tr>
+      <tr>
+          <td>IT工具库</td>
+          <td>可访问</td>
+          <td>拒绝访问</td>
+          <td>管理员正常</td>
+      </tr>
+      <tr>
+          <td>Public模板</td>
+          <td>可访问</td>
+          <td>拒绝访问</td>
+          <td>管理员正常</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>管理员账号（Domain Admins）全部正常，普通用户全部被拒。这初步排除NTFS权限问题——如果NTFS权限出问题，管理员也可能受阻。问题指向**共享权限（Share Permission）**层面。</p>
 <h3 id="第二步检查服务器共享权限配置"><a href="#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e6%a3%80%e6%9f%a5%e6%9c%8d%e5%8a%a1%e5%99%a8%e5%85%b1%e4%ba%ab%e6%9d%83%e9%99%90%e9%85%8d%e7%bd%ae" class="header-anchor"></a>第二步：检查服务器共享权限配置

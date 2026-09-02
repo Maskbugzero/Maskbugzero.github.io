@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="记一次跨机房链路变更验收Checklist的落地：连通矩阵、回程路由与MTU三道关">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次跨机房链路变更验收Checklist的落地：连通矩阵、回程路由与MTU三道关">
 <meta property='og:description' content="跨机房链路变更只验 ping 通不够；用连通矩阵、回程与 MTU 三道关 Checklist 堵住半通与晚高峰回填。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/7c686262/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -410,52 +410,52 @@
 <h3 id="2-第一道关连通矩阵比单点-ping-重要"><a href="#2-%e7%ac%ac%e4%b8%80%e9%81%93%e5%85%b3%e8%bf%9e%e9%80%9a%e7%9f%a9%e9%98%b5%e6%af%94%e5%8d%95%e7%82%b9-ping-%e9%87%8d%e8%a6%81" class="header-anchor"></a>2. 第一道关：连通矩阵（比单点 ping 重要）
 </h3><p>列出跨机房真实流量，而不是只测运维跳板机：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>源区域</th>
-					<th>目标区域</th>
-					<th>代表流量</th>
-					<th>协议/端口</th>
-					<th>期望</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>A 应用区</td>
-					<td>B 数据库区</td>
-					<td>业务读写</td>
-					<td>TCP 业务端口</td>
-					<td>双向可建连</td>
-			</tr>
-			<tr>
-					<td>B 应用区</td>
-					<td>A API 网关</td>
-					<td>回调/Webhook</td>
-					<td>TCP 443/业务口</td>
-					<td><strong>反向同样要通</strong></td>
-			</tr>
-			<tr>
-					<td>A 备份网</td>
-					<td>B 对象存储/NAS</td>
-					<td>备份复制</td>
-					<td>TCP/NFS/专用口</td>
-					<td>持续大流量稳定</td>
-			</tr>
-			<tr>
-					<td>监控区</td>
-					<td>两端主机</td>
-					<td>探针/exporter</td>
-					<td>ICMP+TCP</td>
-					<td>对称可达</td>
-			</tr>
-			<tr>
-					<td>办公运维</td>
-					<td>两端堡垒/带外</td>
-					<td>运维通道</td>
-					<td>SSH/RDP/HTTPS</td>
-					<td>变更中不中断</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>源区域</th>
+          <th>目标区域</th>
+          <th>代表流量</th>
+          <th>协议/端口</th>
+          <th>期望</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>A 应用区</td>
+          <td>B 数据库区</td>
+          <td>业务读写</td>
+          <td>TCP 业务端口</td>
+          <td>双向可建连</td>
+      </tr>
+      <tr>
+          <td>B 应用区</td>
+          <td>A API 网关</td>
+          <td>回调/Webhook</td>
+          <td>TCP 443/业务口</td>
+          <td><strong>反向同样要通</strong></td>
+      </tr>
+      <tr>
+          <td>A 备份网</td>
+          <td>B 对象存储/NAS</td>
+          <td>备份复制</td>
+          <td>TCP/NFS/专用口</td>
+          <td>持续大流量稳定</td>
+      </tr>
+      <tr>
+          <td>监控区</td>
+          <td>两端主机</td>
+          <td>探针/exporter</td>
+          <td>ICMP+TCP</td>
+          <td>对称可达</td>
+      </tr>
+      <tr>
+          <td>办公运维</td>
+          <td>两端堡垒/带外</td>
+          <td>运维通道</td>
+          <td>SSH/RDP/HTTPS</td>
+          <td>变更中不中断</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>执行要求：</p>
 <ul>
@@ -502,34 +502,34 @@
 </ul>
 <h3 id="6-清单落地时的分工与门禁"><a href="#6-%e6%b8%85%e5%8d%95%e8%90%bd%e5%9c%b0%e6%97%b6%e7%9a%84%e5%88%86%e5%b7%a5%e4%b8%8e%e9%97%a8%e7%a6%81" class="header-anchor"></a>6. 清单落地时的分工与门禁
 </h3><div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>角色</th>
-					<th>职责</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>变更执行</td>
-					<td>按变更单改配置，输出前后 diff</td>
-			</tr>
-			<tr>
-					<td>网络值班</td>
-					<td>跑连通矩阵与 traceroute，填写路径记录</td>
-			</tr>
-			<tr>
-					<td>业务代表</td>
-					<td>对关键交易/同步链路做真实拨测</td>
-			</tr>
-			<tr>
-					<td>安全/防火墙</td>
-					<td>确认策略与会话、ICMP 差错、NAT</td>
-			</tr>
-			<tr>
-					<td>变更经理</td>
-					<td>三道关全部勾选后才允许「初步完成」</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>角色</th>
+          <th>职责</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>变更执行</td>
+          <td>按变更单改配置，输出前后 diff</td>
+      </tr>
+      <tr>
+          <td>网络值班</td>
+          <td>跑连通矩阵与 traceroute，填写路径记录</td>
+      </tr>
+      <tr>
+          <td>业务代表</td>
+          <td>对关键交易/同步链路做真实拨测</td>
+      </tr>
+      <tr>
+          <td>安全/防火墙</td>
+          <td>确认策略与会话、ICMP 差错、NAT</td>
+      </tr>
+      <tr>
+          <td>变更经理</td>
+          <td>三道关全部勾选后才允许「初步完成」</td>
+      </tr>
+  </tbody>
 </table></div>
 <p><strong>门禁规则</strong>：任一关未通过 → 不得关闭变更单；可暂时业务放行但必须保持旧链路可秒级回退，并升级为 P1 跟踪。</p>
 <h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案

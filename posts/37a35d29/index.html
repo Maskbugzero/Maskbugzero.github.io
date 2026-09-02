@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.254d7e016571351f8c8cba50023af616229569c622878587022f845829276d2e.css"><meta property='og:title' content="堵住NTLM中继：一次LLMNR投毒导致域管理员凭据被窃的排查与加固">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="堵住NTLM中继：一次LLMNR投毒导致域管理员凭据被窃的排查与加固">
 <meta property='og:description' content="内网 LLMNR/NBT-NS 投毒配合 NTLM 中继，域管会话被窃后横向提权；关闭广播名解析并强制 SMB 签名收口。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/37a35d29/'>
 <meta property='og:site_name' content='Zero Day Notes'>
@@ -426,40 +426,40 @@
 <h3 id="5-配置基线对账为何中继能成"><a href="#5-%e9%85%8d%e7%bd%ae%e5%9f%ba%e7%ba%bf%e5%af%b9%e8%b4%a6%e4%b8%ba%e4%bd%95%e4%b8%ad%e7%bb%a7%e8%83%bd%e6%88%90" class="header-anchor"></a>5. 配置基线对账：为何中继「能成」
 </h3><p>对照微软与 CIS 加固项：</p>
 <div class="table-wrapper"><table>
-	<thead>
-			<tr>
-					<th>检查项</th>
-					<th>期望</th>
-					<th>现场</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>客户端 LLMNR</td>
-					<td>通过策略禁用</td>
-					<td>未配置，默认开启</td>
-			</tr>
-			<tr>
-					<td>NetBIOS over TCP/IP</td>
-					<td>禁用或按需</td>
-					<td>DHCP 选项未关，多数网卡启用</td>
-			</tr>
-			<tr>
-					<td>微软网络服务器：对通信进行数字签名</td>
-					<td>始终</td>
-					<td>未定义/仅客户端</td>
-			</tr>
-			<tr>
-					<td>LDAP 签名 / 通道绑定</td>
-					<td>要求</td>
-					<td>未强制</td>
-			</tr>
-			<tr>
-					<td>高权限账号可登录工作站</td>
-					<td>严控</td>
-					<td>域管可在普通办公机交互登录</td>
-			</tr>
-	</tbody>
+  <thead>
+      <tr>
+          <th>检查项</th>
+          <th>期望</th>
+          <th>现场</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>客户端 LLMNR</td>
+          <td>通过策略禁用</td>
+          <td>未配置，默认开启</td>
+      </tr>
+      <tr>
+          <td>NetBIOS over TCP/IP</td>
+          <td>禁用或按需</td>
+          <td>DHCP 选项未关，多数网卡启用</td>
+      </tr>
+      <tr>
+          <td>微软网络服务器：对通信进行数字签名</td>
+          <td>始终</td>
+          <td>未定义/仅客户端</td>
+      </tr>
+      <tr>
+          <td>LDAP 签名 / 通道绑定</td>
+          <td>要求</td>
+          <td>未强制</td>
+      </tr>
+      <tr>
+          <td>高权限账号可登录工作站</td>
+          <td>严控</td>
+          <td>域管可在普通办公机交互登录</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>结论清晰：<strong>投毒提供「诱饵入口」，未强制签名提供「中继落地跑道」，高权限账号日常上网提供「高价值票据」。</strong> 三者缺一，这次事件都不会走到域管会话被兑现。</p>
 <h3 id="6-横向与持久化清点"><a href="#6-%e6%a8%aa%e5%90%91%e4%b8%8e%e6%8c%81%e4%b9%85%e5%8c%96%e6%b8%85%e7%82%b9" class="header-anchor"></a>6. 横向与持久化清点
