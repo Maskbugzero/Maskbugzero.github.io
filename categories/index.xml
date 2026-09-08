@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
     <channel>
-        <title>Categories on Zero Day Notes</title>
+        <title>分类 on Zero Day Notes</title>
         <link>https://blog.5772447.xyz/categories/</link>
-        <description>Recent content in Categories on Zero Day Notes</description>
+        <description>Recent content in 分类 on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Wed, 02 Sep 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/categories/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Tue, 08 Sep 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/categories/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>服务运维</title>
+            <link>https://blog.5772447.xyz/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/</link>
+            <pubDate>Tue, 08 Sep 2026 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/</guid>
+            <description></description>
+        </item><item>
             <title>网络运维</title>
             <link>https://blog.5772447.xyz/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/</link>
             <pubDate>Wed, 02 Sep 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/</guid>
-            <description></description>
-        </item><item>
-            <title>服务运维</title>
-            <link>https://blog.5772447.xyz/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/</link>
-            <pubDate>Tue, 01 Sep 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/</guid>
             <description></description>
         </item><item>
             <title>安全运维</title>
