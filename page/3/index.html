@@ -17,7 +17,7 @@
 <meta property='og:description' content="Life Oriented Programming">
 <meta property='og:url' content='https://blog.5772447.xyz/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='website'><meta property='og:updated_time' content=' 2026-09-11T07:00:00&#43;08:00 '/>
+<meta property='og:type' content='website'><meta property='og:updated_time' content=' 2026-09-12T00:00:00&#43;00:00 '/>
 <meta name="twitter:title" content="Zero Day Notes">
 <meta name="twitter:description" content="Life Oriented Programming"><link rel="alternate" type="application/rss&#43;xml" href="https://blog.5772447.xyz/index.xml"><link rel="alternate" type="application/json" href="https://blog.5772447.xyz/index.json">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -245,7 +245,7 @@
                     <a href="/page/archives/#2026">
                         
                             <span class="year">2026</span>
-                            <span class="count">81</span>
+                            <span class="count">41</span>
                         
                     </a> 
                 </div>
@@ -253,7 +253,7 @@
                     <a href="/page/archives/#2025">
                         
                             <span class="year">2025</span>
-                            <span class="count">17</span>
+                            <span class="count">20</span>
                         
                     </a> 
                 </div>
@@ -261,7 +261,7 @@
                     <a href="/page/archives/#2024">
                         
                             <span class="year">2024</span>
-                            <span class="count">16</span>
+                            <span class="count">20</span>
                         
                     </a> 
                 </div>
@@ -277,7 +277,7 @@
                     <a href="/page/archives/#2022">
                         
                             <span class="year">2022</span>
-                            <span class="count">3</span>
+                            <span class="count">15</span>
                         
                     </a> 
                 </div>
@@ -452,8 +452,8 @@
             
             
             
-            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
-                网络运维
+            <a href="/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" style="background-color: hsl(195, 60%, 84%); color: hsl(195, 60%, 15%);">
+                桌面运维
             </a>
         
     </header>
@@ -461,12 +461,12 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/5453de23/">记一次机房搬迁网络割接后跨机房业务单向可达的排查</a>
+            <a href="/posts/e94be3fc/">一次 Windows 11 24H2 强制 SMB 签名导致老旧 NAS 与共享设备无法访问的排查实录</a>
         </h2>
     
         
         <h3 class="article-subtitle">
-            机房搬迁割接后 A 访 B 通、B 回 A 不通，根因是静态路由与回程策略路由未同步导致非对称路径
+            新装 Win11 24H2 无法访问群晖 NAS 与网络扫描仪共享目录，根因是微软强制开启 SMB 客户端签名，老设备握手被拒。
         </h3>
         
     </div>
@@ -491,743 +491,7 @@
   <path d="M3 11h16" />
   <path d="M18 16.496v1.504l1 1" />
 </svg>
-                    <time class="article-time--published" datetime='2026-08-09T07:05:00&#43;08:00'>2026年8月9日星期日</time>
-                
-
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <circle cx="12" cy="12" r="9" />
-  <polyline points="12 7 12 12 15 15" />
-</svg>
-
-
-
-                    <time class="article-time--reading">
-                        阅读时长: 7 分钟
-                    </time>
-                
-            </div>
-        
-
-        
-
-        
-    </footer>
-    
-</div>
-
-</header>
-</article>
-        
-            
-<article class="">
-    <header class="article-header">
-
-    <div class="article-details">
-    
-    <header class="article-category">
-        
-            
-            
-            
-            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
-                运维
-            </a>
-        
-            
-            
-            
-            <a href="/categories/%E8%B7%AF%E7%94%B1%E5%99%A8/" style="background-color: hsl(353, 60%, 84%); color: hsl(353, 60%, 15%);">
-                路由器
-            </a>
-        
-    </header>
-    
-
-    <div class="article-title-wrapper">
-        <h2 class="article-title">
-            <a href="/posts/66ccc411/">OpenWrt旁路由升级后内网专线业务为何全断？一次firewall4默认策略变更的排查实录</a>
-        </h2>
-    
-        
-        <h3 class="article-subtitle">
-            OpenWrt 从 firewall3 升到 firewall4 后，旁路由 FORWARD 默认策略变 DROP，专线回程与东向访问被静默丢弃。
-        </h3>
-        
-    </div>
-
-    
-    
-    
-    
-    
-    
-    
-    <footer class="article-meta">
-        
-            <div class="inline-meta">
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
-  <circle cx="18" cy="18" r="4" />
-  <path d="M15 3v4" />
-  <path d="M7 3v4" />
-  <path d="M3 11h16" />
-  <path d="M18 16.496v1.504l1 1" />
-</svg>
-                    <time class="article-time--published" datetime='2026-08-08T07:00:00&#43;08:00'>2026年8月8日星期六</time>
-                
-
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <circle cx="12" cy="12" r="9" />
-  <polyline points="12 7 12 12 15 15" />
-</svg>
-
-
-
-                    <time class="article-time--reading">
-                        阅读时长: 6 分钟
-                    </time>
-                
-            </div>
-        
-
-        
-
-        
-            <div class="article-tags inline-meta">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
-  <circle cx="9" cy="9" r="2" />
-</svg>
-
-
-
-                
-                    <a href="/tags/openwrt/" class="link">OpenWrt</a>
-                
-                    <a href="/tags/firewall4/" class="link">Firewall4</a>
-                
-                    <a href="/tags/nftables/" class="link">Nftables</a>
-                
-                    <a href="/tags/%E6%97%81%E8%B7%AF%E7%94%B1/" class="link">旁路由</a>
-                
-                    <a href="/tags/%E9%BB%98%E8%AE%A4%E7%AD%96%E7%95%A5/" class="link">默认策略</a>
-                
-                    <a href="/tags/forward/" class="link">FORWARD</a>
-                
-                    <a href="/tags/%E8%BD%AF%E8%B7%AF%E7%94%B1/" class="link">软路由</a>
-                
-                    <a href="/tags/%E7%AD%96%E7%95%A5%E6%BC%82%E7%A7%BB/" class="link">策略漂移</a>
-                
-            </div>
-        
-    </footer>
-    
-</div>
-
-</header>
-</article>
-        
-            
-<article class="">
-    <header class="article-header">
-
-    <div class="article-details">
-    
-    <header class="article-category">
-        
-            
-            
-            
-            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
-                运维
-            </a>
-        
-            
-            
-            
-            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
-                安全运维
-            </a>
-        
-    </header>
-    
-
-    <div class="article-title-wrapper">
-        <h2 class="article-title">
-            <a href="/posts/83bf4e7f/">一次服务器暴露面收敛Checklist：从端口扫描到凭据治理的落地清单</a>
-        </h2>
-    
-        
-        <h3 class="article-subtitle">
-            把暴露面收敛拆成资产盘点、端口收敛、身份凭据、云侧边界、持续扫描五步 Checklist，避免公网裸奔与密钥外泄再发生。
-        </h3>
-        
-    </div>
-
-    
-    
-    
-    
-    
-    
-    
-    <footer class="article-meta">
-        
-            <div class="inline-meta">
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
-  <circle cx="18" cy="18" r="4" />
-  <path d="M15 3v4" />
-  <path d="M7 3v4" />
-  <path d="M3 11h16" />
-  <path d="M18 16.496v1.504l1 1" />
-</svg>
-                    <time class="article-time--published" datetime='2026-08-07T07:00:00&#43;08:00'>2026年8月7日星期五</time>
-                
-
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <circle cx="12" cy="12" r="9" />
-  <polyline points="12 7 12 12 15 15" />
-</svg>
-
-
-
-                    <time class="article-time--reading">
-                        阅读时长: 9 分钟
-                    </time>
-                
-            </div>
-        
-
-        
-
-        
-            <div class="article-tags inline-meta">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
-  <circle cx="9" cy="9" r="2" />
-</svg>
-
-
-
-                
-                    <a href="/tags/%E6%9A%B4%E9%9C%B2%E9%9D%A2%E6%94%B6%E6%95%9B/" class="link">暴露面收敛</a>
-                
-                    <a href="/tags/checklist/" class="link">Checklist</a>
-                
-                    <a href="/tags/%E7%AB%AF%E5%8F%A3%E6%89%AB%E6%8F%8F/" class="link">端口扫描</a>
-                
-                    <a href="/tags/%E5%AE%89%E5%85%A8%E7%BB%84/" class="link">安全组</a>
-                
-                    <a href="/tags/%E5%87%AD%E6%8D%AE%E6%B2%BB%E7%90%86/" class="link">凭据治理</a>
-                
-                    <a href="/tags/%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90/" class="link">最小权限</a>
-                
-                    <a href="/tags/%E8%B5%84%E4%BA%A7%E7%9B%98%E7%82%B9/" class="link">资产盘点</a>
-                
-                    <a href="/tags/%E4%B8%BB%E6%9C%BA%E5%8A%A0%E5%9B%BA/" class="link">主机加固</a>
-                
-            </div>
-        
-    </footer>
-    
-</div>
-
-</header>
-</article>
-        
-            
-<article class="">
-    <header class="article-header">
-
-    <div class="article-details">
-    
-    <header class="article-category">
-        
-            
-            
-            
-            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
-                运维
-            </a>
-        
-            
-            
-            
-            <a href="/categories/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(274, 60%, 84%); color: hsl(274, 60%, 15%);">
-                容器运维
-            </a>
-        
-    </header>
-    
-
-    <div class="article-title-wrapper">
-        <h2 class="article-title">
-            <a href="/posts/366a6499/">收紧 NetworkPolicy：一次误配导致集群内服务全隔离的排查与回退</a>
-        </h2>
-    
-        
-        <h3 class="article-subtitle">
-            命名空间 default-deny 一开、白名单漏写，集群内 HTTP 全断；靠同源测试与事件日志定位，5 分钟回退止血。
-        </h3>
-        
-    </div>
-
-    
-    
-    
-    
-    
-    
-    
-    <footer class="article-meta">
-        
-            <div class="inline-meta">
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
-  <circle cx="18" cy="18" r="4" />
-  <path d="M15 3v4" />
-  <path d="M7 3v4" />
-  <path d="M3 11h16" />
-  <path d="M18 16.496v1.504l1 1" />
-</svg>
-                    <time class="article-time--published" datetime='2026-08-06T07:00:00&#43;08:00'>2026年8月6日星期四</time>
-                
-
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <circle cx="12" cy="12" r="9" />
-  <polyline points="12 7 12 12 15 15" />
-</svg>
-
-
-
-                    <time class="article-time--reading">
-                        阅读时长: 6 分钟
-                    </time>
-                
-            </div>
-        
-
-        
-
-        
-    </footer>
-    
-</div>
-
-</header>
-</article>
-        
-            
-<article class="">
-    <header class="article-header">
-
-    <div class="article-details">
-    
-    <header class="article-category">
-        
-            
-            
-            
-            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
-                运维
-            </a>
-        
-            
-            
-            
-            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
-                安全运维
-            </a>
-        
-    </header>
-    
-
-    <div class="article-title-wrapper">
-        <h2 class="article-title">
-            <a href="/posts/e10fe42a/">记一次云账号 AccessKey 泄露导致云上资源被恶意开机挖矿的溯源与处置</a>
-        </h2>
-    
-        
-        <h3 class="article-subtitle">
-            实习生把硬编码 AccessKey 的脚本推上公开仓库，11 分钟后被扫描机器人捡走，攻击者在多地域批量开高配实例挖矿，账单一夜暴涨。
-        </h3>
-        
-    </div>
-
-    
-    
-    
-    
-    
-    
-    
-    <footer class="article-meta">
-        
-            <div class="inline-meta">
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
-  <circle cx="18" cy="18" r="4" />
-  <path d="M15 3v4" />
-  <path d="M7 3v4" />
-  <path d="M3 11h16" />
-  <path d="M18 16.496v1.504l1 1" />
-</svg>
-                    <time class="article-time--published" datetime='2026-08-05T00:00:00Z'>2026年8月5日星期三</time>
-                
-
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <circle cx="12" cy="12" r="9" />
-  <polyline points="12 7 12 12 15 15" />
-</svg>
-
-
-
-                    <time class="article-time--reading">
-                        阅读时长: 7 分钟
-                    </time>
-                
-            </div>
-        
-
-        
-
-        
-            <div class="article-tags inline-meta">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
-  <circle cx="9" cy="9" r="2" />
-</svg>
-
-
-
-                
-                    <a href="/tags/accesskey%E6%B3%84%E9%9C%B2/" class="link">AccessKey泄露</a>
-                
-                    <a href="/tags/%E5%AF%86%E9%92%A5%E7%A1%AC%E7%BC%96%E7%A0%81/" class="link">密钥硬编码</a>
-                
-                    <a href="/tags/%E4%BA%91%E5%AE%89%E5%85%A8/" class="link">云安全</a>
-                
-                    <a href="/tags/%E6%93%8D%E4%BD%9C%E5%AE%A1%E8%AE%A1/" class="link">操作审计</a>
-                
-                    <a href="/tags/ram%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90/" class="link">RAM最小权限</a>
-                
-                    <a href="/tags/gitleaks/" class="link">Gitleaks</a>
-                
-                    <a href="/tags/%E5%BA%94%E6%80%A5%E5%93%8D%E5%BA%94/" class="link">应急响应</a>
-                
-            </div>
-        
-    </footer>
-    
-</div>
-
-</header>
-</article>
-        
-            
-<article class="">
-    <header class="article-header">
-
-    <div class="article-details">
-    
-    <header class="article-category">
-        
-            
-            
-            
-            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
-                运维
-            </a>
-        
-            
-            
-            
-            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
-                网络运维
-            </a>
-        
-    </header>
-    
-
-    <div class="article-title-wrapper">
-        <h2 class="article-title">
-            <a href="/posts/da7616e2/">核心路由器 OSPF 邻居为何频繁 Flap？一次全网路由震荡的排查记录</a>
-        </h2>
-    
-        
-        <h3 class="article-subtitle">
-            核心三层交换机 OSPF 邻居频繁 Flap 导致全网路由表震荡，BGP 也受影响；根因是相邻设备 Hello/Dead timer 不一致 &#43; passive-interface 误配 &#43; 区域类型漂移，三层配置失配在 90 秒内触发雪崩。
-        </h3>
-        
-    </div>
-
-    
-    
-    
-    
-    
-    
-    
-    <footer class="article-meta">
-        
-            <div class="inline-meta">
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
-  <circle cx="18" cy="18" r="4" />
-  <path d="M15 3v4" />
-  <path d="M7 3v4" />
-  <path d="M3 11h16" />
-  <path d="M18 16.496v1.504l1 1" />
-</svg>
-                    <time class="article-time--published" datetime='2026-08-04T00:00:00Z'>2026年8月4日星期二</time>
-                
-
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <circle cx="12" cy="12" r="9" />
-  <polyline points="12 7 12 12 15 15" />
-</svg>
-
-
-
-                    <time class="article-time--reading">
-                        阅读时长: 3 分钟
-                    </time>
-                
-            </div>
-        
-
-        
-
-        
-            <div class="article-tags inline-meta">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
-  <circle cx="9" cy="9" r="2" />
-</svg>
-
-
-
-                
-                    <a href="/tags/ospf/" class="link">OSPF</a>
-                
-                    <a href="/tags/%E8%B7%AF%E7%94%B1%E9%9C%87%E8%8D%A1/" class="link">路由震荡</a>
-                
-                    <a href="/tags/flapping/" class="link">Flapping</a>
-                
-                    <a href="/tags/hello-timer/" class="link">Hello Timer</a>
-                
-                    <a href="/tags/dead-timer/" class="link">Dead Timer</a>
-                
-                    <a href="/tags/passive-interface/" class="link">Passive-Interface</a>
-                
-                    <a href="/tags/%E7%BD%91%E7%BB%9C%E6%8E%92%E9%9A%9C/" class="link">网络排障</a>
-                
-            </div>
-        
-    </footer>
-    
-</div>
-
-</header>
-</article>
-        
-            
-<article class="">
-    <header class="article-header">
-
-    <div class="article-details">
-    
-    <header class="article-category">
-        
-            
-            
-            
-            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
-                运维
-            </a>
-        
-            
-            
-            
-            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
-                服务运维
-            </a>
-        
-    </header>
-    
-
-    <div class="article-title-wrapper">
-        <h2 class="article-title">
-            <a href="/posts/963ab042/">一次服务健康检查设计Checklist：探活、依赖、就绪、优雅下线三件套</a>
-        </h2>
-    
-        
-        <h3 class="article-subtitle">
-            一次服务健康检查设计Checklist，系统性梳理探活、依赖、就绪、优雅下线四类检查的配置原则与常见陷阱。
-        </h3>
-        
-    </div>
-
-    
-    
-    
-    
-    
-    
-    
-    <footer class="article-meta">
-        
-            <div class="inline-meta">
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
-  <circle cx="18" cy="18" r="4" />
-  <path d="M15 3v4" />
-  <path d="M7 3v4" />
-  <path d="M3 11h16" />
-  <path d="M18 16.496v1.504l1 1" />
-</svg>
-                    <time class="article-time--published" datetime='2026-08-03T07:00:00&#43;08:00'>2026年8月3日星期一</time>
-                
-
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <circle cx="12" cy="12" r="9" />
-  <polyline points="12 7 12 12 15 15" />
-</svg>
-
-
-
-                    <time class="article-time--reading">
-                        阅读时长: 4 分钟
-                    </time>
-                
-            </div>
-        
-
-        
-
-        
-            <div class="article-tags inline-meta">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
-  <circle cx="9" cy="9" r="2" />
-</svg>
-
-
-
-                
-                    <a href="/tags/%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5/" class="link">健康检查</a>
-                
-                    <a href="/tags/%E6%8E%A2%E6%B4%BB/" class="link">探活</a>
-                
-                    <a href="/tags/%E4%BC%98%E9%9B%85%E4%B8%8B%E7%BA%BF/" class="link">优雅下线</a>
-                
-                    <a href="/tags/%E4%BE%9D%E8%B5%96%E5%B0%B1%E7%BB%AA/" class="link">依赖就绪</a>
-                
-                    <a href="/tags/checklist/" class="link">Checklist</a>
-                
-                    <a href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" class="link">微服务</a>
-                
-                    <a href="/tags/kubernetes/" class="link">Kubernetes</a>
-                
-            </div>
-        
-    </footer>
-    
-</div>
-
-</header>
-</article>
-        
-            
-<article class="">
-    <header class="article-header">
-
-    <div class="article-details">
-    
-    <header class="article-category">
-        
-            
-            
-            
-            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
-                运维
-            </a>
-        
-            
-            
-            
-            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
-                服务运维
-            </a>
-        
-    </header>
-    
-
-    <div class="article-title-wrapper">
-        <h2 class="article-title">
-            <a href="/posts/b38ac0b7/">一次 Linux 磁盘疑难排查方法论：df/du 不一致、幽灵文件、inode 耗尽四步定位法</a>
-        </h2>
-    
-        
-        <h3 class="article-subtitle">
-            系统性整理 Linux 磁盘空间与 inode 排查的四步方法论，涵盖 df/du 不一致、已删除文件句柄、幽灵文件、inode 耗尽、日志轮转失效等真实场景，并给出止血与根治 Checklist。
-        </h3>
-        
-    </div>
-
-    
-    
-    
-    
-    
-    
-    
-    <footer class="article-meta">
-        
-            <div class="inline-meta">
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
-  <circle cx="18" cy="18" r="4" />
-  <path d="M15 3v4" />
-  <path d="M7 3v4" />
-  <path d="M3 11h16" />
-  <path d="M18 16.496v1.504l1 1" />
-</svg>
-                    <time class="article-time--published" datetime='2026-08-03T07:00:00&#43;08:00'>2026年8月3日星期一</time>
+                    <time class="article-time--published" datetime='2026-07-09T07:00:00Z'>2026年7月9日星期四</time>
                 
 
                 
@@ -1259,19 +523,553 @@
 
 
                 
-                    <a href="/tags/linux/" class="link">Linux</a>
+                    <a href="/tags/smb/" class="link">SMB</a>
                 
-                    <a href="/tags/%E7%A3%81%E7%9B%98%E6%8E%92%E6%9F%A5/" class="link">磁盘排查</a>
+                    <a href="/tags/windows-11/" class="link">Windows 11</a>
                 
-                    <a href="/tags/df-du-%E4%B8%8D%E4%B8%80%E8%87%B4/" class="link">Df Du 不一致</a>
+                    <a href="/tags/24h2/" class="link">24H2</a>
                 
-                    <a href="/tags/%E5%B9%BD%E7%81%B5%E6%96%87%E4%BB%B6/" class="link">幽灵文件</a>
+                    <a href="/tags/%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/" class="link">文件共享</a>
                 
-                    <a href="/tags/inode-%E8%80%97%E5%B0%BD/" class="link">Inode 耗尽</a>
+                    <a href="/tags/nas/" class="link">NAS</a>
                 
-                    <a href="/tags/logrotate/" class="link">Logrotate</a>
+            </div>
+        
+    </footer>
+    
+</div>
+
+</header>
+</article>
+        
+            
+<article class="">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/b1c93f57/">一次 PostgreSQL 长事务导致表膨胀与 autovacuum 失效、查询性能断崖式下跌的排查实录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            核心报表表查询从毫秒级劣化到几十秒，根因是 idle-in-transaction 长事务持有旧快照，阻断 autovacuum 回收死元组导致表膨胀。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
                 
-                    <a href="/tags/lsof/" class="link">Lsof</a>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-09T07:00:00Z'>2026年7月9日星期四</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 6 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+            <div class="article-tags inline-meta">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                    <a href="/tags/postgresql/" class="link">PostgreSQL</a>
+                
+                    <a href="/tags/%E6%95%B0%E6%8D%AE%E5%BA%93%E8%BF%90%E7%BB%B4/" class="link">数据库运维</a>
+                
+                    <a href="/tags/%E8%A1%A8%E8%86%A8%E8%83%80/" class="link">表膨胀</a>
+                
+                    <a href="/tags/autovacuum/" class="link">Autovacuum</a>
+                
+                    <a href="/tags/%E9%95%BF%E4%BA%8B%E5%8A%A1/" class="link">长事务</a>
+                
+            </div>
+        
+    </footer>
+    
+</div>
+
+</header>
+</article>
+        
+            
+<article class="">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
+                网络运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/018de7f4/">一次办公网DHCP地址池耗尽导致部分终端无法获取IP的排查记录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            早高峰大量员工无法上网，IP变成169.254.x.x。定位到DHCP地址池被手机、访客、IoT设备占满，从租期、VLAN隔离和监控三方面根治。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-08T07:00:00Z'>2026年7月8日星期三</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 6 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+            <div class="article-tags inline-meta">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                    <a href="/tags/dhcp/" class="link">DHCP</a>
+                
+                    <a href="/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" class="link">网络运维</a>
+                
+                    <a href="/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" class="link">故障排查</a>
+                
+                    <a href="/tags/%E5%9C%B0%E5%9D%80%E6%B1%A0/" class="link">地址池</a>
+                
+                    <a href="/tags/vlan/" class="link">VLAN</a>
+                
+            </div>
+        
+    </footer>
+    
+</div>
+
+</header>
+</article>
+        
+            
+<article class="">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/7c34ba61/">Docker 宿主机 overlay2 inode 耗尽致容器批量创建失败的定位</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            CI 构建节点新建容器全部报 no space left on device，但 df -h 显示空间充足，最终定位为 overlay2 海量小文件耗尽 inode 的排查实录。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-07T12:38:41Z'>2026年7月7日星期二</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+            <div class="article-tags inline-meta">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                    <a href="/tags/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/" class="link">容器运维</a>
+                
+                    <a href="/tags/docker/" class="link">Docker</a>
+                
+                    <a href="/tags/overlay2/" class="link">Overlay2</a>
+                
+                    <a href="/tags/inode/" class="link">Inode</a>
+                
+                    <a href="/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" class="link">故障排查</a>
+                
+            </div>
+        
+    </footer>
+    
+</div>
+
+</header>
+</article>
+        
+            
+<article class="">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
+                网络运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/48576c58/">记一次 K8s 节点 conntrack 表打满导致的服务间 TCP 超时</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            K8s集群中部分Pod间TCP连接间歇性超时，最终定位到节点conntrack表满导致新连接被内核丢弃。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-06T04:52:26Z'>2026年7月6日星期一</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 4 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+            <div class="article-tags inline-meta">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                    <a href="/tags/kubernetes/" class="link">Kubernetes</a>
+                
+                    <a href="/tags/conntrack/" class="link">Conntrack</a>
+                
+                    <a href="/tags/tcp/" class="link">TCP</a>
+                
+                    <a href="/tags/%E7%BD%91%E7%BB%9C%E6%8E%92%E6%9F%A5/" class="link">网络排查</a>
+                
+            </div>
+        
+    </footer>
+    
+</div>
+
+</header>
+</article>
+        
+            
+<article class="">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
+                安全运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/55563ba9/">清除服务器 XMRig 挖矿木马：入侵路径还原与清剿实录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            一台生产服务器CPU长期占用100%，业务响应变慢，最终定位为XMRig挖矿木马，并完整还原入侵路径与清剿流程。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-06T13:59:10Z'>2026年7月6日星期一</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 6 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+            <div class="article-tags inline-meta">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                    <a href="/tags/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" class="link">安全运维</a>
+                
+                    <a href="/tags/%E6%8C%96%E7%9F%BF%E6%9C%A8%E9%A9%AC/" class="link">挖矿木马</a>
+                
+                    <a href="/tags/xmrig/" class="link">XMRig</a>
+                
+                    <a href="/tags/%E5%85%A5%E4%BE%B5%E6%8E%92%E6%9F%A5/" class="link">入侵排查</a>
+                
+                    <a href="/tags/%E5%BA%94%E6%80%A5%E5%93%8D%E5%BA%94/" class="link">应急响应</a>
                 
             </div>
         
@@ -1309,12 +1107,12 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/d8a4384d/">升级PVS服务器：一次无盘终端批量启动失败的排查与回退</a>
+            <a href="/posts/ac8933af/">组策略共享权限配错致全公司无法访问共享文件夹</a>
         </h2>
     
         
         <h3 class="article-subtitle">
-            PVS服务器跨版本升级后半数无盘终端开机卡在联系登录服务器，从启动链路逐段定位并回退的实录。
+            组策略中SMB共享权限与NTFS权限叠加冲突，导致全公司共享文件夹访问全部报拒绝访问错误的全流程排查
         </h3>
         
     </div>
@@ -1339,7 +1137,7 @@
   <path d="M3 11h16" />
   <path d="M18 16.496v1.504l1 1" />
 </svg>
-                    <time class="article-time--published" datetime='2026-08-02T07:00:00&#43;08:00'>2026年8月2日星期日</time>
+                    <time class="article-time--published" datetime='2026-07-05T18:49:05Z'>2026年7月5日星期日</time>
                 
 
                 
@@ -1352,7 +1150,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 7 分钟
+                        阅读时长: 10 分钟
                     </time>
                 
             </div>
@@ -1371,21 +1169,15 @@
 
 
                 
-                    <a href="/tags/provisioning-services/" class="link">Provisioning Services</a>
+                    <a href="/tags/windows/" class="link">Windows</a>
                 
-                    <a href="/tags/%E6%97%A0%E7%9B%98%E7%BB%88%E7%AB%AF/" class="link">无盘终端</a>
+                    <a href="/tags/%E7%BB%84%E7%AD%96%E7%95%A5/" class="link">组策略</a>
                 
-                    <a href="/tags/bootstrap/" class="link">Bootstrap</a>
+                    <a href="/tags/%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/" class="link">文件共享</a>
                 
-                    <a href="/tags/pxe%E5%90%AF%E5%8A%A8/" class="link">PXE启动</a>
+                    <a href="/tags/ad%E5%9F%9F/" class="link">AD域</a>
                 
-                    <a href="/tags/stream-service/" class="link">Stream Service</a>
-                
-                    <a href="/tags/%E6%BB%9A%E5%8A%A8%E5%8D%87%E7%BA%A7/" class="link">滚动升级</a>
-                
-                    <a href="/tags/%E7%89%88%E6%9C%AC%E5%85%BC%E5%AE%B9%E7%9F%A9%E9%98%B5/" class="link">版本兼容矩阵</a>
-                
-                    <a href="/tags/%E5%8F%98%E6%9B%B4%E5%9B%9E%E9%80%80/" class="link">变更回退</a>
+                    <a href="/tags/gpo/" class="link">GPO</a>
                 
             </div>
         
@@ -1414,8 +1206,8 @@
             
             
             
-            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
-                安全运维
+            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
+                网络运维
             </a>
         
     </header>
@@ -1423,12 +1215,12 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/ca7c58b6/">记一次Web应用账户经sudo配置不当提权到root的入侵溯源与加固</a>
+            <a href="/posts/0d552fca/">OSPF 路由震荡致跨机房业务间歇中断的定位</a>
         </h2>
     
         
         <h3 class="article-subtitle">
-            应用只应低权限运行却出现root异常进程，顺着sudo配置不当与GTFOBins提权链还原入侵并加固的实录。
+            两机房间OSPF邻接反复断建引发路由震荡，BGP下一跳可达性波动导致跨机房ERP业务30秒级间歇中断，根因是互联光纤尾纤接头退化致CRC误码率飙升
         </h3>
         
     </div>
@@ -1453,7 +1245,7 @@
   <path d="M3 11h16" />
   <path d="M18 16.496v1.504l1 1" />
 </svg>
-                    <time class="article-time--published" datetime='2026-08-01T07:00:00&#43;08:00'>2026年8月1日星期六</time>
+                    <time class="article-time--published" datetime='2026-07-05T06:26:00Z'>2026年7月5日星期日</time>
                 
 
                 
@@ -1466,7 +1258,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 5 分钟
+                        阅读时长: 9 分钟
                     </time>
                 
             </div>
@@ -1485,21 +1277,233 @@
 
 
                 
-                    <a href="/tags/%E6%9C%AC%E5%9C%B0%E6%8F%90%E6%9D%83/" class="link">本地提权</a>
+                    <a href="/tags/ospf/" class="link">OSPF</a>
                 
-                    <a href="/tags/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/" class="link">权限提升</a>
+                    <a href="/tags/%E8%B7%AF%E7%94%B1%E9%9C%87%E8%8D%A1/" class="link">路由震荡</a>
                 
-                    <a href="/tags/sudo%E9%85%8D%E7%BD%AE%E4%B8%8D%E5%BD%93/" class="link">Sudo配置不当</a>
+                    <a href="/tags/bgp/" class="link">BGP</a>
                 
-                    <a href="/tags/nopasswd/" class="link">NOPASSWD</a>
+                    <a href="/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" class="link">网络运维</a>
                 
-                    <a href="/tags/gtfobins/" class="link">GTFOBins</a>
+                    <a href="/tags/%E5%85%89%E7%BA%A4%E6%95%85%E9%9A%9C/" class="link">光纤故障</a>
                 
-                    <a href="/tags/sudoers%E5%AE%A1%E8%AE%A1/" class="link">Sudoers审计</a>
+            </div>
+        
+    </footer>
+    
+</div>
+
+</header>
+</article>
+        
+            
+<article class="">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/42f874e5/">系统时区一改，凌晨备份为何跑进业务高峰拖垮 MySQL？</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            服务器时区被运维工具意外修改后，Cron定时备份任务从凌晨漂移到业务高峰期执行，mysqldump全量备份拖垮生产MySQL，记录从现象到根因的完整排查过程。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
                 
-                    <a href="/tags/%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90/" class="link">最小权限</a>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-05T12:42:26Z'>2026年7月5日星期日</time>
                 
-                    <a href="/tags/%E5%BA%94%E6%80%A5%E5%93%8D%E5%BA%94/" class="link">应急响应</a>
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 12 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+            <div class="article-tags inline-meta">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                    <a href="/tags/linux/" class="link">Linux</a>
+                
+                    <a href="/tags/mysql/" class="link">MySQL</a>
+                
+                    <a href="/tags/cron/" class="link">Cron</a>
+                
+                    <a href="/tags/%E6%97%B6%E5%8C%BA/" class="link">时区</a>
+                
+                    <a href="/tags/%E5%A4%87%E4%BB%BD/" class="link">备份</a>
+                
+                    <a href="/tags/%E6%8E%92%E6%9F%A5/" class="link">排查</a>
+                
+            </div>
+        
+    </footer>
+    
+</div>
+
+</header>
+</article>
+        
+            
+<article class="">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" style="background-color: hsl(195, 60%, 84%); color: hsl(195, 60%, 15%);">
+                桌面运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/f78d7f76/">域控 NTP 时间源失效，全公司 Kerberos 为何大面积失败？</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            域控 NTP 时间源失效引发全公司时间漂移，Kerberos 认证大面积失败，排查为上层时间服务器不可达，切换冗余时间源并校准后恢复。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-07-04T06:55:33Z'>2026年7月4日星期六</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 9 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+            <div class="article-tags inline-meta">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                    <a href="/tags/kerberos/" class="link">Kerberos</a>
+                
+                    <a href="/tags/ntp/" class="link">NTP</a>
+                
+                    <a href="/tags/ad%E5%9F%9F%E6%8E%A7/" class="link">AD域控</a>
+                
+                    <a href="/tags/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" class="link">桌面运维</a>
+                
+                    <a href="/tags/%E6%97%B6%E9%97%B4%E5%90%8C%E6%AD%A5/" class="link">时间同步</a>
                 
             </div>
         

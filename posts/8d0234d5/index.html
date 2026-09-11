@@ -16,7 +16,7 @@
 <meta property='og:description' content="服务器上调 tcp_tw_reuse 与 netdev_max_backlog 后吞吐量骤降，tcpdump 定位到 PAWS 误判与 qdisc 拥塞丢包双重根因，最终靠精准回退 + sysctl 模板收口。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/8d0234d5/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Linux' /><meta property='article:tag' content='TCP' /><meta property='article:tag' content='内核参数' /><meta property='article:tag' content='tcp_tw_reuse' /><meta property='article:tag' content='netdev_max_backlog' /><meta property='article:tag' content='PAWS' /><meta property='article:tag' content='qdisc' /><meta property='article:tag' content='性能调优' /><meta property='article:tag' content='内核排障' /><meta property='article:published_time' content='2026-08-30T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-08-30T07:00:00&#43;08:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Linux' /><meta property='article:tag' content='TCP' /><meta property='article:tag' content='内核参数' /><meta property='article:tag' content='tcp_tw_reuse' /><meta property='article:tag' content='netdev_max_backlog' /><meta property='article:tag' content='PAWS' /><meta property='article:tag' content='qdisc' /><meta property='article:tag' content='性能调优' /><meta property='article:tag' content='内核排障' /><meta property='article:published_time' content='2020-02-25T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2020-02-25T07:00:00&#43;08:00'/>
 <meta name="twitter:title" content="一次 Linux 内核参数调优误配导致 TCP 性能断崖的排查记录">
 <meta name="twitter:description" content="服务器上调 tcp_tw_reuse 与 netdev_max_backlog 后吞吐量骤降，tcpdump 定位到 PAWS 误判与 qdisc 拥塞丢包双重根因，最终靠精准回退 + sysctl 模板收口。">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -305,7 +305,7 @@
   <path d="M3 11h16" />
   <path d="M18 16.496v1.504l1 1" />
 </svg>
-                    <time class="article-time--published" datetime='2026-08-30T07:00:00&#43;08:00'>2026年8月30日星期日</time>
+                    <time class="article-time--published" datetime='2020-02-25T07:00:00&#43;08:00'>2020年2月25日星期二</time>
                 
 
                 
@@ -482,70 +482,6 @@
     
 
     
-
-<aside>
-    <h2 class="section-title">相关文章</h2>
-    <div class="subsection-list">
-        <div class="article-list--tile">
-            
-                
-<article class="">
-    <a href="/posts/1925cf22/">
-        
-
-        <div class="article-details">
-            <h2 class="article-title">一次服务本地端口耗尽导致对外调用大量 Cannot assign requested address 的排查记录</h2>
-        </div>
-    </a>
-</article>
-            
-                
-<article class="">
-    <a href="/posts/b38ac0b7/">
-        
-
-        <div class="article-details">
-            <h2 class="article-title">一次 Linux 磁盘疑难排查方法论：df/du 不一致、幽灵文件、inode 耗尽四步定位法</h2>
-        </div>
-    </a>
-</article>
-            
-                
-<article class="">
-    <a href="/posts/76deb068/">
-        
-
-        <div class="article-details">
-            <h2 class="article-title">磁盘空间为何删了大日志也不释放？一次 df 与 du 相差 60GB 的排查记录</h2>
-        </div>
-    </a>
-</article>
-            
-                
-<article class="">
-    <a href="/posts/3a0c5c5f/">
-        
-
-        <div class="article-details">
-            <h2 class="article-title">开启 tcp_tw_recycle 后，NAT 后方部分用户为何间歇性连不上？一次 SYN 被内核静默丢弃的排查记录</h2>
-        </div>
-    </a>
-</article>
-            
-                
-<article class="">
-    <a href="/posts/5961e223/">
-        
-
-        <div class="article-details">
-            <h2 class="article-title">一次NFS存储服务端故障导致客户端进程陷入D状态业务整体假死的排查记录</h2>
-        </div>
-    </a>
-</article>
-            
-        </div>
-    </div>
-</aside>
 
      
     

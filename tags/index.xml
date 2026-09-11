@@ -156,1054 +156,10 @@
             <guid>https://blog.5772447.xyz/tags/%E7%A3%81%E7%9B%98%E6%8E%92%E6%9F%A5/</guid>
             <description></description>
         </item><item>
-            <title>运维账号收口</title>
-            <link>https://blog.5772447.xyz/tags/%E8%BF%90%E7%BB%B4%E8%B4%A6%E5%8F%B7%E6%94%B6%E5%8F%A3/</link>
-            <pubDate>Mon, 31 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E8%BF%90%E7%BB%B4%E8%B4%A6%E5%8F%B7%E6%94%B6%E5%8F%A3/</guid>
-            <description></description>
-        </item><item>
-            <title>应急响应</title>
-            <link>https://blog.5772447.xyz/tags/%E5%BA%94%E6%80%A5%E5%93%8D%E5%BA%94/</link>
-            <pubDate>Mon, 31 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%BA%94%E6%80%A5%E5%93%8D%E5%BA%94/</guid>
-            <description></description>
-        </item><item>
-            <title>跳板机白名单</title>
-            <link>https://blog.5772447.xyz/tags/%E8%B7%B3%E6%9D%BF%E6%9C%BA%E7%99%BD%E5%90%8D%E5%8D%95/</link>
-            <pubDate>Mon, 31 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E8%B7%B3%E6%9D%BF%E6%9C%BA%E7%99%BD%E5%90%8D%E5%8D%95/</guid>
-            <description></description>
-        </item><item>
-            <title>堡垒机</title>
-            <link>https://blog.5772447.xyz/tags/%E5%A0%A1%E5%9E%92%E6%9C%BA/</link>
-            <pubDate>Mon, 31 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%A0%A1%E5%9E%92%E6%9C%BA/</guid>
-            <description></description>
-        </item><item>
-            <title>MySQL 误操作</title>
-            <link>https://blog.5772447.xyz/tags/mysql-%E8%AF%AF%E6%93%8D%E4%BD%9C/</link>
-            <pubDate>Mon, 31 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/mysql-%E8%AF%AF%E6%93%8D%E4%BD%9C/</guid>
-            <description></description>
-        </item><item>
-            <title>性能调优</title>
-            <link>https://blog.5772447.xyz/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/</link>
-            <pubDate>Sun, 30 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/</guid>
-            <description></description>
-        </item><item>
-            <title>内核排障</title>
-            <link>https://blog.5772447.xyz/tags/%E5%86%85%E6%A0%B8%E6%8E%92%E9%9A%9C/</link>
-            <pubDate>Sun, 30 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%86%85%E6%A0%B8%E6%8E%92%E9%9A%9C/</guid>
-            <description></description>
-        </item><item>
-            <title>内核参数</title>
-            <link>https://blog.5772447.xyz/tags/%E5%86%85%E6%A0%B8%E5%8F%82%E6%95%B0/</link>
-            <pubDate>Sun, 30 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%86%85%E6%A0%B8%E5%8F%82%E6%95%B0/</guid>
-            <description></description>
-        </item><item>
-            <title>Tcp_tw_reuse</title>
-            <link>https://blog.5772447.xyz/tags/tcp_tw_reuse/</link>
-            <pubDate>Sun, 30 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/tcp_tw_reuse/</guid>
-            <description></description>
-        </item><item>
-            <title>TCP</title>
-            <link>https://blog.5772447.xyz/tags/tcp/</link>
-            <pubDate>Sun, 30 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/tcp/</guid>
-            <description></description>
-        </item><item>
-            <title>Qdisc</title>
-            <link>https://blog.5772447.xyz/tags/qdisc/</link>
-            <pubDate>Sun, 30 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/qdisc/</guid>
-            <description></description>
-        </item><item>
-            <title>PAWS</title>
-            <link>https://blog.5772447.xyz/tags/paws/</link>
-            <pubDate>Sun, 30 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/paws/</guid>
-            <description></description>
-        </item><item>
-            <title>Netdev_max_backlog</title>
-            <link>https://blog.5772447.xyz/tags/netdev_max_backlog/</link>
-            <pubDate>Sun, 30 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/netdev_max_backlog/</guid>
-            <description></description>
-        </item><item>
-            <title>Linux</title>
-            <link>https://blog.5772447.xyz/tags/linux/</link>
-            <pubDate>Sun, 30 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/linux/</guid>
-            <description></description>
-        </item><item>
-            <title>最小权限</title>
-            <link>https://blog.5772447.xyz/tags/%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90/</link>
-            <pubDate>Sat, 29 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90/</guid>
-            <description></description>
-        </item><item>
-            <title>运维账号</title>
-            <link>https://blog.5772447.xyz/tags/%E8%BF%90%E7%BB%B4%E8%B4%A6%E5%8F%B7/</link>
-            <pubDate>Sat, 29 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E8%BF%90%E7%BB%B4%E8%B4%A6%E5%8F%B7/</guid>
-            <description></description>
-        </item><item>
-            <title>跳板机</title>
-            <link>https://blog.5772447.xyz/tags/%E8%B7%B3%E6%9D%BF%E6%9C%BA/</link>
-            <pubDate>Sat, 29 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E8%B7%B3%E6%9D%BF%E6%9C%BA/</guid>
-            <description></description>
-        </item><item>
-            <title>特权账号治理</title>
-            <link>https://blog.5772447.xyz/tags/%E7%89%B9%E6%9D%83%E8%B4%A6%E5%8F%B7%E6%B2%BB%E7%90%86/</link>
-            <pubDate>Sat, 29 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E7%89%B9%E6%9D%83%E8%B4%A6%E5%8F%B7%E6%B2%BB%E7%90%86/</guid>
-            <description></description>
-        </item><item>
-            <title>审计日志</title>
-            <link>https://blog.5772447.xyz/tags/%E5%AE%A1%E8%AE%A1%E6%97%A5%E5%BF%97/</link>
-            <pubDate>Sat, 29 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%AE%A1%E8%AE%A1%E6%97%A5%E5%BF%97/</guid>
-            <description></description>
-        </item><item>
-            <title>凭据泄露</title>
-            <link>https://blog.5772447.xyz/tags/%E5%87%AD%E6%8D%AE%E6%B3%84%E9%9C%B2/</link>
-            <pubDate>Sat, 29 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%87%AD%E6%8D%AE%E6%B3%84%E9%9C%B2/</guid>
-            <description></description>
-        </item><item>
-            <title>免密登录</title>
-            <link>https://blog.5772447.xyz/tags/%E5%85%8D%E5%AF%86%E7%99%BB%E5%BD%95/</link>
-            <pubDate>Sat, 29 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%85%8D%E5%AF%86%E7%99%BB%E5%BD%95/</guid>
-            <description></description>
-        </item><item>
-            <title>横向移动</title>
-            <link>https://blog.5772447.xyz/tags/%E6%A8%AA%E5%90%91%E7%A7%BB%E5%8A%A8/</link>
-            <pubDate>Sat, 29 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%A8%AA%E5%90%91%E7%A7%BB%E5%8A%A8/</guid>
-            <description></description>
-        </item><item>
-            <title>堡垒机上线</title>
-            <link>https://blog.5772447.xyz/tags/%E5%A0%A1%E5%9E%92%E6%9C%BA%E4%B8%8A%E7%BA%BF/</link>
-            <pubDate>Sat, 29 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%A0%A1%E5%9E%92%E6%9C%BA%E4%B8%8A%E7%BA%BF/</guid>
-            <description></description>
-        </item><item>
-            <title>软路由</title>
-            <link>https://blog.5772447.xyz/tags/%E8%BD%AF%E8%B7%AF%E7%94%B1/</link>
-            <pubDate>Sat, 08 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E8%BD%AF%E8%B7%AF%E7%94%B1/</guid>
-            <description></description>
-        </item><item>
-            <title>旁路由</title>
-            <link>https://blog.5772447.xyz/tags/%E6%97%81%E8%B7%AF%E7%94%B1/</link>
-            <pubDate>Sat, 08 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%97%81%E8%B7%AF%E7%94%B1/</guid>
-            <description></description>
-        </item><item>
-            <title>默认策略</title>
-            <link>https://blog.5772447.xyz/tags/%E9%BB%98%E8%AE%A4%E7%AD%96%E7%95%A5/</link>
-            <pubDate>Sat, 08 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E9%BB%98%E8%AE%A4%E7%AD%96%E7%95%A5/</guid>
-            <description></description>
-        </item><item>
-            <title>策略漂移</title>
-            <link>https://blog.5772447.xyz/tags/%E7%AD%96%E7%95%A5%E6%BC%82%E7%A7%BB/</link>
-            <pubDate>Sat, 08 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E7%AD%96%E7%95%A5%E6%BC%82%E7%A7%BB/</guid>
-            <description></description>
-        </item><item>
-            <title>OpenWrt</title>
-            <link>https://blog.5772447.xyz/tags/openwrt/</link>
-            <pubDate>Sat, 08 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/openwrt/</guid>
-            <description></description>
-        </item><item>
-            <title>Nftables</title>
-            <link>https://blog.5772447.xyz/tags/nftables/</link>
-            <pubDate>Sat, 08 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/nftables/</guid>
-            <description></description>
-        </item><item>
-            <title>FORWARD</title>
-            <link>https://blog.5772447.xyz/tags/forward/</link>
-            <pubDate>Sat, 08 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/forward/</guid>
-            <description></description>
-        </item><item>
-            <title>Firewall4</title>
-            <link>https://blog.5772447.xyz/tags/firewall4/</link>
-            <pubDate>Sat, 08 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/firewall4/</guid>
-            <description></description>
-        </item><item>
-            <title>资产盘点</title>
-            <link>https://blog.5772447.xyz/tags/%E8%B5%84%E4%BA%A7%E7%9B%98%E7%82%B9/</link>
-            <pubDate>Fri, 07 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E8%B5%84%E4%BA%A7%E7%9B%98%E7%82%B9/</guid>
-            <description></description>
-        </item><item>
-            <title>主机加固</title>
-            <link>https://blog.5772447.xyz/tags/%E4%B8%BB%E6%9C%BA%E5%8A%A0%E5%9B%BA/</link>
-            <pubDate>Fri, 07 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E4%B8%BB%E6%9C%BA%E5%8A%A0%E5%9B%BA/</guid>
-            <description></description>
-        </item><item>
-            <title>凭据治理</title>
-            <link>https://blog.5772447.xyz/tags/%E5%87%AD%E6%8D%AE%E6%B2%BB%E7%90%86/</link>
-            <pubDate>Fri, 07 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%87%AD%E6%8D%AE%E6%B2%BB%E7%90%86/</guid>
-            <description></description>
-        </item><item>
-            <title>端口扫描</title>
-            <link>https://blog.5772447.xyz/tags/%E7%AB%AF%E5%8F%A3%E6%89%AB%E6%8F%8F/</link>
-            <pubDate>Fri, 07 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E7%AB%AF%E5%8F%A3%E6%89%AB%E6%8F%8F/</guid>
-            <description></description>
-        </item><item>
-            <title>暴露面收敛</title>
-            <link>https://blog.5772447.xyz/tags/%E6%9A%B4%E9%9C%B2%E9%9D%A2%E6%94%B6%E6%95%9B/</link>
-            <pubDate>Fri, 07 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%9A%B4%E9%9C%B2%E9%9D%A2%E6%94%B6%E6%95%9B/</guid>
-            <description></description>
-        </item><item>
-            <title>安全组</title>
-            <link>https://blog.5772447.xyz/tags/%E5%AE%89%E5%85%A8%E7%BB%84/</link>
-            <pubDate>Fri, 07 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%AE%89%E5%85%A8%E7%BB%84/</guid>
-            <description></description>
-        </item><item>
-            <title>Checklist</title>
-            <link>https://blog.5772447.xyz/tags/checklist/</link>
-            <pubDate>Fri, 07 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/checklist/</guid>
-            <description></description>
-        </item><item>
-            <title>云安全</title>
-            <link>https://blog.5772447.xyz/tags/%E4%BA%91%E5%AE%89%E5%85%A8/</link>
-            <pubDate>Wed, 05 Aug 2026 00:00:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E4%BA%91%E5%AE%89%E5%85%A8/</guid>
-            <description></description>
-        </item><item>
-            <title>密钥硬编码</title>
-            <link>https://blog.5772447.xyz/tags/%E5%AF%86%E9%92%A5%E7%A1%AC%E7%BC%96%E7%A0%81/</link>
-            <pubDate>Wed, 05 Aug 2026 00:00:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%AF%86%E9%92%A5%E7%A1%AC%E7%BC%96%E7%A0%81/</guid>
-            <description></description>
-        </item><item>
-            <title>操作审计</title>
-            <link>https://blog.5772447.xyz/tags/%E6%93%8D%E4%BD%9C%E5%AE%A1%E8%AE%A1/</link>
-            <pubDate>Wed, 05 Aug 2026 00:00:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%93%8D%E4%BD%9C%E5%AE%A1%E8%AE%A1/</guid>
-            <description></description>
-        </item><item>
-            <title>RAM最小权限</title>
-            <link>https://blog.5772447.xyz/tags/ram%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90/</link>
-            <pubDate>Wed, 05 Aug 2026 00:00:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/ram%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90/</guid>
-            <description></description>
-        </item><item>
-            <title>Gitleaks</title>
-            <link>https://blog.5772447.xyz/tags/gitleaks/</link>
-            <pubDate>Wed, 05 Aug 2026 00:00:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/gitleaks/</guid>
-            <description></description>
-        </item><item>
-            <title>AccessKey泄露</title>
-            <link>https://blog.5772447.xyz/tags/accesskey%E6%B3%84%E9%9C%B2/</link>
-            <pubDate>Wed, 05 Aug 2026 00:00:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/accesskey%E6%B3%84%E9%9C%B2/</guid>
-            <description></description>
-        </item><item>
-            <title>网络排障</title>
-            <link>https://blog.5772447.xyz/tags/%E7%BD%91%E7%BB%9C%E6%8E%92%E9%9A%9C/</link>
-            <pubDate>Tue, 04 Aug 2026 00:00:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E7%BD%91%E7%BB%9C%E6%8E%92%E9%9A%9C/</guid>
-            <description></description>
-        </item><item>
-            <title>路由震荡</title>
-            <link>https://blog.5772447.xyz/tags/%E8%B7%AF%E7%94%B1%E9%9C%87%E8%8D%A1/</link>
-            <pubDate>Tue, 04 Aug 2026 00:00:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E8%B7%AF%E7%94%B1%E9%9C%87%E8%8D%A1/</guid>
-            <description></description>
-        </item><item>
-            <title>Passive-Interface</title>
-            <link>https://blog.5772447.xyz/tags/passive-interface/</link>
-            <pubDate>Tue, 04 Aug 2026 00:00:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/passive-interface/</guid>
-            <description></description>
-        </item><item>
-            <title>OSPF</title>
-            <link>https://blog.5772447.xyz/tags/ospf/</link>
-            <pubDate>Tue, 04 Aug 2026 00:00:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/ospf/</guid>
-            <description></description>
-        </item><item>
-            <title>Hello Timer</title>
-            <link>https://blog.5772447.xyz/tags/hello-timer/</link>
-            <pubDate>Tue, 04 Aug 2026 00:00:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/hello-timer/</guid>
-            <description></description>
-        </item><item>
-            <title>Flapping</title>
-            <link>https://blog.5772447.xyz/tags/flapping/</link>
-            <pubDate>Tue, 04 Aug 2026 00:00:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/flapping/</guid>
-            <description></description>
-        </item><item>
-            <title>Dead Timer</title>
-            <link>https://blog.5772447.xyz/tags/dead-timer/</link>
-            <pubDate>Tue, 04 Aug 2026 00:00:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/dead-timer/</guid>
-            <description></description>
-        </item><item>
-            <title>幽灵文件</title>
-            <link>https://blog.5772447.xyz/tags/%E5%B9%BD%E7%81%B5%E6%96%87%E4%BB%B6/</link>
-            <pubDate>Mon, 03 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%B9%BD%E7%81%B5%E6%96%87%E4%BB%B6/</guid>
-            <description></description>
-        </item><item>
-            <title>优雅下线</title>
-            <link>https://blog.5772447.xyz/tags/%E4%BC%98%E9%9B%85%E4%B8%8B%E7%BA%BF/</link>
-            <pubDate>Mon, 03 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E4%BC%98%E9%9B%85%E4%B8%8B%E7%BA%BF/</guid>
-            <description></description>
-        </item><item>
-            <title>依赖就绪</title>
-            <link>https://blog.5772447.xyz/tags/%E4%BE%9D%E8%B5%96%E5%B0%B1%E7%BB%AA/</link>
-            <pubDate>Mon, 03 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E4%BE%9D%E8%B5%96%E5%B0%B1%E7%BB%AA/</guid>
-            <description></description>
-        </item><item>
-            <title>微服务</title>
-            <link>https://blog.5772447.xyz/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/</link>
-            <pubDate>Mon, 03 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/</guid>
-            <description></description>
-        </item><item>
-            <title>探活</title>
-            <link>https://blog.5772447.xyz/tags/%E6%8E%A2%E6%B4%BB/</link>
-            <pubDate>Mon, 03 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%8E%A2%E6%B4%BB/</guid>
-            <description></description>
-        </item><item>
-            <title>健康检查</title>
-            <link>https://blog.5772447.xyz/tags/%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5/</link>
-            <pubDate>Mon, 03 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5/</guid>
-            <description></description>
-        </item><item>
-            <title>Lsof</title>
-            <link>https://blog.5772447.xyz/tags/lsof/</link>
-            <pubDate>Mon, 03 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/lsof/</guid>
-            <description></description>
-        </item><item>
-            <title>Logrotate</title>
-            <link>https://blog.5772447.xyz/tags/logrotate/</link>
-            <pubDate>Mon, 03 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/logrotate/</guid>
-            <description></description>
-        </item><item>
-            <title>Inode 耗尽</title>
-            <link>https://blog.5772447.xyz/tags/inode-%E8%80%97%E5%B0%BD/</link>
-            <pubDate>Mon, 03 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/inode-%E8%80%97%E5%B0%BD/</guid>
-            <description></description>
-        </item><item>
-            <title>Df Du 不一致</title>
-            <link>https://blog.5772447.xyz/tags/df-du-%E4%B8%8D%E4%B8%80%E8%87%B4/</link>
-            <pubDate>Mon, 03 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/df-du-%E4%B8%8D%E4%B8%80%E8%87%B4/</guid>
-            <description></description>
-        </item><item>
-            <title>无盘终端</title>
-            <link>https://blog.5772447.xyz/tags/%E6%97%A0%E7%9B%98%E7%BB%88%E7%AB%AF/</link>
-            <pubDate>Sun, 02 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%97%A0%E7%9B%98%E7%BB%88%E7%AB%AF/</guid>
-            <description></description>
-        </item><item>
-            <title>滚动升级</title>
-            <link>https://blog.5772447.xyz/tags/%E6%BB%9A%E5%8A%A8%E5%8D%87%E7%BA%A7/</link>
-            <pubDate>Sun, 02 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%BB%9A%E5%8A%A8%E5%8D%87%E7%BA%A7/</guid>
-            <description></description>
-        </item><item>
-            <title>变更回退</title>
-            <link>https://blog.5772447.xyz/tags/%E5%8F%98%E6%9B%B4%E5%9B%9E%E9%80%80/</link>
-            <pubDate>Sun, 02 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%8F%98%E6%9B%B4%E5%9B%9E%E9%80%80/</guid>
-            <description></description>
-        </item><item>
-            <title>版本兼容矩阵</title>
-            <link>https://blog.5772447.xyz/tags/%E7%89%88%E6%9C%AC%E5%85%BC%E5%AE%B9%E7%9F%A9%E9%98%B5/</link>
-            <pubDate>Sun, 02 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E7%89%88%E6%9C%AC%E5%85%BC%E5%AE%B9%E7%9F%A9%E9%98%B5/</guid>
-            <description></description>
-        </item><item>
-            <title>Stream Service</title>
-            <link>https://blog.5772447.xyz/tags/stream-service/</link>
-            <pubDate>Sun, 02 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/stream-service/</guid>
-            <description></description>
-        </item><item>
-            <title>PXE启动</title>
-            <link>https://blog.5772447.xyz/tags/pxe%E5%90%AF%E5%8A%A8/</link>
-            <pubDate>Sun, 02 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/pxe%E5%90%AF%E5%8A%A8/</guid>
-            <description></description>
-        </item><item>
-            <title>Provisioning Services</title>
-            <link>https://blog.5772447.xyz/tags/provisioning-services/</link>
-            <pubDate>Sun, 02 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/provisioning-services/</guid>
-            <description></description>
-        </item><item>
-            <title>Bootstrap</title>
-            <link>https://blog.5772447.xyz/tags/bootstrap/</link>
-            <pubDate>Sun, 02 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/bootstrap/</guid>
-            <description></description>
-        </item><item>
-            <title>权限提升</title>
-            <link>https://blog.5772447.xyz/tags/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/</link>
-            <pubDate>Sat, 01 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/</guid>
-            <description></description>
-        </item><item>
-            <title>本地提权</title>
-            <link>https://blog.5772447.xyz/tags/%E6%9C%AC%E5%9C%B0%E6%8F%90%E6%9D%83/</link>
-            <pubDate>Sat, 01 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%9C%AC%E5%9C%B0%E6%8F%90%E6%9D%83/</guid>
-            <description></description>
-        </item><item>
-            <title>Sudo配置不当</title>
-            <link>https://blog.5772447.xyz/tags/sudo%E9%85%8D%E7%BD%AE%E4%B8%8D%E5%BD%93/</link>
-            <pubDate>Sat, 01 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/sudo%E9%85%8D%E7%BD%AE%E4%B8%8D%E5%BD%93/</guid>
-            <description></description>
-        </item><item>
-            <title>Sudoers审计</title>
-            <link>https://blog.5772447.xyz/tags/sudoers%E5%AE%A1%E8%AE%A1/</link>
-            <pubDate>Sat, 01 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/sudoers%E5%AE%A1%E8%AE%A1/</guid>
-            <description></description>
-        </item><item>
-            <title>NOPASSWD</title>
-            <link>https://blog.5772447.xyz/tags/nopasswd/</link>
-            <pubDate>Sat, 01 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/nopasswd/</guid>
-            <description></description>
-        </item><item>
-            <title>GTFOBins</title>
-            <link>https://blog.5772447.xyz/tags/gtfobins/</link>
-            <pubDate>Sat, 01 Aug 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/gtfobins/</guid>
-            <description></description>
-        </item><item>
-            <title>网关冗余</title>
-            <link>https://blog.5772447.xyz/tags/%E7%BD%91%E5%85%B3%E5%86%97%E4%BD%99/</link>
-            <pubDate>Fri, 31 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E7%BD%91%E5%85%B3%E5%86%97%E4%BD%99/</guid>
-            <description></description>
-        </item><item>
-            <title>双主</title>
-            <link>https://blog.5772447.xyz/tags/%E5%8F%8C%E4%B8%BB/</link>
-            <pubDate>Fri, 31 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%8F%8C%E4%B8%BB/</guid>
-            <description></description>
-        </item><item>
-            <title>交换机</title>
-            <link>https://blog.5772447.xyz/tags/%E4%BA%A4%E6%8D%A2%E6%9C%BA/</link>
-            <pubDate>Fri, 31 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E4%BA%A4%E6%8D%A2%E6%9C%BA/</guid>
-            <description></description>
-        </item><item>
-            <title>VRRP</title>
-            <link>https://blog.5772447.xyz/tags/vrrp/</link>
-            <pubDate>Fri, 31 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/vrrp/</guid>
-            <description></description>
-        </item><item>
-            <title>Trunk放行VLAN</title>
-            <link>https://blog.5772447.xyz/tags/trunk%E6%94%BE%E8%A1%8Cvlan/</link>
-            <pubDate>Fri, 31 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/trunk%E6%94%BE%E8%A1%8Cvlan/</guid>
-            <description></description>
-        </item><item>
-            <title>MAC漂移</title>
-            <link>https://blog.5772447.xyz/tags/mac%E6%BC%82%E7%A7%BB/</link>
-            <pubDate>Fri, 31 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/mac%E6%BC%82%E7%A7%BB/</guid>
-            <description></description>
-        </item><item>
-            <title>文件句柄</title>
-            <link>https://blog.5772447.xyz/tags/%E6%96%87%E4%BB%B6%E5%8F%A5%E6%9F%84/</link>
-            <pubDate>Thu, 30 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%96%87%E4%BB%B6%E5%8F%A5%E6%9F%84/</guid>
-            <description></description>
-        </item><item>
-            <title>日志管理</title>
-            <link>https://blog.5772447.xyz/tags/%E6%97%A5%E5%BF%97%E7%AE%A1%E7%90%86/</link>
-            <pubDate>Thu, 30 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%97%A5%E5%BF%97%E7%AE%A1%E7%90%86/</guid>
-            <description></description>
-        </item><item>
-            <title>磁盘空间</title>
-            <link>https://blog.5772447.xyz/tags/%E7%A3%81%E7%9B%98%E7%A9%BA%E9%97%B4/</link>
-            <pubDate>Thu, 30 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E7%A3%81%E7%9B%98%E7%A9%BA%E9%97%B4/</guid>
-            <description></description>
-        </item><item>
-            <title>未授权访问</title>
-            <link>https://blog.5772447.xyz/tags/%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE/</link>
-            <pubDate>Wed, 29 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE/</guid>
-            <description></description>
-        </item><item>
-            <title>数据泄露</title>
-            <link>https://blog.5772447.xyz/tags/%E6%95%B0%E6%8D%AE%E6%B3%84%E9%9C%B2/</link>
-            <pubDate>Wed, 29 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%95%B0%E6%8D%AE%E6%B3%84%E9%9C%B2/</guid>
-            <description></description>
-        </item><item>
-            <title>Elasticsearch</title>
-            <link>https://blog.5772447.xyz/tags/elasticsearch/</link>
-            <pubDate>Wed, 29 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/elasticsearch/</guid>
-            <description></description>
-        </item><item>
-            <title>自动设备加密</title>
-            <link>https://blog.5772447.xyz/tags/%E8%87%AA%E5%8A%A8%E8%AE%BE%E5%A4%87%E5%8A%A0%E5%AF%86/</link>
-            <pubDate>Tue, 28 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E8%87%AA%E5%8A%A8%E8%AE%BE%E5%A4%87%E5%8A%A0%E5%AF%86/</guid>
-            <description></description>
-        </item><item>
-            <title>企业适配</title>
-            <link>https://blog.5772447.xyz/tags/%E4%BC%81%E4%B8%9A%E9%80%82%E9%85%8D/</link>
-            <pubDate>Tue, 28 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E4%BC%81%E4%B8%9A%E9%80%82%E9%85%8D/</guid>
-            <description></description>
-        </item><item>
-            <title>恢复密钥</title>
-            <link>https://blog.5772447.xyz/tags/%E6%81%A2%E5%A4%8D%E5%AF%86%E9%92%A5/</link>
-            <pubDate>Tue, 28 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%81%A2%E5%A4%8D%E5%AF%86%E9%92%A5/</guid>
-            <description></description>
-        </item><item>
-            <title>Windows 11 24H2</title>
-            <link>https://blog.5772447.xyz/tags/windows-11-24h2/</link>
-            <pubDate>Tue, 28 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/windows-11-24h2/</guid>
-            <description></description>
-        </item><item>
-            <title>TPM</title>
-            <link>https://blog.5772447.xyz/tags/tpm/</link>
-            <pubDate>Tue, 28 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/tpm/</guid>
-            <description></description>
-        </item><item>
-            <title>BitLocker</title>
-            <link>https://blog.5772447.xyz/tags/bitlocker/</link>
-            <pubDate>Tue, 28 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/bitlocker/</guid>
-            <description></description>
-        </item><item>
-            <title>AD托管</title>
-            <link>https://blog.5772447.xyz/tags/ad%E6%89%98%E7%AE%A1/</link>
-            <pubDate>Tue, 28 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/ad%E6%89%98%E7%AE%A1/</guid>
-            <description></description>
-        </item><item>
-            <title>长事务</title>
-            <link>https://blog.5772447.xyz/tags/%E9%95%BF%E4%BA%8B%E5%8A%A1/</link>
-            <pubDate>Mon, 27 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E9%95%BF%E4%BA%8B%E5%8A%A1/</guid>
-            <description></description>
-        </item><item>
-            <title>数据库连接池</title>
-            <link>https://blog.5772447.xyz/tags/%E6%95%B0%E6%8D%AE%E5%BA%93%E8%BF%9E%E6%8E%A5%E6%B1%A0/</link>
-            <pubDate>Mon, 27 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%95%B0%E6%8D%AE%E5%BA%93%E8%BF%9E%E6%8E%A5%E6%B1%A0/</guid>
-            <description></description>
-        </item><item>
-            <title>慢查询</title>
-            <link>https://blog.5772447.xyz/tags/%E6%85%A2%E6%9F%A5%E8%AF%A2/</link>
-            <pubDate>Mon, 27 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%85%A2%E6%9F%A5%E8%AF%A2/</guid>
-            <description></description>
-        </item><item>
-            <title>连接泄漏</title>
-            <link>https://blog.5772447.xyz/tags/%E8%BF%9E%E6%8E%A5%E6%B3%84%E6%BC%8F/</link>
-            <pubDate>Mon, 27 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E8%BF%9E%E6%8E%A5%E6%B3%84%E6%BC%8F/</guid>
-            <description></description>
-        </item><item>
-            <title>连接池耗尽</title>
-            <link>https://blog.5772447.xyz/tags/%E8%BF%9E%E6%8E%A5%E6%B1%A0%E8%80%97%E5%B0%BD/</link>
-            <pubDate>Mon, 27 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E8%BF%9E%E6%8E%A5%E6%B1%A0%E8%80%97%E5%B0%BD/</guid>
-            <description></description>
-        </item><item>
-            <title>接口超时</title>
-            <link>https://blog.5772447.xyz/tags/%E6%8E%A5%E5%8F%A3%E8%B6%85%E6%97%B6/</link>
-            <pubDate>Mon, 27 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%8E%A5%E5%8F%A3%E8%B6%85%E6%97%B6/</guid>
-            <description></description>
-        </item><item>
-            <title>JDBC</title>
-            <link>https://blog.5772447.xyz/tags/jdbc/</link>
-            <pubDate>Mon, 27 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/jdbc/</guid>
-            <description></description>
-        </item><item>
-            <title>HikariCP</title>
-            <link>https://blog.5772447.xyz/tags/hikaricp/</link>
-            <pubDate>Mon, 27 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/hikaricp/</guid>
-            <description></description>
-        </item><item>
-            <title>Connection Is Not Available</title>
-            <link>https://blog.5772447.xyz/tags/connection-is-not-available/</link>
-            <pubDate>Mon, 27 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/connection-is-not-available/</guid>
-            <description></description>
-        </item><item>
-            <title>TIME_WAIT</title>
-            <link>https://blog.5772447.xyz/tags/time_wait/</link>
-            <pubDate>Sun, 26 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/time_wait/</guid>
-            <description></description>
-        </item><item>
-            <title>TCP时间戳</title>
-            <link>https://blog.5772447.xyz/tags/tcp%E6%97%B6%E9%97%B4%E6%88%B3/</link>
-            <pubDate>Sun, 26 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/tcp%E6%97%B6%E9%97%B4%E6%88%B3/</guid>
-            <description></description>
-        </item><item>
-            <title>Tcp_tw_recycle</title>
-            <link>https://blog.5772447.xyz/tags/tcp_tw_recycle/</link>
-            <pubDate>Sun, 26 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/tcp_tw_recycle/</guid>
-            <description></description>
-        </item><item>
-            <title>SYN丢弃</title>
-            <link>https://blog.5772447.xyz/tags/syn%E4%B8%A2%E5%BC%83/</link>
-            <pubDate>Sun, 26 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/syn%E4%B8%A2%E5%BC%83/</guid>
-            <description></description>
-        </item><item>
-            <title>NAT</title>
-            <link>https://blog.5772447.xyz/tags/nat/</link>
-            <pubDate>Sun, 26 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/nat/</guid>
-            <description></description>
-        </item><item>
-            <title>文件上传漏洞</title>
-            <link>https://blog.5772447.xyz/tags/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/</link>
-            <pubDate>Sat, 25 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/</guid>
-            <description></description>
-        </item><item>
-            <title>入侵溯源</title>
-            <link>https://blog.5772447.xyz/tags/%E5%85%A5%E4%BE%B5%E6%BA%AF%E6%BA%90/</link>
-            <pubDate>Sat, 25 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%85%A5%E4%BE%B5%E6%BA%AF%E6%BA%90/</guid>
-            <description></description>
-        </item><item>
-            <title>哥斯拉</title>
-            <link>https://blog.5772447.xyz/tags/%E5%93%A5%E6%96%AF%E6%8B%89/</link>
-            <pubDate>Sat, 25 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%93%A5%E6%96%AF%E6%8B%89/</guid>
-            <description></description>
-        </item><item>
-            <title>Web日志分析</title>
-            <link>https://blog.5772447.xyz/tags/web%E6%97%A5%E5%BF%97%E5%88%86%E6%9E%90/</link>
-            <pubDate>Sat, 25 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/web%E6%97%A5%E5%BF%97%E5%88%86%E6%9E%90/</guid>
-            <description></description>
-        </item><item>
-            <title>Webshell</title>
-            <link>https://blog.5772447.xyz/tags/webshell/</link>
-            <pubDate>Sat, 25 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/webshell/</guid>
-            <description></description>
-        </item><item>
-            <title>文件描述符</title>
-            <link>https://blog.5772447.xyz/tags/%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6/</link>
-            <pubDate>Fri, 24 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6/</guid>
-            <description></description>
-        </item><item>
-            <title>句柄泄漏</title>
-            <link>https://blog.5772447.xyz/tags/%E5%8F%A5%E6%9F%84%E6%B3%84%E6%BC%8F/</link>
-            <pubDate>Fri, 24 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%8F%A5%E6%9F%84%E6%B3%84%E6%BC%8F/</guid>
-            <description></description>
-        </item><item>
-            <title>Ulimit</title>
-            <link>https://blog.5772447.xyz/tags/ulimit/</link>
-            <pubDate>Fri, 24 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/ulimit/</guid>
-            <description></description>
-        </item><item>
-            <title>Too Many Open Files</title>
-            <link>https://blog.5772447.xyz/tags/too-many-open-files/</link>
-            <pubDate>Fri, 24 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/too-many-open-files/</guid>
-            <description></description>
-        </item><item>
-            <title>LimitNOFILE</title>
-            <link>https://blog.5772447.xyz/tags/limitnofile/</link>
-            <pubDate>Fri, 24 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/limitnofile/</guid>
-            <description></description>
-        </item><item>
-            <title>EMFILE</title>
-            <link>https://blog.5772447.xyz/tags/emfile/</link>
-            <pubDate>Fri, 24 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/emfile/</guid>
-            <description></description>
-        </item><item>
-            <title>MSS</title>
-            <link>https://blog.5772447.xyz/tags/mss/</link>
-            <pubDate>Thu, 23 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/mss/</guid>
-            <description></description>
-        </item><item>
-            <title>ICMP</title>
-            <link>https://blog.5772447.xyz/tags/icmp/</link>
-            <pubDate>Thu, 23 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/icmp/</guid>
-            <description></description>
-        </item><item>
-            <title>自动扩容</title>
-            <link>https://blog.5772447.xyz/tags/%E8%87%AA%E5%8A%A8%E6%89%A9%E5%AE%B9/</link>
-            <pubDate>Wed, 22 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E8%87%AA%E5%8A%A8%E6%89%A9%E5%AE%B9/</guid>
-            <description></description>
-        </item><item>
-            <title>Metrics-Server</title>
-            <link>https://blog.5772447.xyz/tags/metrics-server/</link>
-            <pubDate>Wed, 22 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/metrics-server/</guid>
-            <description></description>
-        </item><item>
-            <title>Kubelet Summary API</title>
-            <link>https://blog.5772447.xyz/tags/kubelet-summary-api/</link>
-            <pubDate>Wed, 22 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/kubelet-summary-api/</guid>
-            <description></description>
-        </item><item>
-            <title>HPA</title>
-            <link>https://blog.5772447.xyz/tags/hpa/</link>
-            <pubDate>Wed, 22 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/hpa/</guid>
-            <description></description>
-        </item><item>
-            <title>Autoscaling</title>
-            <link>https://blog.5772447.xyz/tags/autoscaling/</link>
-            <pubDate>Wed, 22 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/autoscaling/</guid>
-            <description></description>
-        </item><item>
-            <title>Aggregation Layer</title>
-            <link>https://blog.5772447.xyz/tags/aggregation-layer/</link>
-            <pubDate>Wed, 22 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/aggregation-layer/</guid>
-            <description></description>
-        </item><item>
-            <title>网络配置</title>
-            <link>https://blog.5772447.xyz/tags/%E7%BD%91%E7%BB%9C%E9%85%8D%E7%BD%AE/</link>
-            <pubDate>Tue, 21 Jul 2026 19:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E7%BD%91%E7%BB%9C%E9%85%8D%E7%BD%AE/</guid>
-            <description></description>
-        </item><item>
-            <title>Pod 无法调度</title>
-            <link>https://blog.5772447.xyz/tags/pod-%E6%97%A0%E6%B3%95%E8%B0%83%E5%BA%A6/</link>
-            <pubDate>Tue, 21 Jul 2026 19:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/pod-%E6%97%A0%E6%B3%95%E8%B0%83%E5%BA%A6/</guid>
-            <description></description>
-        </item><item>
-            <title>IPAM</title>
-            <link>https://blog.5772447.xyz/tags/ipam/</link>
-            <pubDate>Tue, 21 Jul 2026 19:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/ipam/</guid>
-            <description></description>
-        </item><item>
-            <title>IP 池耗尽</title>
-            <link>https://blog.5772447.xyz/tags/ip-%E6%B1%A0%E8%80%97%E5%B0%BD/</link>
-            <pubDate>Tue, 21 Jul 2026 19:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/ip-%E6%B1%A0%E8%80%97%E5%B0%BD/</guid>
-            <description></description>
-        </item><item>
-            <title>CNI</title>
-            <link>https://blog.5772447.xyz/tags/cni/</link>
-            <pubDate>Tue, 21 Jul 2026 19:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/cni/</guid>
-            <description></description>
-        </item><item>
-            <title>Calico</title>
-            <link>https://blog.5772447.xyz/tags/calico/</link>
-            <pubDate>Tue, 21 Jul 2026 19:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/calico/</guid>
-            <description></description>
-        </item><item>
-            <title>域控持久化</title>
-            <link>https://blog.5772447.xyz/tags/%E5%9F%9F%E6%8E%A7%E6%8C%81%E4%B9%85%E5%8C%96/</link>
-            <pubDate>Tue, 21 Jul 2026 18:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%9F%9F%E6%8E%A7%E6%8C%81%E4%B9%85%E5%8C%96/</guid>
-            <description></description>
-        </item><item>
-            <title>域安全</title>
-            <link>https://blog.5772447.xyz/tags/%E5%9F%9F%E5%AE%89%E5%85%A8/</link>
-            <pubDate>Tue, 21 Jul 2026 18:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%9F%9F%E5%AE%89%E5%85%A8/</guid>
-            <description></description>
-        </item><item>
-            <title>票据伪造</title>
-            <link>https://blog.5772447.xyz/tags/%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/</link>
-            <pubDate>Tue, 21 Jul 2026 18:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/</guid>
-            <description></description>
-        </item><item>
-            <title>黄金票据</title>
-            <link>https://blog.5772447.xyz/tags/%E9%BB%84%E9%87%91%E7%A5%A8%E6%8D%AE/</link>
-            <pubDate>Tue, 21 Jul 2026 18:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E9%BB%84%E9%87%91%E7%A5%A8%E6%8D%AE/</guid>
-            <description></description>
-        </item><item>
-            <title>Kerberos</title>
-            <link>https://blog.5772447.xyz/tags/kerberos/</link>
-            <pubDate>Tue, 21 Jul 2026 18:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/kerberos/</guid>
-            <description></description>
-        </item><item>
-            <title>Golden Ticket</title>
-            <link>https://blog.5772447.xyz/tags/golden-ticket/</link>
-            <pubDate>Tue, 21 Jul 2026 18:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/golden-ticket/</guid>
-            <description></description>
-        </item><item>
-            <title>AD域</title>
-            <link>https://blog.5772447.xyz/tags/ad%E5%9F%9F/</link>
-            <pubDate>Tue, 21 Jul 2026 18:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/ad%E5%9F%9F/</guid>
-            <description></description>
-        </item><item>
-            <title>优雅退出</title>
-            <link>https://blog.5772447.xyz/tags/%E4%BC%98%E9%9B%85%E9%80%80%E5%87%BA/</link>
-            <pubDate>Tue, 21 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E4%BC%98%E9%9B%85%E9%80%80%E5%87%BA/</guid>
-            <description></description>
-        </item><item>
-            <title>删除语义</title>
-            <link>https://blog.5772447.xyz/tags/%E5%88%A0%E9%99%A4%E8%AF%AD%E4%B9%89/</link>
-            <pubDate>Tue, 21 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%88%A0%E9%99%A4%E8%AF%AD%E4%B9%89/</guid>
-            <description></description>
-        </item><item>
-            <title>Terminating</title>
-            <link>https://blog.5772447.xyz/tags/terminating/</link>
-            <pubDate>Tue, 21 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/terminating/</guid>
-            <description></description>
-        </item><item>
-            <title>PreStop</title>
-            <link>https://blog.5772447.xyz/tags/prestop/</link>
-            <pubDate>Tue, 21 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/prestop/</guid>
-            <description></description>
-        </item><item>
-            <title>Pod 卡死</title>
-            <link>https://blog.5772447.xyz/tags/pod-%E5%8D%A1%E6%AD%BB/</link>
-            <pubDate>Tue, 21 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/pod-%E5%8D%A1%E6%AD%BB/</guid>
-            <description></description>
-        </item><item>
-            <title>Finalizer</title>
-            <link>https://blog.5772447.xyz/tags/finalizer/</link>
-            <pubDate>Tue, 21 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/finalizer/</guid>
-            <description></description>
-        </item><item>
-            <title>虚拟桌面蓝屏</title>
-            <link>https://blog.5772447.xyz/tags/%E8%99%9A%E6%8B%9F%E6%A1%8C%E9%9D%A2%E8%93%9D%E5%B1%8F/</link>
-            <pubDate>Mon, 20 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E8%99%9A%E6%8B%9F%E6%A1%8C%E9%9D%A2%E8%93%9D%E5%B1%8F/</guid>
-            <description></description>
-        </item><item>
-            <title>无盘系统</title>
-            <link>https://blog.5772447.xyz/tags/%E6%97%A0%E7%9B%98%E7%B3%BB%E7%BB%9F/</link>
-            <pubDate>Mon, 20 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%97%A0%E7%9B%98%E7%B3%BB%E7%BB%9F/</guid>
-            <description></description>
-        </item><item>
-            <title>镜像变更回滚</title>
-            <link>https://blog.5772447.xyz/tags/%E9%95%9C%E5%83%8F%E5%8F%98%E6%9B%B4%E5%9B%9E%E6%BB%9A/</link>
-            <pubDate>Mon, 20 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E9%95%9C%E5%83%8F%E5%8F%98%E6%9B%B4%E5%9B%9E%E6%BB%9A/</guid>
-            <description></description>
-        </item><item>
-            <title>VDI运维</title>
-            <link>https://blog.5772447.xyz/tags/vdi%E8%BF%90%E7%BB%B4/</link>
-            <pubDate>Mon, 20 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/vdi%E8%BF%90%E7%BB%B4/</guid>
-            <description></description>
-        </item><item>
-            <title>VDisk版本回滚</title>
-            <link>https://blog.5772447.xyz/tags/vdisk%E7%89%88%E6%9C%AC%E5%9B%9E%E6%BB%9A/</link>
-            <pubDate>Mon, 20 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/vdisk%E7%89%88%E6%9C%AC%E5%9B%9E%E6%BB%9A/</guid>
-            <description></description>
-        </item><item>
-            <title>PVS Versioning</title>
-            <link>https://blog.5772447.xyz/tags/pvs-versioning/</link>
-            <pubDate>Mon, 20 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/pvs-versioning/</guid>
-            <description></description>
-        </item><item>
-            <title>Citrix PVS</title>
-            <link>https://blog.5772447.xyz/tags/citrix-pvs/</link>
-            <pubDate>Mon, 20 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/citrix-pvs/</guid>
-            <description></description>
-        </item><item>
-            <title>依赖投毒</title>
-            <link>https://blog.5772447.xyz/tags/%E4%BE%9D%E8%B5%96%E6%8A%95%E6%AF%92/</link>
-            <pubDate>Sun, 19 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E4%BE%9D%E8%B5%96%E6%8A%95%E6%AF%92/</guid>
-            <description></description>
-        </item><item>
-            <title>软件供应链</title>
-            <link>https://blog.5772447.xyz/tags/%E8%BD%AF%E4%BB%B6%E4%BE%9B%E5%BA%94%E9%93%BE/</link>
-            <pubDate>Sun, 19 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E8%BD%AF%E4%BB%B6%E4%BE%9B%E5%BA%94%E9%93%BE/</guid>
-            <description></description>
-        </item><item>
-            <title>供应链投毒</title>
-            <link>https://blog.5772447.xyz/tags/%E4%BE%9B%E5%BA%94%E9%93%BE%E6%8A%95%E6%AF%92/</link>
-            <pubDate>Sun, 19 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E4%BE%9B%E5%BA%94%E9%93%BE%E6%8A%95%E6%AF%92/</guid>
-            <description></description>
-        </item><item>
-            <title>包投毒</title>
-            <link>https://blog.5772447.xyz/tags/%E5%8C%85%E6%8A%95%E6%AF%92/</link>
-            <pubDate>Sun, 19 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%8C%85%E6%8A%95%E6%AF%92/</guid>
-            <description></description>
-        </item><item>
-            <title>Typosquatting</title>
-            <link>https://blog.5772447.xyz/tags/typosquatting/</link>
-            <pubDate>Sun, 19 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/typosquatting/</guid>
-            <description></description>
-        </item><item>
-            <title>SBOM</title>
-            <link>https://blog.5772447.xyz/tags/sbom/</link>
-            <pubDate>Sun, 19 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/sbom/</guid>
-            <description></description>
-        </item><item>
-            <title>Npm投毒</title>
-            <link>https://blog.5772447.xyz/tags/npm%E6%8A%95%E6%AF%92/</link>
-            <pubDate>Sun, 19 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/npm%E6%8A%95%E6%AF%92/</guid>
-            <description></description>
-        </item><item>
-            <title>CI构建后门</title>
-            <link>https://blog.5772447.xyz/tags/ci%E6%9E%84%E5%BB%BA%E5%90%8E%E9%97%A8/</link>
-            <pubDate>Sun, 19 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/ci%E6%9E%84%E5%BB%BA%E5%90%8E%E9%97%A8/</guid>
-            <description></description>
-        </item><item>
-            <title>资源配额</title>
-            <link>https://blog.5772447.xyz/tags/%E8%B5%84%E6%BA%90%E9%85%8D%E9%A2%9D/</link>
-            <pubDate>Sat, 18 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E8%B5%84%E6%BA%90%E9%85%8D%E9%A2%9D/</guid>
-            <description></description>
-        </item><item>
-            <title>调度失败</title>
-            <link>https://blog.5772447.xyz/tags/%E8%B0%83%E5%BA%A6%E5%A4%B1%E8%B4%A5/</link>
-            <pubDate>Sat, 18 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E8%B0%83%E5%BA%A6%E5%A4%B1%E8%B4%A5/</guid>
-            <description></description>
-        </item><item>
-            <title>ResourceQuota</title>
-            <link>https://blog.5772447.xyz/tags/resourcequota/</link>
-            <pubDate>Sat, 18 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/resourcequota/</guid>
-            <description></description>
-        </item><item>
-            <title>Pod Pending</title>
-            <link>https://blog.5772447.xyz/tags/pod-pending/</link>
-            <pubDate>Sat, 18 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/pod-pending/</guid>
-            <description></description>
-        </item><item>
-            <title>LimitRange</title>
-            <link>https://blog.5772447.xyz/tags/limitrange/</link>
-            <pubDate>Sat, 18 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/limitrange/</guid>
-            <description></description>
-        </item><item>
-            <title>FailedScheduling</title>
-            <link>https://blog.5772447.xyz/tags/failedscheduling/</link>
-            <pubDate>Sat, 18 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/failedscheduling/</guid>
-            <description></description>
-        </item><item>
-            <title>数据恢复</title>
-            <link>https://blog.5772447.xyz/tags/%E6%95%B0%E6%8D%AE%E6%81%A2%E5%A4%8D/</link>
-            <pubDate>Fri, 17 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E6%95%B0%E6%8D%AE%E6%81%A2%E5%A4%8D/</guid>
-            <description></description>
-        </item><item>
             <title>入侵排查</title>
             <link>https://blog.5772447.xyz/tags/%E5%85%A5%E4%BE%B5%E6%8E%92%E6%9F%A5/</link>
-            <pubDate>Fri, 17 Jul 2026 07:00:00 +0800</pubDate>
+            <pubDate>Sun, 12 Jul 2026 07:00:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/%E5%85%A5%E4%BE%B5%E6%8E%92%E6%9F%A5/</guid>
-            <description></description>
-        </item><item>
-            <title>勒索软件</title>
-            <link>https://blog.5772447.xyz/tags/%E5%8B%92%E7%B4%A2%E8%BD%AF%E4%BB%B6/</link>
-            <pubDate>Fri, 17 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%8B%92%E7%B4%A2%E8%BD%AF%E4%BB%B6/</guid>
-            <description></description>
-        </item><item>
-            <title>RDP</title>
-            <link>https://blog.5772447.xyz/tags/rdp/</link>
-            <pubDate>Fri, 17 Jul 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/rdp/</guid>
-            <description></description>
-        </item><item>
-            <title>容器运维</title>
-            <link>https://blog.5772447.xyz/tags/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/</link>
-            <pubDate>Thu, 16 Jul 2026 00:00:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/</guid>
-            <description></description>
-        </item><item>
-            <title>ImagePullSecret</title>
-            <link>https://blog.5772447.xyz/tags/imagepullsecret/</link>
-            <pubDate>Thu, 16 Jul 2026 00:00:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/imagepullsecret/</guid>
-            <description></description>
-        </item><item>
-            <title>ImagePullBackOff</title>
-            <link>https://blog.5772447.xyz/tags/imagepullbackoff/</link>
-            <pubDate>Thu, 16 Jul 2026 00:00:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/imagepullbackoff/</guid>
-            <description></description>
-        </item><item>
-            <title>Harbor</title>
-            <link>https://blog.5772447.xyz/tags/harbor/</link>
-            <pubDate>Thu, 16 Jul 2026 00:00:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/harbor/</guid>
             <description></description>
         </item><item>
             <title>后门</title>
@@ -1272,6 +228,18 @@
             <guid>https://blog.5772447.xyz/tags/tls/</guid>
             <description></description>
         </item><item>
+            <title>TIME_WAIT</title>
+            <link>https://blog.5772447.xyz/tags/time_wait/</link>
+            <pubDate>Sat, 11 Jul 2026 07:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/time_wait/</guid>
+            <description></description>
+        </item><item>
+            <title>TCP</title>
+            <link>https://blog.5772447.xyz/tags/tcp/</link>
+            <pubDate>Sat, 11 Jul 2026 07:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/tcp/</guid>
+            <description></description>
+        </item><item>
             <title>StartupProbe</title>
             <link>https://blog.5772447.xyz/tags/startupprobe/</link>
             <pubDate>Sat, 11 Jul 2026 07:00:00 +0000</pubDate>
@@ -1300,6 +268,12 @@
             <link>https://blog.5772447.xyz/tags/livenessprobe/</link>
             <pubDate>Sat, 11 Jul 2026 07:00:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/livenessprobe/</guid>
+            <description></description>
+        </item><item>
+            <title>Linux</title>
+            <link>https://blog.5772447.xyz/tags/linux/</link>
+            <pubDate>Sat, 11 Jul 2026 07:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/linux/</guid>
             <description></description>
         </item><item>
             <title>CrashLoopBackOff</title>
@@ -1366,6 +340,12 @@
             <link>https://blog.5772447.xyz/tags/504/</link>
             <pubDate>Thu, 09 Jul 2026 16:58:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/504/</guid>
+            <description></description>
+        </item><item>
+            <title>长事务</title>
+            <link>https://blog.5772447.xyz/tags/%E9%95%BF%E4%BA%8B%E5%8A%A1/</link>
+            <pubDate>Thu, 09 Jul 2026 07:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E9%95%BF%E4%BA%8B%E5%8A%A1/</guid>
             <description></description>
         </item><item>
             <title>文件共享</title>
@@ -1440,6 +420,12 @@
             <guid>https://blog.5772447.xyz/tags/dhcp/</guid>
             <description></description>
         </item><item>
+            <title>容器运维</title>
+            <link>https://blog.5772447.xyz/tags/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/</link>
+            <pubDate>Tue, 07 Jul 2026 12:38:41 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/</guid>
+            <description></description>
+        </item><item>
             <title>Overlay2</title>
             <link>https://blog.5772447.xyz/tags/overlay2/</link>
             <pubDate>Tue, 07 Jul 2026 12:38:41 +0000</pubDate>
@@ -1468,6 +454,12 @@
             <link>https://blog.5772447.xyz/tags/conntrack/</link>
             <pubDate>Mon, 06 Jul 2026 04:52:26 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/conntrack/</guid>
+            <description></description>
+        </item><item>
+            <title>应急响应</title>
+            <link>https://blog.5772447.xyz/tags/%E5%BA%94%E6%80%A5%E5%93%8D%E5%BA%94/</link>
+            <pubDate>Mon, 06 Jul 2026 13:59:10 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%BA%94%E6%80%A5%E5%93%8D%E5%BA%94/</guid>
             <description></description>
         </item><item>
             <title>挖矿木马</title>
@@ -1500,10 +492,28 @@
             <guid>https://blog.5772447.xyz/tags/gpo/</guid>
             <description></description>
         </item><item>
+            <title>AD域</title>
+            <link>https://blog.5772447.xyz/tags/ad%E5%9F%9F/</link>
+            <pubDate>Sun, 05 Jul 2026 18:49:05 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/ad%E5%9F%9F/</guid>
+            <description></description>
+        </item><item>
+            <title>路由震荡</title>
+            <link>https://blog.5772447.xyz/tags/%E8%B7%AF%E7%94%B1%E9%9C%87%E8%8D%A1/</link>
+            <pubDate>Sun, 05 Jul 2026 06:26:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%B7%AF%E7%94%B1%E9%9C%87%E8%8D%A1/</guid>
+            <description></description>
+        </item><item>
             <title>光纤故障</title>
             <link>https://blog.5772447.xyz/tags/%E5%85%89%E7%BA%A4%E6%95%85%E9%9A%9C/</link>
             <pubDate>Sun, 05 Jul 2026 06:26:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/%E5%85%89%E7%BA%A4%E6%95%85%E9%9A%9C/</guid>
+            <description></description>
+        </item><item>
+            <title>OSPF</title>
+            <link>https://blog.5772447.xyz/tags/ospf/</link>
+            <pubDate>Sun, 05 Jul 2026 06:26:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/ospf/</guid>
             <description></description>
         </item><item>
             <title>BGP</title>
@@ -1558,6 +568,12 @@
             <link>https://blog.5772447.xyz/tags/ntp/</link>
             <pubDate>Sat, 04 Jul 2026 06:55:33 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/ntp/</guid>
+            <description></description>
+        </item><item>
+            <title>Kerberos</title>
+            <link>https://blog.5772447.xyz/tags/kerberos/</link>
+            <pubDate>Sat, 04 Jul 2026 06:55:33 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/kerberos/</guid>
             <description></description>
         </item><item>
             <title>AD域控</title>
@@ -1626,6 +642,12 @@
             <guid>https://blog.5772447.xyz/tags/%E6%BC%AB%E6%B8%B8%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6/</guid>
             <description></description>
         </item><item>
+            <title>性能调优</title>
+            <link>https://blog.5772447.xyz/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/</link>
+            <pubDate>Tue, 30 Jun 2026 07:34:07 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/</guid>
+            <description></description>
+        </item><item>
             <title>网络中断</title>
             <link>https://blog.5772447.xyz/tags/%E7%BD%91%E7%BB%9C%E4%B8%AD%E6%96%AD/</link>
             <pubDate>Tue, 30 Jun 2026 07:34:07 +0000</pubDate>
@@ -1660,6 +682,12 @@
             <link>https://blog.5772447.xyz/tags/802.1x/</link>
             <pubDate>Tue, 30 Jun 2026 16:43:49 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/802.1x/</guid>
+            <description></description>
+        </item><item>
+            <title>交换机</title>
+            <link>https://blog.5772447.xyz/tags/%E4%BA%A4%E6%8D%A2%E6%9C%BA/</link>
+            <pubDate>Mon, 29 Jun 2026 11:16:49 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E4%BA%A4%E6%8D%A2%E6%9C%BA/</guid>
             <description></description>
         </item><item>
             <title>环路</title>
@@ -1878,6 +906,12 @@
             <guid>https://blog.5772447.xyz/tags/%E7%AB%AF%E5%8F%A3%E5%AE%89%E5%85%A8/</guid>
             <description></description>
         </item><item>
+            <title>运维</title>
+            <link>https://blog.5772447.xyz/tags/%E8%BF%90%E7%BB%B4/</link>
+            <pubDate>Thu, 07 May 2026 07:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%BF%90%E7%BB%B4/</guid>
+            <description></description>
+        </item><item>
             <title>入侵防护</title>
             <link>https://blog.5772447.xyz/tags/%E5%85%A5%E4%BE%B5%E9%98%B2%E6%8A%A4/</link>
             <pubDate>Tue, 16 Dec 2025 17:58:32 +0000</pubDate>
@@ -2052,6 +1086,84 @@
             <guid>https://blog.5772447.xyz/tags/redis/</guid>
             <description></description>
         </item><item>
+            <title>ImagePullSecret</title>
+            <link>https://blog.5772447.xyz/tags/imagepullsecret/</link>
+            <pubDate>Thu, 06 Mar 2025 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/imagepullsecret/</guid>
+            <description></description>
+        </item><item>
+            <title>ImagePullBackOff</title>
+            <link>https://blog.5772447.xyz/tags/imagepullbackoff/</link>
+            <pubDate>Thu, 06 Mar 2025 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/imagepullbackoff/</guid>
+            <description></description>
+        </item><item>
+            <title>Harbor</title>
+            <link>https://blog.5772447.xyz/tags/harbor/</link>
+            <pubDate>Thu, 06 Mar 2025 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/harbor/</guid>
+            <description></description>
+        </item><item>
+            <title>主机加固</title>
+            <link>https://blog.5772447.xyz/tags/%E4%B8%BB%E6%9C%BA%E5%8A%A0%E5%9B%BA/</link>
+            <pubDate>Wed, 12 Feb 2025 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E4%B8%BB%E6%9C%BA%E5%8A%A0%E5%9B%BA/</guid>
+            <description></description>
+        </item><item>
+            <title>数据恢复</title>
+            <link>https://blog.5772447.xyz/tags/%E6%95%B0%E6%8D%AE%E6%81%A2%E5%A4%8D/</link>
+            <pubDate>Wed, 12 Feb 2025 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%95%B0%E6%8D%AE%E6%81%A2%E5%A4%8D/</guid>
+            <description></description>
+        </item><item>
+            <title>勒索软件</title>
+            <link>https://blog.5772447.xyz/tags/%E5%8B%92%E7%B4%A2%E8%BD%AF%E4%BB%B6/</link>
+            <pubDate>Wed, 12 Feb 2025 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%8B%92%E7%B4%A2%E8%BD%AF%E4%BB%B6/</guid>
+            <description></description>
+        </item><item>
+            <title>RDP</title>
+            <link>https://blog.5772447.xyz/tags/rdp/</link>
+            <pubDate>Wed, 12 Feb 2025 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/rdp/</guid>
+            <description></description>
+        </item><item>
+            <title>资源配额</title>
+            <link>https://blog.5772447.xyz/tags/%E8%B5%84%E6%BA%90%E9%85%8D%E9%A2%9D/</link>
+            <pubDate>Sun, 19 Jan 2025 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%B5%84%E6%BA%90%E9%85%8D%E9%A2%9D/</guid>
+            <description></description>
+        </item><item>
+            <title>调度失败</title>
+            <link>https://blog.5772447.xyz/tags/%E8%B0%83%E5%BA%A6%E5%A4%B1%E8%B4%A5/</link>
+            <pubDate>Sun, 19 Jan 2025 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%B0%83%E5%BA%A6%E5%A4%B1%E8%B4%A5/</guid>
+            <description></description>
+        </item><item>
+            <title>ResourceQuota</title>
+            <link>https://blog.5772447.xyz/tags/resourcequota/</link>
+            <pubDate>Sun, 19 Jan 2025 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/resourcequota/</guid>
+            <description></description>
+        </item><item>
+            <title>Pod Pending</title>
+            <link>https://blog.5772447.xyz/tags/pod-pending/</link>
+            <pubDate>Sun, 19 Jan 2025 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/pod-pending/</guid>
+            <description></description>
+        </item><item>
+            <title>LimitRange</title>
+            <link>https://blog.5772447.xyz/tags/limitrange/</link>
+            <pubDate>Sun, 19 Jan 2025 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/limitrange/</guid>
+            <description></description>
+        </item><item>
+            <title>FailedScheduling</title>
+            <link>https://blog.5772447.xyz/tags/failedscheduling/</link>
+            <pubDate>Sun, 19 Jan 2025 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/failedscheduling/</guid>
+            <description></description>
+        </item><item>
             <title>加域失败</title>
             <link>https://blog.5772447.xyz/tags/%E5%8A%A0%E5%9F%9F%E5%A4%B1%E8%B4%A5/</link>
             <pubDate>Mon, 13 Jan 2025 12:54:18 +0000</pubDate>
@@ -2068,6 +1180,12 @@
             <link>https://blog.5772447.xyz/tags/%E9%98%B2%E7%81%AB%E5%A2%99/</link>
             <pubDate>Fri, 06 Dec 2024 09:15:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/%E9%98%B2%E7%81%AB%E5%A2%99/</guid>
+            <description></description>
+        </item><item>
+            <title>NAT</title>
+            <link>https://blog.5772447.xyz/tags/nat/</link>
+            <pubDate>Fri, 06 Dec 2024 09:15:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/nat/</guid>
             <description></description>
         </item><item>
             <title>IPSec VPN</title>
@@ -2178,6 +1296,54 @@
             <guid>https://blog.5772447.xyz/tags/snmp/</guid>
             <description></description>
         </item><item>
+            <title>依赖投毒</title>
+            <link>https://blog.5772447.xyz/tags/%E4%BE%9D%E8%B5%96%E6%8A%95%E6%AF%92/</link>
+            <pubDate>Fri, 26 Apr 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E4%BE%9D%E8%B5%96%E6%8A%95%E6%AF%92/</guid>
+            <description></description>
+        </item><item>
+            <title>软件供应链</title>
+            <link>https://blog.5772447.xyz/tags/%E8%BD%AF%E4%BB%B6%E4%BE%9B%E5%BA%94%E9%93%BE/</link>
+            <pubDate>Fri, 26 Apr 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%BD%AF%E4%BB%B6%E4%BE%9B%E5%BA%94%E9%93%BE/</guid>
+            <description></description>
+        </item><item>
+            <title>供应链投毒</title>
+            <link>https://blog.5772447.xyz/tags/%E4%BE%9B%E5%BA%94%E9%93%BE%E6%8A%95%E6%AF%92/</link>
+            <pubDate>Fri, 26 Apr 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E4%BE%9B%E5%BA%94%E9%93%BE%E6%8A%95%E6%AF%92/</guid>
+            <description></description>
+        </item><item>
+            <title>包投毒</title>
+            <link>https://blog.5772447.xyz/tags/%E5%8C%85%E6%8A%95%E6%AF%92/</link>
+            <pubDate>Fri, 26 Apr 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%8C%85%E6%8A%95%E6%AF%92/</guid>
+            <description></description>
+        </item><item>
+            <title>Typosquatting</title>
+            <link>https://blog.5772447.xyz/tags/typosquatting/</link>
+            <pubDate>Fri, 26 Apr 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/typosquatting/</guid>
+            <description></description>
+        </item><item>
+            <title>SBOM</title>
+            <link>https://blog.5772447.xyz/tags/sbom/</link>
+            <pubDate>Fri, 26 Apr 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/sbom/</guid>
+            <description></description>
+        </item><item>
+            <title>Npm投毒</title>
+            <link>https://blog.5772447.xyz/tags/npm%E6%8A%95%E6%AF%92/</link>
+            <pubDate>Fri, 26 Apr 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/npm%E6%8A%95%E6%AF%92/</guid>
+            <description></description>
+        </item><item>
+            <title>CI构建后门</title>
+            <link>https://blog.5772447.xyz/tags/ci%E6%9E%84%E5%BB%BA%E5%90%8E%E9%97%A8/</link>
+            <pubDate>Fri, 26 Apr 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/ci%E6%9E%84%E5%BB%BA%E5%90%8E%E9%97%A8/</guid>
+            <description></description>
+        </item><item>
             <title>SSL VPN</title>
             <link>https://blog.5772447.xyz/tags/ssl-vpn/</link>
             <pubDate>Wed, 17 Apr 2024 07:50:00 +0000</pubDate>
@@ -2188,6 +1354,48 @@
             <link>https://blog.5772447.xyz/tags/ldap/</link>
             <pubDate>Wed, 17 Apr 2024 07:50:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/ldap/</guid>
+            <description></description>
+        </item><item>
+            <title>虚拟桌面蓝屏</title>
+            <link>https://blog.5772447.xyz/tags/%E8%99%9A%E6%8B%9F%E6%A1%8C%E9%9D%A2%E8%93%9D%E5%B1%8F/</link>
+            <pubDate>Thu, 21 Mar 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%99%9A%E6%8B%9F%E6%A1%8C%E9%9D%A2%E8%93%9D%E5%B1%8F/</guid>
+            <description></description>
+        </item><item>
+            <title>无盘系统</title>
+            <link>https://blog.5772447.xyz/tags/%E6%97%A0%E7%9B%98%E7%B3%BB%E7%BB%9F/</link>
+            <pubDate>Thu, 21 Mar 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%97%A0%E7%9B%98%E7%B3%BB%E7%BB%9F/</guid>
+            <description></description>
+        </item><item>
+            <title>镜像变更回滚</title>
+            <link>https://blog.5772447.xyz/tags/%E9%95%9C%E5%83%8F%E5%8F%98%E6%9B%B4%E5%9B%9E%E6%BB%9A/</link>
+            <pubDate>Thu, 21 Mar 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E9%95%9C%E5%83%8F%E5%8F%98%E6%9B%B4%E5%9B%9E%E6%BB%9A/</guid>
+            <description></description>
+        </item><item>
+            <title>VDI运维</title>
+            <link>https://blog.5772447.xyz/tags/vdi%E8%BF%90%E7%BB%B4/</link>
+            <pubDate>Thu, 21 Mar 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/vdi%E8%BF%90%E7%BB%B4/</guid>
+            <description></description>
+        </item><item>
+            <title>VDisk版本回滚</title>
+            <link>https://blog.5772447.xyz/tags/vdisk%E7%89%88%E6%9C%AC%E5%9B%9E%E6%BB%9A/</link>
+            <pubDate>Thu, 21 Mar 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/vdisk%E7%89%88%E6%9C%AC%E5%9B%9E%E6%BB%9A/</guid>
+            <description></description>
+        </item><item>
+            <title>PVS Versioning</title>
+            <link>https://blog.5772447.xyz/tags/pvs-versioning/</link>
+            <pubDate>Thu, 21 Mar 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/pvs-versioning/</guid>
+            <description></description>
+        </item><item>
+            <title>Citrix PVS</title>
+            <link>https://blog.5772447.xyz/tags/citrix-pvs/</link>
+            <pubDate>Thu, 21 Mar 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/citrix-pvs/</guid>
             <description></description>
         </item><item>
             <title>磁盘压力</title>
@@ -2220,16 +1428,100 @@
             <guid>https://blog.5772447.xyz/tags/%E6%8A%A5%E8%A1%A8/</guid>
             <description></description>
         </item><item>
+            <title>磁盘空间</title>
+            <link>https://blog.5772447.xyz/tags/%E7%A3%81%E7%9B%98%E7%A9%BA%E9%97%B4/</link>
+            <pubDate>Wed, 21 Feb 2024 15:30:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E7%A3%81%E7%9B%98%E7%A9%BA%E9%97%B4/</guid>
+            <description></description>
+        </item><item>
+            <title>堡垒机</title>
+            <link>https://blog.5772447.xyz/tags/%E5%A0%A1%E5%9E%92%E6%9C%BA/</link>
+            <pubDate>Wed, 21 Feb 2024 15:30:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%A0%A1%E5%9E%92%E6%9C%BA/</guid>
+            <description></description>
+        </item><item>
             <title>Wtmp</title>
             <link>https://blog.5772447.xyz/tags/wtmp/</link>
             <pubDate>Wed, 21 Feb 2024 15:30:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/wtmp/</guid>
             <description></description>
         </item><item>
+            <title>域控持久化</title>
+            <link>https://blog.5772447.xyz/tags/%E5%9F%9F%E6%8E%A7%E6%8C%81%E4%B9%85%E5%8C%96/</link>
+            <pubDate>Thu, 15 Feb 2024 18:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%9F%9F%E6%8E%A7%E6%8C%81%E4%B9%85%E5%8C%96/</guid>
+            <description></description>
+        </item><item>
+            <title>域安全</title>
+            <link>https://blog.5772447.xyz/tags/%E5%9F%9F%E5%AE%89%E5%85%A8/</link>
+            <pubDate>Thu, 15 Feb 2024 18:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%9F%9F%E5%AE%89%E5%85%A8/</guid>
+            <description></description>
+        </item><item>
+            <title>票据伪造</title>
+            <link>https://blog.5772447.xyz/tags/%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/</link>
+            <pubDate>Thu, 15 Feb 2024 18:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/</guid>
+            <description></description>
+        </item><item>
+            <title>黄金票据</title>
+            <link>https://blog.5772447.xyz/tags/%E9%BB%84%E9%87%91%E7%A5%A8%E6%8D%AE/</link>
+            <pubDate>Thu, 15 Feb 2024 18:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E9%BB%84%E9%87%91%E7%A5%A8%E6%8D%AE/</guid>
+            <description></description>
+        </item><item>
+            <title>Golden Ticket</title>
+            <link>https://blog.5772447.xyz/tags/golden-ticket/</link>
+            <pubDate>Thu, 15 Feb 2024 18:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/golden-ticket/</guid>
+            <description></description>
+        </item><item>
+            <title>优雅退出</title>
+            <link>https://blog.5772447.xyz/tags/%E4%BC%98%E9%9B%85%E9%80%80%E5%87%BA/</link>
+            <pubDate>Tue, 16 Jan 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E4%BC%98%E9%9B%85%E9%80%80%E5%87%BA/</guid>
+            <description></description>
+        </item><item>
+            <title>删除语义</title>
+            <link>https://blog.5772447.xyz/tags/%E5%88%A0%E9%99%A4%E8%AF%AD%E4%B9%89/</link>
+            <pubDate>Tue, 16 Jan 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%88%A0%E9%99%A4%E8%AF%AD%E4%B9%89/</guid>
+            <description></description>
+        </item><item>
+            <title>Terminating</title>
+            <link>https://blog.5772447.xyz/tags/terminating/</link>
+            <pubDate>Tue, 16 Jan 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/terminating/</guid>
+            <description></description>
+        </item><item>
+            <title>PreStop</title>
+            <link>https://blog.5772447.xyz/tags/prestop/</link>
+            <pubDate>Tue, 16 Jan 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/prestop/</guid>
+            <description></description>
+        </item><item>
+            <title>Pod 卡死</title>
+            <link>https://blog.5772447.xyz/tags/pod-%E5%8D%A1%E6%AD%BB/</link>
+            <pubDate>Tue, 16 Jan 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/pod-%E5%8D%A1%E6%AD%BB/</guid>
+            <description></description>
+        </item><item>
+            <title>Finalizer</title>
+            <link>https://blog.5772447.xyz/tags/finalizer/</link>
+            <pubDate>Tue, 16 Jan 2024 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/finalizer/</guid>
+            <description></description>
+        </item><item>
             <title>雪崩</title>
             <link>https://blog.5772447.xyz/tags/%E9%9B%AA%E5%B4%A9/</link>
             <pubDate>Mon, 15 Jan 2024 02:45:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/%E9%9B%AA%E5%B4%A9/</guid>
+            <description></description>
+        </item><item>
+            <title>微服务</title>
+            <link>https://blog.5772447.xyz/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/</link>
+            <pubDate>Mon, 15 Jan 2024 02:45:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/</guid>
             <description></description>
         </item><item>
             <title>散热</title>
@@ -2260,6 +1552,12 @@
             <link>https://blog.5772447.xyz/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8/</link>
             <pubDate>Wed, 13 Dec 2023 10:35:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8/</guid>
+            <description></description>
+        </item><item>
+            <title>健康检查</title>
+            <link>https://blog.5772447.xyz/tags/%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5/</link>
+            <pubDate>Wed, 22 Nov 2023 20:10:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5/</guid>
             <description></description>
         </item><item>
             <title>负载均衡</title>
@@ -2544,6 +1842,138 @@
             <guid>https://blog.5772447.xyz/tags/%E7%A3%81%E7%9B%98/</guid>
             <description></description>
         </item><item>
+            <title>Elasticsearch</title>
+            <link>https://blog.5772447.xyz/tags/elasticsearch/</link>
+            <pubDate>Sun, 08 Jan 2023 14:30:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/elasticsearch/</guid>
+            <description></description>
+        </item><item>
+            <title>网络配置</title>
+            <link>https://blog.5772447.xyz/tags/%E7%BD%91%E7%BB%9C%E9%85%8D%E7%BD%AE/</link>
+            <pubDate>Wed, 21 Dec 2022 19:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E7%BD%91%E7%BB%9C%E9%85%8D%E7%BD%AE/</guid>
+            <description></description>
+        </item><item>
+            <title>Pod 无法调度</title>
+            <link>https://blog.5772447.xyz/tags/pod-%E6%97%A0%E6%B3%95%E8%B0%83%E5%BA%A6/</link>
+            <pubDate>Wed, 21 Dec 2022 19:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/pod-%E6%97%A0%E6%B3%95%E8%B0%83%E5%BA%A6/</guid>
+            <description></description>
+        </item><item>
+            <title>IPAM</title>
+            <link>https://blog.5772447.xyz/tags/ipam/</link>
+            <pubDate>Wed, 21 Dec 2022 19:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/ipam/</guid>
+            <description></description>
+        </item><item>
+            <title>IP 池耗尽</title>
+            <link>https://blog.5772447.xyz/tags/ip-%E6%B1%A0%E8%80%97%E5%B0%BD/</link>
+            <pubDate>Wed, 21 Dec 2022 19:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/ip-%E6%B1%A0%E8%80%97%E5%B0%BD/</guid>
+            <description></description>
+        </item><item>
+            <title>CNI</title>
+            <link>https://blog.5772447.xyz/tags/cni/</link>
+            <pubDate>Wed, 21 Dec 2022 19:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/cni/</guid>
+            <description></description>
+        </item><item>
+            <title>Calico</title>
+            <link>https://blog.5772447.xyz/tags/calico/</link>
+            <pubDate>Wed, 21 Dec 2022 19:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/calico/</guid>
+            <description></description>
+        </item><item>
+            <title>自动扩容</title>
+            <link>https://blog.5772447.xyz/tags/%E8%87%AA%E5%8A%A8%E6%89%A9%E5%AE%B9/</link>
+            <pubDate>Sat, 05 Nov 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%87%AA%E5%8A%A8%E6%89%A9%E5%AE%B9/</guid>
+            <description></description>
+        </item><item>
+            <title>Metrics-Server</title>
+            <link>https://blog.5772447.xyz/tags/metrics-server/</link>
+            <pubDate>Sat, 05 Nov 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/metrics-server/</guid>
+            <description></description>
+        </item><item>
+            <title>Kubelet Summary API</title>
+            <link>https://blog.5772447.xyz/tags/kubelet-summary-api/</link>
+            <pubDate>Sat, 05 Nov 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/kubelet-summary-api/</guid>
+            <description></description>
+        </item><item>
+            <title>HPA</title>
+            <link>https://blog.5772447.xyz/tags/hpa/</link>
+            <pubDate>Sat, 05 Nov 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/hpa/</guid>
+            <description></description>
+        </item><item>
+            <title>Autoscaling</title>
+            <link>https://blog.5772447.xyz/tags/autoscaling/</link>
+            <pubDate>Sat, 05 Nov 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/autoscaling/</guid>
+            <description></description>
+        </item><item>
+            <title>Aggregation Layer</title>
+            <link>https://blog.5772447.xyz/tags/aggregation-layer/</link>
+            <pubDate>Sat, 05 Nov 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/aggregation-layer/</guid>
+            <description></description>
+        </item><item>
+            <title>MSS</title>
+            <link>https://blog.5772447.xyz/tags/mss/</link>
+            <pubDate>Thu, 20 Oct 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/mss/</guid>
+            <description></description>
+        </item><item>
+            <title>ICMP</title>
+            <link>https://blog.5772447.xyz/tags/icmp/</link>
+            <pubDate>Thu, 20 Oct 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/icmp/</guid>
+            <description></description>
+        </item><item>
+            <title>文件描述符</title>
+            <link>https://blog.5772447.xyz/tags/%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6/</link>
+            <pubDate>Sun, 25 Sep 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6/</guid>
+            <description></description>
+        </item><item>
+            <title>句柄泄漏</title>
+            <link>https://blog.5772447.xyz/tags/%E5%8F%A5%E6%9F%84%E6%B3%84%E6%BC%8F/</link>
+            <pubDate>Sun, 25 Sep 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%8F%A5%E6%9F%84%E6%B3%84%E6%BC%8F/</guid>
+            <description></description>
+        </item><item>
+            <title>Ulimit</title>
+            <link>https://blog.5772447.xyz/tags/ulimit/</link>
+            <pubDate>Sun, 25 Sep 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/ulimit/</guid>
+            <description></description>
+        </item><item>
+            <title>Too Many Open Files</title>
+            <link>https://blog.5772447.xyz/tags/too-many-open-files/</link>
+            <pubDate>Sun, 25 Sep 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/too-many-open-files/</guid>
+            <description></description>
+        </item><item>
+            <title>Lsof</title>
+            <link>https://blog.5772447.xyz/tags/lsof/</link>
+            <pubDate>Sun, 25 Sep 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/lsof/</guid>
+            <description></description>
+        </item><item>
+            <title>LimitNOFILE</title>
+            <link>https://blog.5772447.xyz/tags/limitnofile/</link>
+            <pubDate>Sun, 25 Sep 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/limitnofile/</guid>
+            <description></description>
+        </item><item>
+            <title>EMFILE</title>
+            <link>https://blog.5772447.xyz/tags/emfile/</link>
+            <pubDate>Sun, 25 Sep 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/emfile/</guid>
+            <description></description>
+        </item><item>
             <title>虚拟化</title>
             <link>https://blog.5772447.xyz/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/</link>
             <pubDate>Tue, 20 Sep 2022 10:45:00 +0000</pubDate>
@@ -2562,10 +1992,172 @@
             <guid>https://blog.5772447.xyz/tags/esxi/</guid>
             <description></description>
         </item><item>
+            <title>文件上传漏洞</title>
+            <link>https://blog.5772447.xyz/tags/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/</link>
+            <pubDate>Mon, 22 Aug 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/</guid>
+            <description></description>
+        </item><item>
+            <title>入侵溯源</title>
+            <link>https://blog.5772447.xyz/tags/%E5%85%A5%E4%BE%B5%E6%BA%AF%E6%BA%90/</link>
+            <pubDate>Mon, 22 Aug 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%85%A5%E4%BE%B5%E6%BA%AF%E6%BA%90/</guid>
+            <description></description>
+        </item><item>
+            <title>哥斯拉</title>
+            <link>https://blog.5772447.xyz/tags/%E5%93%A5%E6%96%AF%E6%8B%89/</link>
+            <pubDate>Mon, 22 Aug 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%93%A5%E6%96%AF%E6%8B%89/</guid>
+            <description></description>
+        </item><item>
+            <title>Web日志分析</title>
+            <link>https://blog.5772447.xyz/tags/web%E6%97%A5%E5%BF%97%E5%88%86%E6%9E%90/</link>
+            <pubDate>Mon, 22 Aug 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/web%E6%97%A5%E5%BF%97%E5%88%86%E6%9E%90/</guid>
+            <description></description>
+        </item><item>
+            <title>Webshell</title>
+            <link>https://blog.5772447.xyz/tags/webshell/</link>
+            <pubDate>Mon, 22 Aug 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/webshell/</guid>
+            <description></description>
+        </item><item>
+            <title>TCP时间戳</title>
+            <link>https://blog.5772447.xyz/tags/tcp%E6%97%B6%E9%97%B4%E6%88%B3/</link>
+            <pubDate>Sat, 23 Jul 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/tcp%E6%97%B6%E9%97%B4%E6%88%B3/</guid>
+            <description></description>
+        </item><item>
+            <title>Tcp_tw_recycle</title>
+            <link>https://blog.5772447.xyz/tags/tcp_tw_recycle/</link>
+            <pubDate>Sat, 23 Jul 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/tcp_tw_recycle/</guid>
+            <description></description>
+        </item><item>
+            <title>SYN丢弃</title>
+            <link>https://blog.5772447.xyz/tags/syn%E4%B8%A2%E5%BC%83/</link>
+            <pubDate>Sat, 23 Jul 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/syn%E4%B8%A2%E5%BC%83/</guid>
+            <description></description>
+        </item><item>
+            <title>PAWS</title>
+            <link>https://blog.5772447.xyz/tags/paws/</link>
+            <pubDate>Sat, 23 Jul 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/paws/</guid>
+            <description></description>
+        </item><item>
+            <title>数据库连接池</title>
+            <link>https://blog.5772447.xyz/tags/%E6%95%B0%E6%8D%AE%E5%BA%93%E8%BF%9E%E6%8E%A5%E6%B1%A0/</link>
+            <pubDate>Thu, 23 Jun 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%95%B0%E6%8D%AE%E5%BA%93%E8%BF%9E%E6%8E%A5%E6%B1%A0/</guid>
+            <description></description>
+        </item><item>
+            <title>慢查询</title>
+            <link>https://blog.5772447.xyz/tags/%E6%85%A2%E6%9F%A5%E8%AF%A2/</link>
+            <pubDate>Thu, 23 Jun 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%85%A2%E6%9F%A5%E8%AF%A2/</guid>
+            <description></description>
+        </item><item>
+            <title>连接泄漏</title>
+            <link>https://blog.5772447.xyz/tags/%E8%BF%9E%E6%8E%A5%E6%B3%84%E6%BC%8F/</link>
+            <pubDate>Thu, 23 Jun 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%BF%9E%E6%8E%A5%E6%B3%84%E6%BC%8F/</guid>
+            <description></description>
+        </item><item>
+            <title>连接池耗尽</title>
+            <link>https://blog.5772447.xyz/tags/%E8%BF%9E%E6%8E%A5%E6%B1%A0%E8%80%97%E5%B0%BD/</link>
+            <pubDate>Thu, 23 Jun 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%BF%9E%E6%8E%A5%E6%B1%A0%E8%80%97%E5%B0%BD/</guid>
+            <description></description>
+        </item><item>
+            <title>接口超时</title>
+            <link>https://blog.5772447.xyz/tags/%E6%8E%A5%E5%8F%A3%E8%B6%85%E6%97%B6/</link>
+            <pubDate>Thu, 23 Jun 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%8E%A5%E5%8F%A3%E8%B6%85%E6%97%B6/</guid>
+            <description></description>
+        </item><item>
+            <title>JDBC</title>
+            <link>https://blog.5772447.xyz/tags/jdbc/</link>
+            <pubDate>Thu, 23 Jun 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/jdbc/</guid>
+            <description></description>
+        </item><item>
+            <title>HikariCP</title>
+            <link>https://blog.5772447.xyz/tags/hikaricp/</link>
+            <pubDate>Thu, 23 Jun 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/hikaricp/</guid>
+            <description></description>
+        </item><item>
+            <title>Connection Is Not Available</title>
+            <link>https://blog.5772447.xyz/tags/connection-is-not-available/</link>
+            <pubDate>Thu, 23 Jun 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/connection-is-not-available/</guid>
+            <description></description>
+        </item><item>
             <title>生成树</title>
             <link>https://blog.5772447.xyz/tags/%E7%94%9F%E6%88%90%E6%A0%91/</link>
             <pubDate>Wed, 08 Jun 2022 14:20:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/%E7%94%9F%E6%88%90%E6%A0%91/</guid>
+            <description></description>
+        </item><item>
+            <title>自动设备加密</title>
+            <link>https://blog.5772447.xyz/tags/%E8%87%AA%E5%8A%A8%E8%AE%BE%E5%A4%87%E5%8A%A0%E5%AF%86/</link>
+            <pubDate>Thu, 26 May 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%87%AA%E5%8A%A8%E8%AE%BE%E5%A4%87%E5%8A%A0%E5%AF%86/</guid>
+            <description></description>
+        </item><item>
+            <title>企业适配</title>
+            <link>https://blog.5772447.xyz/tags/%E4%BC%81%E4%B8%9A%E9%80%82%E9%85%8D/</link>
+            <pubDate>Thu, 26 May 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E4%BC%81%E4%B8%9A%E9%80%82%E9%85%8D/</guid>
+            <description></description>
+        </item><item>
+            <title>恢复密钥</title>
+            <link>https://blog.5772447.xyz/tags/%E6%81%A2%E5%A4%8D%E5%AF%86%E9%92%A5/</link>
+            <pubDate>Thu, 26 May 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%81%A2%E5%A4%8D%E5%AF%86%E9%92%A5/</guid>
+            <description></description>
+        </item><item>
+            <title>Windows 11 24H2</title>
+            <link>https://blog.5772447.xyz/tags/windows-11-24h2/</link>
+            <pubDate>Thu, 26 May 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/windows-11-24h2/</guid>
+            <description></description>
+        </item><item>
+            <title>TPM</title>
+            <link>https://blog.5772447.xyz/tags/tpm/</link>
+            <pubDate>Thu, 26 May 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/tpm/</guid>
+            <description></description>
+        </item><item>
+            <title>BitLocker</title>
+            <link>https://blog.5772447.xyz/tags/bitlocker/</link>
+            <pubDate>Thu, 26 May 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/bitlocker/</guid>
+            <description></description>
+        </item><item>
+            <title>AD托管</title>
+            <link>https://blog.5772447.xyz/tags/ad%E6%89%98%E7%AE%A1/</link>
+            <pubDate>Thu, 26 May 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/ad%E6%89%98%E7%AE%A1/</guid>
+            <description></description>
+        </item><item>
+            <title>未授权访问</title>
+            <link>https://blog.5772447.xyz/tags/%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE/</link>
+            <pubDate>Fri, 22 Apr 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE/</guid>
+            <description></description>
+        </item><item>
+            <title>数据泄露</title>
+            <link>https://blog.5772447.xyz/tags/%E6%95%B0%E6%8D%AE%E6%B3%84%E9%9C%B2/</link>
+            <pubDate>Fri, 22 Apr 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%95%B0%E6%8D%AE%E6%B3%84%E9%9C%B2/</guid>
+            <description></description>
+        </item><item>
+            <title>暴露面收敛</title>
+            <link>https://blog.5772447.xyz/tags/%E6%9A%B4%E9%9C%B2%E9%9D%A2%E6%94%B6%E6%95%9B/</link>
+            <pubDate>Fri, 22 Apr 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%9A%B4%E9%9C%B2%E9%9D%A2%E6%94%B6%E6%95%9B/</guid>
             <description></description>
         </item><item>
             <title>反向代理</title>
@@ -2574,16 +2166,196 @@
             <guid>https://blog.5772447.xyz/tags/%E5%8F%8D%E5%90%91%E4%BB%A3%E7%90%86/</guid>
             <description></description>
         </item><item>
+            <title>文件句柄</title>
+            <link>https://blog.5772447.xyz/tags/%E6%96%87%E4%BB%B6%E5%8F%A5%E6%9F%84/</link>
+            <pubDate>Tue, 15 Mar 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%96%87%E4%BB%B6%E5%8F%A5%E6%9F%84/</guid>
+            <description></description>
+        </item><item>
+            <title>日志管理</title>
+            <link>https://blog.5772447.xyz/tags/%E6%97%A5%E5%BF%97%E7%AE%A1%E7%90%86/</link>
+            <pubDate>Tue, 15 Mar 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%97%A5%E5%BF%97%E7%AE%A1%E7%90%86/</guid>
+            <description></description>
+        </item><item>
+            <title>Logrotate</title>
+            <link>https://blog.5772447.xyz/tags/logrotate/</link>
+            <pubDate>Tue, 15 Mar 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/logrotate/</guid>
+            <description></description>
+        </item><item>
+            <title>网关冗余</title>
+            <link>https://blog.5772447.xyz/tags/%E7%BD%91%E5%85%B3%E5%86%97%E4%BD%99/</link>
+            <pubDate>Sat, 05 Feb 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E7%BD%91%E5%85%B3%E5%86%97%E4%BD%99/</guid>
+            <description></description>
+        </item><item>
+            <title>双主</title>
+            <link>https://blog.5772447.xyz/tags/%E5%8F%8C%E4%B8%BB/</link>
+            <pubDate>Sat, 05 Feb 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%8F%8C%E4%B8%BB/</guid>
+            <description></description>
+        </item><item>
+            <title>VRRP</title>
+            <link>https://blog.5772447.xyz/tags/vrrp/</link>
+            <pubDate>Sat, 05 Feb 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/vrrp/</guid>
+            <description></description>
+        </item><item>
+            <title>Trunk放行VLAN</title>
+            <link>https://blog.5772447.xyz/tags/trunk%E6%94%BE%E8%A1%8Cvlan/</link>
+            <pubDate>Sat, 05 Feb 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/trunk%E6%94%BE%E8%A1%8Cvlan/</guid>
+            <description></description>
+        </item><item>
+            <title>MAC漂移</title>
+            <link>https://blog.5772447.xyz/tags/mac%E6%BC%82%E7%A7%BB/</link>
+            <pubDate>Sat, 05 Feb 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/mac%E6%BC%82%E7%A7%BB/</guid>
+            <description></description>
+        </item><item>
+            <title>最小权限</title>
+            <link>https://blog.5772447.xyz/tags/%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90/</link>
+            <pubDate>Wed, 05 Jan 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90/</guid>
+            <description></description>
+        </item><item>
+            <title>权限提升</title>
+            <link>https://blog.5772447.xyz/tags/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/</link>
+            <pubDate>Wed, 05 Jan 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/</guid>
+            <description></description>
+        </item><item>
+            <title>本地提权</title>
+            <link>https://blog.5772447.xyz/tags/%E6%9C%AC%E5%9C%B0%E6%8F%90%E6%9D%83/</link>
+            <pubDate>Wed, 05 Jan 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%9C%AC%E5%9C%B0%E6%8F%90%E6%9D%83/</guid>
+            <description></description>
+        </item><item>
+            <title>Sudo配置不当</title>
+            <link>https://blog.5772447.xyz/tags/sudo%E9%85%8D%E7%BD%AE%E4%B8%8D%E5%BD%93/</link>
+            <pubDate>Wed, 05 Jan 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/sudo%E9%85%8D%E7%BD%AE%E4%B8%8D%E5%BD%93/</guid>
+            <description></description>
+        </item><item>
+            <title>Sudoers审计</title>
+            <link>https://blog.5772447.xyz/tags/sudoers%E5%AE%A1%E8%AE%A1/</link>
+            <pubDate>Wed, 05 Jan 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/sudoers%E5%AE%A1%E8%AE%A1/</guid>
+            <description></description>
+        </item><item>
+            <title>NOPASSWD</title>
+            <link>https://blog.5772447.xyz/tags/nopasswd/</link>
+            <pubDate>Wed, 05 Jan 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/nopasswd/</guid>
+            <description></description>
+        </item><item>
+            <title>GTFOBins</title>
+            <link>https://blog.5772447.xyz/tags/gtfobins/</link>
+            <pubDate>Wed, 05 Jan 2022 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/gtfobins/</guid>
+            <description></description>
+        </item><item>
+            <title>无盘终端</title>
+            <link>https://blog.5772447.xyz/tags/%E6%97%A0%E7%9B%98%E7%BB%88%E7%AB%AF/</link>
+            <pubDate>Wed, 17 Nov 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%97%A0%E7%9B%98%E7%BB%88%E7%AB%AF/</guid>
+            <description></description>
+        </item><item>
+            <title>滚动升级</title>
+            <link>https://blog.5772447.xyz/tags/%E6%BB%9A%E5%8A%A8%E5%8D%87%E7%BA%A7/</link>
+            <pubDate>Wed, 17 Nov 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%BB%9A%E5%8A%A8%E5%8D%87%E7%BA%A7/</guid>
+            <description></description>
+        </item><item>
+            <title>变更回退</title>
+            <link>https://blog.5772447.xyz/tags/%E5%8F%98%E6%9B%B4%E5%9B%9E%E9%80%80/</link>
+            <pubDate>Wed, 17 Nov 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%8F%98%E6%9B%B4%E5%9B%9E%E9%80%80/</guid>
+            <description></description>
+        </item><item>
+            <title>版本兼容矩阵</title>
+            <link>https://blog.5772447.xyz/tags/%E7%89%88%E6%9C%AC%E5%85%BC%E5%AE%B9%E7%9F%A9%E9%98%B5/</link>
+            <pubDate>Wed, 17 Nov 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E7%89%88%E6%9C%AC%E5%85%BC%E5%AE%B9%E7%9F%A9%E9%98%B5/</guid>
+            <description></description>
+        </item><item>
+            <title>Stream Service</title>
+            <link>https://blog.5772447.xyz/tags/stream-service/</link>
+            <pubDate>Wed, 17 Nov 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/stream-service/</guid>
+            <description></description>
+        </item><item>
+            <title>PXE启动</title>
+            <link>https://blog.5772447.xyz/tags/pxe%E5%90%AF%E5%8A%A8/</link>
+            <pubDate>Wed, 17 Nov 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/pxe%E5%90%AF%E5%8A%A8/</guid>
+            <description></description>
+        </item><item>
+            <title>Provisioning Services</title>
+            <link>https://blog.5772447.xyz/tags/provisioning-services/</link>
+            <pubDate>Wed, 17 Nov 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/provisioning-services/</guid>
+            <description></description>
+        </item><item>
+            <title>Bootstrap</title>
+            <link>https://blog.5772447.xyz/tags/bootstrap/</link>
+            <pubDate>Wed, 17 Nov 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/bootstrap/</guid>
+            <description></description>
+        </item><item>
             <title>NSFW</title>
             <link>https://blog.5772447.xyz/tags/nsfw/</link>
             <pubDate>Wed, 20 Oct 2021 17:43:26 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/nsfw/</guid>
             <description></description>
         </item><item>
+            <title>优雅下线</title>
+            <link>https://blog.5772447.xyz/tags/%E4%BC%98%E9%9B%85%E4%B8%8B%E7%BA%BF/</link>
+            <pubDate>Wed, 13 Oct 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E4%BC%98%E9%9B%85%E4%B8%8B%E7%BA%BF/</guid>
+            <description></description>
+        </item><item>
+            <title>依赖就绪</title>
+            <link>https://blog.5772447.xyz/tags/%E4%BE%9D%E8%B5%96%E5%B0%B1%E7%BB%AA/</link>
+            <pubDate>Wed, 13 Oct 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E4%BE%9D%E8%B5%96%E5%B0%B1%E7%BB%AA/</guid>
+            <description></description>
+        </item><item>
+            <title>探活</title>
+            <link>https://blog.5772447.xyz/tags/%E6%8E%A2%E6%B4%BB/</link>
+            <pubDate>Wed, 13 Oct 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%8E%A2%E6%B4%BB/</guid>
+            <description></description>
+        </item><item>
+            <title>Checklist</title>
+            <link>https://blog.5772447.xyz/tags/checklist/</link>
+            <pubDate>Wed, 13 Oct 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/checklist/</guid>
+            <description></description>
+        </item><item>
             <title>Tampermonkey</title>
             <link>https://blog.5772447.xyz/tags/tampermonkey/</link>
             <pubDate>Thu, 23 Sep 2021 22:00:55 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/tampermonkey/</guid>
+            <description></description>
+        </item><item>
+            <title>幽灵文件</title>
+            <link>https://blog.5772447.xyz/tags/%E5%B9%BD%E7%81%B5%E6%96%87%E4%BB%B6/</link>
+            <pubDate>Thu, 23 Sep 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%B9%BD%E7%81%B5%E6%96%87%E4%BB%B6/</guid>
+            <description></description>
+        </item><item>
+            <title>Inode 耗尽</title>
+            <link>https://blog.5772447.xyz/tags/inode-%E8%80%97%E5%B0%BD/</link>
+            <pubDate>Thu, 23 Sep 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/inode-%E8%80%97%E5%B0%BD/</guid>
+            <description></description>
+        </item><item>
+            <title>Df Du 不一致</title>
+            <link>https://blog.5772447.xyz/tags/df-du-%E4%B8%8D%E4%B8%80%E8%87%B4/</link>
+            <pubDate>Thu, 23 Sep 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/df-du-%E4%B8%8D%E4%B8%80%E8%87%B4/</guid>
             <description></description>
         </item><item>
             <title>软件</title>
@@ -2604,6 +2376,36 @@
             <guid>https://blog.5772447.xyz/tags/kms/</guid>
             <description></description>
         </item><item>
+            <title>网络排障</title>
+            <link>https://blog.5772447.xyz/tags/%E7%BD%91%E7%BB%9C%E6%8E%92%E9%9A%9C/</link>
+            <pubDate>Wed, 18 Aug 2021 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E7%BD%91%E7%BB%9C%E6%8E%92%E9%9A%9C/</guid>
+            <description></description>
+        </item><item>
+            <title>Passive-Interface</title>
+            <link>https://blog.5772447.xyz/tags/passive-interface/</link>
+            <pubDate>Wed, 18 Aug 2021 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/passive-interface/</guid>
+            <description></description>
+        </item><item>
+            <title>Hello Timer</title>
+            <link>https://blog.5772447.xyz/tags/hello-timer/</link>
+            <pubDate>Wed, 18 Aug 2021 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/hello-timer/</guid>
+            <description></description>
+        </item><item>
+            <title>Flapping</title>
+            <link>https://blog.5772447.xyz/tags/flapping/</link>
+            <pubDate>Wed, 18 Aug 2021 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/flapping/</guid>
+            <description></description>
+        </item><item>
+            <title>Dead Timer</title>
+            <link>https://blog.5772447.xyz/tags/dead-timer/</link>
+            <pubDate>Wed, 18 Aug 2021 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/dead-timer/</guid>
+            <description></description>
+        </item><item>
             <title>群晖</title>
             <link>https://blog.5772447.xyz/tags/%E7%BE%A4%E6%99%96/</link>
             <pubDate>Tue, 10 Aug 2021 17:13:21 +0000</pubDate>
@@ -2616,10 +2418,214 @@
             <guid>https://blog.5772447.xyz/tags/synology/</guid>
             <description></description>
         </item><item>
+            <title>云安全</title>
+            <link>https://blog.5772447.xyz/tags/%E4%BA%91%E5%AE%89%E5%85%A8/</link>
+            <pubDate>Fri, 09 Jul 2021 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E4%BA%91%E5%AE%89%E5%85%A8/</guid>
+            <description></description>
+        </item><item>
+            <title>密钥硬编码</title>
+            <link>https://blog.5772447.xyz/tags/%E5%AF%86%E9%92%A5%E7%A1%AC%E7%BC%96%E7%A0%81/</link>
+            <pubDate>Fri, 09 Jul 2021 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%AF%86%E9%92%A5%E7%A1%AC%E7%BC%96%E7%A0%81/</guid>
+            <description></description>
+        </item><item>
+            <title>操作审计</title>
+            <link>https://blog.5772447.xyz/tags/%E6%93%8D%E4%BD%9C%E5%AE%A1%E8%AE%A1/</link>
+            <pubDate>Fri, 09 Jul 2021 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%93%8D%E4%BD%9C%E5%AE%A1%E8%AE%A1/</guid>
+            <description></description>
+        </item><item>
+            <title>RAM最小权限</title>
+            <link>https://blog.5772447.xyz/tags/ram%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90/</link>
+            <pubDate>Fri, 09 Jul 2021 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/ram%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90/</guid>
+            <description></description>
+        </item><item>
+            <title>Gitleaks</title>
+            <link>https://blog.5772447.xyz/tags/gitleaks/</link>
+            <pubDate>Fri, 09 Jul 2021 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/gitleaks/</guid>
+            <description></description>
+        </item><item>
+            <title>AccessKey泄露</title>
+            <link>https://blog.5772447.xyz/tags/accesskey%E6%B3%84%E9%9C%B2/</link>
+            <pubDate>Fri, 09 Jul 2021 00:00:00 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/tags/accesskey%E6%B3%84%E9%9C%B2/</guid>
+            <description></description>
+        </item><item>
             <title>STM32</title>
             <link>https://blog.5772447.xyz/tags/stm32/</link>
             <pubDate>Sun, 20 Jun 2021 06:34:54 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/stm32/</guid>
+            <description></description>
+        </item><item>
+            <title>资产盘点</title>
+            <link>https://blog.5772447.xyz/tags/%E8%B5%84%E4%BA%A7%E7%9B%98%E7%82%B9/</link>
+            <pubDate>Mon, 24 May 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%B5%84%E4%BA%A7%E7%9B%98%E7%82%B9/</guid>
+            <description></description>
+        </item><item>
+            <title>凭据治理</title>
+            <link>https://blog.5772447.xyz/tags/%E5%87%AD%E6%8D%AE%E6%B2%BB%E7%90%86/</link>
+            <pubDate>Mon, 24 May 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%87%AD%E6%8D%AE%E6%B2%BB%E7%90%86/</guid>
+            <description></description>
+        </item><item>
+            <title>端口扫描</title>
+            <link>https://blog.5772447.xyz/tags/%E7%AB%AF%E5%8F%A3%E6%89%AB%E6%8F%8F/</link>
+            <pubDate>Mon, 24 May 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E7%AB%AF%E5%8F%A3%E6%89%AB%E6%8F%8F/</guid>
+            <description></description>
+        </item><item>
+            <title>安全组</title>
+            <link>https://blog.5772447.xyz/tags/%E5%AE%89%E5%85%A8%E7%BB%84/</link>
+            <pubDate>Mon, 24 May 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%AE%89%E5%85%A8%E7%BB%84/</guid>
+            <description></description>
+        </item><item>
+            <title>软路由</title>
+            <link>https://blog.5772447.xyz/tags/%E8%BD%AF%E8%B7%AF%E7%94%B1/</link>
+            <pubDate>Mon, 26 Apr 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%BD%AF%E8%B7%AF%E7%94%B1/</guid>
+            <description></description>
+        </item><item>
+            <title>旁路由</title>
+            <link>https://blog.5772447.xyz/tags/%E6%97%81%E8%B7%AF%E7%94%B1/</link>
+            <pubDate>Mon, 26 Apr 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%97%81%E8%B7%AF%E7%94%B1/</guid>
+            <description></description>
+        </item><item>
+            <title>默认策略</title>
+            <link>https://blog.5772447.xyz/tags/%E9%BB%98%E8%AE%A4%E7%AD%96%E7%95%A5/</link>
+            <pubDate>Mon, 26 Apr 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E9%BB%98%E8%AE%A4%E7%AD%96%E7%95%A5/</guid>
+            <description></description>
+        </item><item>
+            <title>策略漂移</title>
+            <link>https://blog.5772447.xyz/tags/%E7%AD%96%E7%95%A5%E6%BC%82%E7%A7%BB/</link>
+            <pubDate>Mon, 26 Apr 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E7%AD%96%E7%95%A5%E6%BC%82%E7%A7%BB/</guid>
+            <description></description>
+        </item><item>
+            <title>OpenWrt</title>
+            <link>https://blog.5772447.xyz/tags/openwrt/</link>
+            <pubDate>Mon, 26 Apr 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/openwrt/</guid>
+            <description></description>
+        </item><item>
+            <title>Nftables</title>
+            <link>https://blog.5772447.xyz/tags/nftables/</link>
+            <pubDate>Mon, 26 Apr 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/nftables/</guid>
+            <description></description>
+        </item><item>
+            <title>FORWARD</title>
+            <link>https://blog.5772447.xyz/tags/forward/</link>
+            <pubDate>Mon, 26 Apr 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/forward/</guid>
+            <description></description>
+        </item><item>
+            <title>Firewall4</title>
+            <link>https://blog.5772447.xyz/tags/firewall4/</link>
+            <pubDate>Mon, 26 Apr 2021 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/firewall4/</guid>
+            <description></description>
+        </item><item>
+            <title>运维账号</title>
+            <link>https://blog.5772447.xyz/tags/%E8%BF%90%E7%BB%B4%E8%B4%A6%E5%8F%B7/</link>
+            <pubDate>Sat, 28 Mar 2020 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%BF%90%E7%BB%B4%E8%B4%A6%E5%8F%B7/</guid>
+            <description></description>
+        </item><item>
+            <title>跳板机</title>
+            <link>https://blog.5772447.xyz/tags/%E8%B7%B3%E6%9D%BF%E6%9C%BA/</link>
+            <pubDate>Sat, 28 Mar 2020 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%B7%B3%E6%9D%BF%E6%9C%BA/</guid>
+            <description></description>
+        </item><item>
+            <title>特权账号治理</title>
+            <link>https://blog.5772447.xyz/tags/%E7%89%B9%E6%9D%83%E8%B4%A6%E5%8F%B7%E6%B2%BB%E7%90%86/</link>
+            <pubDate>Sat, 28 Mar 2020 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E7%89%B9%E6%9D%83%E8%B4%A6%E5%8F%B7%E6%B2%BB%E7%90%86/</guid>
+            <description></description>
+        </item><item>
+            <title>审计日志</title>
+            <link>https://blog.5772447.xyz/tags/%E5%AE%A1%E8%AE%A1%E6%97%A5%E5%BF%97/</link>
+            <pubDate>Sat, 28 Mar 2020 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%AE%A1%E8%AE%A1%E6%97%A5%E5%BF%97/</guid>
+            <description></description>
+        </item><item>
+            <title>凭据泄露</title>
+            <link>https://blog.5772447.xyz/tags/%E5%87%AD%E6%8D%AE%E6%B3%84%E9%9C%B2/</link>
+            <pubDate>Sat, 28 Mar 2020 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%87%AD%E6%8D%AE%E6%B3%84%E9%9C%B2/</guid>
+            <description></description>
+        </item><item>
+            <title>免密登录</title>
+            <link>https://blog.5772447.xyz/tags/%E5%85%8D%E5%AF%86%E7%99%BB%E5%BD%95/</link>
+            <pubDate>Sat, 28 Mar 2020 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%85%8D%E5%AF%86%E7%99%BB%E5%BD%95/</guid>
+            <description></description>
+        </item><item>
+            <title>横向移动</title>
+            <link>https://blog.5772447.xyz/tags/%E6%A8%AA%E5%90%91%E7%A7%BB%E5%8A%A8/</link>
+            <pubDate>Sat, 28 Mar 2020 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%A8%AA%E5%90%91%E7%A7%BB%E5%8A%A8/</guid>
+            <description></description>
+        </item><item>
+            <title>堡垒机上线</title>
+            <link>https://blog.5772447.xyz/tags/%E5%A0%A1%E5%9E%92%E6%9C%BA%E4%B8%8A%E7%BA%BF/</link>
+            <pubDate>Sat, 28 Mar 2020 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%A0%A1%E5%9E%92%E6%9C%BA%E4%B8%8A%E7%BA%BF/</guid>
+            <description></description>
+        </item><item>
+            <title>内核排障</title>
+            <link>https://blog.5772447.xyz/tags/%E5%86%85%E6%A0%B8%E6%8E%92%E9%9A%9C/</link>
+            <pubDate>Tue, 25 Feb 2020 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%86%85%E6%A0%B8%E6%8E%92%E9%9A%9C/</guid>
+            <description></description>
+        </item><item>
+            <title>内核参数</title>
+            <link>https://blog.5772447.xyz/tags/%E5%86%85%E6%A0%B8%E5%8F%82%E6%95%B0/</link>
+            <pubDate>Tue, 25 Feb 2020 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%86%85%E6%A0%B8%E5%8F%82%E6%95%B0/</guid>
+            <description></description>
+        </item><item>
+            <title>Tcp_tw_reuse</title>
+            <link>https://blog.5772447.xyz/tags/tcp_tw_reuse/</link>
+            <pubDate>Tue, 25 Feb 2020 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/tcp_tw_reuse/</guid>
+            <description></description>
+        </item><item>
+            <title>Qdisc</title>
+            <link>https://blog.5772447.xyz/tags/qdisc/</link>
+            <pubDate>Tue, 25 Feb 2020 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/qdisc/</guid>
+            <description></description>
+        </item><item>
+            <title>Netdev_max_backlog</title>
+            <link>https://blog.5772447.xyz/tags/netdev_max_backlog/</link>
+            <pubDate>Tue, 25 Feb 2020 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/netdev_max_backlog/</guid>
+            <description></description>
+        </item><item>
+            <title>运维账号收口</title>
+            <link>https://blog.5772447.xyz/tags/%E8%BF%90%E7%BB%B4%E8%B4%A6%E5%8F%B7%E6%94%B6%E5%8F%A3/</link>
+            <pubDate>Tue, 07 Jan 2020 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%BF%90%E7%BB%B4%E8%B4%A6%E5%8F%B7%E6%94%B6%E5%8F%A3/</guid>
+            <description></description>
+        </item><item>
+            <title>跳板机白名单</title>
+            <link>https://blog.5772447.xyz/tags/%E8%B7%B3%E6%9D%BF%E6%9C%BA%E7%99%BD%E5%90%8D%E5%8D%95/</link>
+            <pubDate>Tue, 07 Jan 2020 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%B7%B3%E6%9D%BF%E6%9C%BA%E7%99%BD%E5%90%8D%E5%8D%95/</guid>
+            <description></description>
+        </item><item>
+            <title>MySQL 误操作</title>
+            <link>https://blog.5772447.xyz/tags/mysql-%E8%AF%AF%E6%93%8D%E4%BD%9C/</link>
+            <pubDate>Tue, 07 Jan 2020 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/mysql-%E8%AF%AF%E6%93%8D%E4%BD%9C/</guid>
             <description></description>
         </item></channel>
 </rss>
