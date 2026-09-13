@@ -229,6 +229,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -344,6 +345,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -354,7 +356,12 @@
     <section class="article-content">
     
     
-    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+    
+    <blockquote>
+        <p><strong>与姊妹篇的区别</strong>：本案例是<strong>局部影响</strong>——同一网段内<strong>部分</strong>终端拿不到 IP（老租约仍在线、新接入的失败），排查重点在租约表与地址池利用率；另一篇《<a class="link" href="/posts/59789918/" >一次DHCP地址池耗尽导致大面积断网的排查实录</a>》是<strong>全网段影响</strong>，重点是中继与作用域规划。两者的止血手段相同（扩容作用域 / 缩短租约），但<strong>判断「是耗尽还是中继故障」的思路不同</strong>。</p>
+
+    </blockquote>
+<h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
 </h2><p>公司办公网核心是一台三层交换机，下挂多个接入交换机，员工 PC、手机、打印机和一堆 IoT 设备都划分在同一个 /24 网段里，由 Windows Server 上的 DHCP 服务统一下发地址。平时一切正常，管理员也没太关注地址池的剩余量。某天周一早高峰，几乎同一时刻上百人打卡开机、连 WiFi，问题就爆发了。这类&quot;容量型&quot;故障最隐蔽的地方在于：它平时毫无征兆，一旦触发就是大面积、且每次重启都只是暂时缓解，很容易让排障者陷入&quot;重启试试&quot;的误区。</p>
 <h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
 </h2><p>早上 9 点前后，IT 服务台在十分钟内涌进二十多个报障工单，集中在同一楼层：</p>
@@ -401,6 +408,12 @@
 </h2><p>DHCP 地址池耗尽是典型&quot;平时无感、爆发致命&quot;的容量型故障，排查关键就一句话：<strong>看到 169.254，先别查线路，直接去 DHCP 服务器看&quot;可用地址&quot;是不是 0</strong>。真正要做的不是反复重启，而是缩短租期、隔离访客、拆 VLAN、加监控——把容量和管理补齐，故障才不会下个周一再来一遍。</p>
 <hr>
 <p><em>本文基于真实办公网排障场景整理，涉及 IP 段与设备数量已做脱敏处理。</em></p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>DHCP 地址池</strong></p>
+<ul>
+<li><a class="link" href="/posts/59789918/" >记一次 DHCP 地址池耗尽引发的大面积断网</a></li>
+</ul>
 
 </section>
 

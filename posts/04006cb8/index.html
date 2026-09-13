@@ -237,6 +237,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -360,6 +361,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -948,6 +950,14 @@
 </h2><p>这次事故最深的教训，是<strong>证书这种&quot;非生命体&quot;资源</strong>在大多数运维同学的监控盲区里。它不像磁盘、CPU、内存那样有常规的仪表盘告警，往往只在过期那一刻才&quot;砰&quot;地炸出来，但影响范围却是公司级别的。</p>
 <p>回头看，<strong>EAP-TLS 体系的设计原则</strong>应该是&quot;证书全生命周期&quot;——从 CA 设计、模板、签发、续签、客户端分发、信任链维护到过期监控，每一步都要有自动化兜底。任何依赖&quot;人工记得去续签&quot;的设计，最终都会在某个凌晨、某个长假、某个新人接手的时刻翻车。</p>
 <p>我们这次虽然用 30 天临时证书快速止血，没有出现业务数据丢失，但这种&quot;凭证类&quot;的故障本应通过前置的告警 + 自动续签 + 监控来彻底规避。建议所有使用 802.1X / EAP-TLS / HTTPS 证书 / IPsec 证书的团队，都把&quot;证书全生命周期管理&quot;作为年度安全审计的必查项，并且把 Zabbix / Prometheus 对证书过期天数的监控当作 <strong>P0 级别</strong>来对待——这绝不是&quot;锦上添花&quot;，而是&quot;救命的最后一道防线&quot;。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>证书过期与轮换</strong></p>
+<ul>
+<li><a class="link" href="/posts/8f18423e/" >一次SSL/TLS证书过期导致全站HTTPS访问失败与API调用报证书错误的排查实录</a></li>
+<li><a class="link" href="/posts/e01939e6/" >记一次 K8s 节点 kubelet 证书轮换失败导致节点 NotReady 风暴的排查</a></li>
+<li><a class="link" href="/posts/557c47d3/" >记一次 SSL 证书过期致内网 HTTPS 全面中断</a></li>
+</ul>
 
 </section>
 

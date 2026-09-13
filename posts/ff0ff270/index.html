@@ -236,6 +236,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -358,6 +359,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -509,6 +511,14 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>主从延迟看起来是数据库问题，实际上往往是<strong>应用层 SQL 质量问题</strong>的反映。一个没有索引、不做拆分的 DELETE 语句就足以拖垮从库复制，进而影响整个报表系统的数据准确性。数据库运维不仅仅是被动监控，更需要主动审视每一个在生产环境运行的 DML 语句的质量。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>数据库与 MySQL</strong></p>
+<ul>
+<li><a class="link" href="/posts/42f874e5/" >系统时区一改，凌晨备份为何跑进业务高峰拖垮 MySQL？</a></li>
+<li><a class="link" href="/posts/ecbe2757/" >记一次大事务拖慢 MySQL 主从、订单数据不一致的排查</a></li>
+<li><a class="link" href="/posts/7154a8f0/" >记一次 MySQL 自动备份静默失败、缺失近一周备份</a></li>
+</ul>
 
 </section>
 

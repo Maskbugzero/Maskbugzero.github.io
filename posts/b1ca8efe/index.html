@@ -229,6 +229,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -310,7 +311,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 4 分钟
+                        阅读时长: 5 分钟
                     </time>
                 
             </div>
@@ -344,6 +345,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -498,6 +500,15 @@
 </ol>
 <h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
 </h2><p>这次故障的教训是：<strong>Kubernetes 的 OOM 是 Pod 级的，不是节点级的</strong>。看到节点有内存就以为安全，是典型的认知陷阱。更深的坑在于 OOMKilled 与探针、滚动更新的耦合——单点重启会被链路放大成整服务雪崩。排查时 <code>kubectl describe pod</code> 里的 <code>Reason: OOMKilled</code> + <code>Exit Code 137</code> 是第一线索，再用 <code>jmap -histo:live</code> 定位泄漏对象。容器环境下，任何&quot;无限增长&quot;的本地状态都是隐患，给缓存设边界、给探针分职责、给更新加兜底，三者缺一不可。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>内存不足与服务雪崩</strong></p>
+<ul>
+<li><a class="link" href="/posts/60f0dc58/" >秒杀接口大面积超时：Redis 缓存雪崩的定位与修复</a></li>
+<li><a class="link" href="/posts/def9cf20/" >Docker 容器 OOM，服务雪崩是怎么炸开的？</a></li>
+<li><a class="link" href="/posts/d454c146/" >记一次 Docker 容器反复重启引发的微服务链路雪崩</a></li>
+<li><a class="link" href="/posts/4dad391b/" >记一次 Redis 内存溢出、缓存服务全失效的排查</a></li>
+</ul>
 
 </section>
 

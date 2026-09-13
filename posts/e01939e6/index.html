@@ -241,6 +241,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -361,6 +362,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -619,13 +621,26 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>本次故障的本质是**「配置项与节点历史状态不匹配」**。<code>rotateCertificates: true</code> 看似简单，实则依赖完整的 TLS Bootstrapping 链路。老节点因历史遗留问题，在证书过期后无法自愈，导致批量 NotReady 风暴。</p>
-<p>教训：</p>
+<p>三点是这次踩得最深的：</p>
 <ul>
-<li>任何「看似自动」的功能，都必须在全量节点上验证依赖条件。</li>
-<li>安全合规变更必须结合「节点分层」与「历史技术债」评估。</li>
-<li>监控不仅要看「结果」（证书是否过期），更要看「过程」（是否具备自愈能力）。</li>
+<li>任何「看似自动」的功能，都必须在全量节点上验证依赖条件——<code>rotateCertificates: true</code> 写进配置只要一行，但它能生效的前提（bootstrap 链路完整）在这批老节点上从来就不成立。</li>
+<li>安全合规变更必须结合「节点分层」与「历史技术债」评估。把证书有效期从 1 年砍到 90 天，等于把 12 个月的暴露窗口压缩到 3 个月，历史债还没还就先引爆了。</li>
+<li>监控不仅要看「结果」（证书是否过期），更要看「过程」（是否具备自愈能力）。只盯剩余天数，等到数字归零时已经没有任何补救窗口。</li>
 </ul>
 <p>后续将把「kubelet 证书轮换一致性检查」纳入每月运维 Checklist，并计划在 Q4 引入 cert-manager 做全生命周期治理。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>证书过期与轮换</strong></p>
+<ul>
+<li><a class="link" href="/posts/8f18423e/" >一次SSL/TLS证书过期导致全站HTTPS访问失败与API调用报证书错误的排查实录</a></li>
+<li><a class="link" href="/posts/04006cb8/" >记一次 RADIUS EAP-TLS 证书过期致全公司 802.1X 掉线</a></li>
+<li><a class="link" href="/posts/557c47d3/" >记一次 SSL 证书过期致内网 HTTPS 全面中断</a></li>
+</ul>
+<p><strong>K8s 节点与驱逐</strong></p>
+<ul>
+<li><a class="link" href="/posts/c0337851/" >一次 Kubernetes 节点磁盘压力触发 kubelet 驱逐导致业务 Pod 批量被删的排查记录</a></li>
+<li><a class="link" href="/posts/d4683312/" >K8s 节点磁盘压力致 Pod 批量驱逐的定位</a></li>
+</ul>
 
 </section>
 
@@ -666,6 +681,28 @@
             
                 
 <article class="">
+    <a href="/posts/c0337851/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次 Kubernetes 节点磁盘压力触发 kubelet 驱逐导致业务 Pod 批量被删的排查记录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/425c7ac4/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 Kubernetes 集群因 CoreDNS 配置漂移导致服务发现间歇性失败的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
     <a href="/posts/254b9d99/">
         
 
@@ -693,28 +730,6 @@
 
         <div class="article-details">
             <h2 class="article-title">记一次 K8s 节点 conntrack 表打满导致的服务间 TCP 超时</h2>
-        </div>
-    </a>
-</article>
-            
-                
-<article class="">
-    <a href="/posts/b1ca8efe/">
-        
-
-        <div class="article-details">
-            <h2 class="article-title">记一次 K8s Pod OOMKilled 触发的服务雪崩</h2>
-        </div>
-    </a>
-</article>
-            
-                
-<article class="">
-    <a href="/posts/cd2f7270/">
-        
-
-        <div class="article-details">
-            <h2 class="article-title">K8s 私有镜像仓库凭证过期，Pod 为何卡在 ImagePullBackOff？一次生产镜像拉取失败的排查记录</h2>
         </div>
     </a>
 </article>

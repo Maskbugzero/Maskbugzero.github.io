@@ -229,6 +229,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -344,6 +345,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -523,6 +525,13 @@
 </ol>
 <h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
 </h2><p>这次故障是典型的&quot;安全策略反噬业务&quot;。<code>limit_req</code> 本身没错，错在阈值是凭直觉设的、且 <code>nodelay</code> 用错了地方。排查关键三步：<code>limit_req_status</code> 日志确认拒绝来源 → 看 <code>rate/burst/nodelay</code> 组合 → 用真实并发复现 503。记住三条铁律：限流阈值必须基于真实流量基线；<code>nodelay</code> 不是默认选项；CDN 后面一定要还原真实客户端 IP。限流的目标是&quot;拦坏人&quot;，不是&quot;误伤好人&quot;，上线前做一次灰度观测，能省掉一次客诉危机。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>Nginx</strong></p>
+<ul>
+<li><a class="link" href="/posts/7476618a/" >Nginx 健康检查误判，服务节点怎么被批量剔除？</a></li>
+<li><a class="link" href="/posts/8153d8c0/" >Nginx 反代配错，上传文件大小限制为何失效？</a></li>
+</ul>
 
 </section>
 

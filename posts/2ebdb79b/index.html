@@ -242,6 +242,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -363,6 +364,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -474,7 +476,7 @@
 </span></span><span style="display:flex;"><span><span style="color:#a6e22e">StartLimitIntervalSec</span><span style="color:#f92672">=</span><span style="color:#e6db74">60</span>
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p><strong>致命组合</strong>：<code>Restart=always</code> + <code>RestartSec=1</code> + <code>StartLimitBurst=100</code> 导致 60 秒内 100 次崩溃循环，每秒写 100+ 条 journal 日志，瞬间打满磁盘。</p>
+</div><p><strong>致命组合</strong>：<code>Restart=always</code> + <code>RestartSec=1</code> + <code>StartLimitBurst=100</code>，意味着 60 秒内最多允许 100 次重启尝试，即<strong>约 1.7 次/秒</strong>；而 Python 服务每次启动失败会连带输出 traceback、依赖库告警、systemd 的 start/stop 事件等<strong>数十行</strong> journal 记录，折算下来每秒数百行日志持续灌入 <code>/var/log/journal</code>。</p>
 <h3 id="步骤-4验证日志轮转缺失"><a href="#%e6%ad%a5%e9%aa%a4-4%e9%aa%8c%e8%af%81%e6%97%a5%e5%bf%97%e8%bd%ae%e8%bd%ac%e7%bc%ba%e5%a4%b1" class="header-anchor"></a>步骤 4：验证日志轮转缺失
 </h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
 <table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
@@ -592,13 +594,15 @@
 <pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ini" data-lang="ini"><span style="display:flex;"><span><span style="color:#66d9ef">[Service]</span>
 </span></span><span style="display:flex;"><span><span style="color:#a6e22e">Type</span><span style="color:#f92672">=</span><span style="color:#e6db74">simple</span>
 </span></span><span style="display:flex;"><span><span style="color:#a6e22e">ExecStart</span><span style="color:#f92672">=</span><span style="color:#e6db74">/opt/fortress/agent.py</span>
-</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Restart</span><span style="color:#f92672">=</span><span style="color:#e6db74">on-failure          # 改为 on-failure，exit 0/1 不自动重启</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Restart</span><span style="color:#f92672">=</span><span style="color:#e6db74">on-failure          # exit 0（正常退出）不重启；exit 1 等异常退出仍会重启</span>
 </span></span><span style="display:flex;"><span><span style="color:#a6e22e">RestartSec</span><span style="color:#f92672">=</span><span style="color:#e6db74">10               # 间隔拉长到 10 秒</span>
 </span></span><span style="display:flex;"><span><span style="color:#a6e22e">StartLimitBurst</span><span style="color:#f92672">=</span><span style="color:#e6db74">5</span>
 </span></span><span style="display:flex;"><span><span style="color:#a6e22e">StartLimitIntervalSec</span><span style="color:#f92672">=</span><span style="color:#e6db74">300   # 5 分钟内最多 5 次重启</span>
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p>重载 systemd 并重启服务：</p>
+</div><p><strong>注意 <code>Restart=on-failure</code> 的语义边界</strong>：它只在「非干净退出」（非 0 退出码、被信号杀死、超时）时重启，<strong>exit 1 属于非干净退出，照样会重启</strong>。本次 Agent 崩溃返回的正是 exit 1，所以换成 <code>on-failure</code> 并不会让它停止拉起——真正止血的是把 <code>RestartSec</code> 从 1 秒拉到 10 秒、并把 <code>StartLimitBurst/StartLimitIntervalSec</code> 收紧到「5 分钟 5 次」，让它在触发 start-limit 后进入 failed 终态而不再刷屏。</p>
+<p>如果希望「崩溃后完全不要自动拉起」，应使用 <code>Restart=no</code>；但这会牺牲自愈能力，生产环境一般不用。</p>
+<p>重载 systemd 并重启服务：</p>
 <div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
 <table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
 <pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
@@ -673,6 +677,12 @@
 </h2><p>一次「堡垒机 Agent 403 错误」引发的服务崩溃，本应是「小事」，却因 journald 配置缺失 + 服务重启策略激进，演变为「根分区写满 + 堡垒机全站瘫痪」的生产事故。</p>
 <p><strong>教训</strong>：基础设施服务（journald/systemd）必须「有上限、有节流、有监控」，任何「无限循环 + 无限制写入」都是定时炸弹。堡垒机作为「最后一道门」，更应在变更前做「最坏场景演练」。</p>
 <p>下次堡垒机白名单收口变更前，将先执行「journald 配额 + Agent 重启策略收紧 + 48 小时灰度」三道门禁，确保不再重演。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>journald 日志风暴</strong></p>
+<ul>
+<li><a class="link" href="/posts/6cce181e/" >刹住 journald 日志风暴：一次 RateLimit 配置错误拖垮根分区的排查实录</a></li>
+</ul>
 
 </section>
 
@@ -712,6 +722,17 @@
     <h2 class="section-title">相关文章</h2>
     <div class="subsection-list">
         <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/49b13065/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">刹住systemd重启风暴：一次Restart=always叠加配置错误拖垮整机的排查</h2>
+        </div>
+    </a>
+</article>
             
                 
 <article class="">

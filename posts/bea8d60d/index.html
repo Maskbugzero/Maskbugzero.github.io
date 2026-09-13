@@ -238,6 +238,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -319,7 +320,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 4 分钟
+                        阅读时长: 5 分钟
                     </time>
                 
             </div>
@@ -362,6 +363,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -372,7 +374,12 @@
     <section class="article-content">
     
     
-    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+    
+    <blockquote>
+        <p><strong>与姊妹篇的区别</strong>：本案例聚焦<strong>STP 拓扑本身出问题</strong>（BPDU 泛洪 / 拓扑震荡）导致广播风暴；《<a class="link" href="/posts/8256a5f2/" >核心交换机 STP 根桥被抢，广播风暴怎么来的？</a>》聚焦<strong>根桥选举被意外抢占</strong>（优先级配错 / 新设备接入）；《<a class="link" href="/posts/a3490d86/" >记一次交换机物理环路引发的整栋楼广播风暴</a>》则是<strong>物理层成环</strong>（网线误接 / 端口未开 BPDU Guard）。三篇的现场表现都是「广播风暴 + 全楼瘫痪」，但<strong>根因分别在协议层、选举层、物理层</strong>，排查入口依次是 BPDU 抓包 → 根桥查看 → 端口环路检测。</p>
+
+    </blockquote>
+<h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
 </h2><p>某周三下午 14:20 左右，公司全楼约 300 名员工突然反映网络中断，表现为无法访问内网系统、互联网全部断开。影响持续约 25 分钟，直到网络恢复正常。</p>
 <p>公司网络架构为三层设计：核心层（H3C S7503 核心交换机 ×2，堆叠）、汇聚层（各楼层汇聚交换机）、接入层（各区域接入交换机）。出口通过核心交换机直连防火墙接入互联网。</p>
 <p>事故期间 IT 监控告警系统收到大量告警：核心交换机 CPU 使用率达到 100%，大量接口出现 CRC 错误。</p>
@@ -606,6 +613,12 @@
 </h2><p>这次事故对我们的提醒是：<strong>二层网络的风险往往来自&quot;无害&quot;的小设备</strong>。一台十几块钱的哑交换机就能让全楼断网 25 分钟，损失的是几百人的工作效率。</p>
 <p>对于 IT 运维来说，不仅要把核心网络设备管理好，接入层的安全策略同样不可忽视。BPDU Guard、Port Security 这些配置看起来很基础，但往往是防止意外事故的关键防线。</p>
 <p>另外，员工的安全意识培训也很必要——让大家知道&quot;随便接交换机&quot;可能会带来什么后果。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>二层环路与广播风暴</strong></p>
+<ul>
+<li><a class="link" href="/posts/8256a5f2/" >核心交换机 STP 根桥被抢，广播风暴怎么来的？</a></li>
+</ul>
 
 </section>
 

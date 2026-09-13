@@ -229,6 +229,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -344,6 +345,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -541,6 +543,12 @@
 </ol>
 <h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
 </h2><p>这起广播风暴的根因不在“环路本身”，而在“根桥被抢”——一台被误配优先级的临时交换机颠覆了整网生成树，收敛窗口里出现的瞬时环路才是风暴的直接推手。排查关键在于第一时间 <code>display stp root</code> 比对根桥 MAC，发现身份异常便知有人抢桥。最该记住的教训是：STP 不能只靠“约定”，必须用 <code>root-protection</code>、<code>bpdu-protection</code> 等协议机制把根桥和边缘口钉死，再配合标准模板与入场审计，才能避免“好心配置”变成全网故障。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>二层环路与广播风暴</strong></p>
+<ul>
+<li><a class="link" href="/posts/bea8d60d/" >核心交换机 STP 风暴，全楼网络为何瘫痪？</a></li>
+</ul>
 
 </section>
 

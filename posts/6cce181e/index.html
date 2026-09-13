@@ -242,6 +242,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -316,7 +317,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 6 分钟
+                        阅读时长: 7 分钟
                     </time>
                 
             </div>
@@ -363,6 +364,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -373,7 +375,12 @@
     <section class="article-content">
     
     
-    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+    
+    <blockquote>
+        <p><strong>与姊妹篇的区别</strong>：本案例的触发源是<strong>外部扫描流量</strong>（UFW BLOCK + sshd 失败登录）灌满 journal，且发生在<strong>监控采集节点</strong>上；另一篇《<a class="link" href="/posts/2ebdb79b/" >堵住 journald 日志风暴：一次根分区写满的定位与根治</a>》的触发源是<strong>服务崩溃循环</strong>（<code>Restart=always</code> + <code>RestartSec=1</code>），宿主是<strong>堡垒机</strong>。两者的表象（根分区写满、journalctl 卡死）与根治方向（journald 硬配额 + 轮转）一致，但<strong>定位路径完全不同</strong>：前者查 RateLimit 与外部流量来源，后者查 unit 重启策略。建议两篇对照阅读。</p>
+
+    </blockquote>
+<h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
 </h2><p>2026 年 9 月初，公司在 DC 域控服务器（Windows Server 2022 + Hyper-V 虚拟化）上部署一套基于 Debian 12 的监控与日志采集节点，用于集中收集 PVS 服务器与无盘终端的运行日志与性能指标。系统上线后前两周运行平稳，journald 默认配置（RateLimitIntervalSec=30s、RateLimitBurst=10000）被认为「足够宽松」。</p>
 <p>9 月 7 日凌晨 03:12 开始，监控大盘突然出现大量「node down」告警，SSH 登录延迟剧增，部分服务开始 OOM。运维值班同学通过 IPMI 远程控制台发现根分区使用率已达 100%，journalctl -f 刷屏输出，系统进入只读模式无法写入任何文件。紧急重启后服务逐步恢复，但根分区使用率在 10 分钟内再次冲顶，呈现典型的「日志风暴」特征。</p>
 <p>本次故障波及范围：监控节点本身 + 通过该节点上报的 3 台 PVS 服务器（间接影响 200+ 无盘终端的性能数据采集）。故障持续约 47 分钟，业务影响面为「监控盲区 + 性能数据丢失」。</p>
@@ -399,7 +406,8 @@
 </span></span><span style="display:flex;"><span><span style="color:#75715e"># 结果：/var/log/journal/xxxx  47G（异常！）</span>
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p>默认情况下 journald 采用 <code>Storage=auto</code>，当根分区可用空间 &lt; 4G 时会自动切换到 <code>volatile</code>（内存），但本次故障中「可用空间被日志本身吃光」，导致切换失败。</p>
+</div><p>默认情况下 journald 采用 <code>Storage=auto</code>：<strong>若 <code>/var/log/journal</code> 目录存在就持久化到磁盘，否则退回内存（volatile）</strong>。判定依据是目录是否存在，<strong>与剩余空间无关</strong>——所以本次故障中磁盘被日志本身吃光后，journald 并不会因此自动切换到内存。</p>
+<p>真正与空间有关的开关是 <code>SystemMaxUse</code>（默认取其所在文件系统的 10%）与 <code>SystemKeepFree</code>（默认 15%）。本例中 <code>SystemMaxUse</code> 与 <code>SystemKeepFree</code> 均为<strong>空值</strong>，等于接受默认比例；而 47 GB 的日志已经远超默认上限本该触发自动回收——问题在于活跃 journal 文件的写入速度远快于回收速度，且单文件没有 <code>MaxFileSec</code> 约束，回收来不及释放。</p>
 <h3 id="步骤-2分析-ratelimit-配置"><a href="#%e6%ad%a5%e9%aa%a4-2%e5%88%86%e6%9e%90-ratelimit-%e9%85%8d%e7%bd%ae" class="header-anchor"></a>步骤 2：分析 RateLimit 配置
 </h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
 <table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
@@ -655,6 +663,12 @@
 <li>变更验收 Checklist 必须包含「日志配置 review」，防止「默认配置」带来的隐性风险。</li>
 </ul>
 <p>后续将把「journald 日志风暴演练」纳入每月变更验收门禁，并更新「服务器暴露面收敛 Checklist」与「服务健康检查 Checklist」，确保同类问题不再复发。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>journald 日志风暴</strong></p>
+<ul>
+<li><a class="link" href="/posts/2ebdb79b/" >堵住 journald 日志风暴：一次根分区写满的定位与根治</a></li>
+</ul>
 
 </section>
 
@@ -702,6 +716,17 @@
 
         <div class="article-details">
             <h2 class="article-title">堵住 journald 日志风暴：一次根分区写满的定位与根治</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/49b13065/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">刹住systemd重启风暴：一次Restart=always叠加配置错误拖垮整机的排查</h2>
         </div>
     </a>
 </article>

@@ -241,6 +241,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -368,6 +369,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -703,6 +705,14 @@
 <p><strong>第二，监控不能只看&quot;服务是否在线&rdquo;</strong>。<code>Slave_IO_Running=Yes</code> 和 <code>Slave_SQL_Running=Yes</code> 都是 Yes，但延迟可能已经几小时。<code>Seconds_Behind_Master</code> 告警必须配置，且阈值要合理。</p>
 <p><strong>第三，对一致性敏感的业务，不要无脑走读写分离</strong>。订单详情、支付结果这类场景，宁可让主库扛一部分读流量，也要保证数据一致性。读写分离的规则要细化到表/接口级别，不能一刀切。</p>
 <p>最后，事后我和开发 leader 约法三章：<strong>所有大表 DML 必须经过 DBA Review，所有新上线的定时任务必须压测确认 binlog 体积</strong>。规则定下来了，但更重要的是执行。这次故障的客户投诉虽然已经处理完毕，但给了我们一个深刻的提醒：<strong>主从架构不是&quot;装上就完事&quot;的银弹，它是需要业务、运维、DBA 一起维护的契约</strong>。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>数据库与 MySQL</strong></p>
+<ul>
+<li><a class="link" href="/posts/42f874e5/" >系统时区一改，凌晨备份为何跑进业务高峰拖垮 MySQL？</a></li>
+<li><a class="link" href="/posts/ff0ff270/" >MySQL 主从延迟致报表数据差异过大：定位与修复</a></li>
+<li><a class="link" href="/posts/7154a8f0/" >记一次 MySQL 自动备份静默失败、缺失近一周备份</a></li>
+</ul>
 
 </section>
 

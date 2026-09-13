@@ -16,7 +16,7 @@
 <meta property='og:description' content="记一次通过 SPN 枚举 + Kerberoasting 窃取域管哈希的真实入侵路径，以及事后检测规则落地与约束委派加固的全流程复盘。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/e3f8a2c1/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-09-14T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-14T07:00:00&#43;08:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kerberoasting' /><meta property='article:tag' content='SPN' /><meta property='article:tag' content='Kerberos' /><meta property='article:tag' content='TGS票据' /><meta property='article:tag' content='域内横向移动' /><meta property='article:tag' content='BloodHound' /><meta property='article:tag' content='gMSA' /><meta property='article:tag' content='约束委派' /><meta property='article:tag' content='MITRE ATT&amp;CK' /><meta property='article:published_time' content='2026-09-14T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-14T07:00:00&#43;08:00'/>
 <meta name="twitter:title" content="一次域内 Kerberoasting 攻击的检测与加固实录">
 <meta name="twitter:description" content="记一次通过 SPN 枚举 + Kerberoasting 窃取域管哈希的真实入侵路径，以及事后检测规则落地与约束委派加固的全流程复盘。">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -514,6 +514,28 @@
 
     <footer class="article-meta article-footer">
     
+    <section class="article-tags">
+        
+            <a href="/tags/kerberoasting/">Kerberoasting</a>
+        
+            <a href="/tags/spn/">SPN</a>
+        
+            <a href="/tags/kerberos/">Kerberos</a>
+        
+            <a href="/tags/tgs%E7%A5%A8%E6%8D%AE/">TGS票据</a>
+        
+            <a href="/tags/%E5%9F%9F%E5%86%85%E6%A8%AA%E5%90%91%E7%A7%BB%E5%8A%A8/">域内横向移动</a>
+        
+            <a href="/tags/bloodhound/">BloodHound</a>
+        
+            <a href="/tags/gmsa/">GMSA</a>
+        
+            <a href="/tags/%E7%BA%A6%E6%9D%9F%E5%A7%94%E6%B4%BE/">约束委派</a>
+        
+            <a href="/tags/mitre-attck/">MITRE ATT&amp;CK</a>
+        
+    </section>
+
 
     </footer>
 
@@ -524,6 +546,59 @@
     
 
     
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/f78d7f76/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">域控 NTP 时间源失效，全公司 Kerberos 为何大面积失败？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/8ca2b9a4/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 NTP 异常致 Kerberos 认证全失效的排查</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/dc39561c/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">SSL VPN 认证超时致大量用户无法远程办公的定位</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/75336643/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 AD 域中黄金票据攻击导致域控权限持久化的检测与清除</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
 
      
     

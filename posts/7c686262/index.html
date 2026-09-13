@@ -16,7 +16,7 @@
 <meta property='og:description' content="跨机房链路变更只验 ping 通不够；用连通矩阵、回程与 MTU 三道关 Checklist 堵住半通与晚高峰回填。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/7c686262/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2020-12-15T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2020-12-15T07:00:00&#43;08:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='跨机房链路变更验收' /><meta property='article:tag' content='连通矩阵' /><meta property='article:tag' content='回程路由' /><meta property='article:tag' content='路径对称' /><meta property='article:tag' content='MTU验收' /><meta property='article:tag' content='MSS钳制' /><meta property='article:tag' content='变更结单门禁' /><meta property='article:published_time' content='2020-12-15T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2020-12-15T07:00:00&#43;08:00'/>
 <meta name="twitter:title" content="记一次跨机房链路变更验收Checklist的落地：连通矩阵、回程路由与MTU三道关">
 <meta name="twitter:description" content="跨机房链路变更只验 ping 通不够；用连通矩阵、回程与 MTU 三道关 Checklist 堵住半通与晚高峰回填。">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -245,6 +245,7 @@
       </ul>
     </li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -326,7 +327,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 7 分钟
+                        阅读时长: 8 分钟
                     </time>
                 
             </div>
@@ -376,6 +377,7 @@
       </ul>
     </li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -581,12 +583,38 @@
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>跨机房链路变更最怕的不是完全不通，而是<strong>半通、大包不通、高峰才爆</strong>。把验收从「ping 一下」升级为 <strong>连通矩阵 + 回程对称 + MTU/大包</strong> 三道关，并用结单门禁卡住，是成本最低、收益最稳的防坑手段。</p>
 <p>本篇作为网络侧方法论/Checklist，和既有的机房搬迁非对称路由、IPSec 大包/PMTUD、OSPF flap 等排查文互补：那些文章回答「出了什么事」，本清单回答「怎样在当晚就证明没出事」。建议团队直接复制表格进变更单模板，按现场拓扑改端口与代表主机，不必等下一次半夜回填再补课。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>IPSec 隧道与 MTU</strong></p>
+<ul>
+<li><a class="link" href="/posts/6ef1b86a/" >一次跨机房 IPSec VPN 隧道大包不通导致业务间歇性卡死的排查记录</a></li>
+<li><a class="link" href="/posts/f11611fb/" >记一次跨机房 IPSec VPN 大包分片黑洞导致应用超时但小包正常的排查实录</a></li>
+<li><a class="link" href="/posts/3c48c9b3/" >IPSec VPN MTU 不匹配致 ERP 远程访问异常：定位与修复</a></li>
+</ul>
 
 </section>
 
 
     <footer class="article-meta article-footer">
     
+    <section class="article-tags">
+        
+            <a href="/tags/%E8%B7%A8%E6%9C%BA%E6%88%BF%E9%93%BE%E8%B7%AF%E5%8F%98%E6%9B%B4%E9%AA%8C%E6%94%B6/">跨机房链路变更验收</a>
+        
+            <a href="/tags/%E8%BF%9E%E9%80%9A%E7%9F%A9%E9%98%B5/">连通矩阵</a>
+        
+            <a href="/tags/%E5%9B%9E%E7%A8%8B%E8%B7%AF%E7%94%B1/">回程路由</a>
+        
+            <a href="/tags/%E8%B7%AF%E5%BE%84%E5%AF%B9%E7%A7%B0/">路径对称</a>
+        
+            <a href="/tags/mtu%E9%AA%8C%E6%94%B6/">MTU验收</a>
+        
+            <a href="/tags/mss%E9%92%B3%E5%88%B6/">MSS钳制</a>
+        
+            <a href="/tags/%E5%8F%98%E6%9B%B4%E7%BB%93%E5%8D%95%E9%97%A8%E7%A6%81/">变更结单门禁</a>
+        
+    </section>
+
 
     </footer>
 

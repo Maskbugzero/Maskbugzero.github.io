@@ -16,7 +16,7 @@
 <meta property='og:description' content="年度备份恢复演练中任务全绿却还原不出可用业务；根因是一致性快照失效与备份范围漏项，按可恢复性验收重建体系。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/7760e3e7/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2020-09-06T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2020-09-06T07:00:00&#43;08:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='备份恢复演练' /><meta property='article:tag' content='可恢复性' /><meta property='article:tag' content='RPO' /><meta property='article:tag' content='RTO' /><meta property='article:tag' content='崩溃一致性快照' /><meta property='article:tag' content='应用一致性备份' /><meta property='article:tag' content='pg_basebackup' /><meta property='article:tag' content='WAL归档' /><meta property='article:tag' content='PITR' /><meta property='article:published_time' content='2020-09-06T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2020-09-06T07:00:00&#43;08:00'/>
 <meta name="twitter:title" content="一次备份恢复演练失败：监控全绿却还原不出可用业务的排查记录">
 <meta name="twitter:description" content="年度备份恢复演练中任务全绿却还原不出可用业务；根因是一致性快照失效与备份范围漏项，按可恢复性验收重建体系。">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -242,6 +242,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -370,6 +371,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -561,12 +563,41 @@
 </h2><p>这次演练最有价值的产出不是「某条还原命令写错了」，而是当场证伪了团队习以为常的等式：<strong>备份任务全绿 ≠ 灾难时业务可恢复</strong>。</p>
 <p>服务运维在容量、连接池、磁盘句柄上已经习惯看「真实资源是否够用」；备份领域同样需要从「任务是否跑完」转向「按 RTO 拉起后黄金路径是否全绿」。建议把可恢复性做成和变更、发布同级的门禁：没有近期成功的还原证据，就不允许把系统标成「已受保护」。</p>
 <p>对还未做过真还原的环境，与其继续堆更长的保留期，不如先排一天窗口，在隔离网把「最近一份成功备份」完整走通一遍——很多问题，只会在你真正点下 Restore 时出现。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>备份与可恢复性</strong></p>
+<ul>
+<li><a class="link" href="/posts/42f874e5/" >系统时区一改，凌晨备份为何跑进业务高峰拖垮 MySQL？</a></li>
+<li><a class="link" href="/posts/7154a8f0/" >记一次 MySQL 自动备份静默失败、缺失近一周备份</a></li>
+</ul>
 
 </section>
 
 
     <footer class="article-meta article-footer">
     
+    <section class="article-tags">
+        
+            <a href="/tags/%E5%A4%87%E4%BB%BD%E6%81%A2%E5%A4%8D%E6%BC%94%E7%BB%83/">备份恢复演练</a>
+        
+            <a href="/tags/%E5%8F%AF%E6%81%A2%E5%A4%8D%E6%80%A7/">可恢复性</a>
+        
+            <a href="/tags/rpo/">RPO</a>
+        
+            <a href="/tags/rto/">RTO</a>
+        
+            <a href="/tags/%E5%B4%A9%E6%BA%83%E4%B8%80%E8%87%B4%E6%80%A7%E5%BF%AB%E7%85%A7/">崩溃一致性快照</a>
+        
+            <a href="/tags/%E5%BA%94%E7%94%A8%E4%B8%80%E8%87%B4%E6%80%A7%E5%A4%87%E4%BB%BD/">应用一致性备份</a>
+        
+            <a href="/tags/pg_basebackup/">Pg_basebackup</a>
+        
+            <a href="/tags/wal%E5%BD%92%E6%A1%A3/">WAL归档</a>
+        
+            <a href="/tags/pitr/">PITR</a>
+        
+    </section>
+
 
     </footer>
 

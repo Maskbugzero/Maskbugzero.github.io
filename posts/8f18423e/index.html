@@ -229,6 +229,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -310,7 +311,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 4 分钟
+                        阅读时长: 5 分钟
                     </time>
                 
             </div>
@@ -344,6 +345,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -477,6 +479,14 @@
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>这次故障最&quot;坑&quot;的地方在于：现象是浏览器报证书过期，但 <code>openssl</code> 直连却显示正常——因为中间隔了一层 CDN，客户端看到的证书和源站证书是两回事。排查 HTTPS 类问题，第一性原则是&quot;分清 TLS 在哪一层被终结&quot;。</p>
 <p>另外，证书自动续期从来不是&quot;配一次就高枕无忧&quot;。只要续期链路上的任何依赖（端口、DNS、权限）被改动，它就会静默失效。把&quot;证书有效期监控 + 续期结果告警&quot;作为标配，远比依赖 cron 不报错来得靠谱。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>证书过期与轮换</strong></p>
+<ul>
+<li><a class="link" href="/posts/e01939e6/" >记一次 K8s 节点 kubelet 证书轮换失败导致节点 NotReady 风暴的排查</a></li>
+<li><a class="link" href="/posts/04006cb8/" >记一次 RADIUS EAP-TLS 证书过期致全公司 802.1X 掉线</a></li>
+<li><a class="link" href="/posts/557c47d3/" >记一次 SSL 证书过期致内网 HTTPS 全面中断</a></li>
+</ul>
 
 </section>
 

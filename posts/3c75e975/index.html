@@ -256,6 +256,7 @@
       </ul>
     </li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -398,6 +399,7 @@
       </ul>
     </li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -779,6 +781,17 @@
 </ol>
 <p>排查时我最初只关注了GPMC界面上的链接和筛选配置，浪费了近一个小时在策略冲突和优先级方向上。直到检查版本号才发现真正的入口。这也提醒我，<strong>排查AD域控相关问题时，一定要从底层文件（GPT.INI、SYSVOL共享）和复制机制入手</strong>，不要只依赖GPMC的图形界面——界面显示的是AD对象的元数据，而客户端实际读取的是SYSVOL文件，两者之间可能因复制延迟而不同步。</p>
 <p>另外一个实操经验：<strong>DC补丁维护后必须确认DFSR复制恢复</strong>。DFS复制不像AD复制那样有显式的复制失败告警，DFSR可能&quot;静默失效&quot;——服务在运行、端口在监听，但实际复制通道没有重建成功。只有通过 <code>dfsradmin health</code> 或事件日志才能发现问题。以后每次DC维护重启，运维检查清单上必须加上DFSR复制状态确认这一步。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>域控与组策略</strong></p>
+<ul>
+<li><a class="link" href="/posts/0f35911f/" >迁移 AD 域控：SYSVOL 复制断裂与 FSMO 抢占风险的定位与回退复盘</a></li>
+<li><a class="link" href="/posts/75336643/" >记一次 AD 域中黄金票据攻击导致域控权限持久化的检测与清除</a></li>
+<li><a class="link" href="/posts/f78d7f76/" >域控 NTP 时间源失效，全公司 Kerberos 为何大面积失败？</a></li>
+<li><a class="link" href="/posts/3a307caa/" >域电脑重启后为何登不上？一次工作站与主域信任关系失败的排查记录</a></li>
+<li><a class="link" href="/posts/903f5f9d/" >LAPS 部署后终端本地管理员密码为何未更新？一次策略应用与事件日志的排查记录</a></li>
+<li><a class="link" href="/posts/8c4b1183/" >Windows 域策略推送失败致新电脑无法登录的处理</a></li>
+</ul>
 
 </section>
 

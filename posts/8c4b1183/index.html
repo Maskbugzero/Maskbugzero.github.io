@@ -237,6 +237,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -318,7 +319,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 3 分钟
+                        阅读时长: 4 分钟
                     </time>
                 
             </div>
@@ -360,6 +361,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -563,6 +565,17 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>域控的 Netlogon 共享是整个 AD 域的命脉——没有它，新电脑加不了域、密码改不了、策略推送不了。而这一次，只是因为 C 盘满了。<code>net share</code> 显示共享存在不代表它能正常提供服务，就像一辆车有引擎不代表它能跑。域控的磁盘监控不能只看传统的&quot;剩余空间&quot;，还需要关注 Sysvol 和 DFSR Staging Areas 的健康状态——它们才是真正的隐藏炸弹。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>域控与组策略</strong></p>
+<ul>
+<li><a class="link" href="/posts/0f35911f/" >迁移 AD 域控：SYSVOL 复制断裂与 FSMO 抢占风险的定位与回退复盘</a></li>
+<li><a class="link" href="/posts/75336643/" >记一次 AD 域中黄金票据攻击导致域控权限持久化的检测与清除</a></li>
+<li><a class="link" href="/posts/3c75e975/" >域控 GPO 推送失败，终端安全基线为何不生效？</a></li>
+<li><a class="link" href="/posts/f78d7f76/" >域控 NTP 时间源失效，全公司 Kerberos 为何大面积失败？</a></li>
+<li><a class="link" href="/posts/3a307caa/" >域电脑重启后为何登不上？一次工作站与主域信任关系失败的排查记录</a></li>
+<li><a class="link" href="/posts/903f5f9d/" >LAPS 部署后终端本地管理员密码为何未更新？一次策略应用与事件日志的排查记录</a></li>
+</ul>
 
 </section>
 
@@ -577,7 +590,7 @@
         
             <a href="/tags/%E5%9F%9F%E7%AD%96%E7%95%A5/">域策略</a>
         
-            <a href="/tags/sysvol/">Sysvol</a>
+            <a href="/tags/sysvol/">SYSVOL</a>
         
             <a href="/tags/netlogon/">Netlogon</a>
         

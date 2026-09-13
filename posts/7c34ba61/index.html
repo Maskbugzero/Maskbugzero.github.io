@@ -229,6 +229,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -344,6 +345,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -496,6 +498,14 @@
 </ol>
 <h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
 </h2><p>这次故障给我最深的教训是：<strong>排查 &ldquo;no space left on device&rdquo; 不能只看 <code>df -h</code>，一定要补一眼 <code>df -i</code></strong>。在容器、CI、日志这类&quot;产生海量小文件&quot;的场景里，inode 耗尽比磁盘字节耗尽更常见、更隐蔽。把日志轮转、定期 prune、inode 监控三件事做成标准动作，基本可以杜绝这类问题再次发生。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>Docker 容器运维</strong></p>
+<ul>
+<li><a class="link" href="/posts/0783d2cd/" >Docker Swarm Overlay 跨节点不通，问题卡在哪？</a></li>
+<li><a class="link" href="/posts/def9cf20/" >Docker 容器 OOM，服务雪崩是怎么炸开的？</a></li>
+<li><a class="link" href="/posts/d454c146/" >记一次 Docker 容器反复重启引发的微服务链路雪崩</a></li>
+</ul>
 
 </section>
 

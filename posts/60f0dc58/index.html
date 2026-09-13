@@ -229,6 +229,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -344,6 +345,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -511,6 +513,15 @@
 </ol>
 <h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
 </h2><p>这次故障本质不是 Redis 性能问题，而是<strong>缓存生命周期设计缺陷</strong>引发的雪崩。集中 TTL 是很容易被忽视的&quot;定时炸弹&quot;，平时相安无事，一到流量洪峰就炸。排查上，关键抓手是 Redis 的 <code>keyspace_misses / expired_keys</code> 两个指标——它们能一眼定性&quot;请求是否穿透&quot;。记住：缓存层永远要假设自己会失效，回源必须有合并、必须有抖动、必须有降级。把数据库当成最后一道防线，而不是第一道承受洪峰的堤坝。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>内存不足与服务雪崩</strong></p>
+<ul>
+<li><a class="link" href="/posts/b1ca8efe/" >记一次 K8s Pod OOMKilled 触发的服务雪崩</a></li>
+<li><a class="link" href="/posts/def9cf20/" >Docker 容器 OOM，服务雪崩是怎么炸开的？</a></li>
+<li><a class="link" href="/posts/d454c146/" >记一次 Docker 容器反复重启引发的微服务链路雪崩</a></li>
+<li><a class="link" href="/posts/4dad391b/" >记一次 Redis 内存溢出、缓存服务全失效的排查</a></li>
+</ul>
 
 </section>
 

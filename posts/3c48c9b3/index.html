@@ -254,6 +254,7 @@
       </ul>
     </li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -335,7 +336,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 12 分钟
+                        阅读时长: 13 分钟
                     </time>
                 
             </div>
@@ -394,6 +395,7 @@
       </ul>
     </li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -832,6 +834,14 @@
 <p><strong>教训三：IPS策略不能一刀切地拦截ICMP。</strong> 安全策略的&quot;拦截一切ICMP&quot;看似防御了ICMP-based DOS攻击，实则破坏了PMTU Discovery这一网络基础机制。安全与可用必须平衡，对于RFC定义的必要ICMP消息（Fragmentation Needed、Time Exceeded等），必须放行。</p>
 <p><strong>教训四：故障排查要善于利用&quot;小包通、大包不通&quot;这个特征。</strong> 当你发现小请求能成功但大数据传输失败，或者Ping通但应用不通，第一反应就应该是检查MTU/MSS。这个特征太过典型，不必浪费时间去查服务器性能、应用日志、路由表——直接从MTU入手往往能最快定位。</p>
 <p>最终，一个1436的隧道MTU和未设置的MSS参数，加上一条过于激进的IPS规则，三者合力制造了一个&quot;Ping正常但业务瘫痪&quot;的经典假象。修复只需两行配置，但理解它需要整个IP/TCP栈的知识。运维不只是改配置，更是理解协议。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>IPSec 隧道与 MTU</strong></p>
+<ul>
+<li><a class="link" href="/posts/6ef1b86a/" >一次跨机房 IPSec VPN 隧道大包不通导致业务间歇性卡死的排查记录</a></li>
+<li><a class="link" href="/posts/f11611fb/" >记一次跨机房 IPSec VPN 大包分片黑洞导致应用超时但小包正常的排查实录</a></li>
+<li><a class="link" href="/posts/7c686262/" >记一次跨机房链路变更验收Checklist的落地：连通矩阵、回程路由与MTU三道关</a></li>
+</ul>
 
 </section>
 

@@ -236,6 +236,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -317,7 +318,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 3 分钟
+                        阅读时长: 4 分钟
                     </time>
                 
             </div>
@@ -358,6 +359,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -545,6 +547,15 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>DNS 是互联网世界的&quot;电话簿&quot;，它的一个微小延时会被前端的每一项网络请求放大。这次故障的根本原因极其简单——一个硬编码了多年的&quot;死地址&quot;，但由于 DNS 的层级缓存掩盖了问题（缓存命中时感觉很快），让大家误以为是&quot;网络波动&quot;而非配置问题。对于运维来说，定期验证 DNS forwarders 的健康状态应该是&quot;开机自检&quot;级别的例行工作。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>DNS 解析链路</strong></p>
+<ul>
+<li><a class="link" href="/posts/38f14096/" >公网 DNS 解析超时，CDN 回源为何大面积失败？</a></li>
+<li><a class="link" href="/posts/fb53e550/" >一次内网 DNS 转发链路异常导致核心业务系统间歇解析超时与偶发 504 的排查记录</a></li>
+<li><a class="link" href="/posts/425c7ac4/" >记一次 Kubernetes 集群因 CoreDNS 配置漂移导致服务发现间歇性失败的排查实录</a></li>
+<li><a class="link" href="/posts/66557bdd/" >FortiGate 策略配错，内网 DNS 为何解析失败？</a></li>
+</ul>
 
 </section>
 

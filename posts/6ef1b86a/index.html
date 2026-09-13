@@ -229,6 +229,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -310,7 +311,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 6 分钟
+                        阅读时长: 7 分钟
                     </time>
                 
             </div>
@@ -344,6 +345,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -461,6 +463,14 @@
 </ul>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>这次故障的迷惑性全在于&quot;ping 通&quot;给人的虚假安全感——小包能过不代表链路健康，大包才是真正的试金石。排查的关键转折是改用带 DF 的大包探测，一眼看穿隧道 MTU 被压缩，再顺着&quot;为何没有 ICMP 反馈&quot;揪出被防火墙吞掉的 PMTUD 通道。对所有带封装的隧道链路，记住两条铁律：<strong>默认做 MSS 钳制</strong>，<strong>永远不要一刀切禁 ICMP 差错报文</strong>。把这两点固化进基线，这类&quot;小包通、大包死&quot;的幽灵故障就能从源头杜绝。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>IPSec 隧道与 MTU</strong></p>
+<ul>
+<li><a class="link" href="/posts/f11611fb/" >记一次跨机房 IPSec VPN 大包分片黑洞导致应用超时但小包正常的排查实录</a></li>
+<li><a class="link" href="/posts/3c48c9b3/" >IPSec VPN MTU 不匹配致 ERP 远程访问异常：定位与修复</a></li>
+<li><a class="link" href="/posts/7c686262/" >记一次跨机房链路变更验收Checklist的落地：连通矩阵、回程路由与MTU三道关</a></li>
+</ul>
 
 </section>
 

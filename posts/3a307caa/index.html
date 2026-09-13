@@ -16,7 +16,7 @@
 <meta property='og:description' content="终端重启后报信任关系失败无法登域；机器账号密码不同步是根因，Reset-ComputerMachinePassword 与改计算机名切记后的再加域流程收口。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/3a307caa/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2020-11-03T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2020-11-03T07:00:00&#43;08:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='域信任关系失败' /><meta property='article:tag' content='Secure Channel' /><meta property='article:tag' content='机器账号密码' /><meta property='article:tag' content='Test-ComputerSecureChannel' /><meta property='article:tag' content='Reset-ComputerMachinePassword' /><meta property='article:tag' content='克隆未Sysprep' /><meta property='article:tag' content='nltest' /><meta property='article:published_time' content='2020-11-03T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2020-11-03T07:00:00&#43;08:00'/>
 <meta name="twitter:title" content="域电脑重启后为何登不上？一次工作站与主域信任关系失败的排查记录">
 <meta name="twitter:description" content="终端重启后报信任关系失败无法登域；机器账号密码不同步是根因，Reset-ComputerMachinePassword 与改计算机名切记后的再加域流程收口。">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -243,6 +243,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -372,6 +373,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -593,12 +595,41 @@
 <li>当天修补克隆与改名流程，防止次日复烧。</li>
 </ol>
 <p>对桌面运维而言，把 <code>Test-ComputerSecureChannel</code> / <code>Reset-ComputerMachinePassword</code> 和 Sysprep 纪律做成肌肉记忆，比事后给用户重装系统便宜得多——也更符合「先恢复身份，再谈业务软件」的域环境排障次序。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>域控与组策略</strong></p>
+<ul>
+<li><a class="link" href="/posts/0f35911f/" >迁移 AD 域控：SYSVOL 复制断裂与 FSMO 抢占风险的定位与回退复盘</a></li>
+<li><a class="link" href="/posts/75336643/" >记一次 AD 域中黄金票据攻击导致域控权限持久化的检测与清除</a></li>
+<li><a class="link" href="/posts/3c75e975/" >域控 GPO 推送失败，终端安全基线为何不生效？</a></li>
+<li><a class="link" href="/posts/f78d7f76/" >域控 NTP 时间源失效，全公司 Kerberos 为何大面积失败？</a></li>
+<li><a class="link" href="/posts/903f5f9d/" >LAPS 部署后终端本地管理员密码为何未更新？一次策略应用与事件日志的排查记录</a></li>
+<li><a class="link" href="/posts/8c4b1183/" >Windows 域策略推送失败致新电脑无法登录的处理</a></li>
+</ul>
 
 </section>
 
 
     <footer class="article-meta article-footer">
     
+    <section class="article-tags">
+        
+            <a href="/tags/%E5%9F%9F%E4%BF%A1%E4%BB%BB%E5%85%B3%E7%B3%BB%E5%A4%B1%E8%B4%A5/">域信任关系失败</a>
+        
+            <a href="/tags/secure-channel/">Secure Channel</a>
+        
+            <a href="/tags/%E6%9C%BA%E5%99%A8%E8%B4%A6%E5%8F%B7%E5%AF%86%E7%A0%81/">机器账号密码</a>
+        
+            <a href="/tags/test-computersecurechannel/">Test-ComputerSecureChannel</a>
+        
+            <a href="/tags/reset-computermachinepassword/">Reset-ComputerMachinePassword</a>
+        
+            <a href="/tags/%E5%85%8B%E9%9A%86%E6%9C%AAsysprep/">克隆未Sysprep</a>
+        
+            <a href="/tags/nltest/">Nltest</a>
+        
+    </section>
+
 
     </footer>
 

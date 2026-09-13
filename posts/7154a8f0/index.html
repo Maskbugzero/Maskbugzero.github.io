@@ -236,6 +236,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -317,7 +318,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 4 分钟
+                        阅读时长: 5 分钟
                     </time>
                 
             </div>
@@ -358,6 +359,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -559,6 +561,19 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>备份系统最可怕的不是&quot;备份失败&quot;，而是&quot;备份失败了但没有人知道&quot;。这次事故暴露了两个核心问题：退出码的滥用和监控的盲区。一个执行了 5 天、每次都&quot;成功&quot;的备份脚本，实际上从未生成过有效的备份文件。如果在第 6 天确实发生了数据丢失需要回滚，DBA 会惊讶地发现最近可用的备份停在 6 天前。备份脚本的退出码不应该是一个可选项——<strong>所有非正常路径都必须返回非 0，没有例外</strong>。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>数据库与 MySQL</strong></p>
+<ul>
+<li><a class="link" href="/posts/42f874e5/" >系统时区一改，凌晨备份为何跑进业务高峰拖垮 MySQL？</a></li>
+<li><a class="link" href="/posts/ecbe2757/" >记一次大事务拖慢 MySQL 主从、订单数据不一致的排查</a></li>
+<li><a class="link" href="/posts/ff0ff270/" >MySQL 主从延迟致报表数据差异过大：定位与修复</a></li>
+</ul>
+<p><strong>备份与可恢复性</strong></p>
+<ul>
+<li><a class="link" href="/posts/42f874e5/" >系统时区一改，凌晨备份为何跑进业务高峰拖垮 MySQL？</a></li>
+<li><a class="link" href="/posts/7760e3e7/" >一次备份恢复演练失败：监控全绿却还原不出可用业务的排查记录</a></li>
+</ul>
 
 </section>
 

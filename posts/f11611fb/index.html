@@ -236,6 +236,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -351,6 +352,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -535,6 +537,14 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>一次看似「小包正常、大包异常」的跨机房 VPN 问题，本质是经典的 PMTUD 黑洞。机房搬迁改变了路径 MTU，而防火墙策略与 IPSec 配置的双重缺失导致 ICMP 差错被拦截、MSS 未钳制，最终形成大包静默丢弃。通过强制 MSS 钳制 + 放行 ICMP + 验收 Checklist 三层防护，可彻底杜绝此类问题再次发生。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>IPSec 隧道与 MTU</strong></p>
+<ul>
+<li><a class="link" href="/posts/6ef1b86a/" >一次跨机房 IPSec VPN 隧道大包不通导致业务间歇性卡死的排查记录</a></li>
+<li><a class="link" href="/posts/3c48c9b3/" >IPSec VPN MTU 不匹配致 ERP 远程访问异常：定位与修复</a></li>
+<li><a class="link" href="/posts/7c686262/" >记一次跨机房链路变更验收Checklist的落地：连通矩阵、回程路由与MTU三道关</a></li>
+</ul>
 
 </section>
 
@@ -591,6 +601,17 @@
 
         <div class="article-details">
             <h2 class="article-title">IPSec VPN MTU 不匹配致 ERP 远程访问异常：定位与修复</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/5453de23/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次机房搬迁网络割接后跨机房业务单向可达的排查</h2>
         </div>
     </a>
 </article>

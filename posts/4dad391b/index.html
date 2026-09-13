@@ -244,6 +244,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -374,6 +375,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -587,6 +589,15 @@
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>这次事故表明，Redis 的配置和使用规范同样需要纳入代码审查流程。一个大 Key、一个错误的淘汰策略，在平时可能不显眼，但到了业务高峰期就会变成定时炸弹。</p>
 <p>对于 Redis 运维，除了关注可用性，还要重点关注<strong>大 Key、热 Key、内存使用率、慢查询</strong>这四个维度，建立起常态化的监控和审计机制。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>内存不足与服务雪崩</strong></p>
+<ul>
+<li><a class="link" href="/posts/60f0dc58/" >秒杀接口大面积超时：Redis 缓存雪崩的定位与修复</a></li>
+<li><a class="link" href="/posts/b1ca8efe/" >记一次 K8s Pod OOMKilled 触发的服务雪崩</a></li>
+<li><a class="link" href="/posts/def9cf20/" >Docker 容器 OOM，服务雪崩是怎么炸开的？</a></li>
+<li><a class="link" href="/posts/d454c146/" >记一次 Docker 容器反复重启引发的微服务链路雪崩</a></li>
+</ul>
 
 </section>
 

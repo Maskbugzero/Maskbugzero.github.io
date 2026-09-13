@@ -237,6 +237,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -360,6 +361,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -634,6 +636,13 @@
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>这次故障表面上是个很简单的 413 问题，但排查过程中踩了两个坑：一是对 Nginx 配置的层级覆盖规则不熟悉，二是配置文件里存在&quot;半改&quot;的残留配置，干扰了判断。</p>
 <p><strong>教训</strong>：迁移时不要直接照搬旧配置，要理解每一行配置的含义；修改配置时要彻底，不要留注释残骸；上线前的测试场景要覆盖到实际业务的边界情况（比如大文件上传、长时间操作等）。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>Nginx</strong></p>
+<ul>
+<li><a class="link" href="/posts/8abd0b2a/" >Nginx 限流误杀正常请求：阈值调优与复盘</a></li>
+<li><a class="link" href="/posts/7476618a/" >Nginx 健康检查误判，服务节点怎么被批量剔除？</a></li>
+</ul>
 
 </section>
 

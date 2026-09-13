@@ -244,6 +244,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -325,7 +326,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 6 分钟
+                        阅读时长: 7 分钟
                     </time>
                 
             </div>
@@ -374,6 +375,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -529,6 +531,15 @@
 </ol>
 <h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
 </h2><p>这次故障的典型之处在于：<strong>业务报的是 504，根因却藏在 DNS 转发器一个 UDP 包被丢的瞬间</strong>。它不报错、不宕机，只在出口拥塞或大响应域名上偶发，单看监控谁都像“无辜”。给运维的启示是——遇到“三方接口偶发超时、但对方查无此请求”的现象，要敢于从应用层一路下沉到 DNS/UDP 链路，用 <code>tcpdump</code> + <code>dig +stats</code> 把“丢包率”这项指标量化出来；同时 DNS 这种“看似简单”的基础设施，恰恰最该做多上游、控包体、开 TCP、配监控，别让一条被丢弃的 UDP 53 包，悄悄拖垮整条交易链路。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>DNS 解析链路</strong></p>
+<ul>
+<li><a class="link" href="/posts/38f14096/" >公网 DNS 解析超时，CDN 回源为何大面积失败？</a></li>
+<li><a class="link" href="/posts/425c7ac4/" >记一次 Kubernetes 集群因 CoreDNS 配置漂移导致服务发现间歇性失败的排查实录</a></li>
+<li><a class="link" href="/posts/66557bdd/" >FortiGate 策略配错，内网 DNS 为何解析失败？</a></li>
+<li><a class="link" href="/posts/5ce994e9/" >记一次内网 DNS 递归超时导致的网页间歇卡顿</a></li>
+</ul>
 
 </section>
 

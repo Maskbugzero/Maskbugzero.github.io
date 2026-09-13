@@ -236,6 +236,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -358,6 +359,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -541,6 +543,14 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>Docker overlay 网络的脆弱点在于它依赖 iptables 的动态规则，而这些规则不在任何配置文件中。一旦有人重启了防火墙服务，Docker 不会自动感知并重建规则。这个设计意味着：<strong>在 Docker 集群中，操作 iptables 服务就等同于操作网络基础设施</strong>。如果你不知道 Docker 在背后往 iptables 里写了什么，那就别碰 iptables。</p>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>Docker 容器运维</strong></p>
+<ul>
+<li><a class="link" href="/posts/7c34ba61/" >Docker 宿主机 overlay2 inode 耗尽致容器批量创建失败的定位</a></li>
+<li><a class="link" href="/posts/def9cf20/" >Docker 容器 OOM，服务雪崩是怎么炸开的？</a></li>
+<li><a class="link" href="/posts/d454c146/" >记一次 Docker 容器反复重启引发的微服务链路雪崩</a></li>
+</ul>
 
 </section>
 

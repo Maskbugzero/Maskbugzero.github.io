@@ -16,7 +16,7 @@
 <meta property='og:description' content="LAPS 策略已下发但本地管理员密码未按预期轮换，事件日志提示权限不足与策略应用失败，排查发现 GPO 权限与事件转发配置缺失。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/903f5f9d/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-09-12T00:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-09-12T00:00:00&#43;00:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='LAPS' /><meta property='article:tag' content='本地管理员密码' /><meta property='article:tag' content='GPO' /><meta property='article:tag' content='域权限' /><meta property='article:tag' content='ms-Mcs-AdmPwd' /><meta property='article:tag' content='Active Directory' /><meta property='article:tag' content='合规基线' /><meta property='article:published_time' content='2026-09-12T00:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-09-12T00:00:00&#43;00:00'/>
 <meta name="twitter:title" content="LAPS 部署后终端本地管理员密码为何未更新？一次策略应用与事件日志的排查记录">
 <meta name="twitter:description" content="LAPS 策略已下发但本地管理员密码未按预期轮换，事件日志提示权限不足与策略应用失败，排查发现 GPO 权限与事件转发配置缺失。">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -236,15 +236,16 @@
     <li><a href="#解决方案">解决方案</a>
       <ul>
         <li><a href="#1-修复计算机账户权限最关键">1. 修复计算机账户权限（最关键）</a></li>
-        <li><a href="#2-修正-gpo-security-filtering">2. 修正 GPO Security Filtering</a></li>
-        <li><a href="#3-强制-gpo-刷新与-laps-策略应用">3. 强制 GPO 刷新与 LAPS 策略应用</a></li>
-        <li><a href="#4-验证密码上报成功">4. 验证密码上报成功</a></li>
-        <li><a href="#5-开启域控对象访问审计合规要求">5. 开启域控对象访问审计（合规要求）</a></li>
+        <li><a href="#2-强制-gpo-刷新并让-laps-重新上报">2. 强制 GPO 刷新并让 LAPS 重新上报</a></li>
+        <li><a href="#3-验证密码上报成功">3. 验证密码上报成功</a></li>
+        <li><a href="#4-开启域控对象访问审计合规要求">4. 开启域控对象访问审计（合规要求）</a></li>
       </ul>
     </li>
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#附legacy-laps-与-windows-laps-怎么选">附：Legacy LAPS 与 Windows LAPS 怎么选</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -319,7 +320,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 5 分钟
+                        阅读时长: 9 分钟
                     </time>
                 
             </div>
@@ -360,15 +361,16 @@
     <li><a href="#解决方案">解决方案</a>
       <ul>
         <li><a href="#1-修复计算机账户权限最关键">1. 修复计算机账户权限（最关键）</a></li>
-        <li><a href="#2-修正-gpo-security-filtering">2. 修正 GPO Security Filtering</a></li>
-        <li><a href="#3-强制-gpo-刷新与-laps-策略应用">3. 强制 GPO 刷新与 LAPS 策略应用</a></li>
-        <li><a href="#4-验证密码上报成功">4. 验证密码上报成功</a></li>
-        <li><a href="#5-开启域控对象访问审计合规要求">5. 开启域控对象访问审计（合规要求）</a></li>
+        <li><a href="#2-强制-gpo-刷新并让-laps-重新上报">2. 强制 GPO 刷新并让 LAPS 重新上报</a></li>
+        <li><a href="#3-验证密码上报成功">3. 验证密码上报成功</a></li>
+        <li><a href="#4-开启域控对象访问审计合规要求">4. 开启域控对象访问审计（合规要求）</a></li>
       </ul>
     </li>
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#附legacy-laps-与-windows-laps-怎么选">附：Legacy LAPS 与 Windows LAPS 怎么选</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -381,6 +383,11 @@
     
     <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
 </h2><p>公司为满足等保 2.0 与内控要求，计划在 Windows 域环境中统一部署 Microsoft LAPS（Local Administrator Password Solution），实现终端本地管理员密码的自动轮换与集中托管。IT 团队已完成 LAPS Schema 扩展、GPO 策略配置与客户端推送，预期所有域内 Windows 10/11 终端将在 24 小时内完成首次密码上报与轮换。</p>
+
+    <blockquote>
+        <p><strong>版本说明</strong>：本次部署的是<strong>传统 LAPS（Legacy <code>AdmPwd</code>，2015 版）</strong>，因此下文出现的是 <code>ms-Mcs-AdmPwd</code>、<code>Set-AdmPwdComputerSelfPermission</code> 等旧命名。微软自 2023 年起已把 <strong>Windows LAPS</strong> 内置进系统，两套方案的 Schema / 属性 / Cmdlet 不通用，选型区别见文末附节。</p>
+
+    </blockquote>
 <p>然而，策略推送后一周，抽查发现仍有约 35% 的终端本地管理员密码未更新，LAPS 管理控制台中对应计算机对象无密码记录。安全审计要求「本地管理员密码必须 7 天内完成首次轮换」，当前状态已构成合规风险。需要快速定位策略应用失败的根因，并给出可落地的修复方案。</p>
 <h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
 </h2><ol>
@@ -391,7 +398,7 @@
 <li>Event ID 13：<code>Policy application failed. The password could not be stored in Active Directory.</code></li>
 </ul>
 </li>
-<li><strong>GPO 应用不完整</strong>：<code>gpresult /h</code> 显示 <code>Local Administrator Password Solution</code> 策略已应用，但 <code>AdmPwdEnabled</code> 注册表项仍为 <code>0</code>（未启用）。</li>
+<li><strong>策略已应用但密码写不回</strong>：<code>gpresult /h</code> 显示 <code>Local Administrator Password Solution</code> 策略出现在「已应用的 GPO」列表中，本地注册表 <code>AdmPwdEnabled = 1</code>（LAPS 客户端已启用），但 AD 上对应计算机对象仍无密码属性——<strong>问题出在写回 AD 这一步，而不是策略下发</strong>。</li>
 <li><strong>域控事件转发缺失</strong>：域控 <code>Security</code> 日志中无 LAPS 相关事件（Event ID 4662），无法审计密码读取行为。</li>
 <li><strong>部分终端间歇性成功</strong>：同一 OU 下的终端，约 65% 已成功上报密码，35% 持续失败，无明显机型或镜像差异。</li>
 </ol>
@@ -420,7 +427,12 @@
 <pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span>Get-GPO -Name <span style="color:#e6db74">&#34;LAPS-Client-Policy&#34;</span> | Get-GPOReport -ReportType XML
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p>发现策略已链接到 <code>OU=Workstations,DC=corp,DC=local</code>，但 <code>Security Filtering</code> 中仅包含 <code>Authenticated Users</code>，未单独授予 <code>Domain Computers</code> 读取权限。</p>
+</div><p>策略已链接到 <code>OU=Workstations,DC=corp,DC=local</code>，<code>Security Filtering</code> 为 <code>Authenticated Users</code>（GpoApply）。</p>
+
+    <blockquote>
+        <p>附带澄清一个常见误区：不少资料把「Security Filtering 用了 <code>Authenticated Users</code>」当成 LAPS 部署失败的元凶，理由是「计算机账户不在这个组里」。<strong>这是错的</strong>——域内计算机账户通过机器账号完成域认证，本身就是 <code>Authenticated Users</code> 的成员，用这个组作为过滤条件是可行的、也是官方推荐做法。所以看到 <code>Authenticated Users</code> 不要急着改，先把排查方向转到 AD 对象 ACL 上。</p>
+
+    </blockquote>
 <h3 id="步骤-2检查-laps-注册表与策略应用状态"><a href="#%e6%ad%a5%e9%aa%a4-2%e6%a3%80%e6%9f%a5-laps-%e6%b3%a8%e5%86%8c%e8%a1%a8%e4%b8%8e%e7%ad%96%e7%95%a5%e5%ba%94%e7%94%a8%e7%8a%b6%e6%80%81" class="header-anchor"></a>步骤 2：检查 LAPS 注册表与策略应用状态
 </h3><p>在终端本地执行：</p>
 <div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
@@ -433,8 +445,22 @@
 </span></span><span style="display:flex;"><span>  Select-Object AdmPwdEnabled, PasswordAgeDays, Complexity, PasswordLength
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p>关键发现：<code>AdmPwdEnabled</code> 值为 <code>0</code>，表示 LAPS 策略未在本地生效。正常情况下 GPO 应用后该值应为 <code>1</code>。</p>
-<p>进一步检查 <code>gpresult /h C:\gpresult.html</code> 中的「已应用策略」列表，发现 <code>LAPS-Client-Policy</code> 出现在「筛选后拒绝」列表，原因是 GPO 的 <code>Security Filtering</code> 未包含计算机账户。</p>
+</div><p>返回 <code>AdmPwdEnabled = 1</code>、<code>PasswordLength = 20</code>，说明 <strong>LAPS 客户端策略已在本地生效</strong>。</p>
+<p>再用 <code>gpresult</code> 确认 GPO 命中情况：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span>gpresult /h C:\gpresult.html
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>LAPS-Client-Policy</code> 出现在「已应用的 GPO」列表里（<strong>没有被筛选掉</strong>）。这一步很关键：它把问题空间一分为二——</p>
+<ul>
+<li>若策略<strong>没</strong>应用 → 查 GPO 链接、Security Filtering、WMI 筛选器、OU 继承阻断；</li>
+<li>若策略<strong>已</strong>应用（本例）→ 说明下发链路没问题，故障必然在「客户端把密码写回 AD」环节。</li>
+</ul>
+<p>本例属于后者，因此后续排查聚焦在 AD 对象权限上，而不是 GPO 作用范围。</p>
 <h3 id="步骤-3分析-laps-事件日志定位失败原因"><a href="#%e6%ad%a5%e9%aa%a4-3%e5%88%86%e6%9e%90-laps-%e4%ba%8b%e4%bb%b6%e6%97%a5%e5%bf%97%e5%ae%9a%e4%bd%8d%e5%a4%b1%e8%b4%a5%e5%8e%9f%e5%9b%a0" class="header-anchor"></a>步骤 3：分析 LAPS 事件日志定位失败原因
 </h3><p>导出 LAPS Operational 日志：</p>
 <div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
@@ -506,20 +532,9 @@
 </span></span></code></pre></td></tr></table>
 </div>
 </div><p>该命令会为 OU 下所有计算机账户添加对 <code>ms-Mcs-AdmPwd</code> 与 <code>ms-Mcs-AdmPwdExpirationTime</code> 的写入权限。执行后等待 15 分钟 GPO 刷新周期。</p>
-<h3 id="2-修正-gpo-security-filtering"><a href="#2-%e4%bf%ae%e6%ad%a3-gpo-security-filtering" class="header-anchor"></a>2. 修正 GPO Security Filtering
-</h3><p>将 <code>LAPS-Client-Policy</code> 的 Security Filtering 从 <code>Authenticated Users</code> 改为显式包含 <code>Domain Computers</code> 组：</p>
-<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
-<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
-</span></code></pre></td>
-<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span>Set-GPPermission -Name <span style="color:#e6db74">&#34;LAPS-Client-Policy&#34;</span> -TargetName <span style="color:#e6db74">&#34;Domain Computers&#34;</span> `
-</span></span><span style="display:flex;"><span>  -TargetType Group -PermissionLevel GpoApply
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="3-强制-gpo-刷新与-laps-策略应用"><a href="#3-%e5%bc%ba%e5%88%b6-gpo-%e5%88%b7%e6%96%b0%e4%b8%8e-laps-%e7%ad%96%e7%95%a5%e5%ba%94%e7%94%a8" class="header-anchor"></a>3. 强制 GPO 刷新与 LAPS 策略应用
-</h3><p>在故障终端执行：</p>
+<h3 id="2-强制-gpo-刷新并让-laps-重新上报"><a href="#2-%e5%bc%ba%e5%88%b6-gpo-%e5%88%b7%e6%96%b0%e5%b9%b6%e8%ae%a9-laps-%e9%87%8d%e6%96%b0%e4%b8%8a%e6%8a%a5" class="header-anchor"></a>2. 强制 GPO 刷新并让 LAPS 重新上报
+</h3><p>权限修好后必须触发一次策略刷新，让 LAPS 客户端重试写回：</p>
+<p>在故障终端执行：</p>
 <div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
 <table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
 <pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
@@ -536,7 +551,7 @@
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></td></tr></table>
 </div>
-</div><h3 id="4-验证密码上报成功"><a href="#4-%e9%aa%8c%e8%af%81%e5%af%86%e7%a0%81%e4%b8%8a%e6%8a%a5%e6%88%90%e5%8a%9f" class="header-anchor"></a>4. 验证密码上报成功
+</div><h3 id="3-验证密码上报成功"><a href="#3-%e9%aa%8c%e8%af%81%e5%af%86%e7%a0%81%e4%b8%8a%e6%8a%a5%e6%88%90%e5%8a%9f" class="header-anchor"></a>3. 验证密码上报成功
 </h3><p>等待 5 分钟后，在域控执行：</p>
 <div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
 <table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
@@ -547,7 +562,7 @@
 </span></span></code></pre></td></tr></table>
 </div>
 </div><p>确认返回非空 <code>Password</code> 与 <code>Expiration</code> 字段。</p>
-<h3 id="5-开启域控对象访问审计合规要求"><a href="#5-%e5%bc%80%e5%90%af%e5%9f%9f%e6%8e%a7%e5%af%b9%e8%b1%a1%e8%ae%bf%e9%97%ae%e5%ae%a1%e8%ae%a1%e5%90%88%e8%a7%84%e8%a6%81%e6%b1%82" class="header-anchor"></a>5. 开启域控对象访问审计（合规要求）
+<h3 id="4-开启域控对象访问审计合规要求"><a href="#4-%e5%bc%80%e5%90%af%e5%9f%9f%e6%8e%a7%e5%af%b9%e8%b1%a1%e8%ae%bf%e9%97%ae%e5%ae%a1%e8%ae%a1%e5%90%88%e8%a7%84%e8%a6%81%e6%b1%82" class="header-anchor"></a>4. 开启域控对象访问审计（合规要求）
 </h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
 <table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
 <pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
@@ -558,26 +573,128 @@
 </div>
 </div><p>并配置 Windows Event Forwarding（WEF）将域控 Security 日志转发到 SIEM 平台。</p>
 <h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
-</h2><p><strong>根本原因</strong>：LAPS GPO 的 <code>Security Filtering</code> 配置为 <code>Authenticated Users</code>，而计算机账户在默认情况下不属于该组，导致策略未应用到终端；同时 <code>Workstations</code> OU 未执行 <code>Set-AdmPwdComputerSelfPermission</code>，计算机账户缺少写入 <code>ms-Mcs-AdmPwd</code> 属性的权限，密码上报失败。</p>
+</h2><p><strong>根本原因（单因）</strong>：<code>Workstations</code> OU 未执行 <code>Set-AdmPwdComputerSelfPermission</code>，导致该 OU 下的计算机账户<strong>缺少对自身 <code>ms-Mcs-AdmPwd</code> 与 <code>ms-Mcs-AdmPwdExpirationTime</code> 属性的写入权限</strong>。LAPS 客户端以计算机账户身份运行时，把新密码写回 AD 的这一步被 ACL 拒绝，返回 <code>0x80070005 Access is denied</code>，对应事件 ID 2 与事件 ID 13。</p>
 <p><strong>次要原因</strong>：域控「Directory Service Access」审计策略未启用，无法通过事件日志快速定位权限拒绝事件。</p>
-<p><strong>为什么部分终端成功？</strong> 这些终端所在 OU 此前已执行过 <code>Set-AdmPwdComputerSelfPermission</code>，且 GPO 链接的 Security Filtering 包含了对应计算机组。</p>
+<p><strong>⚠️ 一个容易误判的点</strong>：本次排查中曾把 <code>Security Filtering = Authenticated Users</code> 列为根因之一，理由是「计算机账户不属于该组」——<strong>这个判断是错的</strong>。域内计算机账户通过机器账号向域认证，<strong>本身就属于 <code>Authenticated Users</code></strong>，因此用 <code>Authenticated Users</code> 作为 GPO 的 Security Filtering 不会导致计算机取不到策略；这恰恰是微软文档中 LAPS 客户端策略的推荐配法。定位时应把注意力放在 AD 对象 ACL（Self 写权限），而不是 GPO 作用范围。</p>
+<p><strong>为什么部分终端成功？</strong> 这些终端所在 OU 此前已执行过 <code>Set-AdmPwdComputerSelfPermission</code>，计算机账户拿到了 Self 写权限，密码得以正常上报。</p>
+
+    <blockquote>
+        <p>把 <code>Security Filtering</code> 从 <code>Authenticated Users</code> 改成显式包含 <code>Domain Computers</code> 仍然可以做，但那是<strong>可读性/显式化优化</strong>，不是本次故障的修复项——不要把它当成根因写进复盘，否则会误导后来人往错误方向查。</p>
+
+    </blockquote>
 <h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
 </h2><ol>
-<li><strong>权限基线化</strong>：在 LAPS 部署 SOP 中明确要求「所有承载终端的 OU 必须执行 <code>Set-AdmPwdComputerSelfPermission</code>」，并纳入变更验收 Checklist。</li>
-<li><strong>GPO Security Filtering 标准化</strong>：LAPS 客户端策略统一使用 <code>Domain Computers</code> 组作为 Security Filtering，避免依赖 <code>Authenticated Users</code> 的隐式行为。</li>
+<li><strong>权限基线化</strong>：在 LAPS 部署 SOP 中明确要求「所有承载终端的 OU 必须执行 <code>Set-AdmPwdComputerSelfPermission</code>」，并纳入变更验收 Checklist。<strong>这是本次事故唯一真正的技术修复项</strong>，也是新 OU 上线时最容易漏掉的一步。</li>
+<li><strong>ACL 周期性巡检</strong>：对每个承载终端的 OU 定期导出计算机对象的 ACL，校验 <code>SELF</code> 对 <code>ms-Mcs-AdmPwd</code> / <code>ms-Mcs-AdmPwdExpirationTime</code> 是否有写权限；新增 OU 与 OU 结构调整后必须重跑一次。</li>
 <li><strong>事件审计全覆盖</strong>：域控必须启用「Directory Service Access」成功/失败审计，并配置 WEF 转发到 SIEM，实现 LAPS 密码读取行为的实时告警。</li>
 <li><strong>定期合规巡检</strong>：每月执行一次 LAPS 覆盖率巡检脚本，统计「策略已应用但密码未上报」的终端数量，低于 95% 触发告警。</li>
 <li><strong>文档与培训</strong>：将 LAPS 排查手册（含事件 ID 2/13 的根因与修复命令）纳入桌面运维知识库，并对新员工进行实操培训。</li>
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
-</h2><p>本次 LAPS 部署失败的根源在于 GPO Security Filtering 配置不当与计算机账户权限缺失，导致 35% 终端本地管理员密码未按预期轮换。通过修复 <code>Set-AdmPwdComputerSelfPermission</code>、调整 GPO 权限过滤、强制 gpupdate 并开启域控审计，问题在 2 小时内收敛。后续将把「LAPS 覆盖率巡检」纳入每月桌面运维例行任务，并将权限基线检查固化到变更验收流程中，避免类似合规风险再次发生。</p>
+</h2><p>本次 LAPS 部署失败的根源在权限侧：<code>Workstations</code> OU 漏执行 <code>Set-AdmPwdComputerSelfPermission</code>，计算机账户拿不到对自身密码属性的 Self 写权限，密码写回 AD 被 ACL 拒绝，最终导致 35% 终端本地管理员密码未按预期轮换。补齐权限并强制 <code>gpupdate</code> 后，密码在 5 分钟内陆续上报，覆盖率恢复至 100%。</p>
+<p>排查过程中还有一个值得记下的<strong>反向教训</strong>：一开始把矛头指向「GPO Security Filtering 用了 <code>Authenticated Users</code>」，而计算机账户本身就是该组成员，这个方向从一开始就是错的，白绕了一圈。<strong>先用 <code>gpresult</code> + <code>AdmPwdEnabled</code> 把「策略有没有下来」和「密码能不能写回」切成两段，再分别查，比凭印象猜配置项快得多。</strong></p>
+<p>后续将把「LAPS 覆盖率巡检」纳入每月桌面运维例行任务，并将 OU 权限基线检查固化到变更验收流程中，避免类似合规风险再次发生。</p>
 <p><strong>经验提炼</strong>：企业级密码托管方案的落地，不仅依赖技术选型，更依赖权限模型的正确配置与审计链路的完整性。LAPS 看似简单的「自动轮换」，背后涉及 AD Schema 扩展、GPO 权限、计算机自权限、事件审计四大环节，缺一不可。</p>
+<hr>
+<h2 id="附legacy-laps-与-windows-laps-怎么选"><a href="#%e9%99%84legacy-laps-%e4%b8%8e-windows-laps-%e6%80%8e%e4%b9%88%e9%80%89" class="header-anchor"></a>附：Legacy LAPS 与 Windows LAPS 怎么选
+</h2><p>本文复盘的是<strong>传统 Microsoft LAPS（2015 年发布的 <code>AdmPwd</code> 方案）</strong>，文中的命令与属性名都基于它。需要注意的是，微软自 <strong>2023 年 4 月</strong>起已在 Windows 客户端/服务器中<strong>内置了 Windows LAPS</strong>，两套方案在 Schema、属性名和 Cmdlet 上<strong>不通用</strong>：</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>维度</th>
+          <th>Legacy LAPS（AdmPwd）</th>
+          <th>Windows LAPS（2023+）</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>来源</td>
+          <td>需单独下载 MSI 部署客户端</td>
+          <td>内置于 Win11 22H2+ / Win Server 2022+（通过更新获得）</td>
+      </tr>
+      <tr>
+          <td>密码属性</td>
+          <td><code>ms-Mcs-AdmPwd</code></td>
+          <td><code>msLAPS-Password</code></td>
+      </tr>
+      <tr>
+          <td>过期时间属性</td>
+          <td><code>ms-Mcs-AdmPwdExpirationTime</code></td>
+          <td><code>msLAPS-PasswordExpirationTime</code></td>
+      </tr>
+      <tr>
+          <td>授权 Cmdlet</td>
+          <td><code>Set-AdmPwdComputerSelfPermission</code></td>
+          <td><code>Set-LapsADComputerSelfPermission</code></td>
+      </tr>
+      <tr>
+          <td>读取密码</td>
+          <td><code>Get-AdmPwdPassword</code></td>
+          <td><code>Get-LapsADPassword</code></td>
+      </tr>
+      <tr>
+          <td>Schema 扩展</td>
+          <td><code>Update-AdmPwdADSchema</code></td>
+          <td><code>Update-LapsADSchema</code></td>
+      </tr>
+      <tr>
+          <td>密码加密存储</td>
+          <td>仅支持明文存于 AD 属性</td>
+          <td>支持 <strong>DPAPI-NG 加密</strong>，需配合 <code>msLAPS-EncryptedPassword</code></td>
+      </tr>
+      <tr>
+          <td>新特性</td>
+          <td>无</td>
+          <td>支持密码加密、密码历史、DSC、Azure AD/Entra 集成</td>
+      </tr>
+  </tbody>
+</table></div>
+<p><strong>选型建议</strong>：</p>
+<ul>
+<li><strong>全新部署</strong>：直接上 Windows LAPS。内置、免装 MSI、支持加密存储，没有理由再从 Legacy 起步。</li>
+<li><strong>存量已跑 Legacy</strong>：不必急着迁移，两者可以共存（属性名不同，互不覆盖），但应规划迁移窗口。迁移的关键动作是扩展新 Schema（<code>Update-LapsADSchema</code>）、重新授权 OU（<code>Set-LapsADComputerSelfPermission</code>），并切换 GPO 与运维脚本里的 Cmdlet。</li>
+<li><strong>本次案例的坑在 Windows LAPS 下同样存在</strong>：新方案依旧要求对承载终端的 OU 执行 Self 权限授权，只是 Cmdlet 换成了 <code>Set-LapsADComputerSelfPermission</code>。所以「权限基线化」这条预防措施是跨版本通用的。</li>
+</ul>
+
+    <blockquote>
+        <p>如果按本文的命令在 2026 年做<strong>全新部署</strong>，会发现域控上根本找不到 <code>Set-AdmPwdComputerSelfPermission</code> 这个命令——因为那是 Legacy 模块的东西。这本身就是最容易踩的第一个坑。</p>
+
+    </blockquote>
+<hr>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><p><strong>域控与组策略</strong></p>
+<ul>
+<li><a class="link" href="/posts/0f35911f/" >迁移 AD 域控：SYSVOL 复制断裂与 FSMO 抢占风险的定位与回退复盘</a></li>
+<li><a class="link" href="/posts/75336643/" >记一次 AD 域中黄金票据攻击导致域控权限持久化的检测与清除</a></li>
+<li><a class="link" href="/posts/3c75e975/" >域控 GPO 推送失败，终端安全基线为何不生效？</a></li>
+<li><a class="link" href="/posts/f78d7f76/" >域控 NTP 时间源失效，全公司 Kerberos 为何大面积失败？</a></li>
+<li><a class="link" href="/posts/3a307caa/" >域电脑重启后为何登不上？一次工作站与主域信任关系失败的排查记录</a></li>
+<li><a class="link" href="/posts/8c4b1183/" >Windows 域策略推送失败致新电脑无法登录的处理</a></li>
+</ul>
 
 </section>
 
 
     <footer class="article-meta article-footer">
     
+    <section class="article-tags">
+        
+            <a href="/tags/laps/">LAPS</a>
+        
+            <a href="/tags/%E6%9C%AC%E5%9C%B0%E7%AE%A1%E7%90%86%E5%91%98%E5%AF%86%E7%A0%81/">本地管理员密码</a>
+        
+            <a href="/tags/gpo/">GPO</a>
+        
+            <a href="/tags/%E5%9F%9F%E6%9D%83%E9%99%90/">域权限</a>
+        
+            <a href="/tags/ms-mcs-admpwd/">Ms-Mcs-AdmPwd</a>
+        
+            <a href="/tags/active-directory/">Active Directory</a>
+        
+            <a href="/tags/%E5%90%88%E8%A7%84%E5%9F%BA%E7%BA%BF/">合规基线</a>
+        
+    </section>
+
 
     </footer>
 
@@ -588,6 +705,70 @@
     
 
     
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/ac8933af/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">组策略共享权限配错致全公司无法访问共享文件夹</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/1ceacaf7/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">AD 域环境下打印机批量部署失败的处理手记</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/8ca2b9a4/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 NTP 异常致 Kerberos 认证全失效的排查</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/3c75e975/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">域控 GPO 推送失败，终端安全基线为何不生效？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/ecb32d7f/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 Windows 域账号批量锁定事件的排查</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
 
      
     
