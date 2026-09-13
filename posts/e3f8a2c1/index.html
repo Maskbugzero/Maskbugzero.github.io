@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="记一次通过 SPN 枚举 + Kerberoasting 窃取域管哈希的真实入侵路径，以及事后检测规则落地与约束委派加固的全流程复盘。">
+<title>一次域内 Kerberoasting 攻击的检测与加固实录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/e3f8a2c1/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次域内 Kerberoasting 攻击的检测与加固实录">
+<meta property='og:description' content="记一次通过 SPN 枚举 + Kerberoasting 窃取域管哈希的真实入侵路径，以及事后检测规则落地与约束委派加固的全流程复盘。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/e3f8a2c1/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-09-14T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-14T07:00:00&#43;08:00'/>
+<meta name="twitter:title" content="一次域内 Kerberoasting 攻击的检测与加固实录">
+<meta name="twitter:description" content="记一次通过 SPN 枚举 + Kerberoasting 窃取域管哈希的真实入侵路径，以及事后检测规则落地与约束委派加固的全流程复盘。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步确认攻击路径">第一步：确认攻击路径</a></li>
+        <li><a href="#第二步复现-kerberoasting">第二步：复现 Kerberoasting</a></li>
+        <li><a href="#第三步定位防御缺失">第三步：定位防御缺失</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#1-立即止血当天完成">1. 立即止血（当天完成）</a></li>
+        <li><a href="#2-检测规则落地3-天内">2. 检测规则落地（3 天内）</a></li>
+        <li><a href="#3-长期加固2-周内">3. 长期加固（2 周内）</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
+                安全运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/e3f8a2c1/">一次域内 Kerberoasting 攻击的检测与加固实录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            记一次通过 SPN 枚举 &#43; Kerberoasting 窃取域管哈希的真实入侵路径，以及事后检测规则落地与约束委派加固的全流程复盘。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-09-14T07:00:00&#43;08:00'>2026年9月14日星期一</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 4 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步确认攻击路径">第一步：确认攻击路径</a></li>
+        <li><a href="#第二步复现-kerberoasting">第二步：复现 Kerberoasting</a></li>
+        <li><a href="#第三步定位防御缺失">第三步：定位防御缺失</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#1-立即止血当天完成">1. 立即止血（当天完成）</a></li>
+        <li><a href="#2-检测规则落地3-天内">2. 检测规则落地（3 天内）</a></li>
+        <li><a href="#3-长期加固2-周内">3. 长期加固（2 周内）</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>某制造企业内网 AD 域（Windows Server 2019 域控 + Windows 11 工作站）长期运行。安全团队在例行红蓝对抗演练中发现：攻击者仅用一个普通域用户账号，即可在 4 分钟内枚举出 17 个高权限服务账号的 Kerberos 票据，并成功破解其中 3 个域管理员等效权限的哈希。整个过程未触发任何杀毒或 EDR 告警，暴露了「仅依赖边界防火墙 + 终端杀毒」的传统防御体系对域内横向移动的严重盲区。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ol>
+<li><strong>SPN 枚举无感</strong>：攻击者使用 <code>setspn.exe -T domain -Q */*</code> 或 BloodHound 在普通域用户权限下即可列出所有注册 SPN 的服务账号（包括 SQL、Exchange、IIS 应用池账号）。</li>
+<li><strong>Kerberoasting 低权限即可执行</strong>：使用普通域账号请求目标服务账号的 TGS 票据，票据中包含服务账号的 NTLM 哈希加密部分，可离线破解。</li>
+<li><strong>破解成功率高</strong>：3 个服务账号密码为弱口令或「公司名+年份」模式，John the Ripper 在 30 秒内即破解成功，获得域管理员权限。</li>
+<li><strong>无告警</strong>：全程未触发 Windows Defender、深信服 EDR 或 SIEM 规则，安全运营团队完全不知情。</li>
+</ol>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="第一步确认攻击路径"><a href="#%e7%ac%ac%e4%b8%80%e6%ad%a5%e7%a1%ae%e8%ae%a4%e6%94%bb%e5%87%bb%e8%b7%af%e5%be%84" class="header-anchor"></a>第一步：确认攻击路径
+</h3><p>使用 BloodHound 导入域控导出数据，绘制攻击图：</p>
+<ul>
+<li>起点：普通域用户 <code>corp\li</code></li>
+<li>中间：<code>corp\sqlsvc</code>（SQL Server 服务账号，SPN 注册 <code>MSSQLSvc/sql01.corp.local</code>）</li>
+<li>终点：<code>corp\domainadmin</code>（域管理员组成员）</li>
+</ul>
+<h3 id="第二步复现-kerberoasting"><a href="#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e5%a4%8d%e7%8e%b0-kerberoasting" class="header-anchor"></a>第二步：复现 Kerberoasting
+</h3><p>在测试机上以普通域用户身份执行：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span><span style="color:#75715e"># 请求 TGS 票据</span>
+</span></span><span style="display:flex;"><span>Add-Type -AssemblyName System.IdentityModel
+</span></span><span style="display:flex;"><span>New-Object System.IdentityModel.Tokens.KerberosRequestorSecurityToken -ArgumentList <span style="color:#e6db74">&#34;MSSQLSvc/sql01.corp.local&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 导出票据</span>
+</span></span><span style="display:flex;"><span>kerberos::list /export
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>导出 <code>.kirbi</code> 文件后，使用 <code>kirbi2john.py</code> 转换为 John 格式，成功在 22 秒内破解出明文密码 <code>Corp2023!</code>。</p>
+<h3 id="第三步定位防御缺失"><a href="#%e7%ac%ac%e4%b8%89%e6%ad%a5%e5%ae%9a%e4%bd%8d%e9%98%b2%e5%be%a1%e7%bc%ba%e5%a4%b1" class="header-anchor"></a>第三步：定位防御缺失
+</h3><ul>
+<li><strong>Windows Defender</strong>：默认仅监控已知恶意工具（mimikatz、Rubeus），对 <code>setspn</code> + <code>kerberos::list</code> 的组合无特征。</li>
+<li><strong>EDR</strong>：深信服 EDR 未配置「异常 SPN 请求频次」与「低权限账号请求高权限服务票据」的关联规则。</li>
+<li><strong>域控审计</strong>：<code>Audit Kerberos Authentication Service</code> 与 <code>Audit Kerberos Service Ticket Operations</code> 均未开启，事件 ID 4768/4769 缺失。</li>
+</ul>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><h3 id="1-立即止血当天完成"><a href="#1-%e7%ab%8b%e5%8d%b3%e6%ad%a2%e8%a1%80%e5%bd%93%e5%a4%a9%e5%ae%8c%e6%88%90" class="header-anchor"></a>1. 立即止血（当天完成）
+</h3><ul>
+<li>重置所有高权限服务账号密码（长度 ≥ 25 字符，包含大小写+数字+符号）。</li>
+<li>禁用不必要的 SPN（仅保留必要服务账号的 SPN）。</li>
+<li>对 <code>sqlsvc</code>、<code>iissvc</code> 等服务账号启用 <strong>约束委派</strong>（Constrained Delegation），禁止非约束委派。</li>
+</ul>
+<h3 id="2-检测规则落地3-天内"><a href="#2-%e6%a3%80%e6%b5%8b%e8%a7%84%e5%88%99%e8%90%bd%e5%9c%b03-%e5%a4%a9%e5%86%85" class="header-anchor"></a>2. 检测规则落地（3 天内）
+</h3><p>在域控上启用高级审计策略：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span><span style="color:#75715e"># 启用 Kerberos 相关审计</span>
+</span></span><span style="display:flex;"><span>auditpol /set /subcategory<span style="color:#960050;background-color:#1e0010">:</span><span style="color:#e6db74">&#34;Kerberos Authentication Service&#34;</span> /success<span style="color:#960050;background-color:#1e0010">:</span>enable /failure<span style="color:#960050;background-color:#1e0010">:</span>enable
+</span></span><span style="display:flex;"><span>auditpol /set /subcategory<span style="color:#960050;background-color:#1e0010">:</span><span style="color:#e6db74">&#34;Kerberos Service Ticket Operations&#34;</span> /success<span style="color:#960050;background-color:#1e0010">:</span>enable /failure<span style="color:#960050;background-color:#1e0010">:</span>enable
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>部署 SIEM（或 Windows Event Forwarding + WEF）规则：</p>
+<ul>
+<li><strong>规则 1</strong>：5 分钟内同一源 IP 请求 ≥ 10 个不同 SPN 的 TGS 票据 → 高危告警。</li>
+<li><strong>规则 2</strong>：普通域用户请求注册在高权限组（Domain Admins / Enterprise Admins）成员账号的 TGS 票据 → 立即告警。</li>
+<li><strong>规则 3</strong>：<code>Event ID 4769</code> 中 <code>Ticket Options</code> 包含 <code>0x40810000</code>（可转发票据）且目标服务账号不在白名单 → 告警。</li>
+</ul>
+<h3 id="3-长期加固2-周内"><a href="#3-%e9%95%bf%e6%9c%9f%e5%8a%a0%e5%9b%ba2-%e5%91%a8%e5%86%85" class="header-anchor"></a>3. 长期加固（2 周内）
+</h3><ul>
+<li><strong>密码策略差异化</strong>：服务账号强制使用 <strong>组管理服务账号（gMSA）</strong> 或至少 30 字符随机密码 + 定期轮换。</li>
+<li><strong>约束委派白名单</strong>：仅允许必要服务（如 SQL Server 访问文件服务器）配置约束委派，禁止任意服务账号拥有非约束委派权限。</li>
+<li><strong>LAPS + JIT 管理</strong>：所有服务器本地管理员密码改用 LAPS，域管理员日常使用普通账号 + JIT 提权（Privileged Access Workstation + Just-In-Time）。</li>
+<li><strong>BloodHound 定期扫描</strong>：每月运行 BloodHound，标记「Kerberoastable」高风险账号，纳入季度加固计划。</li>
+</ul>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>根本原因在于<strong>域内默认信任模型 + 服务账号密码弱 + 缺乏 Kerberos 流量审计</strong>三者叠加：</p>
+<ol>
+<li>AD 域默认允许任何已认证用户请求任意服务账号的 TGS 票据（Kerberos 协议设计如此）。</li>
+<li>早期为方便运维，服务账号密码设置简单且长期未轮换。</li>
+<li>安全团队对「域内横向移动」场景缺乏针对性检测规则，仅依赖终端杀毒与边界防护。</li>
+</ol>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>措施</th>
+          <th>优先级</th>
+          <th>预期效果</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>服务账号改用 gMSA 或 ≥30 字符随机密码</td>
+          <td>P0</td>
+          <td>彻底杜绝 Kerberoasting 破解可能</td>
+      </tr>
+      <tr>
+          <td>启用域控 Kerberos 高级审计 + SIEM 规则</td>
+          <td>P0</td>
+          <td>攻击行为 5 分钟内可发现</td>
+      </tr>
+      <tr>
+          <td>约束委派白名单化 + 禁用非约束委派</td>
+          <td>P1</td>
+          <td>降低票据转发风险</td>
+      </tr>
+      <tr>
+          <td>每月 BloodHound 扫描 + 红蓝对抗演练</td>
+          <td>P1</td>
+          <td>持续发现配置漂移</td>
+      </tr>
+      <tr>
+          <td>域管理员日常操作使用 PAW + JIT</td>
+          <td>P2</td>
+          <td>降低域管凭据长期驻留风险</td>
+      </tr>
+  </tbody>
+</table></div>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>本次 Kerberoasting 攻击复盘再次印证：<strong>域内安全不是「杀毒 + 防火墙」就能解决的</strong>。只要服务账号密码可被破解、SPN 可被枚举、Kerberos 流量无审计，攻击者就能在极短时间内完成从普通用户到域管理员的权限提升。</p>
+<p>真正的防御在于<strong>把「默认可被攻击」的状态变成「需要配置才能攻击」</strong>——通过 gMSA、约束委派、Kerberos 审计、BloodHound 持续扫描，把 Kerberoasting 从「低成本高成功率」变成「高成本低成功率」，才能真正守住域内最后一道防线。</p>
+<hr>
+<p><strong>参考资料</strong></p>
+<ul>
+<li>Microsoft：Kerberos Delegation Overview</li>
+<li>SpecterOps：BloodHound documentation</li>
+<li>harmj0y：&ldquo;A Guide to Attacking Domain Trusts&rdquo; (DerbyCon 2018)</li>
+<li>MITRE ATT&amp;CK：T1558.003 Kerberoasting</li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
