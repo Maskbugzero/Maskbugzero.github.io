@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="域内横向移动尝试通过 SMB/WinRM 凭据传递触发告警，结合 EDR 行为基线与 Windows 事件 4624/4648/4672 定位异常登录链路，最终通过 LAPS 密码重置与网络隔离完成阻断。">
+<title>记一次域内横向移动尝试的检测与阻断实录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/35f60bf7/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次域内横向移动尝试的检测与阻断实录">
+<meta property='og:description' content="域内横向移动尝试通过 SMB/WinRM 凭据传递触发告警，结合 EDR 行为基线与 Windows 事件 4624/4648/4672 定位异常登录链路，最终通过 LAPS 密码重置与网络隔离完成阻断。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/35f60bf7/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='横向移动' /><meta property='article:tag' content='凭据传递' /><meta property='article:tag' content='Windows 事件日志' /><meta property='article:tag' content='EDR 告警' /><meta property='article:tag' content='LAPS' /><meta property='article:tag' content='域内安全' /><meta property='article:tag' content='入侵检测' /><meta property='article:published_time' content='2026-09-14T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-14T07:00:00&#43;08:00'/>
+<meta name="twitter:title" content="记一次域内横向移动尝试的检测与阻断实录">
+<meta name="twitter:description" content="域内横向移动尝试通过 SMB/WinRM 凭据传递触发告警，结合 EDR 行为基线与 Windows 事件 4624/4648/4672 定位异常登录链路，最终通过 LAPS 密码重置与网络隔离完成阻断。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#1-edr-告警收敛与时间线还原">1. EDR 告警收敛与时间线还原</a></li>
+        <li><a href="#2-windows-事件日志深度分析">2. Windows 事件日志深度分析</a></li>
+        <li><a href="#3-凭据来源定位">3. 凭据来源定位</a></li>
+        <li><a href="#4-横向移动路径还原">4. 横向移动路径还原</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#1-紧急阻断">1. 紧急阻断</a></li>
+        <li><a href="#2-凭据治理加固">2. 凭据治理加固</a></li>
+        <li><a href="#3-edr-规则优化">3. EDR 规则优化</a></li>
+        <li><a href="#4-事后复盘与取证">4. 事后复盘与取证</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
+                安全运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/35f60bf7/">记一次域内横向移动尝试的检测与阻断实录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            域内横向移动尝试通过 SMB/WinRM 凭据传递触发告警，结合 EDR 行为基线与 Windows 事件 4624/4648/4672 定位异常登录链路，最终通过 LAPS 密码重置与网络隔离完成阻断。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-09-14T07:00:00&#43;08:00'>2026年9月14日星期一</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 6 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#1-edr-告警收敛与时间线还原">1. EDR 告警收敛与时间线还原</a></li>
+        <li><a href="#2-windows-事件日志深度分析">2. Windows 事件日志深度分析</a></li>
+        <li><a href="#3-凭据来源定位">3. 凭据来源定位</a></li>
+        <li><a href="#4-横向移动路径还原">4. 横向移动路径还原</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#1-紧急阻断">1. 紧急阻断</a></li>
+        <li><a href="#2-凭据治理加固">2. 凭据治理加固</a></li>
+        <li><a href="#3-edr-规则优化">3. EDR 规则优化</a></li>
+        <li><a href="#4-事后复盘与取证">4. 事后复盘与取证</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>域内环境长期依赖共享密码或弱口令本地管理员账户进行运维，导致一旦某台主机被攻陷，攻击者即可通过 Pass-the-Hash 或 Pass-the-Ticket 技术快速横向扩散。近期公司引入深信服 EDR 终端安全平台后，安全团队发现多起「可疑远程登录」与「异常进程启动」告警，指向域内某台文件服务器（FS01）与多台桌面终端存在异常交互。</p>
+<p>本次事件源于红蓝对抗演练，蓝队在未提前通知的情况下模拟真实 APT 入侵路径：通过钓鱼邮件获取普通域用户权限后，尝试利用域内横向移动技术扩大控制范围。安全团队需在 15 分钟内完成检测、定位与阻断，验证 EDR + Windows 事件日志 + LAPS 联动的有效性。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>2026-09-13 23:47，EDR 控制台连续触发 3 级告警：</p>
+<ol>
+<li><strong>可疑远程执行</strong>：终端 WIN10-0423 以域账号 <code>corp\svc_backup</code> 通过 WinRM 连接文件服务器 FS01，启动 <code>powershell.exe -nop -w hidden -enc &lt;base64&gt;</code>。</li>
+<li><strong>异常凭据使用</strong>：FS01 上出现大量 4648 事件（显式凭据登录），目标服务器为 DC01、FS02、APP01，时间间隔仅 4-7 秒。</li>
+<li><strong>高危行为</strong>：WIN10-0423 上 <code>mimikatz.exe</code> 进程启动（EDR 行为基线未放行），同时本地管理员组被添加新成员 <code>corp\attacker</code>。</li>
+</ol>
+<p>桌面终端 WIN10-0423 用户反馈「电脑卡顿、鼠标偶尔失灵」，安全团队远程查看进程树发现 <code>svchost.exe</code> 下挂载多个 <code>powershell.exe</code> 实例，内存占用异常升高。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="1-edr-告警收敛与时间线还原"><a href="#1-edr-%e5%91%8a%e8%ad%a6%e6%94%b6%e6%95%9b%e4%b8%8e%e6%97%b6%e9%97%b4%e7%ba%bf%e8%bf%98%e5%8e%9f" class="header-anchor"></a>1. EDR 告警收敛与时间线还原
+</h3><p>登录 EDR 控制台，按「终端 + 时间」聚合查看告警链：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>23:47:12  WIN10-0423  进程启动 mimikatz.exe（父进程：powershell.exe）
+</span></span><span style="display:flex;"><span>23:47:15  WIN10-0423  网络连接 10.8.12.10:445（FS01 SMB）
+</span></span><span style="display:flex;"><span>23:47:19  FS01        登录事件 4624 Type=3（网络登录） 来源 WIN10-0423
+</span></span><span style="display:flex;"><span>23:47:22  FS01        4648 显式凭据登录 DC01（账号 svc_backup）
+</span></span><span style="display:flex;"><span>23:47:29  FS01        进程启动 wmic.exe /node:APP01 process call create ...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>关键发现：<code>svc_backup</code> 账号在 23:47:19-23:47:45 之间对 7 台服务器发起 4624 Type=3 登录，目标服务器清单与域内「关键资产清单」高度重合，排除正常备份作业（备份窗口为 02:00-04:00）。</p>
+<h3 id="2-windows-事件日志深度分析"><a href="#2-windows-%e4%ba%8b%e4%bb%b6%e6%97%a5%e5%bf%97%e6%b7%b1%e5%ba%a6%e5%88%86%e6%9e%90" class="header-anchor"></a>2. Windows 事件日志深度分析
+</h3><p>在 FS01 上提取关键事件：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span>Get-WinEvent -FilterHashtable @{
+</span></span><span style="display:flex;"><span>    LogName=<span style="color:#e6db74">&#39;Security&#39;</span>;
+</span></span><span style="display:flex;"><span>    ID=<span style="color:#ae81ff">4624</span>,<span style="color:#ae81ff">4648</span>,<span style="color:#ae81ff">4672</span>;
+</span></span><span style="display:flex;"><span>    StartTime=<span style="color:#e6db74">&#39;2026-09-13 23:40:00&#39;</span>;
+</span></span><span style="display:flex;"><span>    EndTime=<span style="color:#e6db74">&#39;2026-09-13 23:50:00&#39;</span>
+</span></span><span style="display:flex;"><span>} | Where-Object {$_.Properties[<span style="color:#ae81ff">5</span>].Value <span style="color:#f92672">-like</span> <span style="color:#e6db74">&#39;*svc_backup*&#39;</span>} |
+</span></span><span style="display:flex;"><span>   Select-Object TimeCreated, Id, @{N=<span style="color:#e6db74">&#39;Account&#39;</span>;E={$_.Properties[<span style="color:#ae81ff">5</span>].Value}},
+</span></span><span style="display:flex;"><span>                 @{N=<span style="color:#e6db74">&#39;LogonType&#39;</span>;E={$_.Properties[<span style="color:#ae81ff">8</span>].Value}},
+</span></span><span style="display:flex;"><span>                 @{N=<span style="color:#e6db74">&#39;SourceIP&#39;</span>;E={$_.Properties[<span style="color:#ae81ff">18</span>].Value}}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出显示：</p>
+<ul>
+<li>23:47:19 <code>svc_backup</code> Type=3 从 <code>10.8.20.42</code>（WIN10-0423）登录 FS01；</li>
+<li>紧接着 4648 事件记录该账号显式传递凭据到 DC01（目标 <code>C:\Windows\System32\lsass.exe</code>）；</li>
+<li>4672 事件显示 <code>svc_backup</code> 被授予 SeDebugPrivilege、SeImpersonatePrivilege 等高权限。</li>
+</ul>
+<p>结合 EDR 捕获的 <code>mimikatz sekurlsa::logonpasswords</code> 命令行，判断攻击者已在 WIN10-0423 上获取 <code>svc_backup</code> 的 NTLM Hash。</p>
+<h3 id="3-凭据来源定位"><a href="#3-%e5%87%ad%e6%8d%ae%e6%9d%a5%e6%ba%90%e5%ae%9a%e4%bd%8d" class="header-anchor"></a>3. 凭据来源定位
+</h3><p><code>svc_backup</code> 为域内服务账号，密码由 LAPS 托管。正常情况下该账号仅允许从备份服务器（BAK01）登录 FS01。进一步检查 LAPS 密码历史：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span>Get-LapsADPassword -Identity FS01 -Domain corp.local -Credential (Get-Credential) |
+</span></span><span style="display:flex;"><span>    Select-Object ComputerName, Password, PasswordUpdateTime, ExpirationTime
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>发现 FS01 的 LAPS 密码于 2026-09-13 23:45:02 被「svc_backup」账号查询（实际为攻击者通过 Pass-the-Hash 冒用）。同时 WIN10-0423 的本地管理员密码（LAPS 托管）在 23:46:11 被重置为已知弱口令，说明攻击者已提前在该终端植入持久化后门。</p>
+<h3 id="4-横向移动路径还原"><a href="#4-%e6%a8%aa%e5%90%91%e7%a7%bb%e5%8a%a8%e8%b7%af%e5%be%84%e8%bf%98%e5%8e%9f" class="header-anchor"></a>4. 横向移动路径还原
+</h3><p>攻击链还原：</p>
+<ol>
+<li>钓鱼邮件 → 普通域用户 <code>corp\li.ming</code> 机器被控（WIN10-0423）；</li>
+<li>通过 <code>svc_backup</code> Hash 横向到 FS01（Type=3 网络登录）；</li>
+<li>在 FS01 上使用 <code>sekurlsa::logonpasswords</code> 导出多台服务器的本地管理员 Hash；</li>
+<li>利用 <code>wmic /node:&lt;IP&gt; process call create</code> 在 APP01、DC01 上执行命令；</li>
+<li>尝试在 DC01 上创建黄金票据持久化（被 EDR 行为基线拦截）。</li>
+</ol>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><h3 id="1-紧急阻断"><a href="#1-%e7%b4%a7%e6%80%a5%e9%98%bb%e6%96%ad" class="header-anchor"></a>1. 紧急阻断
+</h3><ul>
+<li><strong>终端隔离</strong>：通过 EDR 控制台对 WIN10-0423 执行「网络隔离」，仅保留与 EDR 服务器的通信；</li>
+<li><strong>账号禁用</strong>：立即禁用 <code>svc_backup</code> 域账号，强制所有使用该账号的进程下线；</li>
+<li><strong>密码重置</strong>：通过 LAPS 强制重置 FS01、DC01、APP01 的本地管理员密码，切断 Pass-the-Hash 链路。</li>
+</ul>
+<h3 id="2-凭据治理加固"><a href="#2-%e5%87%ad%e6%8d%ae%e6%b2%bb%e7%90%86%e5%8a%a0%e5%9b%ba" class="header-anchor"></a>2. 凭据治理加固
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-powershell" data-lang="powershell"><span style="display:flex;"><span><span style="color:#75715e"># 1. 强制所有域内服务器启用 LAPS（已部署但部分机器未入策略）</span>
+</span></span><span style="display:flex;"><span>Get-ADComputer -Filter {OperatingSystem <span style="color:#f92672">-like</span> <span style="color:#e6db74">&#34;*Windows Server*&#34;</span>} |
+</span></span><span style="display:flex;"><span>    Invoke-LapsADPasswordReset -Identity {$_.Name}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 2. 限制服务账号登录范围（仅允许从指定跳板机登录）</span>
+</span></span><span style="display:flex;"><span>Set-ADUser svc_backup -LogonWorkstations BAK01,BAK02
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 3. 启用 Windows Defender Credential Guard（GPO）</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Computer Configuration → Administrative Templates → System → Device Guard → Turn On Virtualization Based Security</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="3-edr-规则优化"><a href="#3-edr-%e8%a7%84%e5%88%99%e4%bc%98%e5%8c%96" class="header-anchor"></a>3. EDR 规则优化
+</h3><p>在 EDR 控制台新增两条检测规则：</p>
+<ul>
+<li><strong>异常 WinRM 执行</strong>：<code>powershell.exe</code> 父进程为 <code>wsmprovhost.exe</code> 且命令行含 <code>-enc</code> 时，触发 4 级告警并自动隔离；</li>
+<li><strong>横向移动指纹</strong>：同一账号在 60 秒内对 ≥3 台服务器发起 Type=3 登录且目标不在「已知备份服务器」白名单，标记为高危横向移动。</li>
+</ul>
+<h3 id="4-事后复盘与取证"><a href="#4-%e4%ba%8b%e5%90%8e%e5%a4%8d%e7%9b%98%e4%b8%8e%e5%8f%96%e8%af%81" class="header-anchor"></a>4. 事后复盘与取证
+</h3><p>导出 WIN10-0423 的 <code>C:\Windows\Prefetch</code>、<code>SRUM</code> 数据库及 <code>mimikatz</code> 内存 dump，交由蓝队做进一步静态分析。确认攻击者未成功在 DC01 上创建持久化后门（黄金票据尝试被 EDR 拦截）。</p>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><ol>
+<li><strong>凭据管理缺失</strong>：<code>svc_backup</code> 账号密码长期未轮换，且允许从任意域内主机登录，导致 Hash 一旦泄露即可全网横向。</li>
+<li><strong>终端安全基线不足</strong>：WIN10-0423 未启用 Credential Guard，<code>mimikatz</code> 可直接从 LSASS 导出明文凭据。</li>
+<li><strong>监控盲区</strong>：此前仅监控「失败登录」（4625），未对「成功但异常」的 Type=3 网络登录做基线建模，导致攻击链在 4 分钟内完成 7 台服务器的凭据收集。</li>
+</ol>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
+<li><strong>LAPS 全覆盖 + 定期轮换</strong>：所有域内 Windows 主机（含桌面）必须加入 LAPS 策略，密码每 7 天自动轮换；服务账号密码由 Azure Key Vault 托管，禁止明文存储在脚本或配置文件中。</li>
+<li><strong>最小权限登录</strong>：服务账号严格限制 <code>LogonWorkstations</code>，仅允许从指定跳板机登录；普通域用户禁止远程桌面/WinRM 到服务器。</li>
+<li><strong>EDR 行为基线持续优化</strong>：每月复盘「误报 vs 漏报」，将「异常远程执行」「横向移动指纹」规则迭代至生产环境；对高权限账号（域管、服务器本地管理员）启用「影子登录」监控，一旦检测到非预期来源立即告警。</li>
+<li><strong>红蓝对抗常态化</strong>：每季度执行一次「无通知」横向移动演练，验证 EDR + LAPS + 事件日志三层联动的 MTTD（平均检测时间）&lt; 5 分钟、MTTR（平均响应时间）&lt; 15 分钟。</li>
+</ol>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>本次域内横向移动尝试因 EDR 实时告警 + Windows 事件日志深度分析，在 8 分钟内完成检测与阻断，验证了「行为基线 + 凭据治理 + 最小权限」三位一体防御体系的有效性。根本教训是：<strong>域内一旦有 Hash 泄露，横向移动速度远超人工响应，必须依赖自动化检测与 LAPS 自动轮换形成「自愈」闭环</strong>。后续将把「横向移动检测规则」固化到安全运营手册，并纳入新员工入职培训的必修场景。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/f36f6cb3/" >放行深信服EDR拦截的运维脚本：白名单配置与高危行为放行实录</a></li>
+<li><a class="link" href="/posts/7d2e9f1a/" >记一次 AD 域中黄金票据攻击导致域控权限持久化的检测与清除</a></li>
+<li><a class="link" href="/posts/8c4b2e9d/" >一次 MFA 疲劳攻击导致管理员账号被接管的排查记录</a></li>
+<li><a class="link" href="/posts/9f1a3c7b/" >堵住 NTLM 中继：一次 LLMNR 投毒导致域管理员凭据被窃的排查与加固</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E6%A8%AA%E5%90%91%E7%A7%BB%E5%8A%A8/">横向移动</a>
+        
+            <a href="/tags/%E5%87%AD%E6%8D%AE%E4%BC%A0%E9%80%92/">凭据传递</a>
+        
+            <a href="/tags/windows-%E4%BA%8B%E4%BB%B6%E6%97%A5%E5%BF%97/">Windows 事件日志</a>
+        
+            <a href="/tags/edr-%E5%91%8A%E8%AD%A6/">EDR 告警</a>
+        
+            <a href="/tags/laps/">LAPS</a>
+        
+            <a href="/tags/%E5%9F%9F%E5%86%85%E5%AE%89%E5%85%A8/">域内安全</a>
+        
+            <a href="/tags/%E5%85%A5%E4%BE%B5%E6%A3%80%E6%B5%8B/">入侵检测</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/903f5f9d/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">LAPS 部署后终端本地管理员密码为何未更新？一次策略应用与事件日志的排查记录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/fb201d40/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">收紧堡垒机上线：一次运维账号直连与免密跳板清剿实录</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
