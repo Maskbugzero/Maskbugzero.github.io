@@ -222,15 +222,25 @@
             <nav class="toc-nav" id="TableOfContents">
                 
   <ul>
-    <li><a href="#1-确认证书状态">1. 确认证书状态</a></li>
-    <li><a href="#2-检查-kubelet-配置">2. 检查 kubelet 配置</a></li>
-    <li><a href="#3-对比正常节点与故障节点">3. 对比正常节点与故障节点</a></li>
-    <li><a href="#4-根因定位">4. 根因定位</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#紧急恢复已执行">紧急恢复（已执行）</a></li>
-    <li><a href="#根治方案计划本周上线">根治方案（计划本周上线）</a></li>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#1-确认证书状态">1. 确认证书状态</a></li>
+        <li><a href="#2-检查-kubelet-配置">2. 检查 kubelet 配置</a></li>
+        <li><a href="#3-对比正常节点与故障节点">3. 对比正常节点与故障节点</a></li>
+        <li><a href="#4-根因定位">4. 根因定位</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#紧急恢复已执行">紧急恢复（已执行）</a></li>
+        <li><a href="#根治方案计划本周上线">根治方案（计划本周上线）</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
   </ul>
 
             </nav>
@@ -332,15 +342,25 @@
             <nav class="toc-nav">
                 
   <ul>
-    <li><a href="#1-确认证书状态">1. 确认证书状态</a></li>
-    <li><a href="#2-检查-kubelet-配置">2. 检查 kubelet 配置</a></li>
-    <li><a href="#3-对比正常节点与故障节点">3. 对比正常节点与故障节点</a></li>
-    <li><a href="#4-根因定位">4. 根因定位</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#紧急恢复已执行">紧急恢复（已执行）</a></li>
-    <li><a href="#根治方案计划本周上线">根治方案（计划本周上线）</a></li>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#1-确认证书状态">1. 确认证书状态</a></li>
+        <li><a href="#2-检查-kubelet-配置">2. 检查 kubelet 配置</a></li>
+        <li><a href="#3-对比正常节点与故障节点">3. 对比正常节点与故障节点</a></li>
+        <li><a href="#4-根因定位">4. 根因定位</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#紧急恢复已执行">紧急恢复（已执行）</a></li>
+        <li><a href="#根治方案计划本周上线">根治方案（计划本周上线）</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
   </ul>
 
             </nav>
@@ -351,10 +371,10 @@
     <section class="article-content">
     
     
-    <h1 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
-</h1><p>生产 K8s 集群（v1.28）运行约 18 个月，节点总数 42 台。近期因安全合规要求，计划将 kubelet 客户端证书有效期从默认 1 年缩短至 90 天，并开启 <code>rotateCertificates: true</code> 自动轮换。变更后第 3 天凌晨，监控突然告警：<strong>12 台节点同时进入 NotReady 状态</strong>，持续约 47 分钟后才陆续恢复。业务 Pod 因节点 NotReady 被驱逐，部分有状态服务短暂中断。</p>
-<h1 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
-</h1><ul>
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>生产 K8s 集群（v1.28）运行约 18 个月，节点总数 42 台。近期因安全合规要求，计划将 kubelet 客户端证书有效期从默认 1 年缩短至 90 天，并开启 <code>rotateCertificates: true</code> 自动轮换。变更后第 3 天凌晨，监控突然告警：<strong>12 台节点同时进入 NotReady 状态</strong>，持续约 47 分钟后才陆续恢复。业务 Pod 因节点 NotReady 被驱逐，部分有状态服务短暂中断。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
 <li><code>kubectl get nodes</code> 显示 12 台节点 Condition <code>Ready</code> 为 <code>False</code>，Reason <code>KubeletNotReady</code>，Message 包含 <code>x509: certificate has expired or is not yet valid</code>。</li>
 <li>受影响节点全部为「老节点」（kubelet 启动时间 &gt; 400 天），新节点（近 3 个月上线的）全部正常。</li>
 <li>apiserver 日志出现大量 <code>authentication.go: Failed to verify client certificate</code> 错误，对应节点 kubelet 连接被拒绝。</li>
@@ -372,9 +392,9 @@
 </div></li>
 <li>集群层面 <code>kubelet_server_expiration_renew_errors</code> 指标在故障窗口内突增。</li>
 </ul>
-<h1 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
-</h1><h2 id="1-确认证书状态"><a href="#1-%e7%a1%ae%e8%ae%a4%e8%af%81%e4%b9%a6%e7%8a%b6%e6%80%81" class="header-anchor"></a>1. 确认证书状态
-</h2><p>在故障节点执行：</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="1-确认证书状态"><a href="#1-%e7%a1%ae%e8%ae%a4%e8%af%81%e4%b9%a6%e7%8a%b6%e6%80%81" class="header-anchor"></a>1. 确认证书状态
+</h3><p>在故障节点执行：</p>
 <div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
 <table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
 <pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
@@ -393,8 +413,8 @@
 <li>Issuer 为集群自签 CA <code>kubelet-bootstrap-ca@162xxxx</code>。</li>
 <li>目录下还存在 3 个历史证书文件，最新一个也是 2025-06-12 生成。</li>
 </ul>
-<h2 id="2-检查-kubelet-配置"><a href="#2-%e6%a3%80%e6%9f%a5-kubelet-%e9%85%8d%e7%bd%ae" class="header-anchor"></a>2. 检查 kubelet 配置
-</h2><p>关键配置 <code>/var/lib/kubelet/config.yaml</code>：</p>
+<h3 id="2-检查-kubelet-配置"><a href="#2-%e6%a3%80%e6%9f%a5-kubelet-%e9%85%8d%e7%bd%ae" class="header-anchor"></a>2. 检查 kubelet 配置
+</h3><p>关键配置 <code>/var/lib/kubelet/config.yaml</code>：</p>
 <div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
 <table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
 <pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
@@ -416,8 +436,8 @@
 </span></span></code></pre></td></tr></table>
 </div>
 </div><p>发现节点使用的是<strong>静态 kubeconfig</strong>（<code>/etc/kubernetes/kubelet.conf</code>），而非 TLS Bootstrapping 流程生成的 <code>bootstrap-kubeconfig</code>。</p>
-<h2 id="3-对比正常节点与故障节点"><a href="#3-%e5%af%b9%e6%af%94%e6%ad%a3%e5%b8%b8%e8%8a%82%e7%82%b9%e4%b8%8e%e6%95%85%e9%9a%9c%e8%8a%82%e7%82%b9" class="header-anchor"></a>3. 对比正常节点与故障节点
-</h2><p>正常节点（近 3 个月上线）：</p>
+<h3 id="3-对比正常节点与故障节点"><a href="#3-%e5%af%b9%e6%af%94%e6%ad%a3%e5%b8%b8%e8%8a%82%e7%82%b9%e4%b8%8e%e6%95%85%e9%9a%9c%e8%8a%82%e7%82%b9" class="header-anchor"></a>3. 对比正常节点与故障节点
+</h3><p>正常节点（近 3 个月上线）：</p>
 <ul>
 <li>使用 <code>kubeadm init</code> 时自动生成的 bootstrap token + <code>bootstrap-kubeconfig</code>。</li>
 <li>kubelet 启动参数包含 <code>--bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubeconfig</code>。</li>
@@ -429,17 +449,17 @@
 <li>没有 <code>bootstrap-kubeconfig</code>，<code>kubelet.conf</code> 中的 client-certificate 直接指向过期文件。</li>
 <li>即使 <code>rotateCertificates: true</code>，kubelet 也无法触发「续期请求」，因为它不知道去哪里申请新证书。</li>
 </ul>
-<h2 id="4-根因定位"><a href="#4-%e6%a0%b9%e5%9b%a0%e5%ae%9a%e4%bd%8d" class="header-anchor"></a>4. 根因定位
-</h2><p><strong>核心矛盾</strong>：<code>rotateCertificates</code> 依赖 TLS Bootstrapping 流程，而老节点从未配置过 bootstrap token + <code>bootstrap-kubeconfig</code>。</p>
+<h3 id="4-根因定位"><a href="#4-%e6%a0%b9%e5%9b%a0%e5%ae%9a%e4%bd%8d" class="header-anchor"></a>4. 根因定位
+</h3><p><strong>核心矛盾</strong>：<code>rotateCertificates</code> 依赖 TLS Bootstrapping 流程，而老节点从未配置过 bootstrap token + <code>bootstrap-kubeconfig</code>。</p>
 <p>当原 client 证书过期后：</p>
 <ol>
 <li>kubelet 尝试用过期证书连接 apiserver → 认证失败。</li>
 <li>即使配置了 <code>rotateCertificates: true</code>，kubelet 也无法构造合法的 CSR 请求（因为连 apiserver 都连不上）。</li>
 <li>节点进入 NotReady → 触发 Pod 驱逐 → 雪崩。</li>
 </ol>
-<h1 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
-</h1><h2 id="紧急恢复已执行"><a href="#%e7%b4%a7%e6%80%a5%e6%81%a2%e5%a4%8d%e5%b7%b2%e6%89%a7%e8%a1%8c" class="header-anchor"></a>紧急恢复（已执行）
-</h2><p>对 12 台故障节点逐一执行「手动续期 + 重启」：</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><h3 id="紧急恢复已执行"><a href="#%e7%b4%a7%e6%80%a5%e6%81%a2%e5%a4%8d%e5%b7%b2%e6%89%a7%e8%a1%8c" class="header-anchor"></a>紧急恢复（已执行）
+</h3><p>对 12 台故障节点逐一执行「手动续期 + 重启」：</p>
 <div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
 <table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
 <pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
@@ -469,8 +489,8 @@
 </span></span></code></pre></td></tr></table>
 </div>
 </div><p><strong>注意</strong>：生产环境严禁直接删除 <code>/var/lib/kubelet/pki</code>，必须先备份。</p>
-<h2 id="根治方案计划本周上线"><a href="#%e6%a0%b9%e6%b2%bb%e6%96%b9%e6%a1%88%e8%ae%a1%e5%88%92%e6%9c%ac%e5%91%a8%e4%b8%8a%e7%ba%bf" class="header-anchor"></a>根治方案（计划本周上线）
-</h2><ol>
+<h3 id="根治方案计划本周上线"><a href="#%e6%a0%b9%e6%b2%bb%e6%96%b9%e6%a1%88%e8%ae%a1%e5%88%92%e6%9c%ac%e5%91%a8%e4%b8%8a%e7%ba%bf" class="header-anchor"></a>根治方案（计划本周上线）
+</h3><ol>
 <li>
 <p><strong>全量切换到 TLS Bootstrapping</strong>：</p>
 <ul>
@@ -521,8 +541,8 @@
 </ul>
 </li>
 </ol>
-<h1 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
-</h1><div class="table-wrapper"><table>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><div class="table-wrapper"><table>
   <thead>
       <tr>
           <th>层面</th>
@@ -553,8 +573,8 @@
       </tr>
   </tbody>
 </table></div>
-<h1 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
-</h1><ol>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
 <li>
 <p><strong>节点生命周期管理</strong>：</p>
 <ul>
@@ -597,8 +617,8 @@
 </ul>
 </li>
 </ol>
-<h1 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
-</h1><p>本次故障的本质是**「配置项与节点历史状态不匹配」**。<code>rotateCertificates: true</code> 看似简单，实则依赖完整的 TLS Bootstrapping 链路。老节点因历史遗留问题，在证书过期后无法自愈，导致批量 NotReady 风暴。</p>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>本次故障的本质是**「配置项与节点历史状态不匹配」**。<code>rotateCertificates: true</code> 看似简单，实则依赖完整的 TLS Bootstrapping 链路。老节点因历史遗留问题，在证书过期后无法自愈，导致批量 NotReady 风暴。</p>
 <p>教训：</p>
 <ul>
 <li>任何「看似自动」的功能，都必须在全量节点上验证依赖条件。</li>
