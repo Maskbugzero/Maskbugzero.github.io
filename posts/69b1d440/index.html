@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="K8s 节点系统时钟漂移导致 kubelet 证书校验失败、API Server 通信中断，节点频繁 NotReady 的排查与根治记录。">
+<title>清除 K8s 节点时钟漂移：一次证书校验失败与 API Server 通信中断的排查实录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/69b1d440/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="清除 K8s 节点时钟漂移：一次证书校验失败与 API Server 通信中断的排查实录">
+<meta property='og:description' content="K8s 节点系统时钟漂移导致 kubelet 证书校验失败、API Server 通信中断，节点频繁 NotReady 的排查与根治记录。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/69b1d440/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='kubelet' /><meta property='article:tag' content='时钟漂移' /><meta property='article:tag' content='NTP' /><meta property='article:tag' content='x509' /><meta property='article:tag' content='证书校验' /><meta property='article:tag' content='API Server' /><meta property='article:published_time' content='2026-09-21T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-21T07:00:00&#43;08:00'/>
+<meta name="twitter:title" content="清除 K8s 节点时钟漂移：一次证书校验失败与 API Server 通信中断的排查实录">
+<meta name="twitter:description" content="K8s 节点系统时钟漂移导致 kubelet 证书校验失败、API Server 通信中断，节点频繁 NotReady 的排查与根治记录。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步确认时钟偏差范围">第一步：确认时钟偏差范围</a></li>
+        <li><a href="#第二步定位证书校验失败链路">第二步：定位证书校验失败链路</a></li>
+        <li><a href="#第三步排查-ntp-配置漂移">第三步：排查 NTP 配置漂移</a></li>
+        <li><a href="#第四步验证时间漂移对-api-通信的影响">第四步：验证时间漂移对 API 通信的影响</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#立即止血已执行">立即止血（已执行）</a></li>
+        <li><a href="#根治方案">根治方案</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(274, 60%, 84%); color: hsl(274, 60%, 15%);">
+                容器运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/69b1d440/">清除 K8s 节点时钟漂移：一次证书校验失败与 API Server 通信中断的排查实录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            K8s 节点系统时钟漂移导致 kubelet 证书校验失败、API Server 通信中断，节点频繁 NotReady 的排查与根治记录。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-09-21T07:00:00&#43;08:00'>2026年9月21日星期一</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a>
+      <ul>
+        <li><a href="#第一步确认时钟偏差范围">第一步：确认时钟偏差范围</a></li>
+        <li><a href="#第二步定位证书校验失败链路">第二步：定位证书校验失败链路</a></li>
+        <li><a href="#第三步排查-ntp-配置漂移">第三步：排查 NTP 配置漂移</a></li>
+        <li><a href="#第四步验证时间漂移对-api-通信的影响">第四步：验证时间漂移对 API 通信的影响</a></li>
+      </ul>
+    </li>
+    <li><a href="#解决方案">解决方案</a>
+      <ul>
+        <li><a href="#立即止血已执行">立即止血（已执行）</a></li>
+        <li><a href="#根治方案">根治方案</a></li>
+      </ul>
+    </li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司生产 K8s 集群（v1.28）近期在节点扩容与 VM 迁移后，陆续出现节点 NotReady 告警。集群规模约 42 节点，承载 1200+ Pod，核心业务为微服务 + AI 推理。运维团队最初怀疑是网络策略或 CNI 问题，但经过多轮排查发现，故障节点均存在系统时钟与控制平面明显偏差（±8~45 分钟不等）。</p>
+<p>时钟漂移在 K8s 中并非显性故障，而是通过 TLS 证书校验链路间接触发：kubelet 与 API Server 的 mTLS 握手依赖系统时间判断证书有效期（NotBefore/NotAfter）。一旦节点时间超出证书有效窗口，握手即失败，节点无法注册、无法拉取 Secret/ConfigMap，进而进入 NotReady 状态。</p>
+<p>本次故障发生在周五晚间 VM 迁移后，周六凌晨开始批量报错，影响了 7 个节点（占 17%），持续约 9 小时才被完全收敛。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ol>
+<li>
+<p><strong>节点状态异常</strong>：<code>kubectl get nodes</code> 显示 7 个节点持续 NotReady，<code>kubelet</code> 日志中反复出现：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>x509: certificate has expired or is not yet valid: current time ... is before ...
+</span></span><span style="display:flex;"><span>Unable to connect to the server: x509: certificate signed by unknown authority
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p><strong>CSR 卡死</strong>：新节点加入时 <code>kubelet</code> 发起的 CSR（CertificateSigningRequest）长期处于 <code>Pending</code> 状态，<code>kubectl get csr</code> 看不到自动批准记录。</p>
+</li>
+<li>
+<p><strong>Pod 调度失败</strong>：受影响节点上的 Pod 全部处于 <code>ContainerCreating</code> 或 <code>Pending</code>，事件日志显示 <code>FailedMount</code>、<code>MountVolume.SetUp failed</code>。</p>
+</li>
+<li>
+<p><strong>时间偏差实测</strong>：</p>
+<ul>
+<li>控制平面节点（3 台）：<code>date</code> 显示 <code>2026-09-21 07:12:33</code></li>
+<li>故障节点 A：<code>2026-09-21 06:27:11</code>（慢 45 分钟）</li>
+<li>故障节点 B：<code>2026-09-21 07:20:05</code>（快 8 分钟）</li>
+</ul>
+</li>
+<li>
+<p><strong>监控告警</strong>：Prometheus <code>node_time_seconds</code> 与 <code>kube_node_status_condition{condition=&quot;Ready&quot;}</code> 同时触发，Grafana 面板出现明显的「时间跳跃」曲线。</p>
+</li>
+</ol>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><h3 id="第一步确认时钟偏差范围"><a href="#%e7%ac%ac%e4%b8%80%e6%ad%a5%e7%a1%ae%e8%ae%a4%e6%97%b6%e9%92%9f%e5%81%8f%e5%b7%ae%e8%8c%83%e5%9b%b4" class="header-anchor"></a>第一步：确认时钟偏差范围
+</h3><p>在故障节点执行：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>date +%s
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 对比控制平面</span>
+</span></span><span style="display:flex;"><span>ssh control-plane <span style="color:#e6db74">&#34;date +%s&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>发现偏差普遍超过 5 分钟，部分节点甚至达到 45 分钟。进一步检查 NTP 服务状态：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>timedatectl status
+</span></span><span style="display:flex;"><span>chronyc tracking
+</span></span><span style="display:flex;"><span>systemctl status systemd-timesyncd
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>结果显示：部分节点仍使用默认的 <code>systemd-timesyncd</code>，部分节点安装了 <code>chrony</code> 但配置指向已下线的内部 NTP 服务器（<code>ntp.internal.company</code> 已于 3 周前迁移至 <code>chrony-pool.internal</code>）。</p>
+<h3 id="第二步定位证书校验失败链路"><a href="#%e7%ac%ac%e4%ba%8c%e6%ad%a5%e5%ae%9a%e4%bd%8d%e8%af%81%e4%b9%a6%e6%a0%a1%e9%aa%8c%e5%a4%b1%e8%b4%a5%e9%93%be%e8%b7%af" class="header-anchor"></a>第二步：定位证书校验失败链路
+</h3><p>kubelet 默认使用宿主机系统时间进行 TLS 握手。查看 kubelet 证书：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>openssl s_client -connect api.k8s.internal:6443 <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  -cert /var/lib/kubelet/pki/kubelet-client-current.pem <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  -key /var/lib/kubelet/pki/kubelet-client-current.pem 2&gt;&amp;<span style="color:#ae81ff">1</span> | grep Verify
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>返回 <code>Verify return code: 9 (certificate is not yet valid)</code>，确认是时间导致证书尚未生效。</p>
+<p>进一步检查 kubelet 启动参数：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ps aux | grep kubelet | grep -o -- <span style="color:#e6db74">&#39;--kubeconfig[^ ]*&#39;</span>
+</span></span><span style="display:flex;"><span>cat /var/lib/kubelet/config.yaml | grep -E <span style="color:#e6db74">&#39;rotateCertificates|serverTLSBootstrap&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>发现节点证书轮换已开启（<code>rotateCertificates: true</code>），但 bootstrap 阶段因时间漂移无法完成首次 CSR 批准。</p>
+<h3 id="第三步排查-ntp-配置漂移"><a href="#%e7%ac%ac%e4%b8%89%e6%ad%a5%e6%8e%92%e6%9f%a5-ntp-%e9%85%8d%e7%bd%ae%e6%bc%82%e7%a7%bb" class="header-anchor"></a>第三步：排查 NTP 配置漂移
+</h3><p>对比健康节点与故障节点 <code>/etc/chrony/chrony.conf</code>：</p>
+<ul>
+<li>健康节点：指向 <code>pool chrony-pool.internal iburst</code></li>
+<li>故障节点：仍指向旧地址 <code>server ntp.internal.company</code>，且 <code>chronyd</code> 服务处于 <code>inactive (dead)</code> 状态。</li>
+</ul>
+<p>部分节点因 systemd-timesyncd 与 chrony 冲突，<code>timedatectl</code> 显示 <code>NTP synchronized: no</code>。</p>
+<h3 id="第四步验证时间漂移对-api-通信的影响"><a href="#%e7%ac%ac%e5%9b%9b%e6%ad%a5%e9%aa%8c%e8%af%81%e6%97%b6%e9%97%b4%e6%bc%82%e7%a7%bb%e5%af%b9-api-%e9%80%9a%e4%bf%a1%e7%9a%84%e5%bd%b1%e5%93%8d" class="header-anchor"></a>第四步：验证时间漂移对 API 通信的影响
+</h3><p>在故障节点手动同步时间后立即测试：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo timedatectl set-ntp false
+</span></span><span style="display:flex;"><span>sudo date -s <span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>ssh control-plane date<span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span>
+</span></span><span style="display:flex;"><span>sudo systemctl restart kubelet
+</span></span><span style="display:flex;"><span>kubectl get nodes &lt;node-name&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>节点在 30 秒内恢复 Ready，确认时钟漂移是唯一根因。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><h3 id="立即止血已执行"><a href="#%e7%ab%8b%e5%8d%b3%e6%ad%a2%e8%a1%80%e5%b7%b2%e6%89%a7%e8%a1%8c" class="header-anchor"></a>立即止血（已执行）
+</h3><ol>
+<li>
+<p>对 7 个故障节点执行强制时间同步：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo systemctl stop systemd-timesyncd chronyd <span style="color:#f92672">||</span> true
+</span></span><span style="display:flex;"><span>sudo timedatectl set-ntp false
+</span></span><span style="display:flex;"><span>sudo date -s <span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>ssh control-plane <span style="color:#e6db74">&#39;date -u&#39;</span><span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span>
+</span></span><span style="display:flex;"><span>sudo systemctl restart kubelet
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p>临时关闭自动时间同步，待根因修复后再恢复。</p>
+</li>
+</ol>
+<h3 id="根治方案"><a href="#%e6%a0%b9%e6%b2%bb%e6%96%b9%e6%a1%88" class="header-anchor"></a>根治方案
+</h3><ol>
+<li>
+<p><strong>统一 NTP 客户端为 chrony</strong>：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo apt install chrony -y
+</span></span><span style="display:flex;"><span>sudo tee /etc/chrony/chrony.conf <span style="color:#e6db74">&lt;&lt;EOF
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">pool chrony-pool.internal iburst
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">allow 10.0.0.0/8
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">driftfile /var/lib/chrony/chrony.drift
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">makestep 1.0 3
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">rtcsync
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
+</span></span><span style="display:flex;"><span>sudo systemctl enable --now chronyd
+</span></span><span style="display:flex;"><span>sudo chronyc makestep
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p><strong>禁用 systemd-timesyncd</strong>（避免冲突）：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo systemctl disable --now systemd-timesyncd
+</span></span><span style="display:flex;"><span>sudo timedatectl set-ntp false
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p><strong>在所有节点上添加时间同步监控</strong>：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#75715e"># Prometheus node-exporter 已开启 --collector.timex</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 新增告警规则</span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">alert</span>: <span style="color:#ae81ff">NodeClockSkew</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">expr</span>: <span style="color:#ae81ff">abs(node_timex_offset_seconds) &gt; 300</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">for</span>: <span style="color:#ae81ff">2m</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">labels</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">severity</span>: <span style="color:#ae81ff">critical</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">annotations</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">summary</span>: <span style="color:#e6db74">&#34;节点 {{ $labels.instance }} 时钟偏差超过 5 分钟&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p><strong>在 VM 模板中固化 chrony 配置</strong>，新节点入池即自动同步。</p>
+</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p><strong>根本原因</strong>：VM 迁移后，目标宿主机的 NTP 配置未同步更新，导致部分节点仍指向已下线的内部 NTP 服务器，chronyd 服务启动失败，系统时钟逐渐漂移。</p>
+<p><strong>技术链路</strong>：</p>
+<ul>
+<li>VM 迁移 → 旧 NTP 配置残留 → chronyd 无法同步 → 系统时间偏差 &gt; 证书有效窗口 → kubelet TLS 握手失败 → CSR 无法批准 → 节点 NotReady</li>
+</ul>
+<p><strong>为什么监控没有提前发现</strong>：</p>
+<ul>
+<li>集群监控仅关注 <code>node_time_seconds</code> 的绝对值，未设置偏差阈值告警。</li>
+<li>部分节点使用 systemd-timesyncd，Prometheus node-exporter 默认不采集其状态。</li>
+</ul>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ol>
+<li><strong>所有节点强制使用 chrony + 内部 NTP 池</strong>，禁用 systemd-timesyncd。</li>
+<li><strong>VM 模板中预装 chrony 并配置健康检查脚本</strong>，开机后自动验证 NTP 同步状态。</li>
+<li><strong>新增 Prometheus 告警</strong>：<code>node_timex_offset_seconds &gt; 120</code>（2 分钟偏差即告警）。</li>
+<li><strong>在变更管理 Checklist 中增加「NTP 配置核对」项</strong>，VM 迁移/克隆后必须执行。</li>
+<li><strong>定期演练时钟漂移场景</strong>：模拟 NTP 服务器下线，验证集群自愈能力。</li>
+</ol>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>本次故障的本质是「基础设施配置漂移」在 K8s 证书链路上的放大效应。时钟偏差看似微小，却能直接阻断 kubelet 与 API Server 的 mTLS 通信，导致节点无法加入集群。根治方案不仅需要修复当前节点，更需要从 VM 模板、监控告警、变更 Checklist 三个维度建立防御体系，避免同类问题在未来扩容或迁移中再次出现。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="https://maskbugzero.github.io/posts/69b1d440/"  target="_blank" rel="noopener"
+    >记一次 Kubernetes 因 liveness 探针配置过严导致 Pod 陷入 CrashLoopBackOff 的排查</a></li>
+<li><a class="link" href="https://maskbugzero.github.io/posts/69b1d440/"  target="_blank" rel="noopener"
+    >一次 Kubernetes 节点磁盘压力触发 kubelet 驱逐导致业务 Pod 批量被删的排查记录</a></li>
+<li><a class="link" href="https://maskbugzero.github.io/posts/69b1d440/"  target="_blank" rel="noopener"
+    >K8s 私有镜像仓库凭证过期，Pod 为何卡在 ImagePullBackOff？一次生产镜像拉取失败的排查记录</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/kubernetes/">Kubernetes</a>
+        
+            <a href="/tags/kubelet/">Kubelet</a>
+        
+            <a href="/tags/%E6%97%B6%E9%92%9F%E6%BC%82%E7%A7%BB/">时钟漂移</a>
+        
+            <a href="/tags/ntp/">NTP</a>
+        
+            <a href="/tags/x509/">X509</a>
+        
+            <a href="/tags/%E8%AF%81%E4%B9%A6%E6%A0%A1%E9%AA%8C/">证书校验</a>
+        
+            <a href="/tags/api-server/">API Server</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/e01939e6/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 K8s 节点 kubelet 证书轮换失败导致节点 NotReady 风暴的排查</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/254b9d99/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">etcd 压缩后 API Server 为何仍偶发 5xx？一次 WAL 增长与磁盘延迟的根因定位</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/c0337851/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次 Kubernetes 节点磁盘压力触发 kubelet 驱逐导致业务 Pod 批量被删的排查记录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/425c7ac4/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 Kubernetes 集群因 CoreDNS 配置漂移导致服务发现间歇性失败的排查实录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/21e8a43e/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 Kubernetes 因 liveness 探针配置过严导致 Pod 陷入 CrashLoopBackOff 的排查</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
