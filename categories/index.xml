@@ -5,7 +5,13 @@
         <description>Recent content in 分类 on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Mon, 21 Sep 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/categories/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Tue, 22 Sep 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/categories/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>桌面运维</title>
+            <link>https://blog.5772447.xyz/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/</link>
+            <pubDate>Tue, 22 Sep 2026 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/</guid>
+            <description></description>
+        </item><item>
             <title>运维</title>
             <link>https://blog.5772447.xyz/categories/%E8%BF%90%E7%BB%B4/</link>
             <pubDate>Mon, 21 Sep 2026 07:00:00 +0800</pubDate>
@@ -16,12 +22,6 @@
             <link>https://blog.5772447.xyz/categories/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/</link>
             <pubDate>Mon, 21 Sep 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/categories/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/</guid>
-            <description></description>
-        </item><item>
-            <title>桌面运维</title>
-            <link>https://blog.5772447.xyz/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/</link>
-            <pubDate>Sun, 20 Sep 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/</guid>
             <description></description>
         </item><item>
             <title>服务运维</title>
