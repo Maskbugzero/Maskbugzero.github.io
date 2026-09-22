@@ -2,6 +2,45 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://blog.5772447.xyz/tags/7.24beta3/</loc>
+    <lastmod>2026-09-23T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/app%E5%B9%B3%E5%8F%B0/</loc>
+    <lastmod>2026-09-23T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/hermes-agent/</loc>
+    <lastmod>2026-09-23T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/netns/</loc>
+    <lastmod>2026-09-23T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/post/</loc>
+    <lastmod>2026-09-23T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/routeros/</loc>
+    <lastmod>2026-09-23T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/posts/763e74a1/</loc>
+    <lastmod>2026-09-23T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/veth-pair/</loc>
+    <lastmod>2026-09-23T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/</loc>
+    <lastmod>2026-09-23T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/</loc>
+    <lastmod>2026-09-23T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/categories/</loc>
+    <lastmod>2026-09-23T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/categories/%E8%B7%AF%E7%94%B1%E5%99%A8/</loc>
+    <lastmod>2026-09-23T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/%E7%BD%91%E7%BB%9C%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4/</loc>
+    <lastmod>2026-09-23T00:00:00+00:00</lastmod>
+  </url><url>
     <loc>https://blog.5772447.xyz/tags/checkpoint/</loc>
     <lastmod>2026-09-22T07:00:00+08:00</lastmod>
   </url><url>
@@ -11,28 +50,16 @@
     <loc>https://blog.5772447.xyz/posts/3d6d8adf/</loc>
     <lastmod>2026-09-22T07:00:00+08:00</lastmod>
   </url><url>
-    <loc>https://blog.5772447.xyz/post/</loc>
-    <lastmod>2026-09-22T07:00:00+08:00</lastmod>
-  </url><url>
     <loc>https://blog.5772447.xyz/tags/vhdx/</loc>
     <lastmod>2026-09-22T07:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/windows-server/</loc>
     <lastmod>2026-09-22T07:00:00+08:00</lastmod>
   </url><url>
-    <loc>https://blog.5772447.xyz/</loc>
-    <lastmod>2026-09-22T07:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/tags/</loc>
-    <lastmod>2026-09-22T07:00:00+08:00</lastmod>
-  </url><url>
     <loc>https://blog.5772447.xyz/tags/%E5%B7%AE%E5%BC%82%E7%A3%81%E7%9B%98/</loc>
     <lastmod>2026-09-22T07:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/%E7%A3%81%E7%9B%98%E8%86%A8%E8%83%80/</loc>
-    <lastmod>2026-09-22T07:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/categories/</loc>
     <lastmod>2026-09-22T07:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/</loc>
@@ -1391,9 +1418,6 @@
     <loc>https://blog.5772447.xyz/posts/5ae9b088/</loc>
     <lastmod>2023-08-10T10:07:45+00:00</lastmod>
   </url><url>
-    <loc>https://blog.5772447.xyz/categories/%E8%B7%AF%E7%94%B1%E5%99%A8/</loc>
-    <lastmod>2023-08-03T19:58:25+00:00</lastmod>
-  </url><url>
     <loc>https://blog.5772447.xyz/tags/%E8%B7%AF%E7%94%B1%E5%99%A8/</loc>
     <lastmod>2023-08-03T19:58:25+00:00</lastmod>
   </url><url>
@@ -1461,9 +1485,6 @@
     <lastmod>2023-05-13T11:32:11+00:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/posts/7c4a1a51/</loc>
-    <lastmod>2023-05-13T09:32:11+00:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/tags/routeros/</loc>
     <lastmod>2023-05-13T09:32:11+00:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/ap/</loc>
