@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+        <title>运维 on Zero Day Notes</title>
+        <link>https://blog.5772447.xyz/tags/%E8%BF%90%E7%BB%B4/</link>
+        <description>Recent content in 运维 on Zero Day Notes</description>
+        <generator>Hugo -- gohugo.io</generator>
+        <language>zh</language>
+        <lastBuildDate>Sat, 07 Mar 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E8%BF%90%E7%BB%B4/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>记一次式 无盘系统(BDA/PVS/Citrix)镜像升级与 的排查实录</title>
+            <link>https://blog.5772447.xyz/posts/3b1055bb/</link>
+            <pubDate>Sat, 07 Mar 2026 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/posts/3b1055bb/</guid>
+            <description>&lt;h2 id=&#34;问题背景&#34;&gt;&lt;a href=&#34;#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af&#34; class=&#34;header-anchor&#34;&gt;&lt;/a&gt;问题背景&#xD;&#xA;&lt;/h2&gt;&lt;p&gt;（正文七段结构由 LLM 生成，1500-2500字&amp;hellip;）&lt;/p&gt;&#xA;&lt;h2 id=&#34;故障现象&#34;&gt;&lt;a href=&#34;#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1&#34; class=&#34;header-anchor&#34;&gt;&lt;/a&gt;故障现象&#xD;&#xA;&lt;/h2&gt;&lt;p&gt;（此处应由 LLM 生成具体现象描述&amp;hellip;）&lt;/p&gt;&#xA;&lt;h2 id=&#34;排查过程&#34;&gt;&lt;a href=&#34;#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b&#34; class=&#34;header-anchor&#34;&gt;&lt;/a&gt;排查过程&#xD;&#xA;&lt;/h2&gt;&lt;p&gt;（此处应由 LLM 生成详细排查步骤、命令、日志&amp;hellip;）&lt;/p&gt;&#xA;&lt;h2 id=&#34;解决方案&#34;&gt;&lt;a href=&#34;#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88&#34; class=&#34;header-anchor&#34;&gt;&lt;/a&gt;解决方案&#xD;&#xA;&lt;/h2&gt;&lt;p&gt;（此处应由 LLM 生成解决方案&amp;hellip;）&lt;/p&gt;&#xA;&lt;h2 id=&#34;根因分析&#34;&gt;&lt;a href=&#34;#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90&#34; class=&#34;header-anchor&#34;&gt;&lt;/a&gt;根因分析&#xD;&#xA;&lt;/h2&gt;&lt;p&gt;（此处应由 LLM 生成根因&amp;hellip;）&lt;/p&gt;&#xA;&lt;h2 id=&#34;预防措施&#34;&gt;&lt;a href=&#34;#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd&#34; class=&#34;header-anchor&#34;&gt;&lt;/a&gt;预防措施&#xD;&#xA;&lt;/h2&gt;&lt;p&gt;（此处应由 LLM 生成预防措施&amp;hellip;）&lt;/p&gt;&#xA;&lt;h2 id=&#34;总结&#34;&gt;&lt;a href=&#34;#%e6%80%bb%e7%bb%93&#34; class=&#34;header-anchor&#34;&gt;&lt;/a&gt;总结&#xD;&#xA;&lt;/h2&gt;&lt;p&gt;（此处应由 LLM 生成总结&amp;hellip;）&lt;/p&gt;&#xA;</description>
+        </item></channel>
+</rss>
