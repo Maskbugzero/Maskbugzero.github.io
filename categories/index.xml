@@ -5,7 +5,13 @@
         <description>Recent content in 分类 on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Thu, 24 Sep 2026 20:32:45 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/categories/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Thu, 24 Sep 2026 20:40:11 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/categories/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>服务运维</title>
+            <link>https://blog.5772447.xyz/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/</link>
+            <pubDate>Thu, 24 Sep 2026 20:40:11 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/</guid>
+            <description></description>
+        </item><item>
             <title>嵌入式</title>
             <link>https://blog.5772447.xyz/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/</link>
             <pubDate>Thu, 24 Sep 2026 20:32:45 +0800</pubDate>
@@ -36,12 +42,6 @@
             <guid>https://blog.5772447.xyz/categories/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/</guid>
             <description></description>
         </item><item>
-            <title>服务运维</title>
-            <link>https://blog.5772447.xyz/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/</link>
-            <pubDate>Sat, 19 Sep 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/</guid>
-            <description></description>
-        </item><item>
             <title>网络运维</title>
             <link>https://blog.5772447.xyz/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/</link>
             <pubDate>Fri, 18 Sep 2026 00:00:00 +0000</pubDate>
@@ -54,16 +54,16 @@
             <guid>https://blog.5772447.xyz/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/</guid>
             <description></description>
         </item><item>
+            <title>Python</title>
+            <link>https://blog.5772447.xyz/categories/python/</link>
+            <pubDate>Tue, 07 Apr 2026 07:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/categories/python/</guid>
+            <description></description>
+        </item><item>
             <title>SEO</title>
             <link>https://blog.5772447.xyz/categories/seo/</link>
             <pubDate>Thu, 10 Aug 2023 10:07:45 +0000</pubDate>
             <guid>https://blog.5772447.xyz/categories/seo/</guid>
-            <description></description>
-        </item><item>
-            <title>Python</title>
-            <link>https://blog.5772447.xyz/categories/python/</link>
-            <pubDate>Thu, 10 Aug 2023 10:07:45 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/categories/python/</guid>
             <description></description>
         </item><item>
             <title>QQ机器人</title>
