@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="RDS 农场三台会话主机陆续给用户挂临时配置文件，登录后桌面重置、设置丢失。定位为 UPD 虚拟磁盘挂载失败与磁盘配额静默耗尽，调整 UVHD 模板与配额策略后恢复。">
+<title>RDS 会话主机为何给用户挂上临时配置文件？一次 User Profile Disk 与磁盘配额的排查记录</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/a38eb681/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="RDS 会话主机为何给用户挂上临时配置文件？一次 User Profile Disk 与磁盘配额的排查记录">
+<meta property='og:description' content="RDS 农场三台会话主机陆续给用户挂临时配置文件，登录后桌面重置、设置丢失。定位为 UPD 虚拟磁盘挂载失败与磁盘配额静默耗尽，调整 UVHD 模板与配额策略后恢复。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/a38eb681/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='RDS' /><meta property='article:tag' content='用户配置文件' /><meta property='article:tag' content='UPD' /><meta property='article:tag' content='磁盘配额' /><meta property='article:tag' content='会话主机' /><meta property='article:tag' content='桌面运维' /><meta property='article:published_time' content='2026-09-27T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-27T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="RDS 会话主机为何给用户挂上临时配置文件？一次 User Profile Disk 与磁盘配额的排查记录">
+<meta name="twitter:description" content="RDS 农场三台会话主机陆续给用户挂临时配置文件，登录后桌面重置、设置丢失。定位为 UPD 虚拟磁盘挂载失败与磁盘配额静默耗尽，调整 UVHD 模板与配额策略后恢复。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" style="background-color: hsl(195, 60%, 84%); color: hsl(195, 60%, 15%);">
+                桌面运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/a38eb681/">RDS 会话主机为何给用户挂上临时配置文件？一次 User Profile Disk 与磁盘配额的排查记录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            RDS 农场三台会话主机陆续给用户挂临时配置文件，登录后桌面重置、设置丢失。定位为 UPD 虚拟磁盘挂载失败与磁盘配额静默耗尽，调整 UVHD 模板与配额策略后恢复。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-09-27T09:00:00&#43;08:00'>2026年9月27日星期日</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 6 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司研发与客服部门约 200 人日常通过 RDS 远程桌面农场办公，农场由 3 台 Windows Server 2022 会话主机组成，用户配置文件统一走 User Profile Disk（UPD，即 UVHD 虚拟磁盘），存放在一台专用文件服务器的共享目录上。这套架构运行了两年多，此前只出过零星的配置文件小毛病，重启会话主机都能解决。</p>
+<p>9 月 26 日上午开始，服务台陆续接到同一类投诉：用户登录远程桌面后桌面图标全没了，Outlook 需要重新配置，浏览器收藏夹清空，任务栏提示&quot;已使用临时配置文件登录&quot;。投诉从早上 9 点的 3 个，到中午涨到 27 个，且分布在三台会话主机上，不是集中在某一台——这个分布特征说明问题大概率不在单机，而在共享的配置文件存储层。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>登上一台会话主机复现检查，故障表现集中且一致：</p>
+<ul>
+<li>事件日志里出现 Event ID 1511：Windows 找不到服务器本地配置文件的副本，因此使用临时配置文件登录；伴随 Event ID 1515，Windows 已将该用户放入临时配置文件的兼容模式。</li>
+<li>出问题的用户目录下，<code>C:\Users\&lt;用户名&gt;</code> 变成了 <code>C:\Users\TEMP</code>，用户在会话里做的任何改动，注销后全部丢失。</li>
+<li>文件服务器上对应的 UVHD 虚拟磁盘文件（<code>&lt;用户名&gt;.vhdx</code>）本身还在，大小和修改时间都正常，没有损坏迹象。</li>
+<li>报障用户没有规律性——老用户新用户都有，同一用户有时重登一次就恢复正常，有时连续几次都是临时配置文件。</li>
+<li>三台会话主机各自的本地磁盘空间都在 60% 左右，资源监控曲线平稳，看不出异常。</li>
+</ul>
+<p>诡异之处在于：UVHD 文件完好、主机磁盘空间充足、故障随机分布在三台主机，单看任何一台机器都查不出必然原因。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>先从最可疑的文件服务器入手。登录文件服务器检查共享目录 <code>D:\RDS-Profiles</code>，NTFS 权限和共享权限两年来没人动过，最近一次变更记录还是 8 个月前的例行加固。但接着看磁盘配额时发现了第一条线索：<code>D:\RDS-Profiles</code> 启用了 NTFS 磁盘配额，硬上限是每用户 5GB——这个配额是按&quot;每个 UVHD 文件不超过 5GB&quot;的预期设的，当时 UVHD 平均大小只有 1.2GB。</p>
+<p>用 <code>dirquota quota list</code> 逐项核对，发现配额统计的是<strong>共享目录下所有归属该用户的文件</strong>，而除了 <code>&lt;用户名&gt;.vhdx</code> 之外，部分用户目录下还堆积了 Outlook OST 缓存同步产生的临时文件和几次应用崩溃留下的 dump 文件。抽了几个报障用户的目录核对，他们的配额占用全部在 4.9GB～5GB 之间，距离硬上限只差毫厘。</p>
+<p>第二条线索来自事件时序。在文件服务器的 System 日志里过滤 SMB 与存储事件，发现 9 月 26 日 8:52 有一个 SvhdMount 的失败记录，时间与第一批用户报障完全吻合。回头看磁盘曲线：<code>D:</code> 盘从 25 日晚间的 71% 一路涨到 26 日早上 8:50 的 96%——某个用户的 UPD 在当晚被 Outlook 的 OST 重同步写爆了，vhdx 从 2GB 膨胀到 4.8GB，把整盘可用空间压到了几百 MB。</p>
+<p>第三步做交叉验证：UPD 是会话登录时动态挂载的 VHDX，挂载过程需要在卷上预留写空间并创建挂载点；当目标卷剩余空间低于阈值、或配额剩余量不足以支撑写操作时，挂载会静默失败，会话主机拿不到 UPD，只能按 Event 1511 的逻辑回退到本地临时配置文件。这解释了所有现象：UVHD 文件&quot;看着完好&quot;是因为膨胀发生在文件内部；故障随机分布是因为只有配额余量不足的那部分用户才触发；重登偶尔恢复是因为那几分钟内别的会话注销释放了写压力。</p>
+<p>最后排除了另外两个常见嫌疑：域控侧的 <code>ProfilePath</code> 属性三台主机读取一致，GPO 的 UPD 排除项列表近 30 天无变更；会话主机的 <code>RDSessionHost</code> 注册表键与集合配置比对正常，排除了配置漂移。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><p>止血分三步，按影响面从小到大执行：</p>
+<ol>
+<li><strong>立即释放空间</strong>：在文件服务器上清理 OST 同步临时文件与 dump 文件约 11GB，将 <code>D:</code> 盘余量拉回 30% 以上；对配额占用超过 4.5GB 的 7 个用户，临时把硬上限调到 8GB。执行完这两步后让服务台通知报障用户重新登录，全部恢复正常配置文件。</li>
+<li><strong>结构性整改</strong>：把 UPD 共享目录迁移到独立卷 <code>E:\RDS-Profiles</code>，与其他业务数据物理隔离；NTFS 配额对 vhdx 文件单独设 10GB 软上限 + 阈值告警，不再让&quot;目录里其他杂项文件&quot;挤占 vhdx 的配额空间。</li>
+<li><strong>预防性监控</strong>：对 <code>E:</code> 盘加 80%/90% 两级空间告警；对配额占用超过 90% 的用户每日出报表，提前通知用户清理或由管理员扩容；在会话主机上对 Event ID 1511/1515 配置告警规则，出现 3 次以上即触发服务台工单，而不是等用户投诉。</li>
+</ol>
+<p>另外和研发部门约定了 OST 缓存策略：远程桌面会话内 Outlook 使用在线模式，本机 OST 同步只保留在物理办公机上，避免同类膨胀再次发生。</p>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是<strong>用户 UPD 虚拟磁盘当晚被 OST 重同步写爆，连带把整个配置文件卷的可用空间压到挂载阈值以下，后续用户的 UPD 挂载静默失败，RDS 回退到临时配置文件</strong>。</p>
+<p>深层根因有三个：</p>
+<ul>
+<li><strong>配额设计错位</strong>：配额对象是&quot;用户在目录下的全部文件&quot;而非 vhdx 本身，且从未给配额占用本身设监控——以为防住了单用户膨胀，实际没防住。</li>
+<li><strong>共享卷未隔离</strong>：配置文件存储与临时文件、dump 等杂项同卷，任何一个用户的异常膨胀都会外溢成全局故障。</li>
+<li><strong>监控盲区</strong>：会话主机的磁盘告警只盯着本机，作为单点的文件服务器反而只有容量告警、没有挂载失败告警，故障要等用户投诉才被发现。</li>
+</ul>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>UPD 存储独立成卷、独立配额策略，配额对象精确到 vhdx 文件本身；</li>
+<li>文件服务器对 Event 1511/1515、SvhdMount 失败配置主动告警，容量告警阈值下调到 80%；</li>
+<li>每日配额占用报表推送运维群，90% 以上用户次日必处理；</li>
+<li>把&quot;UPD 挂载失败回退临时配置文件&quot;写进 RDS 故障手册首条，服务台遇到同类投诉直接按手册第 2 节核对文件服务器，不再逐台查会话主机。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这次故障的表象是&quot;用户配置文件坏了&quot;，实际是&quot;共享存储的配额与空间管理失守&quot;。RDS 这类中心化桌面架构里，单台会话主机的健康度好查，共享层——文件服务器、配额、挂载链路——才是真正的单点；监控和告警如果只覆盖了看得见的机器，看不见的那一层就会用最安静的方式出问题。故障当天从第一单投诉到全量恢复用了 3 小时，其中 2 小时花在&quot;逐台查会话主机&quot;的错误方向上；把共享层检查写进手册之后，这类问题的定位路径应该缩短到 10 分钟以内。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/36719bcb/" >Windows 漫游配置文件损坏致终端登录卡死的修复</a></li>
+<li><a class="link" href="/posts/3a307caa/" >域电脑重启后为何登不上？一次工作站与主域信任关系失败的排查记录</a></li>
+<li><a class="link" href="/posts/d813207d/" >记一次终端批量重装后部分机型网卡驱动丢失导致无法入域的排查</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/rds/">RDS</a>
+        
+            <a href="/tags/%E7%94%A8%E6%88%B7%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6/">用户配置文件</a>
+        
+            <a href="/tags/upd/">UPD</a>
+        
+            <a href="/tags/%E7%A3%81%E7%9B%98%E9%85%8D%E9%A2%9D/">磁盘配额</a>
+        
+            <a href="/tags/%E4%BC%9A%E8%AF%9D%E4%B8%BB%E6%9C%BA/">会话主机</a>
+        
+            <a href="/tags/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/">桌面运维</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/f78d7f76/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">域控 NTP 时间源失效，全公司 Kerberos 为何大面积失败？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/36719bcb/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Windows 漫游配置文件损坏致终端登录卡死的修复</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/6ed86b02/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Windows 更新后打印机 Spooler 反复崩溃，全网怎么查？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/1ceacaf7/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">AD 域环境下打印机批量部署失败的处理手记</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/cfb90b2b/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">USB-C 扩展坞接双屏为何没信号？桌面排障记</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
