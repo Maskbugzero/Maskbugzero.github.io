@@ -5,13 +5,7 @@
         <description>Recent content in 服务运维 on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Thu, 24 Sep 2026 20:40:11 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>记一次 服务运维 典型问题的排查记录</title>
-            <link>https://blog.5772447.xyz/posts/1c15e3ff/</link>
-            <pubDate>Thu, 24 Sep 2026 20:40:11 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/posts/1c15e3ff/</guid>
-            <description>&lt;h2 id=&#34;问题背景&#34;&gt;&lt;a href=&#34;#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af&#34; class=&#34;header-anchor&#34;&gt;&lt;/a&gt;问题背景&#xD;&#xA;&lt;/h2&gt;&lt;p&gt;在核心业务系统日常运维中，服务运维 相关的服务故障往往具有突发性和连锁性。本次故障发生在业务高峰期，影响了多个下游系统，持续时间约 3 小时。&lt;/p&gt;&#xA;&lt;p&gt;作为服务运维工程师，我全程参与了此次故障的排查与修复。整个过程暴露了我们在服务依赖管理、监控覆盖、变更审批等方面的不足。&lt;/p&gt;&#xA;&lt;h2 id=&#34;故障现象&#34;&gt;&lt;a href=&#34;#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1&#34; class=&#34;header-anchor&#34;&gt;&lt;/a&gt;故障现象&#xD;&#xA;&lt;/h2&gt;&lt;p&gt;业务监控大屏出现大量超时告警，核心接口响应时间从 200ms 升至 10s+，用户反馈页面加载缓慢或报错。&lt;/p&gt;&#xA;&lt;h2 id=&#34;排查过程&#34;&gt;&lt;a href=&#34;#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b&#34; class=&#34;header-anchor&#34;&gt;&lt;/a&gt;排查过程&#xD;&#xA;&lt;/h2&gt;&lt;p&gt;通过负载均衡日志定位到异常节点，使用 tcpdump 抓包发现数据库连接异常，jstack 抓取线程栈发现连接池耗尽。&lt;/p&gt;&#xA;&lt;h2 id=&#34;解决方案&#34;&gt;&lt;a href=&#34;#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88&#34; class=&#34;header-anchor&#34;&gt;&lt;/a&gt;解决方案&#xD;&#xA;&lt;/h2&gt;&lt;p&gt;紧急回滚配置、重启异常节点、清理僵尸连接；根治措施包括配置中心化、变更评审、监控增强。&lt;/p&gt;&#xA;&lt;h2 id=&#34;根因分析&#34;&gt;&lt;a href=&#34;#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90&#34; class=&#34;header-anchor&#34;&gt;&lt;/a&gt;根因分析&#xD;&#xA;&lt;/h2&gt;&lt;p&gt;直接原因：配置漂移导致连接池参数异常；深层原因：缺乏变更评审和压测环节。&lt;/p&gt;&#xA;&lt;h2 id=&#34;预防措施&#34;&gt;&lt;a href=&#34;#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd&#34; class=&#34;header-anchor&#34;&gt;&lt;/a&gt;预防措施&#xD;&#xA;&lt;/h2&gt;&lt;p&gt;配置即代码、变更冻结期、定期演练、知识库建设。&lt;/p&gt;&#xA;&lt;h2 id=&#34;总结&#34;&gt;&lt;a href=&#34;#%e6%80%bb%e7%bb%93&#34; class=&#34;header-anchor&#34;&gt;&lt;/a&gt;总结&#xD;&#xA;&lt;/h2&gt;&lt;p&gt;通过本次故障复盘，我们建立了更严格的变更流程和更全面的监控体系。&lt;/p&gt;&#xA;</description>
-        </item><item>
+        <lastBuildDate>Fri, 10 Jul 2026 07:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/index.xml" rel="self" type="application/rss+xml" /><item>
             <title>一次NFS存储服务端故障导致客户端进程陷入D状态业务整体假死的排查记录</title>
             <link>https://blog.5772447.xyz/posts/5961e223/</link>
             <pubDate>Fri, 10 Jul 2026 07:00:00 +0000</pubDate>

@@ -18,12 +18,6 @@
             <guid>https://blog.5772447.xyz/categories/python/</guid>
             <description></description>
         </item><item>
-            <title>嵌入式</title>
-            <link>https://blog.5772447.xyz/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/</link>
-            <pubDate>Thu, 24 Sep 2026 20:32:45 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/</guid>
-            <description></description>
-        </item><item>
             <title>路由器</title>
             <link>https://blog.5772447.xyz/categories/%E8%B7%AF%E7%94%B1%E5%99%A8/</link>
             <pubDate>Thu, 24 Sep 2026 07:00:00 +0800</pubDate>
@@ -106,6 +100,12 @@
             <link>https://blog.5772447.xyz/categories/synology/</link>
             <pubDate>Tue, 10 Aug 2021 17:13:21 +0000</pubDate>
             <guid>https://blog.5772447.xyz/categories/synology/</guid>
+            <description></description>
+        </item><item>
+            <title>嵌入式</title>
+            <link>https://blog.5772447.xyz/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/</link>
+            <pubDate>Sun, 20 Jun 2021 06:34:54 +0000</pubDate>
+            <guid>https://blog.5772447.xyz/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/</guid>
             <description></description>
         </item></channel>
 </rss>
