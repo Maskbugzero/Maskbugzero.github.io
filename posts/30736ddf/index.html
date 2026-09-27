@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="ZN M2（IPQ6000）路由器编译 OpenWrt 时 NSS 硬件加速未生效，速度卡在 200Mbps。排查 firmware 缺失、kernel config 与 ECM 规则后打通 900Mbps+ 转发。">
-<title>记一次 IPQ60XX 芯片路由器 OpenWrt NSS 硬件加速固件编译的排查与调优</title>
+<title>IPQ60XX NSS 加速未生效：OpenWrt 固件编译调优</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/30736ddf/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次 IPQ60XX 芯片路由器 OpenWrt NSS 硬件加速固件编译的排查与调优">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="IPQ60XX NSS 加速未生效：OpenWrt 固件编译调优">
 <meta property='og:description' content="ZN M2（IPQ6000）路由器编译 OpenWrt 时 NSS 硬件加速未生效，速度卡在 200Mbps。排查 firmware 缺失、kernel config 与 ECM 规则后打通 900Mbps+ 转发。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/30736ddf/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='OpenWrt' /><meta property='article:tag' content='IPQ60XX' /><meta property='article:tag' content='NSS' /><meta property='article:tag' content='硬件加速' /><meta property='article:tag' content='固件编译' /><meta property='article:tag' content='LibWrt' /><meta property='article:published_time' content='2026-09-24T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-24T07:00:00&#43;08:00'/>
-<meta name="twitter:title" content="记一次 IPQ60XX 芯片路由器 OpenWrt NSS 硬件加速固件编译的排查与调优">
+<meta name="twitter:title" content="IPQ60XX NSS 加速未生效：OpenWrt 固件编译调优">
 <meta name="twitter:description" content="ZN M2（IPQ6000）路由器编译 OpenWrt 时 NSS 硬件加速未生效，速度卡在 200Mbps。排查 firmware 缺失、kernel config 与 ECM 规则后打通 900Mbps+ 转发。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -268,7 +268,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/30736ddf/">记一次 IPQ60XX 芯片路由器 OpenWrt NSS 硬件加速固件编译的排查与调优</a>
+            <a href="/posts/30736ddf/">IPQ60XX NSS 加速未生效：OpenWrt 固件编译调优</a>
         </h2>
     
         
@@ -577,7 +577,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">OpenWrt旁路由升级后内网专线业务为何全断？一次firewall4默认策略变更的排查实录</h2>
+            <h2 class="article-title">OpenWrt 升级 firewall4 后旁路由专线全断</h2>
         </div>
     </a>
 </article>

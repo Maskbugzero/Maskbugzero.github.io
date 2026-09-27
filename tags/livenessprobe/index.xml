@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Sat, 11 Jul 2026 07:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/livenessprobe/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>记一次 Kubernetes 因 liveness 探针配置过严导致 Pod 陷入 CrashLoopBackOff 的排查</title>
+            <title>liveness 探针过严致 Pod CrashLoopBackOff</title>
             <link>https://blog.5772447.xyz/posts/21e8a43e/</link>
             <pubDate>Sat, 11 Jul 2026 07:00:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/21e8a43e/</guid>

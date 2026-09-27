@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Thu, 24 Sep 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E7%A1%AC%E4%BB%B6%E5%8A%A0%E9%80%9F/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>记一次 IPQ60XX 芯片路由器 OpenWrt NSS 硬件加速固件编译的排查与调优</title>
+            <title>IPQ60XX NSS 加速未生效：OpenWrt 固件编译调优</title>
             <link>https://blog.5772447.xyz/posts/30736ddf/</link>
             <pubDate>Thu, 24 Sep 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/posts/30736ddf/</guid>

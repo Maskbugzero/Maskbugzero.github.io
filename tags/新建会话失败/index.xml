@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Thu, 06 Aug 2020 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E6%96%B0%E5%BB%BA%E4%BC%9A%E8%AF%9D%E5%A4%B1%E8%B4%A5/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>出口防火墙会话表打满后为何ping通却打开不了网页？一次新建会话被静默丢弃的排查记录</title>
+            <title>出口防火墙会话表打满：ping 通但网页打不开</title>
             <link>https://blog.5772447.xyz/posts/b5711efe/</link>
             <pubDate>Thu, 06 Aug 2020 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/posts/b5711efe/</guid>

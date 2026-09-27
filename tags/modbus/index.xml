@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Sun, 27 Sep 2026 15:30:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/modbus/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>产线数据采集网关为何每隔几小时集体掉线？一次 RS485 总线干扰与看门狗误动作的排查记录</title>
+            <title>RS485 总线干扰致采集网关每隔几小时集体掉线</title>
             <link>https://blog.5772447.xyz/posts/10494fcc/</link>
             <pubDate>Sun, 27 Sep 2026 15:30:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/posts/10494fcc/</guid>

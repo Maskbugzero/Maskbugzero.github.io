@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Tue, 15 Dec 2020 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E5%8F%98%E6%9B%B4%E7%BB%93%E5%8D%95%E9%97%A8%E7%A6%81/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>记一次跨机房链路变更验收Checklist的落地：连通矩阵、回程路由与MTU三道关</title>
+            <title>跨机房链路变更验收：连通矩阵、回程路由与 MTU</title>
             <link>https://blog.5772447.xyz/posts/7c686262/</link>
             <pubDate>Tue, 15 Dec 2020 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/posts/7c686262/</guid>

@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Tue, 22 Sep 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>Hyper-V VHDX 磁盘异常膨胀：一次 40GB 差异磁盘残留的定位与清理</title>
+            <title>Hyper-V VHDX 异常膨胀：40GB 差异磁盘残留清理</title>
             <link>https://blog.5772447.xyz/posts/3d6d8adf/</link>
             <pubDate>Tue, 22 Sep 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/posts/3d6d8adf/</guid>

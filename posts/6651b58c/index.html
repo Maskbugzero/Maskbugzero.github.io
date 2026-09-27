@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="一个跑了几天的 Java 服务突然大量报 Too many open files，新连接被拒、健康检查失败，最终定位到 systemd nofile 太小叠加句柄泄漏，用 lsof/proc 定位并根治。">
-<title>定位 Too many open files：一次生产服务文件描述符耗尽的排查与根治</title>
+<title>Too many open files：nofile 过小与句柄泄漏</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/6651b58c/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="定位 Too many open files：一次生产服务文件描述符耗尽的排查与根治">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Too many open files：nofile 过小与句柄泄漏">
 <meta property='og:description' content="一个跑了几天的 Java 服务突然大量报 Too many open files，新连接被拒、健康检查失败，最终定位到 systemd nofile 太小叠加句柄泄漏，用 lsof/proc 定位并根治。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/6651b58c/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='文件描述符' /><meta property='article:tag' content='Too many open files' /><meta property='article:tag' content='EMFILE' /><meta property='article:tag' content='LimitNOFILE' /><meta property='article:tag' content='句柄泄漏' /><meta property='article:tag' content='lsof' /><meta property='article:tag' content='ulimit' /><meta property='article:tag' content='systemd' /><meta property='article:published_time' content='2022-09-25T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2022-09-25T07:00:00&#43;08:00'/>
-<meta name="twitter:title" content="定位 Too many open files：一次生产服务文件描述符耗尽的排查与根治">
+<meta name="twitter:title" content="Too many open files：nofile 过小与句柄泄漏">
 <meta name="twitter:description" content="一个跑了几天的 Java 服务突然大量报 Too many open files，新连接被拒、健康检查失败，最终定位到 systemd nofile 太小叠加句柄泄漏，用 lsof/proc 定位并根治。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -267,7 +267,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/6651b58c/">定位 Too many open files：一次生产服务文件描述符耗尽的排查与根治</a>
+            <a href="/posts/6651b58c/">Too many open files：nofile 过小与句柄泄漏</a>
         </h2>
     
         
@@ -582,7 +582,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">磁盘空间为何删了大日志也不释放？一次 df 与 du 相差 60GB 的排查记录</h2>
+            <h2 class="article-title">删了大日志磁盘仍满：df 与 du 相差 60GB</h2>
         </div>
     </a>
 </article>
@@ -593,7 +593,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次 Linux 磁盘疑难排查方法论：df/du 不一致、幽灵文件、inode 耗尽四步定位法</h2>
+            <h2 class="article-title">Linux 磁盘排查方法论：df/du 不一致与 inode 耗尽</h2>
         </div>
     </a>
 </article>
@@ -604,7 +604,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">刹住systemd重启风暴：一次Restart=always叠加配置错误拖垮整机的排查</h2>
+            <h2 class="article-title">Restart=always 无退避致重启风暴拖垮整机</h2>
         </div>
     </a>
 </article>

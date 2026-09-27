@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="journald RateLimit 配置不当导致日志刷盘速度远超磁盘 I/O 能力，根分区瞬间写满触发 OOM 与服务雪崩，排查定位 journal 日志堆积根因并给出 RateLimit/Storage 收敛方案。">
-<title>刹住 journald 日志风暴：一次 RateLimit 配置错误拖垮根分区的排查实录</title>
+<title>journald RateLimit 配错拖垮根分区</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/6cce181e/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="刹住 journald 日志风暴：一次 RateLimit 配置错误拖垮根分区的排查实录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="journald RateLimit 配错拖垮根分区">
 <meta property='og:description' content="journald RateLimit 配置不当导致日志刷盘速度远超磁盘 I/O 能力，根分区瞬间写满触发 OOM 与服务雪崩，排查定位 journal 日志堆积根因并给出 RateLimit/Storage 收敛方案。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/6cce181e/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='journald' /><meta property='article:tag' content='RateLimit' /><meta property='article:tag' content='日志风暴' /><meta property='article:tag' content='根分区写满' /><meta property='article:tag' content='systemd' /><meta property='article:tag' content='日志轮转' /><meta property='article:tag' content='磁盘 I/O' /><meta property='article:published_time' content='2026-09-08T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-08T07:00:00&#43;08:00'/>
-<meta name="twitter:title" content="刹住 journald 日志风暴：一次 RateLimit 配置错误拖垮根分区的排查实录">
+<meta name="twitter:title" content="journald RateLimit 配错拖垮根分区">
 <meta name="twitter:description" content="journald RateLimit 配置不当导致日志刷盘速度远超磁盘 I/O 能力，根分区瞬间写满触发 OOM 与服务雪崩，排查定位 journal 日志堆积根因并给出 RateLimit/Storage 收敛方案。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -274,7 +274,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/6cce181e/">刹住 journald 日志风暴：一次 RateLimit 配置错误拖垮根分区的排查实录</a>
+            <a href="/posts/6cce181e/">journald RateLimit 配错拖垮根分区</a>
         </h2>
     
         
@@ -726,7 +726,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">刹住systemd重启风暴：一次Restart=always叠加配置错误拖垮整机的排查</h2>
+            <h2 class="article-title">Restart=always 无退避致重启风暴拖垮整机</h2>
         </div>
     </a>
 </article>
@@ -748,7 +748,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">定位 Too many open files：一次生产服务文件描述符耗尽的排查与根治</h2>
+            <h2 class="article-title">Too many open files：nofile 过小与句柄泄漏</h2>
         </div>
     </a>
 </article>

@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Thu, 17 Sep 2026 07:05:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E6%81%A2%E5%A4%8D%E5%AF%86%E9%92%A5%E6%89%98%E7%AE%A1/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>Windows 11 24H2 自动设备加密开启后，恢复密钥为何未托管到 AD？一次 BitLocker 托管配置与事件日志的排查记录</title>
+            <title>Win11 24H2 BitLocker 恢复密钥未托管到 AD</title>
             <link>https://blog.5772447.xyz/posts/3a7f9e2d/</link>
             <pubDate>Thu, 17 Sep 2026 07:05:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/posts/3a7f9e2d/</guid>

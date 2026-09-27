@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Thu, 20 Aug 2026 07:05:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E4%BA%8C%E5%B1%82%E9%98%B2%E6%8A%A4%E8%AF%AF%E9%85%8D/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次接入交换机storm-control阈值过低误杀正常广播导致整层间歇卡顿的排查记录</title>
+            <title>storm-control 阈值过低误杀正常广播致整层卡顿</title>
             <link>https://blog.5772447.xyz/posts/9aa5af71/</link>
             <pubDate>Tue, 12 May 2020 07:05:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/posts/9aa5af71/</guid>

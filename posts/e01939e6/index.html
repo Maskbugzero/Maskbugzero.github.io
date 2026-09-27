@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="K8s 集群中 kubelet 证书自动轮换失败后，节点批量 NotReady，排查证书链路、kubelet 配置与 apiserver 认证的根因。">
-<title>记一次 K8s 节点 kubelet 证书轮换失败导致节点 NotReady 风暴的排查</title>
+<title>kubelet 证书轮换失败致节点批量 NotReady</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/e01939e6/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次 K8s 节点 kubelet 证书轮换失败导致节点 NotReady 风暴的排查">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="kubelet 证书轮换失败致节点批量 NotReady">
 <meta property='og:description' content="K8s 集群中 kubelet 证书自动轮换失败后，节点批量 NotReady，排查证书链路、kubelet 配置与 apiserver 认证的根因。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/e01939e6/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='kubelet' /><meta property='article:tag' content='证书轮换' /><meta property='article:tag' content='NotReady' /><meta property='article:tag' content='节点风暴' /><meta property='article:tag' content='TLS Bootstrapping' /><meta property='article:published_time' content='2026-09-11T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-11T07:00:00&#43;08:00'/>
-<meta name="twitter:title" content="记一次 K8s 节点 kubelet 证书轮换失败导致节点 NotReady 风暴的排查">
+<meta name="twitter:title" content="kubelet 证书轮换失败致节点批量 NotReady">
 <meta name="twitter:description" content="K8s 集群中 kubelet 证书自动轮换失败后，节点批量 NotReady，排查证书链路、kubelet 配置与 apiserver 认证的根因。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -273,7 +273,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/e01939e6/">记一次 K8s 节点 kubelet 证书轮换失败导致节点 NotReady 风暴的排查</a>
+            <a href="/posts/e01939e6/">kubelet 证书轮换失败致节点批量 NotReady</a>
         </h2>
     
         
@@ -685,7 +685,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次 Kubernetes 节点磁盘压力触发 kubelet 驱逐导致业务 Pod 批量被删的排查记录</h2>
+            <h2 class="article-title">磁盘压力触发驱逐：日志与镜像未治理致 Pod 批量被删</h2>
         </div>
     </a>
 </article>
@@ -696,7 +696,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 Kubernetes 集群因 CoreDNS 配置漂移导致服务发现间歇性失败的排查实录</h2>
+            <h2 class="article-title">CoreDNS 配置漂移致服务发现间歇性失败</h2>
         </div>
     </a>
 </article>
@@ -707,7 +707,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">etcd 压缩后 API Server 为何仍偶发 5xx？一次 WAL 增长与磁盘延迟的根因定位</h2>
+            <h2 class="article-title">etcd 压缩后仍偶发 5xx：WAL 增长与磁盘延迟</h2>
         </div>
     </a>
 </article>
@@ -718,7 +718,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 Kubernetes 因 liveness 探针配置过严导致 Pod 陷入 CrashLoopBackOff 的排查</h2>
+            <h2 class="article-title">liveness 探针过严致 Pod CrashLoopBackOff</h2>
         </div>
     </a>
 </article>

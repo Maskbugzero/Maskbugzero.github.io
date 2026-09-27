@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Tue, 15 Mar 2022 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E6%96%87%E4%BB%B6%E5%8F%A5%E6%9F%84/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>磁盘空间为何删了大日志也不释放？一次 df 与 du 相差 60GB 的排查记录</title>
+            <title>删了大日志磁盘仍满：df 与 du 相差 60GB</title>
             <link>https://blog.5772447.xyz/posts/76deb068/</link>
             <pubDate>Tue, 15 Mar 2022 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/posts/76deb068/</guid>

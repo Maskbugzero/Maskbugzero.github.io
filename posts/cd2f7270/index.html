@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="私有镜像仓库凭证过期导致 Pod 卡在 ImagePullBackOff，从事件定位到静态 Secret 失效根因与刷新治理。">
-<title>K8s 私有镜像仓库凭证过期，Pod 为何卡在 ImagePullBackOff？一次生产镜像拉取失败的排查记录</title>
+<title>私有仓库凭证过期致 Pod 卡在 ImagePullBackOff</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/cd2f7270/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="K8s 私有镜像仓库凭证过期，Pod 为何卡在 ImagePullBackOff？一次生产镜像拉取失败的排查记录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="私有仓库凭证过期致 Pod 卡在 ImagePullBackOff">
 <meta property='og:description' content="私有镜像仓库凭证过期导致 Pod 卡在 ImagePullBackOff，从事件定位到静态 Secret 失效根因与刷新治理。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/cd2f7270/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='ImagePullBackOff' /><meta property='article:tag' content='imagePullSecret' /><meta property='article:tag' content='Harbor' /><meta property='article:tag' content='容器运维' /><meta property='article:published_time' content='2025-03-06T00:00:00&#43;00:00'/><meta property='article:modified_time' content='2025-03-06T00:00:00&#43;00:00'/>
-<meta name="twitter:title" content="K8s 私有镜像仓库凭证过期，Pod 为何卡在 ImagePullBackOff？一次生产镜像拉取失败的排查记录">
+<meta name="twitter:title" content="私有仓库凭证过期致 Pod 卡在 ImagePullBackOff">
 <meta name="twitter:description" content="私有镜像仓库凭证过期导致 Pod 卡在 ImagePullBackOff，从事件定位到静态 Secret 失效根因与刷新治理。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -267,7 +267,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/cd2f7270/">K8s 私有镜像仓库凭证过期，Pod 为何卡在 ImagePullBackOff？一次生产镜像拉取失败的排查记录</a>
+            <a href="/posts/cd2f7270/">私有仓库凭证过期致 Pod 卡在 ImagePullBackOff</a>
         </h2>
     
         
@@ -482,7 +482,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次 Kubernetes 命名空间 ResourceQuota 配额耗尽导致 Pod 卡在 Pending 的排查记录</h2>
+            <h2 class="article-title">ResourceQuota 配额耗尽致 Pod 卡在 Pending</h2>
         </div>
     </a>
 </article>
@@ -504,7 +504,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次 Kubernetes Pod 长期卡在 Terminating 状态的排查记录</h2>
+            <h2 class="article-title">Pod 长期卡在 Terminating 的定位与修复</h2>
         </div>
     </a>
 </article>
@@ -515,7 +515,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次 Kubernetes CNI 插件 IP 池耗尽导致新增 Pod 无法分配 IP 的排查记录</h2>
+            <h2 class="article-title">Calico IPAM 池耗尽致新增 Pod 无法分配 IP</h2>
         </div>
     </a>
 </article>
@@ -526,7 +526,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">Kubernetes HPA 为何在流量高峰不再自动扩容？一次 metrics-server 指标链路中断的排查记录</h2>
+            <h2 class="article-title">HPA 高峰不扩容：metrics-server 指标链路中断</h2>
         </div>
     </a>
 </article>

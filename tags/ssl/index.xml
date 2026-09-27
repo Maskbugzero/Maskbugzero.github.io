@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Sat, 11 Jul 2026 07:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/ssl/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次SSL/TLS证书过期导致全站HTTPS访问失败与API调用报证书错误的排查实录</title>
+            <title>源站证书过期致回源 HTTPS 握手失败，全站中断</title>
             <link>https://blog.5772447.xyz/posts/8f18423e/</link>
             <pubDate>Sat, 11 Jul 2026 07:00:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/8f18423e/</guid>

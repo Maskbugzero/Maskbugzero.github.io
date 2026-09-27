@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Thu, 21 Mar 2024 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E8%99%9A%E6%8B%9F%E6%A1%8C%E9%9D%A2%E8%93%9D%E5%B1%8F/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>Citrix PVS 镜像升级后虚拟桌面为何批量蓝屏？一次 vDisk 版本回滚的排查实录</title>
+            <title>PVS 镜像升级致虚拟桌面批量蓝屏：vDisk 回滚恢复</title>
             <link>https://blog.5772447.xyz/posts/4b5dd03a/</link>
             <pubDate>Thu, 21 Mar 2024 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/posts/4b5dd03a/</guid>

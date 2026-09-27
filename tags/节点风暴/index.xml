@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Fri, 11 Sep 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E8%8A%82%E7%82%B9%E9%A3%8E%E6%9A%B4/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>记一次 K8s 节点 kubelet 证书轮换失败导致节点 NotReady 风暴的排查</title>
+            <title>kubelet 证书轮换失败致节点批量 NotReady</title>
             <link>https://blog.5772447.xyz/posts/e01939e6/</link>
             <pubDate>Fri, 11 Sep 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/posts/e01939e6/</guid>

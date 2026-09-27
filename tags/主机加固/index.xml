@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Wed, 12 Feb 2025 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E4%B8%BB%E6%9C%BA%E5%8A%A0%E5%9B%BA/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>清除勒索软件：一次 Windows 文件服务器共享目录遭加密的入侵路径还原与恢复复盘</title>
+            <title>勒索软件加密共享目录：入侵还原与数据恢复</title>
             <link>https://blog.5772447.xyz/posts/45ad24c7/</link>
             <pubDate>Wed, 12 Feb 2025 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/posts/45ad24c7/</guid>

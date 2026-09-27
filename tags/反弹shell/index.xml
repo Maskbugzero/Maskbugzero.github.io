@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Wed, 15 Jul 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E5%8F%8D%E5%BC%B9shell/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>记一次 Linux 服务器周期性外联与 CPU 抖动：crontab 恶意定时任务后门排查</title>
+            <title>crontab 恶意定时任务后门：周期性外联与 CPU 抖动</title>
             <link>https://blog.5772447.xyz/posts/1de17e40/</link>
             <pubDate>Wed, 15 Jul 2026 00:00:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/1de17e40/</guid>

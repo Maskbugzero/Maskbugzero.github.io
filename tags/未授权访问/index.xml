@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Fri, 22 Apr 2022 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>堵住裸奔的 Elasticsearch：一次公网未授权访问导致数据泄露的应急处置实录</title>
+            <title>Elasticsearch 裸奔公网被扫库：数据泄露应急处置</title>
             <link>https://blog.5772447.xyz/posts/7480195f/</link>
             <pubDate>Fri, 22 Apr 2022 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/posts/7480195f/</guid>

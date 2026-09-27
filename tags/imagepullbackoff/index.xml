@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Thu, 06 Mar 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/imagepullbackoff/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>K8s 私有镜像仓库凭证过期，Pod 为何卡在 ImagePullBackOff？一次生产镜像拉取失败的排查记录</title>
+            <title>私有仓库凭证过期致 Pod 卡在 ImagePullBackOff</title>
             <link>https://blog.5772447.xyz/posts/cd2f7270/</link>
             <pubDate>Thu, 06 Mar 2025 00:00:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/cd2f7270/</guid>

@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Tue, 08 Sep 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E7%A3%81%E7%9B%98-i/o/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>刹住 journald 日志风暴：一次 RateLimit 配置错误拖垮根分区的排查实录</title>
+            <title>journald RateLimit 配错拖垮根分区</title>
             <link>https://blog.5772447.xyz/posts/6cce181e/</link>
             <pubDate>Tue, 08 Sep 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/posts/6cce181e/</guid>

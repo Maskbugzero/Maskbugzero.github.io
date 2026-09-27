@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Sun, 25 Sep 2022 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/ulimit/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>定位 Too many open files：一次生产服务文件描述符耗尽的排查与根治</title>
+            <title>Too many open files：nofile 过小与句柄泄漏</title>
             <link>https://blog.5772447.xyz/posts/6651b58c/</link>
             <pubDate>Sun, 25 Sep 2022 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/posts/6651b58c/</guid>

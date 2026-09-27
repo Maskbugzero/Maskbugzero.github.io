@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Wed, 09 Sep 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/%E7%A3%81%E7%9B%98%E5%BB%B6%E8%BF%9F/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>etcd 压缩后 API Server 为何仍偶发 5xx？一次 WAL 增长与磁盘延迟的根因定位</title>
+            <title>etcd 压缩后仍偶发 5xx：WAL 增长与磁盘延迟</title>
             <link>https://blog.5772447.xyz/posts/254b9d99/</link>
             <pubDate>Wed, 09 Sep 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/posts/254b9d99/</guid>

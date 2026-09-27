@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="三方 API 偶发 Could not resolve host 引发上游 504，排查从应用下沉到网络层，根因是单上游转发器 + EDNS0 大包被中间网络丢弃且无备用链路。">
-<title>一次内网 DNS 转发链路异常导致核心业务系统间歇解析超时与偶发 504 的排查记录</title>
+<title>DNS 转发链路异常致核心业务间歇解析超时与 504</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/fb53e550/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次内网 DNS 转发链路异常导致核心业务系统间歇解析超时与偶发 504 的排查记录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="DNS 转发链路异常致核心业务间歇解析超时与 504">
 <meta property='og:description' content="三方 API 偶发 Could not resolve host 引发上游 504，排查从应用下沉到网络层，根因是单上游转发器 + EDNS0 大包被中间网络丢弃且无备用链路。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/fb53e550/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='DNS' /><meta property='article:tag' content='网络运维' /><meta property='article:tag' content='故障排查' /><meta property='article:tag' content='EDNS0' /><meta property='article:tag' content='CoreDNS' /><meta property='article:tag' content='504' /><meta property='article:published_time' content='2026-07-09T16:58:00&#43;00:00'/><meta property='article:modified_time' content='2026-07-09T16:58:00&#43;00:00'/>
-<meta name="twitter:title" content="一次内网 DNS 转发链路异常导致核心业务系统间歇解析超时与偶发 504 的排查记录">
+<meta name="twitter:title" content="DNS 转发链路异常致核心业务间歇解析超时与 504">
 <meta name="twitter:description" content="三方 API 偶发 Could not resolve host 引发上游 504，排查从应用下沉到网络层，根因是单上游转发器 + EDNS0 大包被中间网络丢弃且无备用链路。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -283,7 +283,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/fb53e550/">一次内网 DNS 转发链路异常导致核心业务系统间歇解析超时与偶发 504 的排查记录</a>
+            <a href="/posts/fb53e550/">DNS 转发链路异常致核心业务间歇解析超时与 504</a>
         </h2>
     
         

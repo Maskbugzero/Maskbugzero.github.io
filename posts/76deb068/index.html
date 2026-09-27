@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="删除大日志后 df 仍显示磁盘爆满，du 与 df 相差 60GB，根因是进程仍持有已删除文件句柄，用 lsof +L1 定位并安全释放。">
-<title>磁盘空间为何删了大日志也不释放？一次 df 与 du 相差 60GB 的排查记录</title>
+<title>删了大日志磁盘仍满：df 与 du 相差 60GB</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/76deb068/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="磁盘空间为何删了大日志也不释放？一次 df 与 du 相差 60GB 的排查记录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="删了大日志磁盘仍满：df 与 du 相差 60GB">
 <meta property='og:description' content="删除大日志后 df 仍显示磁盘爆满，du 与 df 相差 60GB，根因是进程仍持有已删除文件句柄，用 lsof +L1 定位并安全释放。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/76deb068/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Linux' /><meta property='article:tag' content='磁盘空间' /><meta property='article:tag' content='lsof' /><meta property='article:tag' content='文件句柄' /><meta property='article:tag' content='logrotate' /><meta property='article:tag' content='日志管理' /><meta property='article:published_time' content='2022-03-15T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2022-03-15T07:00:00&#43;08:00'/>
-<meta name="twitter:title" content="磁盘空间为何删了大日志也不释放？一次 df 与 du 相差 60GB 的排查记录">
+<meta name="twitter:title" content="删了大日志磁盘仍满：df 与 du 相差 60GB">
 <meta name="twitter:description" content="删除大日志后 df 仍显示磁盘爆满，du 与 df 相差 60GB，根因是进程仍持有已删除文件句柄，用 lsof +L1 定位并安全释放。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -274,7 +274,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/76deb068/">磁盘空间为何删了大日志也不释放？一次 df 与 du 相差 60GB 的排查记录</a>
+            <a href="/posts/76deb068/">删了大日志磁盘仍满：df 与 du 相差 60GB</a>
         </h2>
     
         
@@ -571,7 +571,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次 Linux 磁盘疑难排查方法论：df/du 不一致、幽灵文件、inode 耗尽四步定位法</h2>
+            <h2 class="article-title">Linux 磁盘排查方法论：df/du 不一致与 inode 耗尽</h2>
         </div>
     </a>
 </article>

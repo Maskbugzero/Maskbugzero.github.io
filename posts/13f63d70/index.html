@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="晚高峰 QPS 翻倍但 HPA 副本纹丝不动，kubectl get hpa 的 TARGETS 显示 unknown，根因是 metrics-server 指标链路中断。">
-<title>Kubernetes HPA 为何在流量高峰不再自动扩容？一次 metrics-server 指标链路中断的排查记录</title>
+<title>HPA 高峰不扩容：metrics-server 指标链路中断</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/13f63d70/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Kubernetes HPA 为何在流量高峰不再自动扩容？一次 metrics-server 指标链路中断的排查记录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="HPA 高峰不扩容：metrics-server 指标链路中断">
 <meta property='og:description' content="晚高峰 QPS 翻倍但 HPA 副本纹丝不动，kubectl get hpa 的 TARGETS 显示 unknown，根因是 metrics-server 指标链路中断。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/13f63d70/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='HPA' /><meta property='article:tag' content='metrics-server' /><meta property='article:tag' content='自动扩容' /><meta property='article:tag' content='Aggregation Layer' /><meta property='article:tag' content='kubelet Summary API' /><meta property='article:tag' content='autoscaling' /><meta property='article:published_time' content='2022-11-05T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2022-11-05T07:00:00&#43;08:00'/>
-<meta name="twitter:title" content="Kubernetes HPA 为何在流量高峰不再自动扩容？一次 metrics-server 指标链路中断的排查记录">
+<meta name="twitter:title" content="HPA 高峰不扩容：metrics-server 指标链路中断">
 <meta name="twitter:description" content="晚高峰 QPS 翻倍但 HPA 副本纹丝不动，kubectl get hpa 的 TARGETS 显示 unknown，根因是 metrics-server 指标链路中断。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -274,7 +274,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/13f63d70/">Kubernetes HPA 为何在流量高峰不再自动扩容？一次 metrics-server 指标链路中断的排查记录</a>
+            <a href="/posts/13f63d70/">HPA 高峰不扩容：metrics-server 指标链路中断</a>
         </h2>
     
         

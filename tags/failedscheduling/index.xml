@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Sun, 19 Jan 2025 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/failedscheduling/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>一次 Kubernetes 命名空间 ResourceQuota 配额耗尽导致 Pod 卡在 Pending 的排查记录</title>
+            <title>ResourceQuota 配额耗尽致 Pod 卡在 Pending</title>
             <link>https://blog.5772447.xyz/posts/fb3632b1/</link>
             <pubDate>Sun, 19 Jan 2025 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/posts/fb3632b1/</guid>

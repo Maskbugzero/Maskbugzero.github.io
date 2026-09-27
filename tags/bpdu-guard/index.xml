@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Fri, 18 Sep 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/bpdu-guard/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>核心交换机堆叠后边缘端口为何频繁 errdisable？一次 BPDU Guard 误触发与配置漂移的排查记录</title>
+            <title>堆叠后边缘端口频繁 errdisable：BPDU Guard 误触发</title>
             <link>https://blog.5772447.xyz/posts/953d9b4c/</link>
             <pubDate>Fri, 18 Sep 2026 00:00:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/953d9b4c/</guid>

@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Sat, 26 Sep 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/linux%E8%BF%90%E7%BB%B4/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>记一次 journald 日志风暴：systemd-journald 配置错误导致根分区刷爆的排查实录</title>
+            <title>journald 配置被 override，日志刷爆根分区</title>
             <link>https://blog.5772447.xyz/posts/63250eb1/</link>
             <pubDate>Sat, 26 Sep 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/posts/63250eb1/</guid>

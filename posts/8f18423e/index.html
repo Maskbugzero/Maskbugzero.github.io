@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="CDN对外证书正常、源站证书却已过期，回源HTTPS握手失败引发整站雪崩，根因是续期依赖被悄悄破坏且无过期监控">
-<title>一次SSL/TLS证书过期导致全站HTTPS访问失败与API调用报证书错误的排查实录</title>
+<title>源站证书过期致回源 HTTPS 握手失败，全站中断</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/8f18423e/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次SSL/TLS证书过期导致全站HTTPS访问失败与API调用报证书错误的排查实录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="源站证书过期致回源 HTTPS 握手失败，全站中断">
 <meta property='og:description' content="CDN对外证书正常、源站证书却已过期，回源HTTPS握手失败引发整站雪崩，根因是续期依赖被悄悄破坏且无过期监控">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/8f18423e/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='SSL' /><meta property='article:tag' content='TLS' /><meta property='article:tag' content='证书过期' /><meta property='article:tag' content='Nginx' /><meta property='article:tag' content='CDN' /><meta property='article:tag' content='故障排查' /><meta property='article:published_time' content='2026-07-11T07:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-07-11T07:00:00&#43;00:00'/>
-<meta name="twitter:title" content="一次SSL/TLS证书过期导致全站HTTPS访问失败与API调用报证书错误的排查实录">
+<meta name="twitter:title" content="源站证书过期致回源 HTTPS 握手失败，全站中断">
 <meta name="twitter:description" content="CDN对外证书正常、源站证书却已过期，回源HTTPS握手失败引发整站雪崩，根因是续期依赖被悄悄破坏且无过期监控">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -268,7 +268,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/8f18423e/">一次SSL/TLS证书过期导致全站HTTPS访问失败与API调用报证书错误的排查实录</a>
+            <a href="/posts/8f18423e/">源站证书过期致回源 HTTPS 握手失败，全站中断</a>
         </h2>
     
         
@@ -553,7 +553,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次服务本地端口耗尽导致对外调用大量 Cannot assign requested address 的排查记录</h2>
+            <h2 class="article-title">TIME_WAIT 堆积耗尽端口，对外调用大面积失败</h2>
         </div>
     </a>
 </article>
@@ -564,7 +564,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 Kubernetes 因 liveness 探针配置过严导致 Pod 陷入 CrashLoopBackOff 的排查</h2>
+            <h2 class="article-title">liveness 探针过严致 Pod CrashLoopBackOff</h2>
         </div>
     </a>
 </article>

@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="车间 12 台 Modbus 采集网关每隔几小时成批掉线重启，串口日志混乱、CRC 错误率异常。定位为变频器启停瞬间在 RS485 总线上耦合出干扰脉冲，叠加网关固件对串口错误的恢复缺陷，双重整改后稳定。">
-<title>产线数据采集网关为何每隔几小时集体掉线？一次 RS485 总线干扰与看门狗误动作的排查记录</title>
+<title>RS485 总线干扰致采集网关每隔几小时集体掉线</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/10494fcc/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="产线数据采集网关为何每隔几小时集体掉线？一次 RS485 总线干扰与看门狗误动作的排查记录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="RS485 总线干扰致采集网关每隔几小时集体掉线">
 <meta property='og:description' content="车间 12 台 Modbus 采集网关每隔几小时成批掉线重启，串口日志混乱、CRC 错误率异常。定位为变频器启停瞬间在 RS485 总线上耦合出干扰脉冲，叠加网关固件对串口错误的恢复缺陷，双重整改后稳定。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/10494fcc/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='嵌入式' /><meta property='article:tag' content='RS485' /><meta property='article:tag' content='Modbus' /><meta property='article:tag' content='看门狗' /><meta property='article:tag' content='串口通信' /><meta property='article:tag' content='工业网关' /><meta property='article:published_time' content='2026-09-27T15:30:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-27T15:30:00&#43;08:00'/>
-<meta name="twitter:title" content="产线数据采集网关为何每隔几小时集体掉线？一次 RS485 总线干扰与看门狗误动作的排查记录">
+<meta name="twitter:title" content="RS485 总线干扰致采集网关每隔几小时集体掉线">
 <meta name="twitter:description" content="车间 12 台 Modbus 采集网关每隔几小时成批掉线重启，串口日志混乱、CRC 错误率异常。定位为变频器启停瞬间在 RS485 总线上耦合出干扰脉冲，叠加网关固件对串口错误的恢复缺陷，双重整改后稳定。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -268,7 +268,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/10494fcc/">产线数据采集网关为何每隔几小时集体掉线？一次 RS485 总线干扰与看门狗误动作的排查记录</a>
+            <a href="/posts/10494fcc/">RS485 总线干扰致采集网关每隔几小时集体掉线</a>
         </h2>
     
         

@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Fri, 25 Sep 2026 07:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/urllib3/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>记一次 Python requests 高并发连接池耗尽导致间歇性 ConnectionError 的排查</title>
+            <title>requests 连接池耗尽致间歇性 ConnectionError</title>
             <link>https://blog.5772447.xyz/posts/d5be3b26/</link>
             <pubDate>Fri, 25 Sep 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/posts/d5be3b26/</guid>
