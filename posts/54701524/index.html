@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="自研业务埋点上线后 Prometheus 频繁 OOM 重启、TSDB 写放大拖满磁盘。根因是新指标携带用户 ID 等高基数标签，series 数失控。治理标签并设基数上限后恢复。">
+<title>Prometheus 指标基数爆炸：TSDB 内存与磁盘双满</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/54701524/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Prometheus 指标基数爆炸：TSDB 内存与磁盘双满">
+<meta property='og:description' content="自研业务埋点上线后 Prometheus 频繁 OOM 重启、TSDB 写放大拖满磁盘。根因是新指标携带用户 ID 等高基数标签，series 数失控。治理标签并设基数上限后恢复。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/54701524/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Prometheus' /><meta property='article:tag' content='TSDB' /><meta property='article:tag' content='高基数' /><meta property='article:tag' content='监控运维' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2026-09-29T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-29T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="Prometheus 指标基数爆炸：TSDB 内存与磁盘双满">
+<meta name="twitter:description" content="自研业务埋点上线后 Prometheus 频繁 OOM 重启、TSDB 写放大拖满磁盘。根因是新指标携带用户 ID 等高基数标签，series 数失控。治理标签并设基数上限后恢复。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/54701524/">Prometheus 指标基数爆炸：TSDB 内存与磁盘双满</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            自研业务埋点上线后 Prometheus 频繁 OOM 重启、TSDB 写放大拖满磁盘。根因是新指标携带用户 ID 等高基数标签，series 数失控。治理标签并设基数上限后恢复。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-09-29T09:00:00&#43;08:00'>2026年9月29日星期二</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司的监控体系以 Prometheus 为核心，一台 8C16G 的专用实例采集全部基础设施与应用指标，运行两年一直平稳，日均 active series 稳定在 180 万左右。9 月中旬，业务团队上线了一套自研的用户行为埋点 SDK,按需求&quot;每个用户的请求都要可追溯&quot;，把 <code>user_id</code>、<code>order_id</code>、<code>session_id</code> 直接作为标签打进了自定义指标。</p>
+<p>上线第一周相安无事。第九天凌晨两点，Prometheus 因 OOM 被内核杀掉，systemd 拉起后跑了四十分钟再次 OOM;白天 Grafana 面板开始间歇性报 <code>query timeout</code>,磁盘容量告警也在同一天触发——一个埋点需求，把整个监控平台拖进了不可用边缘。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>Prometheus 容器反复重启，<code>dmesg</code> 里是标准的 OOM killer 记录，重启后内存爬升速度快于正常水平。</li>
+<li>磁盘:<code>/data</code> 分区日增量从平时的 2GB 涨到 9GB,按 30 天保留策略算，剩余空间只够撑四天。</li>
+<li>查询侧症状更早出现：面板查询超时，<code>/api/v1/query</code> 的 P99 延迟从 200ms 涨到 30s 以上，部分大范围查询直接失败。</li>
+<li><code>prometheus_tsdb_head_series</code> 指标本身也读得出来——head 里的 active series 从 180 万涨到了 1100 万，六天翻了六倍。</li>
+<li>业务接口无感知，故障完全局限在监控平台自身；但监控不可用意味着这期间所有告警都是盲的，风险敞口比故障本身更大。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步确认&quot;涨的是什么&quot;。Prometheus 自带的 TSDB 状态页(<code>/tsdb-status</code>)按指标名列出 series 增量排行，前三名全是业务埋点自定义指标：<code>app_request_duration_seconds</code>、<code>app_user_action_total</code>、<code>app_session_track_total</code>,三者合计贡献了 900 万新 series。点开标签明细，每个 series 的标签组合里都带着 <code>user_id=&quot;...&quot;</code> 或 <code>order_id=&quot;...&quot;</code>——<strong>每来一个新用户、每一笔新订单，就生成一批全新的时间序列</strong>，这就是基数(cardinality)爆炸的标准形态。</p>
+<p>第二步算清账。按当日活跃用户数 3 万、人均 6 类行为、每类行为 5 个额外标签维度估算，这三组指标一天的 series 增量就是百万级；而基础设施指标(节点、容器、网络)的 series 总集两年才积累到 180 万。增量与存量差了两个数量级，OOM 与写放大只是数学上的必然。</p>
+<p>第三步回溯为什么上线前没拦住。查变更记录，埋点 SDK 是业务团队自行发布的，指标通过 Pushgateway 汇入，没有经过监控平台的评审流程；Prometheus 侧也没有配置任何基数防御——<code>sample_limit</code>、<code>label_limit</code>、<code>keep_dropped</code> 相关的 per-target 限制全部是默认关闭状态。也就是说，防线在流程和配置两层同时缺位。</p>
+<p>第四步验证恢复路径。直接回滚埋点版本会导致业务侧追溯需求落空，于是采用&quot;收缩而非删除&quot;的方案：与业务团队确认真实需求是&quot;按渠道和地域聚合分析用户行为&quot;，而不是&quot;按单个用户 ID 精确追溯&quot;——追溯场景改走日志平台(ELK),指标只保留聚合维度。确定边界后开始整改。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>标签治理(治本)</strong>：三个埋点指标删除 <code>user_id</code>、<code>order_id</code>、<code>session_id</code> 标签，替换为 <code>channel</code>、<code>region</code>、<code>user_tier</code> 等低基数维度;改造后预估 series 总量从 1100 万回落到 210 万，与旧基线同量级。指标语义变化同步更新了 Grafana 面板与告警规则的标签匹配。</li>
+<li><strong>配置防线(防复发)</strong>:Pushgateway 与各 scrape target 加上 <code>sample_limit: 200000</code>、<code>label_limit: 30</code>、<code>label_value_length_limit: 200</code>;超过限制的 series 被拒收并记录 <code>prometheus_target_scrapes_exceeded_sample_limit_total</code>,拒收即告警——让下一次失控在第一分钟暴露，而不是第九天凌晨。</li>
+<li><strong>资源兜底</strong>：Prometheus 实例内存上调至 24G、<code>--storage.tsdb.retention.size=400GB</code> 硬顶保留策略(防止磁盘再被打穿)；磁盘告警阈值从 80% 提前到 70%。</li>
+<li><strong>流程补位</strong>：自定义指标上线纳入监控平台评审清单，新指标必须先在测试实例跑 24 小时观察基数曲线；把&quot;是否含 ID 类高基数标签&quot;写成评审必答题。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是<strong>业务埋点把 user_id 等无限增长值作为标签，series 数随用户与订单量线性爆炸，head 内存与 TSDB 写入双双超出实例承受能力</strong>。深层根因是双防线缺位：配置层没有 sample/label 上限，Prometheus 对失控指标来者不拒；流程层没有指标评审，业务团队不知道&quot;标签的每个取值组合都是一条独立时序&quot;这条 Prometheus 的基本成本模型。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>所有 scrape target 强制 sample_limit/label_limit,拒收指标告警化；</li>
+<li>新指标上线走评审流程，测试实例预跑 24 小时观察基数；</li>
+<li>TSDB 状态页的 series Top10 加入周巡检，环比涨幅超 30% 即预警；</li>
+<li>用户级追溯需求一律路由到日志平台，监控指标只做聚合维度——这条边界写进埋点开发规范。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这次故障最值得记下的不是&quot;高基数标签会炸&quot;这个知识点，而是它揭示的监控平台脆弱性模型:Prometheus 的成本不是随&quot;监控对象数&quot;线性增长，而是随&quot;标签取值组合数&quot;增长，一个看起来无害的埋点字段就能把成本模型改写。监控平台自身被拖垮时，全站告警同时失明——这九天的盲飞窗口提醒我们，监控系统的容量与防线，值得用和生产服务同等级别的方式去管理。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/0468b1c8/" >Prometheus 告警风暴，怎么把邮件和企微通道全拖垮了？</a></li>
+<li><a class="link" href="/posts/254b9d99/" >etcd 压缩后仍偶发 5xx：WAL 增长与磁盘延迟</a></li>
+<li><a class="link" href="/posts/b38ac0b7/" >Linux 磁盘排查方法论：df/du 不一致与 inode 耗尽</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/prometheus/">Prometheus</a>
+        
+            <a href="/tags/tsdb/">TSDB</a>
+        
+            <a href="/tags/%E9%AB%98%E5%9F%BA%E6%95%B0/">高基数</a>
+        
+            <a href="/tags/%E7%9B%91%E6%8E%A7%E8%BF%90%E7%BB%B4/">监控运维</a>
+        
+            <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/">服务运维</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/0468b1c8/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Prometheus 告警风暴，怎么把邮件和企微通道全拖垮了？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/5961e223/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次NFS存储服务端故障导致客户端进程陷入D状态业务整体假死的排查记录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/06be273b/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Ansible 变量优先级算错，批量服务器怎么就配置漂移了？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/4ac43627/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">服务器 CPU 软中断飙高，服务为何间歇超时？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/4867ee67/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">GitLab CI Runner 卡死致生产流水线全停的抢修</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
