@@ -632,13 +632,13 @@
 <h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
 </h2><p><strong>证书过期与轮换</strong></p>
 <ul>
-<li><a class="link" href="/posts/8f18423e/" >一次SSL/TLS证书过期导致全站HTTPS访问失败与API调用报证书错误的排查实录</a></li>
+<li><a class="link" href="/posts/8f18423e/" >源站证书过期致回源 HTTPS 握手失败，全站中断</a></li>
 <li><a class="link" href="/posts/04006cb8/" >记一次 RADIUS EAP-TLS 证书过期致全公司 802.1X 掉线</a></li>
 <li><a class="link" href="/posts/557c47d3/" >记一次 SSL 证书过期致内网 HTTPS 全面中断</a></li>
 </ul>
 <p><strong>K8s 节点与驱逐</strong></p>
 <ul>
-<li><a class="link" href="/posts/c0337851/" >一次 Kubernetes 节点磁盘压力触发 kubelet 驱逐导致业务 Pod 批量被删的排查记录</a></li>
+<li><a class="link" href="/posts/c0337851/" >磁盘压力触发驱逐：日志与镜像未治理致 Pod 批量被删</a></li>
 <li><a class="link" href="/posts/d4683312/" >K8s 节点磁盘压力致 Pod 批量驱逐的定位</a></li>
 </ul>
 
@@ -674,21 +674,13 @@
 
     
 
+
+
+
 <aside>
     <h2 class="section-title">相关文章</h2>
     <div class="subsection-list">
         <div class="article-list--tile">
-            
-                
-<article class="">
-    <a href="/posts/c0337851/">
-        
-
-        <div class="article-details">
-            <h2 class="article-title">磁盘压力触发驱逐：日志与镜像未治理致 Pod 批量被删</h2>
-        </div>
-    </a>
-</article>
             
                 
 <article class="">
@@ -708,6 +700,17 @@
 
         <div class="article-details">
             <h2 class="article-title">etcd 压缩后仍偶发 5xx：WAL 增长与磁盘延迟</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/c0337851/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">磁盘压力触发驱逐：日志与镜像未治理致 Pod 批量被删</h2>
         </div>
     </a>
 </article>
@@ -737,6 +740,7 @@
         </div>
     </div>
 </aside>
+
 
      
     

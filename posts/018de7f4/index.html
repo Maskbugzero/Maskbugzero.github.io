@@ -358,7 +358,7 @@
     
     
     <blockquote>
-        <p><strong>与姊妹篇的区别</strong>：本案例是<strong>局部影响</strong>——同一网段内<strong>部分</strong>终端拿不到 IP（老租约仍在线、新接入的失败），排查重点在租约表与地址池利用率；另一篇《<a class="link" href="/posts/59789918/" >一次DHCP地址池耗尽导致大面积断网的排查实录</a>》是<strong>全网段影响</strong>，重点是中继与作用域规划。两者的止血手段相同（扩容作用域 / 缩短租约），但<strong>判断「是耗尽还是中继故障」的思路不同</strong>。</p>
+        <p><strong>与姊妹篇的区别</strong>：本案例是<strong>局部影响</strong>——同一网段内<strong>部分</strong>终端拿不到 IP（老租约仍在线、新接入的失败），排查重点在租约表与地址池利用率；另一篇《<a class="link" href="/posts/59789918/" >记一次 DHCP 地址池耗尽引发的大面积断网</a>》是<strong>全网段影响</strong>，重点是中继与作用域规划。两者的止血手段相同（扩容作用域 / 缩短租约），但<strong>判断「是耗尽还是中继故障」的思路不同</strong>。</p>
 
     </blockquote>
 <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
@@ -445,6 +445,9 @@
 
     
 
+
+
+
 <aside>
     <h2 class="section-title">相关文章</h2>
     <div class="subsection-list">
@@ -452,55 +455,55 @@
             
                 
 <article class="">
-    <a href="/posts/59789918/">
+    <a href="/posts/7c34ba61/">
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 DHCP 地址池耗尽引发的大面积断网</h2>
+            <h2 class="article-title">Docker overlay2 inode 耗尽致容器批量创建失败</h2>
         </div>
     </a>
 </article>
             
                 
 <article class="">
-    <a href="/posts/30de78ed/">
+    <a href="/posts/0d552fca/">
         
 
         <div class="article-details">
-            <h2 class="article-title">MPLS 专线抖动致跨机房数据库同步中断的定位</h2>
+            <h2 class="article-title">OSPF 路由震荡致跨机房业务间歇中断的定位</h2>
         </div>
     </a>
 </article>
             
                 
 <article class="">
-    <a href="/posts/66557bdd/">
+    <a href="/posts/28efc43d/">
         
 
         <div class="article-details">
-            <h2 class="article-title">FortiGate 策略配错，内网 DNS 为何解析失败？</h2>
+            <h2 class="article-title">FortiGate HA 主备切换，业务为何大规模中断？</h2>
         </div>
     </a>
 </article>
             
                 
 <article class="">
-    <a href="/posts/38f14096/">
+    <a href="/posts/04006cb8/">
         
 
         <div class="article-details">
-            <h2 class="article-title">公网 DNS 解析超时，CDN 回源为何大面积失败？</h2>
+            <h2 class="article-title">记一次 RADIUS EAP-TLS 证书过期致全公司 802.1X 掉线</h2>
         </div>
     </a>
 </article>
             
                 
 <article class="">
-    <a href="/posts/8256a5f2/">
+    <a href="/posts/a3490d86/">
         
 
         <div class="article-details">
-            <h2 class="article-title">核心交换机 STP 根桥被抢，广播风暴怎么来的？</h2>
+            <h2 class="article-title">记一次交换机物理环路引发的整栋楼广播风暴</h2>
         </div>
     </a>
 </article>
@@ -508,6 +511,7 @@
         </div>
     </div>
 </aside>
+
 
      
     

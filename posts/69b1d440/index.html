@@ -619,12 +619,9 @@
 </h2><p>本次故障的本质是「基础设施配置漂移」在 K8s 证书链路上的放大效应。时钟偏差看似微小，却能直接阻断 kubelet 与 API Server 的 mTLS 通信，导致节点无法加入集群。根治方案不仅需要修复当前节点，更需要从 VM 模板、监控告警、变更 Checklist 三个维度建立防御体系，避免同类问题在未来扩容或迁移中再次出现。</p>
 <h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
 </h2><ul>
-<li><a class="link" href="https://maskbugzero.github.io/posts/69b1d440/"  target="_blank" rel="noopener"
-    >记一次 Kubernetes 因 liveness 探针配置过严导致 Pod 陷入 CrashLoopBackOff 的排查</a></li>
-<li><a class="link" href="https://maskbugzero.github.io/posts/69b1d440/"  target="_blank" rel="noopener"
-    >一次 Kubernetes 节点磁盘压力触发 kubelet 驱逐导致业务 Pod 批量被删的排查记录</a></li>
-<li><a class="link" href="https://maskbugzero.github.io/posts/69b1d440/"  target="_blank" rel="noopener"
-    >K8s 私有镜像仓库凭证过期，Pod 为何卡在 ImagePullBackOff？一次生产镜像拉取失败的排查记录</a></li>
+<li><a class="link" href="/posts/21e8a43e/" >liveness 探针过严致 Pod CrashLoopBackOff</a></li>
+<li><a class="link" href="/posts/c0337851/" >磁盘压力触发驱逐：日志与镜像未治理致 Pod 批量被删</a></li>
+<li><a class="link" href="/posts/cd2f7270/" >私有仓库凭证过期致 Pod 卡在 ImagePullBackOff</a></li>
 </ul>
 
 </section>
@@ -661,6 +658,9 @@
 
     
 
+
+
+
 <aside>
     <h2 class="section-title">相关文章</h2>
     <div class="subsection-list">
@@ -673,6 +673,17 @@
 
         <div class="article-details">
             <h2 class="article-title">kubelet 证书轮换失败致节点批量 NotReady</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/425c7ac4/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">CoreDNS 配置漂移致服务发现间歇性失败</h2>
         </div>
     </a>
 </article>
@@ -701,17 +712,6 @@
             
                 
 <article class="">
-    <a href="/posts/425c7ac4/">
-        
-
-        <div class="article-details">
-            <h2 class="article-title">CoreDNS 配置漂移致服务发现间歇性失败</h2>
-        </div>
-    </a>
-</article>
-            
-                
-<article class="">
     <a href="/posts/21e8a43e/">
         
 
@@ -724,6 +724,7 @@
         </div>
     </div>
 </aside>
+
 
      
     
