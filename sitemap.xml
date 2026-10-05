@@ -2,6 +2,42 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://blog.5772447.xyz/tags/igmp/</loc>
+    <lastmod>2026-10-05T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/post/</loc>
+    <lastmod>2026-10-05T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/</loc>
+    <lastmod>2026-10-05T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/</loc>
+    <lastmod>2026-10-05T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/%E6%B3%9B%E6%B4%AA/</loc>
+    <lastmod>2026-10-05T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/categories/</loc>
+    <lastmod>2026-10-05T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/%E4%BA%A4%E6%8D%A2%E6%9C%BA/</loc>
+    <lastmod>2026-10-05T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/</loc>
+    <lastmod>2026-10-05T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/</loc>
+    <lastmod>2026-10-05T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/posts/cc171b18/</loc>
+    <lastmod>2026-10-05T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/categories/%E8%BF%90%E7%BB%B4/</loc>
+    <lastmod>2026-10-05T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/%E7%BB%84%E6%92%AD/</loc>
+    <lastmod>2026-10-05T09:00:00+08:00</lastmod>
+  </url><url>
     <loc>https://blog.5772447.xyz/tags/configmap/</loc>
     <lastmod>2026-09-30T09:00:00+08:00</lastmod>
   </url><url>
@@ -11,19 +47,7 @@
     <loc>https://blog.5772447.xyz/tags/k8s/</loc>
     <lastmod>2026-09-30T09:00:00+08:00</lastmod>
   </url><url>
-    <loc>https://blog.5772447.xyz/post/</loc>
-    <lastmod>2026-09-30T09:00:00+08:00</lastmod>
-  </url><url>
     <loc>https://blog.5772447.xyz/tags/subpath/</loc>
-    <lastmod>2026-09-30T09:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/</loc>
-    <lastmod>2026-09-30T09:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/tags/</loc>
-    <lastmod>2026-09-30T09:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/categories/</loc>
     <lastmod>2026-09-30T09:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86/</loc>
@@ -33,9 +57,6 @@
     <lastmod>2026-09-30T09:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/</loc>
-    <lastmod>2026-09-30T09:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/categories/%E8%BF%90%E7%BB%B4/</loc>
     <lastmod>2026-09-30T09:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/prometheus/</loc>
@@ -315,9 +336,6 @@
     <lastmod>2026-09-18T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/%E4%BA%A4%E6%8D%A2%E6%9C%BA%E5%A0%86%E5%8F%A0/</loc>
-    <lastmod>2026-09-18T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/</loc>
     <lastmod>2026-09-18T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/ad-bitlocker/</loc>
@@ -725,9 +743,6 @@
     <loc>https://blog.5772447.xyz/tags/edns0/</loc>
     <lastmod>2026-07-09T16:58:00+00:00</lastmod>
   </url><url>
-    <loc>https://blog.5772447.xyz/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/</loc>
-    <lastmod>2026-07-09T16:58:00+00:00</lastmod>
-  </url><url>
     <loc>https://blog.5772447.xyz/tags/24h2/</loc>
     <lastmod>2026-07-09T07:00:00+00:00</lastmod>
   </url><url>
@@ -918,9 +933,6 @@
     <lastmod>2026-06-29T07:00:00+00:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/posts/a3490d86/</loc>
-    <lastmod>2026-06-29T07:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/tags/%E4%BA%A4%E6%8D%A2%E6%9C%BA/</loc>
     <lastmod>2026-06-29T07:00:00+00:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/alertmanager/</loc>

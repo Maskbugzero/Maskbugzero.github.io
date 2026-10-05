@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="会议室视频终端投产后整层接入交换机 CPU 飙高、终端间歇掉线。根因是视频流走未知组播，交换机无 IGMP 侦听按广播泛洪，CPU 被组播复制打满。启用 snooping 与固定 querier 后恢复。">
+<title>未知组播泛洪拖垮接入交换机：IGMP 侦听缺位</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/cc171b18/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="未知组播泛洪拖垮接入交换机：IGMP 侦听缺位">
+<meta property='og:description' content="会议室视频终端投产后整层接入交换机 CPU 飙高、终端间歇掉线。根因是视频流走未知组播，交换机无 IGMP 侦听按广播泛洪，CPU 被组播复制打满。启用 snooping 与固定 querier 后恢复。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/cc171b18/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='组播' /><meta property='article:tag' content='IGMP' /><meta property='article:tag' content='交换机' /><meta property='article:tag' content='网络运维' /><meta property='article:tag' content='泛洪' /><meta property='article:published_time' content='2026-10-05T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-05T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="未知组播泛洪拖垮接入交换机：IGMP 侦听缺位">
+<meta name="twitter:description" content="会议室视频终端投产后整层接入交换机 CPU 飙高、终端间歇掉线。根因是视频流走未知组播，交换机无 IGMP 侦听按广播泛洪，CPU 被组播复制打满。启用 snooping 与固定 querier 后恢复。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
+                网络运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/cc171b18/">未知组播泛洪拖垮接入交换机：IGMP 侦听缺位</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            会议室视频终端投产后整层接入交换机 CPU 飙高、终端间歇掉线。根因是视频流走未知组播，交换机无 IGMP 侦听按广播泛洪，CPU 被组播复制打满。启用 snooping 与固定 querier 后恢复。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-10-05T09:00:00&#43;08:00'>2026年10月5日星期一</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司三楼是营销部门集中办公区，约 120 个信息点，由两台接入交换机汇聚上联。9 月底，IT 按业务需求在三楼部署了一套分布式视频分发系统：6 间会议室各装一台视频终端，用于播放总部推送的培训与晨会直播流，视频源以组播方式(239.x.x.x 段)发送，设计意图是&quot;一路流、全网订阅、节省骨干带宽&quot;。</p>
+<p>设备上线第一天下午，三楼陆续有员工反馈网络卡顿;两小时后，两台接入交换机的管理 IP 开始间歇 ping 丢，部分桌面终端掉线重连。网管平台告警显示两台接入交换机 CPU 利用率从常态的 5% 飙到 95% 以上——一个按&quot;省带宽&quot;设计的方案，第一天就把接入层打瘫了。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>两台接入交换机 CPU 持续 90%+,<code>show processes cpu</code> 里流量复制相关进程占大头；管理平面响应迟缓，SSH 经常超时。</li>
+<li>三楼终端(有线+无线)集体症状：网页转圈、视频会议卡花屏、ping 网关丢包 30%~70%,越靠近视频终端的端口越严重。</li>
+<li>上联口出向流量异常巨大：一台接入交换机的上联口持续 700Mbps+ 出流量，而三楼正常业务出向总和不超过 100Mbps。</li>
+<li>视频本身反而&quot;能播&quot;——会议室画面正常，牺牲的是同交换机上其他所有人的流量。</li>
+<li>抓包确认视频流目的地址是 239.255.0.100~103(组播段)，并非广播地址——排除了&quot;广播风暴&quot;的第一直觉。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步先解释 CPU 飙高的去向。登录交换机看 CPU 排布，高耗进程是组播复制与 VLAN 泛洪相关任务；再对上联口抓包统计，发现同一路 239.255.0.100 的视频流，在<strong>每一个接入端口上都有副本</strong>——包括根本没有任何设备加入该组播组的空端口。这就是&quot;泛洪&quot;的直接证据：交换机把组播当成来者不拒的流量，从 VLAN 内所有端口复制出去。</p>
+<p>第二步定位为什么会被泛洪。组播要&quot;按需转发&quot;依赖 IGMP 侦听(IGMP snooping):交换机监听终端的 IGMP join 报文，只向&quot;声明过要看的端口&quot;转发。检查配置，这两台接入交换机的 <code>ip igmp snooping</code> 处于启用状态(默认开启)，但 VLAN 里<strong>没有 IGMP 查询器(querier)</strong>——没有设备周期性发 IGMP General Query,视频终端发出的 join 没有被维护成组成员表项，超时后表项清空，交换机对该组退化为&quot;未知组播&quot;处理；而默认行为下未知组播在 VLAN 内泛洪。视频终端为了保活持续重发 join,但查询器缺位使表项始终建不起来，泛洪就 permanent 化了。</p>
+<p>第三步核实 querier 缺位的原因。该网络的组播路由规划中，核心三层交换机本应启用 PIM 充当 querier,但视频系统设计文档里写的是&quot;二层直连即可，无需三层组播路由&quot;——实施时核心交换机的 PIM 没开，接入 VLAN 里也没有手动指定 IGMP querier,整条组播链路从设计起就缺了&quot;管理者&quot;这一环。三楼只是第一个受害者，四楼会议室挂着同一 VLAN 的另一台测试终端，只是流量小还没触发感知。</p>
+<p>第四步排除其他嫌疑：终端 ARP 表正常无环路；STP 稳定无拓扑变更风暴；端口广播抑制阈值未触发(因为流量是组播不是广播)——这也是为什么传统的&quot;广播风暴&quot;排查思路在这里全数落空。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>立即止血</strong>：在两台接入交换机上对视频 VLAN 配置 <code>ip igmp snooping querier</code>(交换机自身担任查询器，地址用 VLAN SVI),并启用 <code>ip igmp snooping</code> 的未知组播抑制(<code>unknown-multicast</code> 转发改为丢弃+向 querier 汇报)。生效后 CPU 五分钟内回落到 15%,掉线终端全部自愈。</li>
+<li><strong>架构补位</strong>：核心三层交换机为视频 VLAN 启用 PIM Sparse-Mode,由核心担任正式 querier 与 RP,接入层配置固定 <code>ip pim query-interval</code>;视频源所在 VLAN 与接收 VLAN 间打通组播路由，保证日后跨楼层扩展不再依赖&quot;碰运气&quot;。</li>
+<li><strong>防御性配置</strong>：接入端口启用风暴控制，把<strong>组播</strong>也纳入抑制阈值(此前只配了广播)；对未知组播统一配置丢弃策略，白名单只放行经审批的组播段。</li>
+<li><strong>流程修正</strong>：组播类应用上线 checklist 增加三项——querier 归属确认、未知组播处置策略确认、接入层 snooping 状态确认；视频系统的设计文档同步更正&quot;无需三层组播路由&quot;的错误结论。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是<strong>组播链路缺少 IGMP 查询器，组成员表项无法建立，视频流退化为未知组播被交换机在 VLAN 内全端口泛洪，接入交换机 CPU 被流量复制打满</strong>。深层根因是设计文档里&quot;二层直连即可&quot;的错误假设贯穿了实施与验收——组播不是&quot;发出去就完&quot;的单向流量，它依赖查询器、成员报告、表项维护这套持续运转的订阅机制；这套机制里缺任何一环，流量模型就从&quot;精准投递&quot;退化为&quot;全楼广播&quot;，而且退化得悄无声息：视频播得越好，泛洪越严重。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>全网交换机审计：核对每个 VLAN 的 IGMP snooping 与 querier 状态，输出基线报表入监控；</li>
+<li>风暴控制阈值覆盖组播维度，未知组播默认丢弃；</li>
+<li>组播应用上线必过三项检查(querier/未知组播策略/snooping 状态)，写入变更评审单；</li>
+<li>与视频系统的厂商确认保活与 join 周期参数，避免终端行为放大表项老化问题。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这次故障最容易误判的地方在于&quot;视频明明能播&quot;。组播的可怕之处恰恰在此：订阅机制失效时，它不报错、不中断，只是把&quot;精准投递&quot;静默降级成&quot;全员广播&quot;，用接入层的 CPU 和带宽为设计缺陷买单。排查二层流量问题时，广播风暴之外还要多问一句——组播的 querier 在哪、未知组播去哪，这两个问题答不上来，下一个被打瘫的接入交换机只是时间问题。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/a3490d86/" >记一次交换机物理环路引发的整栋楼广播风暴</a></li>
+<li><a class="link" href="/posts/bea8d60d/" >核心交换机 STP 风暴，全楼网络为何瘫痪？</a></li>
+<li><a class="link" href="/posts/460eac0e/" >记一次无线 AP 信道干扰致高层半层网络瘫痪</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E7%BB%84%E6%92%AD/">组播</a>
+        
+            <a href="/tags/igmp/">IGMP</a>
+        
+            <a href="/tags/%E4%BA%A4%E6%8D%A2%E6%9C%BA/">交换机</a>
+        
+            <a href="/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/">网络运维</a>
+        
+            <a href="/tags/%E6%B3%9B%E6%B4%AA/">泛洪</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/fb53e550/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">DNS 转发链路异常致核心业务间歇解析超时与 504</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/018de7f4/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次办公网DHCP地址池耗尽导致部分终端无法获取IP的排查记录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/0d552fca/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">OSPF 路由震荡致跨机房业务间歇中断的定位</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/28efc43d/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">FortiGate HA 主备切换，业务为何大规模中断？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/04006cb8/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 RADIUS EAP-TLS 证书过期致全公司 802.1X 掉线</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
