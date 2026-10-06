@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="新装 12 台无线 AP 与 8 路摄像头接入同一台 PoE 交换机后，AP 每天不定时批量重启。根因是整机功率预算按 802.3af 估算而实际 AP 以 at 级协商，叠加 LLDP-MED 请求峰值功率，预算耗尽触发供电轮换。重新核定预算并分级供电后解决。">
+<title>PoE 供电不足致 AP 批量重启：功率预算被低估</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/15191373/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="PoE 供电不足致 AP 批量重启：功率预算被低估">
+<meta property='og:description' content="新装 12 台无线 AP 与 8 路摄像头接入同一台 PoE 交换机后，AP 每天不定时批量重启。根因是整机功率预算按 802.3af 估算而实际 AP 以 at 级协商，叠加 LLDP-MED 请求峰值功率，预算耗尽触发供电轮换。重新核定预算并分级供电后解决。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/15191373/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='PoE' /><meta property='article:tag' content='无线AP' /><meta property='article:tag' content='功率预算' /><meta property='article:tag' content='交换机' /><meta property='article:tag' content='网络运维' /><meta property='article:published_time' content='2026-10-06T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-06T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="PoE 供电不足致 AP 批量重启：功率预算被低估">
+<meta name="twitter:description" content="新装 12 台无线 AP 与 8 路摄像头接入同一台 PoE 交换机后，AP 每天不定时批量重启。根因是整机功率预算按 802.3af 估算而实际 AP 以 at 级协商，叠加 LLDP-MED 请求峰值功率，预算耗尽触发供电轮换。重新核定预算并分级供电后解决。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%B7%AF%E7%94%B1%E5%99%A8/" style="background-color: hsl(353, 60%, 84%); color: hsl(353, 60%, 15%);">
+                路由器
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/15191373/">PoE 供电不足致 AP 批量重启：功率预算被低估</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            新装 12 台无线 AP 与 8 路摄像头接入同一台 PoE 交换机后，AP 每天不定时批量重启。根因是整机功率预算按 802.3af 估算而实际 AP 以 at 级协商，叠加 LLDP-MED 请求峰值功率，预算耗尽触发供电轮换。重新核定预算并分级供电后解决。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-10-06T09:00:00&#43;08:00'>2026年10月6日星期二</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司四楼办公区 9 月底完成无线网络扩容：新增 12 台 Wi-Fi 6 无线 AP,同一楼层还顺带部署了 8 路 IP 摄像头做安全监控，全部接入同一台 24 口 PoE+ 交换机。交换机是三年前采购的，标称 PoE 总功率 370W,当时只带 6 台老 AP,余量充足——采购扩容设备时没有人重新算过功率账。</p>
+<p>设备割接完成后第一周风平浪静。第二周开始，无线控制器上每天出现两三次&quot;多台 AP 同时离线再上线&quot;的告警，每次 3~5 台、持续一分多钟自行恢复；同一交换机下的摄像头也在夜间偶发掉线重连。AP 位置分散在整层，不是集中某几个——这个&quot;随机批量&quot;的模式持续了五天，运维按&quot;交换机固件 bug&quot;申请了换机，换完照旧。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>无线控制器告警：AP 批量断开重连，时间点不固定，白天夜间都有，单次涉及 3~5 台，恢复后功能正常。</li>
+<li>AP 本地日志显示是<strong>断电重启</strong>而非软件重启——事件序列为&quot;供电中断，设备冷启动&quot;，不是 CAPWAP 隧道掉线。</li>
+<li>摄像头夜间红外模式开启时掉线频率明显升高，白天几乎不掉。</li>
+<li>交换机自身运行正常，端口状态灯正常，<code>show interface</code> 无 CRC/错包，链路从未 down——供电问题不体现在链路层。</li>
+<li>交换机电源模块无告警，风扇正常，机箱温度正常——不是过热保护。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步看交换机的 PoE 状态。<code>show power inline</code> 的输出给出第一个关键信息：总功率 370W 的预算，当前实际输出 365W 左右，<strong>几乎贴着上限</strong>；12 台新 AP 的协商功率全部在 25.5W 一档(802.3at),而当初扩容预算是按 15.4W(802.3af)一台估的——差出来的 120W 正好被新 AP 吃掉。剩下 8 台老 AP 和摄像头把预算占满，只留了 5W 左右的余量。</p>
+<p>第二步解释&quot;为什么是随机批量重启&quot;。PoE 交换机的功率分配是动态的：每台受电设备(PD)的实际取电会随工作状态波动，AP 在满负荷射频发射(多用户并发、mesh 回传)时瞬时功率比协商值再高几瓦。当多个 AP 恰好同时进入高负载、总需求超过 370W 时，交换机按优先级<strong>拒绝或切断部分端口的供电</strong>——被切掉的 AP 断电重启，重启期间其余 AP 的功率需求回落，于是几分钟后又能重新上电。哪个 AP&quot;中奖&quot;取决于当时的瞬时负载分布，这就是&quot;随机批量&quot;的成因。</p>
+<p>第三步解释摄像头为何夜间高发。摄像头白天用红外关闭模式，整机功率约 8W;夜间红外补光灯开启，功率爬到 13W 以上。8 路 × 5W 的夜间增量，恰好是压垮本就贴顶的功率预算的最后一根稻草——所以掉线集中在夜间。</p>
+<p>第四步核实施工环节的疏漏。查采购与实施记录：扩容方案里写了&quot;AP 802.3at、单台 30W 供电&quot;，但功率预算表却按 15.4W/台 计算并标注&quot;370W 充裕&quot;——两处数字自相矛盾，实施时没人交叉核对；LLDP-MED 协商会向交换机请求更高功率档位，进一步抬高了实际占用，这一层在预算表里完全没有体现。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>短期</strong>：把 8 路摄像头迁到一台独立的老交换机(非 PoE+ 但摄像头功率低，af 足够)，为 AP 释放约 110W 预算；当天完成后一周内零重启。</li>
+<li><strong>正式</strong>：按&quot;802.3at 满档 30W + 20% 余量&quot;重新核定该交换机的接入计划，上限 9 台 AP(当前 12 台超出)，超出的 3 台 AP 迁到隔壁机柜的另一台交换机；为高密区域两台 AP 配置为&quot;关键优先级&quot;(交换机 PoE port priority),拥塞时优先保无线。</li>
+<li><strong>流程</strong>：扩容审批表增加一行强制项——&ldquo;PoE 功率预算核算(按 PD 协商标准上限计，非最低值)&quot;，预算表必须体现 LLDP-MED 峰值；采购 PoE 交换机时按&quot;当前需求 × 1.5&quot;选容量。</li>
+<li><strong>监控</strong>：网管平台增加对该交换机 <code>powerUsed / powerAvailable</code> 比值的采集，超 80% 告警——这次故障中，365/370 的比值在告警眼皮底下躺了五天，因为没人定义过这个指标。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是<strong>扩容按 802.3af 低档估算功率，实际设备以 802.3at 高档协商，叠加 LLDP-MED 峰值请求后总需求逼近 370W 上限</strong>；任何瞬时波动都会触发交换机按优先级切断部分端口供电，被切断的 AP 断电重启，负载回落后又恢复，形成&quot;随机批量重启&quot;的循环。深层根因是变更流程缺陷：预算核算用了错误的单台功率基准，且功率余量没有纳入任何监控指标，隐患在告警体系里不可见。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>全网 PoE 交换机功率占用率盘点，超 80% 的列入整改清单；</li>
+<li>PoE 扩容审批强制附功率预算表，按 PD 协商上限+20% 余量计算，双人复核；</li>
+<li>PoE 端口为关键设备(AP/门禁)配置高供电优先级，普通终端低优先级；</li>
+<li>功率占用率指标纳入网管采集，80% 告警、90% 严重。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>PoE 功率问题和机房 UPS 容量问题是同一类错误的两张面孔：按&quot;铭牌最低值&quot;而不是&quot;实际协商上限&quot;做容量规划。370W 听起来很大，但 12 台 at 级 AP 就是 360W 起步——数字不会骗人，被跳过的只是那一步乘法。这次还暴露了告警体系的盲区：数据一直在，指标没定义，等于没有。容量类资源(功率、IP 池、存储、license)的占用率，都应该成为一等公民的监控项。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/460eac0e/" >记一次无线 AP 信道干扰致高层半层网络瘫痪</a></li>
+<li><a class="link" href="/posts/cbaa3ade/" >办公区无线网络为何间歇性断连？</a></li>
+<li><a class="link" href="/posts/4561423f/" >记一次 NAC 802.1X 认证后终端无法获取 IP 的排查记录</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/poe/">PoE</a>
+        
+            <a href="/tags/%E6%97%A0%E7%BA%BFap/">无线AP</a>
+        
+            <a href="/tags/%E5%8A%9F%E7%8E%87%E9%A2%84%E7%AE%97/">功率预算</a>
+        
+            <a href="/tags/%E4%BA%A4%E6%8D%A2%E6%9C%BA/">交换机</a>
+        
+            <a href="/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/">网络运维</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/cc171b18/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">未知组播泛洪拖垮接入交换机：IGMP 侦听缺位</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/fb53e550/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">DNS 转发链路异常致核心业务间歇解析超时与 504</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/018de7f4/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">一次办公网DHCP地址池耗尽导致部分终端无法获取IP的排查记录</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/0d552fca/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">OSPF 路由震荡致跨机房业务间歇中断的定位</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/28efc43d/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">FortiGate HA 主备切换，业务为何大规模中断？</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
