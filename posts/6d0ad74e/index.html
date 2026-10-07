@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="行政部新批次台式机休眠后按电源键黑屏无响应，强制断电才能开机。根因是快速启动的混合休眠镜像与网卡 WoL 唤醒配置冲突，睡眠态网卡驱动提前断电。调整电源计划与驱动设置后解决。">
+<title>终端休眠后无法唤醒：快速启动与网卡唤醒冲突</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/6d0ad74e/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="终端休眠后无法唤醒：快速启动与网卡唤醒冲突">
+<meta property='og:description' content="行政部新批次台式机休眠后按电源键黑屏无响应，强制断电才能开机。根因是快速启动的混合休眠镜像与网卡 WoL 唤醒配置冲突，睡眠态网卡驱动提前断电。调整电源计划与驱动设置后解决。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/6d0ad74e/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='桌面运维' /><meta property='article:tag' content='电源管理' /><meta property='article:tag' content='Wake-on-LAN' /><meta property='article:tag' content='快速启动' /><meta property='article:tag' content='Windows' /><meta property='article:published_time' content='2026-10-07T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-07T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="终端休眠后无法唤醒：快速启动与网卡唤醒冲突">
+<meta name="twitter:description" content="行政部新批次台式机休眠后按电源键黑屏无响应，强制断电才能开机。根因是快速启动的混合休眠镜像与网卡 WoL 唤醒配置冲突，睡眠态网卡驱动提前断电。调整电源计划与驱动设置后解决。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" style="background-color: hsl(195, 60%, 84%); color: hsl(195, 60%, 15%);">
+                桌面运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/6d0ad74e/">终端休眠后无法唤醒：快速启动与网卡唤醒冲突</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            行政部新批次台式机休眠后按电源键黑屏无响应，强制断电才能开机。根因是快速启动的混合休眠镜像与网卡 WoL 唤醒配置冲突，睡眠态网卡驱动提前断电。调整电源计划与驱动设置后解决。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-10-07T09:00:00&#43;08:00'>2026年10月7日星期三</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司行政部 10 月初换装 40 台同批次商用台式机(Windows 11 专业版)，标准化镜像统一下发，镜像里预置了两项 IT 策略：一是开启&quot;快速启动&quot;(Fast Startup)以提升开机速度，二是启用网卡 Wake-on-LAN(WoL),便于夜间补丁窗口远程唤醒终端。</p>
+<p>部署第十天，服务台开始接到集中投诉：这批机器在&quot;关机&quot;后(用户视角的关机，实际是快速启动的混合休眠)第二天早上按电源键，机器电源灯亮、风扇转，但屏幕始终黑屏无显示，键鼠无反应；只能长按电源键强制断电再开机才能进入系统。两周内累计出现 17 台次，涉及 9 台机器，全部集中在这批新机——老批次机器零报障。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>触发条件固定：正常&quot;关机&quot;后隔夜(或数小时)再开机出问题；当天开关机无异常。</li>
+<li>现场表现为&quot;假死&quot;：电源指示灯亮、风扇运转、硬盘灯偶闪，但无 POST 画面、无蜂鸣，键盘大小写切换键灯不亮——系统未完成引导。</li>
+<li>强制断电(拔电源线或长按电源键 10 秒)后首次开机一定正常。</li>
+<li>事件日志线索：故障机器的系统日志里，上次&quot;关机&quot;事件类型是 <strong>Kernel-Power 事件 42(进入睡眠)</strong> 而非正常 Kernel-General 12(关机)——印证快速启动在&quot;关机&quot;时执行的是休眠。</li>
+<li>9 台机器随机分布，与使用者的软件环境无明显关联；同一办公室非同批次机器正常。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步核对&quot;关机&quot;的真实行为。快速启动(Fast Startup/Hiberboot)是 Windows 8 起的机制：点&quot;关机&quot;时系统实际执行的是<strong>内核会话休眠</strong>——把内核状态与驱动状态写入 hiberfil.sys 后断电，下次开机直接从镜像恢复以加快启动。这意味着&quot;关机&quot;后的机器并非冷关机，网卡仍保留供电等待唤醒——这正是 WoL 能在&quot;关机&quot;后生效的前提。事件日志的类型混淆(42 而非关机事件)确认了这批机器走的就是混合休眠路径。</p>
+<p>第二步聚焦&quot;唤醒&quot;环节。快速启动下，开机引导要做的第一件事是从 hiberfil.sys 恢复内核镜像，这一步高度依赖<strong>存储控制器与磁盘驱动在休眠前后状态一致</strong>。而这批机器的网卡驱动(厂商定制版)默认启用了&quot;节能以太网 EEE&quot;与&quot;关机网络供电保持&quot;的组合：夜间网卡固件自发进入深度节能，并在特定条件下向主机发出一个唤醒信号——但此时 ACPI 固件层对&quot;从休眠镜像恢复&quot;的引导路径与网卡发出的唤醒事件产生竞态，固件卡在等待唤醒确认与恢复镜像之间，表现为黑屏假死。厂商支持库确认这是一个已知的驱动与 Windows 快速启动兼容性问题，新版驱动(比镜像里集成的版本新两代)修复了该竞态。</p>
+<p>第三步解释&quot;为什么当天开关机正常&quot;。当天&quot;关机-开机&quot;周期里，网卡尚未进入深度节能(节能计时器通常在断电后较长时间才触发)，引导不经过竞态窗口；隔夜场景才命中。</p>
+<p>第四步排查环境差异，解释老机器为何正常：老机器镜像未启用快速启动(2023 年标准镜像刻意关闭了它，当时因另一款打印驱动的不兼容)，&ldquo;关机&quot;是真关机，完全不涉及休眠恢复路径。两代镜像的策略差异，决定了故障只出现在新批次。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>立即止血</strong>：通过 GPO 对这批机器关闭快速启动(电源策略：<code>启用快速启动=禁用</code>)，并禁用网卡&quot;允许计算机关闭此设备以节约电源&rdquo;。&ldquo;关机&quot;回归真关机，黑屏假死立即消失——代价是开机时间从 12 秒回到 25 秒左右，行政部业务可接受。</li>
+<li><strong>根治</strong>：为该型号网卡推送厂商新版驱动(修复竞态的版本)，保留快速启动以维持开机体验；灰度 10 台两周无复现后全量推送。</li>
+<li><strong>策略固化</strong>：标准镜像构建规范新增一条——启用快速启动的镜像必须捆绑经过兼容性验证的网卡驱动版本，二者作为一个整体发布；镜像清单里记录&quot;快速启动开关状态&quot;与&quot;网卡驱动版本&quot;的对应关系。</li>
+<li><strong>监控与台账</strong>：服务台工单分类新增&quot;休眠/唤醒类&quot;标签，同型号两周内出现 3 单即触发驱动版本审查；新批次设备部署后首月纳入重点观察清单。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是<strong>网卡厂商定制驱动的节能逻辑与 Windows 快速启动的休眠恢复路径存在竞态</strong>：隔夜后网卡深度节能状态与 hiberfil 恢复引导互相等待，固件卡死在黑屏假死。深层根因有二：其一，新镜像同时开启了快速启动与网络唤醒两项对底层电源时序敏感的策略，却没有做&quot;组合场景&quot;的过夜验证——单项测试都正常，组合才出问题；其二，新旧镜像的电源策略不一致(老的关闭快速启动)，使两批机器行为分裂，故障被局限在新批次反而推迟了全局排查。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>镜像策略变更(尤其电源/驱动类)必须包含&quot;过夜唤醒&quot;测试用例，单项通过不算通过；</li>
+<li>全公司镜像清单统一登记快速启动状态与网卡驱动版本，消灭两代镜像的策略漂移；</li>
+<li>厂商驱动更新纳入月度例行推送评估，安全类与 bugfix 类驱动优先；</li>
+<li>新设备部署首月设为强化观察期，同类故障 3 单即触发根因审查。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这起故障的教训浓缩为一句话：<strong>&ldquo;关机&quot;不再是关机的年代，电源策略的每个组合都需要被当作一个整体来测试</strong>。快速启动、WoL、网卡节能三项各自都是成熟特性，叠在一起却踩出了固件竞态。企业终端标准化做得越彻底，镜像里的隐藏组合就传播得越广——40 台同批次机器两周内 17 台次的爆发速度提醒我们，新镜像部署的第一周就应该是压力最大的观察期，而不是&quot;装完就撒手&quot;的收尾。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/cfb90b2b/" >USB-C 扩展坞接双屏为何没信号？桌面排障记</a></li>
+<li><a class="link" href="/posts/36719bcb/" >Windows 漫游配置文件损坏致终端登录卡死的修复</a></li>
+<li><a class="link" href="/posts/d2951d8b/" >员工电脑批量蓝屏的根因定位</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/">桌面运维</a>
+        
+            <a href="/tags/%E7%94%B5%E6%BA%90%E7%AE%A1%E7%90%86/">电源管理</a>
+        
+            <a href="/tags/wake-on-lan/">Wake-on-LAN</a>
+        
+            <a href="/tags/%E5%BF%AB%E9%80%9F%E5%90%AF%E5%8A%A8/">快速启动</a>
+        
+            <a href="/tags/windows/">Windows</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/3ac611a9/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Hyper-V 虚拟机实时迁移失败：vSwitch 配置漂移</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/a38eb681/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">RDS 会话主机临时配置文件：UPD 挂载失败与配额耗尽</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/ac8933af/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">组策略共享权限配错致全公司无法访问共享文件夹</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/f78d7f76/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">域控 NTP 时间源失效，全公司 Kerberos 为何大面积失败？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/36719bcb/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Windows 漫游配置文件损坏致终端登录卡死的修复</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
