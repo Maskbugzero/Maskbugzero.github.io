@@ -6,7 +6,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Fri, 10 Mar 2023 16:20:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/tmp/index.xml" rel="self" type="application/rss+xml" /><item>
-            <title>Linux /tmp 被定时清理致 Java 应用建不了临时文件</title>
+            <title>tmp 目录被定时清理致 Java 应用建不了临时文件</title>
             <link>https://blog.5772447.xyz/posts/25cf583a/</link>
             <pubDate>Fri, 10 Mar 2023 16:20:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/posts/25cf583a/</guid>

@@ -16,7 +16,7 @@
 <meta property='og:description' content="journald 因服务崩溃循环 + RateLimit 误配导致根分区 100% 写满，systemctl journalctl 全部卡死，排查出 StartLimit + RateLimitInterval 冲突与日志轮转缺失。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/2ebdb79b/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='journald' /><meta property='article:tag' content='systemd' /><meta property='article:tag' content='日志风暴' /><meta property='article:tag' content='根分区写满' /><meta property='article:tag' content='RateLimit' /><meta property='article:tag' content='日志轮转' /><meta property='article:tag' content='磁盘排查' /><meta property='article:published_time' content='2026-09-01T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-01T07:00:00&#43;08:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='journald' /><meta property='article:tag' content='systemd' /><meta property='article:tag' content='日志风暴' /><meta property='article:tag' content='根分区写满' /><meta property='article:tag' content='RateLimit' /><meta property='article:tag' content='日志轮转' /><meta property='article:published_time' content='2026-09-01T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-01T07:00:00&#43;08:00'/>
 <meta name="twitter:title" content="堵住 journald 日志风暴：一次根分区写满的定位与根治">
 <meta name="twitter:description" content="journald 因服务崩溃循环 + RateLimit 误配导致根分区 100% 写满，systemctl journalctl 全部卡死，排查出 StartLimit + RateLimitInterval 冲突与日志轮转缺失。">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -703,8 +703,6 @@
         
             <a href="/tags/%E6%97%A5%E5%BF%97%E8%BD%AE%E8%BD%AC/">日志轮转</a>
         
-            <a href="/tags/%E7%A3%81%E7%9B%98%E6%8E%92%E6%9F%A5/">磁盘排查</a>
-        
     </section>
 
 
@@ -732,29 +730,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">Linux /tmp 被定时清理致 Java 应用建不了临时文件</h2>
-        </div>
-    </a>
-</article>
-            
-                
-<article class="">
-    <a href="/posts/6651b58c/">
-        
-
-        <div class="article-details">
-            <h2 class="article-title">Too many open files：nofile 过小与句柄泄漏</h2>
-        </div>
-    </a>
-</article>
-            
-                
-<article class="">
-    <a href="/posts/b38ac0b7/">
-        
-
-        <div class="article-details">
-            <h2 class="article-title">Linux 磁盘排查方法论：df/du 不一致与 inode 耗尽</h2>
+            <h2 class="article-title">tmp 目录被定时清理致 Java 应用建不了临时文件</h2>
         </div>
     </a>
 </article>

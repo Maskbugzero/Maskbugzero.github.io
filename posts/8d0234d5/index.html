@@ -16,7 +16,7 @@
 <meta property='og:description' content="服务器上调 tcp_tw_reuse 与 netdev_max_backlog 后吞吐量骤降，tcpdump 定位到 PAWS 误判与 qdisc 拥塞丢包双重根因，最终靠精准回退 + sysctl 模板收口。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/8d0234d5/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Linux' /><meta property='article:tag' content='TCP' /><meta property='article:tag' content='内核参数' /><meta property='article:tag' content='tcp_tw_reuse' /><meta property='article:tag' content='netdev_max_backlog' /><meta property='article:tag' content='PAWS' /><meta property='article:tag' content='qdisc' /><meta property='article:tag' content='性能调优' /><meta property='article:tag' content='内核排障' /><meta property='article:published_time' content='2020-02-25T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2020-02-25T07:00:00&#43;08:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Linux' /><meta property='article:tag' content='TCP' /><meta property='article:tag' content='内核参数' /><meta property='article:tag' content='tcp_tw_reuse' /><meta property='article:tag' content='netdev_max_backlog' /><meta property='article:tag' content='PAWS' /><meta property='article:published_time' content='2020-02-25T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2020-02-25T07:00:00&#43;08:00'/>
 <meta name="twitter:title" content="一次 Linux 内核参数调优误配导致 TCP 性能断崖的排查记录">
 <meta name="twitter:description" content="服务器上调 tcp_tw_reuse 与 netdev_max_backlog 后吞吐量骤降，tcpdump 定位到 PAWS 误判与 qdisc 拥塞丢包双重根因，最终靠精准回退 + sysctl 模板收口。">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -463,12 +463,6 @@
             <a href="/tags/netdev_max_backlog/">Netdev_max_backlog</a>
         
             <a href="/tags/paws/">PAWS</a>
-        
-            <a href="/tags/qdisc/">Qdisc</a>
-        
-            <a href="/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/">性能调优</a>
-        
-            <a href="/tags/%E5%86%85%E6%A0%B8%E6%8E%92%E9%9A%9C/">内核排障</a>
         
     </section>
 

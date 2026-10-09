@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Java应用突发无法创建临时文件，根因是系统定时任务清理/tmp误删了应用正在使用的临时文件。">
-<title>Linux /tmp 被定时清理致 Java 应用建不了临时文件</title>
+<title>tmp 目录被定时清理致 Java 应用建不了临时文件</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/25cf583a/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Linux /tmp 被定时清理致 Java 应用建不了临时文件">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="tmp 目录被定时清理致 Java 应用建不了临时文件">
 <meta property='og:description' content="Java应用突发无法创建临时文件，根因是系统定时任务清理/tmp误删了应用正在使用的临时文件。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/25cf583a/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Linux' /><meta property='article:tag' content='/tmp' /><meta property='article:tag' content='systemd' /><meta property='article:tag' content='Java' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2023-03-10T16:20:00&#43;00:00'/><meta property='article:modified_time' content='2023-03-10T16:20:00&#43;00:00'/>
-<meta name="twitter:title" content="Linux /tmp 被定时清理致 Java 应用建不了临时文件">
+<meta name="twitter:title" content="tmp 目录被定时清理致 Java 应用建不了临时文件">
 <meta name="twitter:description" content="Java应用突发无法创建临时文件，根因是系统定时任务清理/tmp误删了应用正在使用的临时文件。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -279,7 +279,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/25cf583a/">Linux /tmp 被定时清理致 Java 应用建不了临时文件</a>
+            <a href="/posts/25cf583a/">tmp 目录被定时清理致 Java 应用建不了临时文件</a>
         </h2>
     
         
@@ -621,17 +621,6 @@
             
                 
 <article class="">
-    <a href="/posts/6651b58c/">
-        
-
-        <div class="article-details">
-            <h2 class="article-title">Too many open files：nofile 过小与句柄泄漏</h2>
-        </div>
-    </a>
-</article>
-            
-                
-<article class="">
     <a href="/posts/636f1d7a/">
         
 
@@ -648,6 +637,17 @@
 
         <div class="article-details">
             <h2 class="article-title">Nginx 反代配错，上传文件大小限制为何失效？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/76deb068/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">删了大日志磁盘仍满：df 与 du 相差 60GB</h2>
         </div>
     </a>
 </article>

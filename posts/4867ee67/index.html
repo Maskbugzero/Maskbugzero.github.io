@@ -396,8 +396,7 @@
     <section class="article-content">
     
     
-    <h1 id="一次gitlab-ci-runner卡死导致生产部署流水线全停的排查实录"><a href="#%e4%b8%80%e6%ac%a1gitlab-ci-runner%e5%8d%a1%e6%ad%bb%e5%af%bc%e8%87%b4%e7%94%9f%e4%ba%a7%e9%83%a8%e7%bd%b2%e6%b5%81%e6%b0%b4%e7%ba%bf%e5%85%a8%e5%81%9c%e7%9a%84%e6%8e%92%e6%9f%a5%e5%ae%9e%e5%bd%95" class="header-anchor"></a>一次GitLab CI Runner卡死导致生产部署流水线全停的排查实录
-</h1><h2 id="一问题背景"><a href="#%e4%b8%80%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>一、问题背景
+    <h2 id="一问题背景"><a href="#%e4%b8%80%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>一、问题背景
 </h2><p>下午两点十五分，我正坐在工位上整理上午的网络变更文档，钉钉群里突然炸开了一连串告警信息。运维总监@我说：&ldquo;线上部署流水线全挂了，研发提交了 7 个 Merge Request 等着合并发布，紧急发布也被卡住了，抓紧处理！&ldquo;这是我们最核心的生产部署链路——从代码合并到镜像构建再到 K8s 滚动发布，全部跑在自建的 GitLab CI 上。一旦停摆，研发一天的工作量就没法上线。</p>
 <p>我们公司自建了一套 GitLab（社区版 15.8.0）做代码托管，CI 部分使用了 3 台自建 Runner（其中 2 台是共享 Runner，1 台是项目级 Runner），部署在机房内部，配置是 4 核 8G 的虚拟机。平时每天大约跑 200~300 个 Pipeline，主要场景包括 Java 后端服务构建、Node 前端构建、Docker 镜像打包和 Helm Chart 同步等。系统从上线以来一直很稳定，从未出现过这么严重的全停故障。</p>
 <p>紧急程度 P0——这意味着研发部门所有人在下班前都没办法发布代码，且因为关联到生产环境，可能影响晚上的业务运营。务必在 30 分钟内恢复。</p>

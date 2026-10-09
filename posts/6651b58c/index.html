@@ -16,7 +16,7 @@
 <meta property='og:description' content="一个跑了几天的 Java 服务突然大量报 Too many open files，新连接被拒、健康检查失败，最终定位到 systemd nofile 太小叠加句柄泄漏，用 lsof/proc 定位并根治。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/6651b58c/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='文件描述符' /><meta property='article:tag' content='Too many open files' /><meta property='article:tag' content='EMFILE' /><meta property='article:tag' content='LimitNOFILE' /><meta property='article:tag' content='句柄泄漏' /><meta property='article:tag' content='lsof' /><meta property='article:tag' content='ulimit' /><meta property='article:tag' content='systemd' /><meta property='article:published_time' content='2022-09-25T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2022-09-25T07:00:00&#43;08:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='文件描述符' /><meta property='article:tag' content='Too many open files' /><meta property='article:tag' content='EMFILE' /><meta property='article:tag' content='LimitNOFILE' /><meta property='article:tag' content='句柄泄漏' /><meta property='article:tag' content='lsof' /><meta property='article:published_time' content='2022-09-25T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2022-09-25T07:00:00&#43;08:00'/>
 <meta name="twitter:title" content="Too many open files：nofile 过小与句柄泄漏">
 <meta name="twitter:description" content="一个跑了几天的 Java 服务突然大量报 Too many open files，新连接被拒、健康检查失败，最终定位到 systemd nofile 太小叠加句柄泄漏，用 lsof/proc 定位并根治。">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -554,10 +554,6 @@
         
             <a href="/tags/lsof/">Lsof</a>
         
-            <a href="/tags/ulimit/">Ulimit</a>
-        
-            <a href="/tags/systemd/">Systemd</a>
-        
     </section>
 
 
@@ -596,18 +592,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">Linux 磁盘排查方法论：df/du 不一致与 inode 耗尽</h2>
-        </div>
-    </a>
-</article>
-            
-                
-<article class="">
-    <a href="/posts/49b13065/">
-        
-
-        <div class="article-details">
-            <h2 class="article-title">Restart=always 无退避致重启风暴拖垮整机</h2>
+            <h2 class="article-title">磁盘 df 与 du 不一致：inode 耗尽</h2>
         </div>
     </a>
 </article>
