@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="300 台采集终端远程升级固件，现场供电波动致 23 台升级中断变砖。根因是单分区 OTA 直接覆写运行固件，无备份分区与回滚机制。改双分区 A/B 方案并加签名校验后恢复批量升级能力。">
+<title>OTA 固件升级断电变砖：A/B 双分区缺位</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/7fec59ab/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="OTA 固件升级断电变砖：A/B 双分区缺位">
+<meta property='og:description' content="300 台采集终端远程升级固件，现场供电波动致 23 台升级中断变砖。根因是单分区 OTA 直接覆写运行固件，无备份分区与回滚机制。改双分区 A/B 方案并加签名校验后恢复批量升级能力。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/7fec59ab/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='嵌入式' /><meta property='article:tag' content='OTA' /><meta property='article:tag' content='固件升级' /><meta property='article:tag' content='双分区' /><meta property='article:tag' content='设备运维' /><meta property='article:published_time' content='2026-10-09T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-09T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="OTA 固件升级断电变砖：A/B 双分区缺位">
+<meta name="twitter:description" content="300 台采集终端远程升级固件，现场供电波动致 23 台升级中断变砖。根因是单分区 OTA 直接覆写运行固件，无备份分区与回滚机制。改双分区 A/B 方案并加签名校验后恢复批量升级能力。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/" style="background-color: hsl(156, 60%, 84%); color: hsl(156, 60%, 15%);">
+                嵌入式
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/7fec59ab/">OTA 固件升级断电变砖：A/B 双分区缺位</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            300 台采集终端远程升级固件，现场供电波动致 23 台升级中断变砖。根因是单分区 OTA 直接覆写运行固件，无备份分区与回滚机制。改双分区 A/B 方案并加签名校验后恢复批量升级能力。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-10-09T09:00:00&#43;08:00'>2026年10月9日星期五</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司的环境监测终端(基于 STM32 + 外挂 Flash,采集温湿度与气体数据上报)部署了 300 余台，分布在不同厂房。早期固件更新靠现场拆机用 ST-Link 刷写，一台半小时；今年初固件加入了远程 OTA 能力，通过后台下发升级包，设备在凌晨空闲时段自行下载并升级——半年来跑过三次小版本升级，一切正常，OTA 被视为理所当然的能力。</p>
+<p>10 月上旬，新固件 v2.4(新增 Modbus-RTU 从站支持)按计划对 300 台设备批量推送。升级当夜厂区恰有计划性电路检修，多栋厂房间歇断电。次日上午盘点：23 台设备无法上线，现场确认全部处于&quot;变砖&quot;状态——上电后设备指示灯常亮但不启动，串口无任何输出。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>23 台变砖设备的分布与当晚断电区域完全重合;其余 277 台升级成功且运行正常。</li>
+<li>变砖设备上电后 Bootloader 打印固件头校验失败后停在一个死循环，不尝试任何恢复动作。</li>
+<li>通过烧录座读回 Flash 内容:应用分区的固件是<strong>半新半旧</strong>——前半段是 v2.4 的新数据，后半段还是 v2.3 的残留，写入在断电瞬间被硬切。</li>
+<li>后台升级记录显示这 23 台的状态停留在&quot;下载完成，写入中&quot;。</li>
+<li>设备没有电池备份，断电即失电——没有&quot;优雅收尾&quot;的机会。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步确认变砖机理。读回的 Flash 镜像说明了一切：这台设备的 OTA 是<strong>单分区就地覆写</strong>——bootloader 把新固件直接写进当前运行的应用分区，写入过程被断电打断，应用分区落下一个既不是 v2.3 也不是 v2.4 的残缺镜像。重启后 bootloader 校验固件头 CRC 失败，而它的逻辑里&quot;校验失败&quot;没有对应的恢复路径(设计时假设校验失败不会发生)，直接死循环。也就是说，这台设备不是&quot;升级失败&quot;，是&quot;升级机制里根本没有失败这个状态&quot;。</p>
+<p>第二步复盘为什么半年没事、这次出事。前三次升级全部成功，是因为没有断电；OTA 机制的脆弱点从来都在，只是被&quot;升级时段不会断电&quot;这个未成文的假设掩盖着。这次计划性检修恰好落在升级窗口，把假设击穿了——300 台里有 23 台(7.7%)在写入窗口内碰上断电，概率与检修时长吻合。</p>
+<p>第三步看厂商方案与业界惯例的差距。向固件外包厂商索要设计文档，其 OTA 方案为&quot;下载到暂存区 → 擦除应用区 → 逐块写入 → CRC 校验&quot;，确实是单分区。而嵌入式行业对&quot;升级中断电&quot;的标准答案是 <strong>A/B 双分区</strong>(或带回滚的 reserve 分区)：新固件写入备用分区，校验通过后仅切换启动指针；断电只损失一次升级，设备永远能从完好的另一半启动。厂商文档里也承认 v1 方案&quot;未考虑升级过程中失电&quot;。</p>
+<p>第四步明确救砖与防再发的两条线：变砖的 23 台必须现场拆机刷写(这正是 OTA 要消灭的作业方式，等于为设计缺陷返工一遍)；更重要的是，OTA 机制本身必须重做，否则下次任何一次意外断电(不限于计划检修)都会批量复现。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>救砖</strong>：23 台设备分三个片区安排现场刷写，用烧录座恢复 v2.4;顺带为每台设备加装&quot;升级窗口 UPS 或超级电容&quot;作为临时缓冲(硬件改造，随下次维护批量实施)。</li>
+<li><strong>OTA 重做(治本)</strong>：固件升级为 A/B 双分区方案——Flash 划分 slot A/slot B,新固件写入非活动分区，全量 CRC 与签名校验通过后置&quot;试运行&quot;标志，bootloader 引导新固件；新固件首次上报心跳后才置&quot;确认&quot;标志，否则下次复位自动回滚旧分区。断电在任何时刻发生，设备都能从完整分区启动，最坏损失是&quot;这次升级没成功&quot;。</li>
+<li><strong>完整性加强</strong>：升级包加 Ed25519 签名校验，bootloader 拒绝未签名镜像——顺带堵住了&quot;伪造升级包&quot;这个此前完全敞开的安全口子。</li>
+<li><strong>运维策略</strong>：后台批量升级按厂房分批灰度(先 5% 观察 24 小时再放量)；升级窗口与厂区电力作业计划建立联动，电力检修日在后台冻结升级任务。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是<strong>OTA 采用单分区就地覆写，升级窗口内断电使应用分区留下残缺镜像，bootloader 无失败恢复路径而陷入死循环</strong>。深层根因是设计阶段接受了&quot;升级期间不会断电&quot;的隐含假设，却没有为假设失效设计任何兜底——嵌入式设备部署在物理世界，断电不是异常而是必然事件；半年无事只说明运气好，不说明机制对。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>固件设计评审新增&quot;失电安全&quot;必审项：任何写 Flash 的路径都必须回答&quot;此刻断电会怎样&quot;，答不出就不是可发布方案；</li>
+<li>A/B 双分区+签名校验列为公司嵌入式设备的 OTA 标准架构，新项目强制执行；</li>
+<li>批量 OTA 一律分批灰度，禁止全量一夜推送；</li>
+<li>设备侧升级窗口与现场电力计划联动，检修日冻结升级任务。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这 23 台变砖设备是同一种工程错误的 23 份罚单：在嵌入式世界，&ldquo;用户可能随时拔电源&quot;不是边界情况，而是默认运行环境。OTA 的全部价值就在于让人不在现场也能安全地改设备——而单分区覆写方案恰恰把这个前提卖掉了。A/B 双分区的思想成本极低(多一半 Flash、一个启动指针)，却把&quot;升级失败&quot;从不可恢复的砖变成了可重试的日常。任何写持久存储的过程，都值得先问一句：此刻断电，明天它会以什么状态醒来？</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/10494fcc/" >RS485 总线干扰致采集网关每隔几小时集体掉线</a></li>
+<li><a class="link" href="/posts/f691db9d/" >基于STM32的空气质量检测仪</a></li>
+<li><a class="link" href="/posts/c4f182e1/" >基于STM32的家庭气象站</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E5%B5%8C%E5%85%A5%E5%BC%8F/">嵌入式</a>
+        
+            <a href="/tags/ota/">OTA</a>
+        
+            <a href="/tags/%E5%9B%BA%E4%BB%B6%E5%8D%87%E7%BA%A7/">固件升级</a>
+        
+            <a href="/tags/%E5%8F%8C%E5%88%86%E5%8C%BA/">双分区</a>
+        
+            <a href="/tags/%E8%AE%BE%E5%A4%87%E8%BF%90%E7%BB%B4/">设备运维</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/10494fcc/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">RS485 总线干扰致采集网关每隔几小时集体掉线</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
