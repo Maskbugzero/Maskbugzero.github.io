@@ -5,7 +5,37 @@
         <description>Recent content in 标签 on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Sat, 10 Oct 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Sun, 11 Oct 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>阻塞调用</title>
+            <link>https://blog.5772447.xyz/tags/%E9%98%BB%E5%A1%9E%E8%B0%83%E7%94%A8/</link>
+            <pubDate>Sun, 11 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E9%98%BB%E5%A1%9E%E8%B0%83%E7%94%A8/</guid>
+            <description></description>
+        </item><item>
+            <title>线程池</title>
+            <link>https://blog.5772447.xyz/tags/%E7%BA%BF%E7%A8%8B%E6%B1%A0/</link>
+            <pubDate>Sun, 11 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E7%BA%BF%E7%A8%8B%E6%B1%A0/</guid>
+            <description></description>
+        </item><item>
+            <title>事件循环</title>
+            <link>https://blog.5772447.xyz/tags/%E4%BA%8B%E4%BB%B6%E5%BE%AA%E7%8E%AF/</link>
+            <pubDate>Sun, 11 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E4%BA%8B%E4%BB%B6%E5%BE%AA%E7%8E%AF/</guid>
+            <description></description>
+        </item><item>
+            <title>Py-Spy</title>
+            <link>https://blog.5772447.xyz/tags/py-spy/</link>
+            <pubDate>Sun, 11 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/py-spy/</guid>
+            <description></description>
+        </item><item>
+            <title>Asyncio</title>
+            <link>https://blog.5772447.xyz/tags/asyncio/</link>
+            <pubDate>Sun, 11 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/asyncio/</guid>
+            <description></description>
+        </item><item>
             <title>消息队列</title>
             <link>https://blog.5772447.xyz/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/</link>
             <pubDate>Sat, 10 Oct 2026 09:00:00 +0800</pubDate>
