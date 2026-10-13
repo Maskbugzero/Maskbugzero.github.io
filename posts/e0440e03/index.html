@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="万兆上联链路间歇丢包，接口 UP 无 flap，CRC 计数却持续攀升。根因是机柜整理时跳线被扎带勒出过小弯曲半径，宏弯损耗把收光功率压到灵敏度边缘。更换跳线并规范走线后恢复，已加光功率监控。">
+<title>光衰超标：链路 UP 却间歇丢包</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/e0440e03/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="光衰超标：链路 UP 却间歇丢包">
+<meta property='og:description' content="万兆上联链路间歇丢包，接口 UP 无 flap，CRC 计数却持续攀升。根因是机柜整理时跳线被扎带勒出过小弯曲半径，宏弯损耗把收光功率压到灵敏度边缘。更换跳线并规范走线后恢复，已加光功率监控。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/e0440e03/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='光模块' /><meta property='article:tag' content='光衰' /><meta property='article:tag' content='CRC错误' /><meta property='article:tag' content='光纤跳线' /><meta property='article:tag' content='物理层' /><meta property='article:published_time' content='2026-10-13T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-13T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="光衰超标：链路 UP 却间歇丢包">
+<meta name="twitter:description" content="万兆上联链路间歇丢包，接口 UP 无 flap，CRC 计数却持续攀升。根因是机柜整理时跳线被扎带勒出过小弯曲半径，宏弯损耗把收光功率压到灵敏度边缘。更换跳线并规范走线后恢复，已加光功率监控。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
+                网络运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/e0440e03/">光衰超标：链路 UP 却间歇丢包</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            万兆上联链路间歇丢包，接口 UP 无 flap，CRC 计数却持续攀升。根因是机柜整理时跳线被扎带勒出过小弯曲半径，宏弯损耗把收光功率压到灵敏度边缘。更换跳线并规范走线后恢复，已加光功率监控。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-10-13T09:00:00&#43;08:00'>2026年10月13日星期二</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>7 层办公区由一台接入交换机（H3C S5130 系列）通过万兆单模光纤上联至核心交换机，承载该层约 160 名员工的有线与无线业务。月初弱电间做了一次机柜整理：重新绑扎线缆、加装理线环、整理光纤跳线走向。</p>
+<p>整理完成后一周内，陆续有用户反馈&quot;视频会议声音断续、网页偶尔转圈&quot;。起初报障零星，值班同事按无线侧问题处理了两次，调了 AP 信道、重启了无线控制器，没有效果。两周后报障集中：有线台式机同样出现卡顿，运维才把注意力转回有线链路。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>该层用户 ping 网关持续丢包 1%~3%，时好时坏；大流量时段（视频会议、批量传输）丢包感知更明显。</li>
+<li>交换机上联端口状态始终 UP，近 30 天无 up/down 记录；端口带宽利用率不到 10%，不存在拥塞。</li>
+<li>接口计数异常：input errors 与 CRC 统计持续增长，output 方向干净无错。</li>
+<li>同机房其他接入交换机（不同上联链路）无此现象，排除核心侧公共路径问题。</li>
+<li>业务表现分层：TCP 重传托底的普通业务基本无感，实时性要求高的视频会议明显卡顿——链路&quot;没断&quot;，但质量已经劣化。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p><strong>第一步，确定丢包发生在哪一段。</strong> 先从终端 ping 网关，丢包；再登到接入交换机上用 Vlan-interface 地址 ping 核心网关，同样丢包；从核心侧反向 ping 该接入交换机管理地址，依然丢包。三段测试把范围收窄到&quot;接入交换机 ↔ 核心交换机&quot;之间的上联链路这一跳。</p>
+<p><strong>第二步，用端口计数判断故障层面。</strong></p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#f92672">[</span>S5130-7F<span style="color:#f92672">]</span> display interface Ten-GigabitEthernet 1/0/49
+</span></span><span style="display:flex;"><span>Ten-GigabitEthernet1/0/49 current state: UP
+</span></span><span style="display:flex;"><span>Input <span style="color:#f92672">(</span>total<span style="color:#f92672">)</span>:  <span style="color:#ae81ff">2841932</span> packets,  ...
+</span></span><span style="display:flex;"><span>Input errors: 18642, CRC: <span style="color:#ae81ff">18642</span>        <span style="color:#75715e"># 持续增长,每 10 分钟新增数百</span>
+</span></span><span style="display:flex;"><span>Output <span style="color:#f92672">(</span>total<span style="color:#f92672">)</span>: <span style="color:#ae81ff">3904221</span> packets, ...
+</span></span><span style="display:flex;"><span>Output errors: <span style="color:#ae81ff">0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出侧干净、输入侧大量 CRC：本端收到的帧 FCS 校验失败，说明对端发来的光信号到达本端时已经劣化。同时排除了双工/速率嫌疑——光口固定全双工，且速率错配不会伴随持续增长的 CRC。丢包发生在物理层。</p>
+<p><strong>第三步，上光层诊断读 DDM 数据。</strong></p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#f92672">[</span>S5130-7F<span style="color:#f92672">]</span> display transceiver interface Ten-GigabitEthernet 1/0/49 verbose
+</span></span><span style="display:flex;"><span>Transceiver Type: 10GBASE-LR
+</span></span><span style="display:flex;"><span>TX Power<span style="color:#f92672">(</span>dBm<span style="color:#f92672">)</span>: -5.3      <span style="color:#75715e"># 正常范围</span>
+</span></span><span style="display:flex;"><span>RX Power<span style="color:#f92672">(</span>dBm<span style="color:#f92672">)</span>: -16.8     <span style="color:#75715e"># 该模块接收灵敏度标称 -14.4 dBm,已低于灵敏度下限</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>本端收光 -16.8 dBm，已经低于模块灵敏度。再去核心侧看对端：TX -5.1 正常，RX 同样只有 -16.5——两端收光都低，说明问题在两端之间的光路（跳线、配线架），而不是某一端的模块。</p>
+<p><strong>第四步，排除端面污染。</strong> 端面污染是收光低最常见的嫌疑。两端拔下用一次性光纤清洁笔清洁后复测：RX 从 -16.8 改善到 -15.9，有轻微污染但远不足以解释全部损耗。顺着跳线摸了一遍物理路径：在机柜后侧理线区，跳线被一根尼龙扎带勒在金属立柱上，弯折处半径目测不足 1 厘米；再往上穿过理线环的位置也有个明显急弯。</p>
+<p><strong>第五步，验证弯折假设。</strong> 把跳线从扎带和理线环处解放出来、捋顺，复测 RX 立刻回到 -9.2 dBm；再把扎带按原样勒回去，RX 又跌回 -16 dBm 区间。宏弯损耗实锤——光在过小半径的弯曲处泄漏，弯曲越紧损耗越大，正好解释了跳线&quot;本身没坏、一勒就衰减&quot;的现象。</p>
+<p><strong>第六步，更换与验证。</strong> 换用新跳线、按规范弯曲半径重新走线（魔术贴固定、避开金属棱角），RX 稳定在 -7.1 dBm；CRC 计数停止增长，观察 30 分钟新增为 0；终端 ping 丢包消失。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>更换受损跳线并整改走线</strong>：弯曲半径不小于 30mm、用魔术贴替代尼龙扎带、金属转角处加保护、光纤与铜缆分道捆扎。</li>
+<li><strong>全机房同类隐患排查</strong>：其余 12 条光纤上联链路逐条测光功率，发现另有 2 条 RX 比基线低了 3~4 dB,一并做了走线整改。</li>
+<li><strong>监控与基线</strong>：关键链路收光功率纳入网管监控（DDM 阈值告警：RX 低于&quot;模块灵敏度 + 3dB&quot;即预警）；建立季度光功率基线巡检，记录 RX/TX 值比对劣化趋势。</li>
+<li><strong>排查手册固化</strong>：把&quot;链路间歇丢包&quot;类故障的标准排查顺序写入手册——第一步看端口 CRC 计数与光功率，而不是先怀疑应用或&quot;网络抖动&quot;。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是<strong>机柜整理时跳线被扎带勒紧并在理线环处形成小于 1 厘米的急弯，产生宏弯损耗，把收光功率从 -7 dBm 量级压到 -16.8 dBm、低于模块接收灵敏度</strong>。这不是&quot;没有信号&quot;，而是信号处于可辨与不可辨的边缘：误码率从 10⁻¹² 量级恶化到 10⁻⁶ 量级，帧校验失败被丢弃，表现为间歇丢包，而链路始终 UP。</p>
+<p>深层根因有两条：光层劣化不触发任何链路层告警，而监控体系只覆盖端口的 up/down 与流量，光功率、误码计数这些真正的一线健康指标无人查看；以及弱电间整理这类&quot;非功能性操作&quot;没有走变更评审、也没有走线规范约束——从 -7 dBm 跌到 -16.8 dBm 的全过程里，没有任何一条告警线被触发。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>光纤走线规范：弯曲半径不小于 30mm、禁用尼龙扎带勒紧光纤、避开金属棱角、整理后必须复测光功率；</li>
+<li>DDM 光功率监控：RX/TX 功率与温度纳入网管轮询，阈值设为&quot;灵敏度 + 3dB&quot;预警；</li>
+<li>物理层健康指标进监控：端口 CRC/input errors 增长率告警，而不只是 up/down 事件；</li>
+<li>弱电间任何整理、改造纳入变更流程，涉及光纤的操作在变更单中记录前后光功率值；</li>
+<li>常备光纤清洁笔与备用跳线，一线培训&quot;先看 CRC 再看应用&quot;的排查顺序。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>链路 UP 不等于链路健康。这次故障里交换机的所有&quot;健康信号&quot;都是绿的：端口 UP、无 flap、利用率极低——唯一说真话的是没人看的 CRC 计数和收光功率。光纤劣化是渐变过程，从 -7 dBm 到 -16.8 dBm 之间没有任何告警被触发，直到业务用卡顿把损失暴露出来。把物理层指标（光功率、误码计数）纳入监控、把走线规范写进变更流程，这两件事成本都极低，却能让下一次&quot;间歇丢包&quot;在用户报障之前就被看见。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/f7f05e7d/" >记一次核心交换机 LACP 协商失败致带宽骤降</a></li>
+<li><a class="link" href="/posts/5cafffbb/" >分支到总部专线丢包，视频会议为何全程卡顿？</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E5%85%89%E6%A8%A1%E5%9D%97/">光模块</a>
+        
+            <a href="/tags/%E5%85%89%E8%A1%B0/">光衰</a>
+        
+            <a href="/tags/crc%E9%94%99%E8%AF%AF/">CRC错误</a>
+        
+            <a href="/tags/%E5%85%89%E7%BA%A4%E8%B7%B3%E7%BA%BF/">光纤跳线</a>
+        
+            <a href="/tags/%E7%89%A9%E7%90%86%E5%B1%82/">物理层</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/f7f05e7d/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次核心交换机 LACP 协商失败致带宽骤降</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
