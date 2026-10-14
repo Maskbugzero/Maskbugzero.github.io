@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="办公网双栈环境下多个客户端卡顿约 21 秒后恢复，浏览器与目标服务均正常。抓包定位为 IPv6 出站被静默黑洞、老客户端吃满 TCP 超时未回退；边界改快速失败并加探测联动后解决。">
+<title>IPv6 出站静默丢弃：客户端为何卡 21 秒？</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/ab94812c/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="IPv6 出站静默丢弃：客户端为何卡 21 秒？">
+<meta property='og:description' content="办公网双栈环境下多个客户端卡顿约 21 秒后恢复，浏览器与目标服务均正常。抓包定位为 IPv6 出站被静默黑洞、老客户端吃满 TCP 超时未回退；边界改快速失败并加探测联动后解决。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/ab94812c/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='IPv6' /><meta property='article:tag' content='Happy Eyeballs' /><meta property='article:tag' content='RouterOS' /><meta property='article:tag' content='双栈' /><meta property='article:tag' content='TCP超时' /><meta property='article:published_time' content='2026-10-14T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-14T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="IPv6 出站静默丢弃：客户端为何卡 21 秒？">
+<meta name="twitter:description" content="办公网双栈环境下多个客户端卡顿约 21 秒后恢复，浏览器与目标服务均正常。抓包定位为 IPv6 出站被静默黑洞、老客户端吃满 TCP 超时未回退；边界改快速失败并加探测联动后解决。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%B7%AF%E7%94%B1%E5%99%A8/" style="background-color: hsl(353, 60%, 84%); color: hsl(353, 60%, 15%);">
+                路由器
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/ab94812c/">IPv6 出站静默丢弃：客户端为何卡 21 秒？</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            办公网双栈环境下多个客户端卡顿约 21 秒后恢复，浏览器与目标服务均正常。抓包定位为 IPv6 出站被静默黑洞、老客户端吃满 TCP 超时未回退；边界改快速失败并加探测联动后解决。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-10-14T09:00:00&#43;08:00'>2026年10月14日星期三</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 6 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司办公网约 40 人，出口是一台 RouterOS 软路由，PPPoE 双栈已经稳定运行一年多：IPv6 通过 DHCPv6-PD 拿到 /60 前缀，由 RA 通告给办公网段，员工电脑大多持有 IPv6 全局地址，平时上网一切正常。</p>
+<p>上周四上午开始，陆续有同事反馈：打开公司 ERP 客户端和个别网站时，界面会卡二十秒左右才&quot;缓过来&quot;。奇怪的是，同一台电脑上用浏览器打开网页却基本正常。受影响的人越来越多，但故障像是&quot;挑软件&quot;——ERP 客户端、老版 VPN 拨号工具几乎必卡，浏览器和常用 IM 则无感。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>卡顿时长高度一致:每次约 21 秒,然后要么成功、要么重试一次即通。</li>
+<li>浏览器打开网页基本正常,顶多首次略慢;问题集中在几款传统客户端软件。</li>
+<li>同一台电脑上 ping 域名(默认走 IPv4)完全正常;换 ping 该域名对应的 IPv6 地址则超时。</li>
+<li>内网互通无异常:能 ping 通网关,内网 IPv6 地址互访正常。</li>
+<li>电脑 CPU、内存、无线信号都正常,换有线、重启电脑均无效。</li>
+<li>换手机热点访问同一服务正常,排除目标服务端问题。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p><strong>第一步,把&quot;卡 21 秒&quot;和 IPv6 联系起来。</strong> 在一台必卡的电脑上复现故障,同时抓包。Wireshark 里看得很清楚:客户端解析域名拿到 A 和 AAAA 两组地址后,先向 IPv6 地址发 SYN;这个 SYN 无人应答,按 3 秒起步、指数退避重传两次,直到约 21 秒后才放弃,转而对 IPv4 地址发 SYN、秒连。netstat 里同步能看到连接长时间停在 SYN_SENT。21 秒不是业务慢,而是 Windows 默认的 TCP 连接超时(三次 SYN 尝试)——这就是&quot;卡 21 秒&quot;的全部来源。</p>
+<p><strong>第二步,解释为什么浏览器没事、老客户端遭殃。</strong> Windows 按 RFC 6724 的地址排序规则,域名同时有 A/AAAA 记录时优先尝试 IPv6。现代浏览器都实现了 Happy Eyeballs(RFC 8305):IPv6 连接约 300 毫秒没有进展,就并行发起 IPv4,谁先通用谁,用户几乎无感。而大量传统客户端(尤其 Java 写的、以及一些老国产软件)没有这个机制,严格按地址顺序先试 IPv6,只能吃满整个 TCP 超时。顺带一提,Linux 默认的重传参数更&quot;耐心&quot;(约两分钟),同样的故障在 Linux 客户端上会卡得更久——这解释了为什么&quot;同一个故障,每个人的体感完全不同&quot;。</p>
+<p><strong>第三步,从内到外逐段确认 IPv6 出站已断。</strong> 终端侧:ping6 网关秒通,LAN 侧 RA、地址、邻居发现都健康。路由器侧:在 RouterOS 上 ping 公网 IPv6 地址(如 <code>2400:3200::1</code>)四次全部超时,而 ping <code>223.5.5.5</code> 四次全通——IPv4 出站完好、IPv6 出站不通,故障范围收缩到&quot;路由器之外&quot;。<code>/ipv6 route print</code> 显示默认路由还在、指向 PPPoE 接口;traceroute6 显示数据包出一跳后就没有回应。也就是说,这不是&quot;无路由&quot;(那会立刻返回不可达),而是<strong>有路由、包在运途中被某一跳静默丢弃</strong>,一路没有任何 ICMPv6 错误返回。</p>
+<p><strong>第四步,确认运营商侧故障。</strong> 向宽带运营商报障,后台确认该区域 IPv6 出口前一晚有割接维护、IPv4 不受影响,恢复时间待定。至此链路闭环:运营商 IPv6 出口故障(静默黑洞)+ 内网双栈&quot;半通&quot;状态 + 无 Happy Eyeballs 的客户端,共同构成了这次 21 秒卡顿。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>止血:在出口把&quot;黑洞&quot;改成&quot;快速失败&quot;。</strong> 既然公网 IPv6 暂时不可达,就不要再让流量出去&quot;等死&quot;——在路由器上对出站 IPv6 转发流量配置明确的 reject(回 ICMPv6 不可达),让客户端瞬间失败、立即回退 IPv4:</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>/ipv6 firewall filter
+</span></span><span style="display:flex;"><span>add chain=forward action=reject reject-with=icmp-no-route comment=&#34;临时:上游IPv6故障&#34;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>改完后所有客户端的 21 秒卡顿立即消失。这里有个容易踩的坑:单纯撤下 RA 通告并不能即时止血——已分配 IPv6 地址的终端会继续持有地址直到寿命到期,照样先试 IPv6;快速失败策略才是立竿见影的那个动作。</p>
+<ol start="2">
+<li>
+<p><strong>根治:等待运营商修复。</strong> 运营商恢复后用 <code>ping6 2400:3200::1</code> 验证出站正常,再移除临时 reject 规则。</p>
+</li>
+<li>
+<p><strong>长期:IPv6 可用性探测与联动。</strong> 在路由器上部署探测任务(比如每 5 分钟 ping6 两个公网目标):连续失败自动启用快速失败规则并告警,恢复后自动解除。让&quot;上游 IPv6 挂了&quot;从一个要靠用户投诉才会发现的事件,变成自动降级、用户无感的日常动作。</p>
+</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是运营商侧 IPv6 出口割接故障,出站 IPv6 流量在运营商网络中被静默黑洞;而内网双栈照常工作——终端持有 IPv6 地址、按 RFC 6724 优先选 IPv6、连接请求却永远等不到回应,直到 Windows 默认的 TCP 连接超时(约 21 秒)才回退 IPv4。</p>
+<p>更深一层,这是&quot;静默失败&quot;与&quot;快速失败&quot;的代价差:同样是 IPv6 不可用,如果失败是&quot;立即被拒绝&quot;,客户端毫秒级回退 IPv4、用户毫无感知;而静默黑洞把一次网络故障放大成了用户可见的 21 秒卡顿,还让排查一开始失去方向。运营商网络的失败方式我们控制不了,但自己边界上&quot;失败的速度&quot;是可控的——这次故障真正的教训在这里。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>双栈网络增加 IPv6 可用性主动探测,并与降级策略(快速失败/告警)联动,不让上游故障以&quot;用户体验问题&quot;的形式抵达;</li>
+<li>出口设备策略评审:对确定不可达的流量优先使用 reject(带 ICMP 错误)而不是 drop,让客户端快速回退;</li>
+<li>双栈改造与变更原则:上游 IPv6 端到端验证稳定后,再向内网通告 RA;上游维护窗口前先评估双栈降级预案;</li>
+<li>对没有 Happy Eyeballs 的历史客户端,评估升级,或在网络库层面配置连接超时,缩短最坏情况的等待;</li>
+<li>&ldquo;卡顿&quot;类问题的排查清单里加入&quot;显式 ping6 / 检查 AAAA 记录&quot;一项——默认 ping 走 IPv4,会把 IPv6 的问题完整地藏起来。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>故障可以来自上游,但&quot;失败的速度&quot;掌握在自己手里。这次 21 秒卡顿的全部戏剧性来自三个机制的叠加:RFC 6724 让终端优先选 IPv6,Happy Eyeballs 的缺席让老客户端老老实实等超时,运营商侧的静默黑洞则让每一次尝试都注定失败。把&quot;黑洞&quot;改成&quot;快速失败&quot;之后,同样的上游故障,用户几乎无感。双栈时代值得反复默念的一条原则是:让失败大声且迅速,别让它安静地拖时间。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/e0440e03/" >光衰超标：链路 UP 却间歇丢包</a></li>
+<li><a class="link" href="/posts/fb53e550/" >DNS 转发链路异常致核心业务间歇解析超时与 504</a></li>
+<li><a class="link" href="/posts/5cafffbb/" >分支到总部专线丢包，视频会议为何全程卡顿？</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/ipv6/">IPv6</a>
+        
+            <a href="/tags/happy-eyeballs/">Happy Eyeballs</a>
+        
+            <a href="/tags/routeros/">RouterOS</a>
+        
+            <a href="/tags/%E5%8F%8C%E6%A0%88/">双栈</a>
+        
+            <a href="/tags/tcp%E8%B6%85%E6%97%B6/">TCP超时</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/763e74a1/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">RouterOS App 平台 netns 隔离致 hermes-agent 失联</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/7c4a1a51/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">MTK7621路由器刷Mikrotik rb750gr3固件</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/c3837b48/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">自用RouterOS系统设置命令</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
