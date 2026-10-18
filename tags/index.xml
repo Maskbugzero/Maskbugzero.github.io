@@ -5,7 +5,37 @@
         <description>Recent content in 标签 on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Sat, 17 Oct 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Sun, 18 Oct 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>任务栈溢出</title>
+            <link>https://blog.5772447.xyz/tags/%E4%BB%BB%E5%8A%A1%E6%A0%88%E6%BA%A2%E5%87%BA/</link>
+            <pubDate>Sun, 18 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E4%BB%BB%E5%8A%A1%E6%A0%88%E6%BA%A2%E5%87%BA/</guid>
+            <description></description>
+        </item><item>
+            <title>看门狗</title>
+            <link>https://blog.5772447.xyz/tags/%E7%9C%8B%E9%97%A8%E7%8B%97/</link>
+            <pubDate>Sun, 18 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E7%9C%8B%E9%97%A8%E7%8B%97/</guid>
+            <description></description>
+        </item><item>
+            <title>STM32</title>
+            <link>https://blog.5772447.xyz/tags/stm32/</link>
+            <pubDate>Sun, 18 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/stm32/</guid>
+            <description></description>
+        </item><item>
+            <title>HardFault</title>
+            <link>https://blog.5772447.xyz/tags/hardfault/</link>
+            <pubDate>Sun, 18 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/hardfault/</guid>
+            <description></description>
+        </item><item>
+            <title>FreeRTOS</title>
+            <link>https://blog.5772447.xyz/tags/freertos/</link>
+            <pubDate>Sun, 18 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/freertos/</guid>
+            <description></description>
+        </item><item>
             <title>索引碎片</title>
             <link>https://blog.5772447.xyz/tags/%E7%B4%A2%E5%BC%95%E7%A2%8E%E7%89%87/</link>
             <pubDate>Sat, 17 Oct 2026 09:00:00 +0800</pubDate>
@@ -454,12 +484,6 @@
             <link>https://blog.5772447.xyz/tags/vswitch/</link>
             <pubDate>Mon, 28 Sep 2026 09:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/vswitch/</guid>
-            <description></description>
-        </item><item>
-            <title>看门狗</title>
-            <link>https://blog.5772447.xyz/tags/%E7%9C%8B%E9%97%A8%E7%8B%97/</link>
-            <pubDate>Sun, 27 Sep 2026 15:30:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E7%9C%8B%E9%97%A8%E7%8B%97/</guid>
             <description></description>
         </item><item>
             <title>工业网关</title>
@@ -3388,12 +3412,6 @@
             <link>https://blog.5772447.xyz/tags/%E4%BC%A0%E6%84%9F%E5%99%A8/</link>
             <pubDate>Sun, 20 Jun 2021 06:34:54 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/%E4%BC%A0%E6%84%9F%E5%99%A8/</guid>
-            <description></description>
-        </item><item>
-            <title>STM32</title>
-            <link>https://blog.5772447.xyz/tags/stm32/</link>
-            <pubDate>Sun, 20 Jun 2021 06:34:54 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/stm32/</guid>
             <description></description>
         </item><item>
             <title>网络策略回退</title>

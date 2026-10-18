@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="采集终端运行数周随机死机，看门狗复位后自愈。根因是上报任务栈空间不足，时序叠加时栈溢出改写返回地址触发 HardFault。加故障取证抓到现场，增栈并改为静态缓冲后稳定。">
+<title>任务栈溢出致随机死机：HardFault 现场取证</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/3e0783d8/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="任务栈溢出致随机死机：HardFault 现场取证">
+<meta property='og:description' content="采集终端运行数周随机死机，看门狗复位后自愈。根因是上报任务栈空间不足，时序叠加时栈溢出改写返回地址触发 HardFault。加故障取证抓到现场，增栈并改为静态缓冲后稳定。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/3e0783d8/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='HardFault' /><meta property='article:tag' content='任务栈溢出' /><meta property='article:tag' content='STM32' /><meta property='article:tag' content='FreeRTOS' /><meta property='article:tag' content='看门狗' /><meta property='article:published_time' content='2026-10-18T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-18T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="任务栈溢出致随机死机：HardFault 现场取证">
+<meta name="twitter:description" content="采集终端运行数周随机死机，看门狗复位后自愈。根因是上报任务栈空间不足，时序叠加时栈溢出改写返回地址触发 HardFault。加故障取证抓到现场，增栈并改为静态缓冲后稳定。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/" style="background-color: hsl(156, 60%, 84%); color: hsl(156, 60%, 15%);">
+                嵌入式
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/3e0783d8/">任务栈溢出致随机死机：HardFault 现场取证</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            采集终端运行数周随机死机，看门狗复位后自愈。根因是上报任务栈空间不足，时序叠加时栈溢出改写返回地址触发 HardFault。加故障取证抓到现场，增栈并改为静态缓冲后稳定。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-10-18T09:00:00&#43;08:00'>2026年10月18日星期日</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司在全国客户现场部署了约 200 台环境数据采集终端：STM32F407 + FreeRTOS，通过 4G 或以太网把传感器数据上报到平台。设备装在客户机房和户外机柜里，没有调试器、没有维护通道，只能靠远程升级和日志排障。</p>
+<p>从两个月前开始，各地陆续反馈同一类问题：设备会&quot;随机重启&quot;，重启后自己恢复正常，业务表现是上报数据出现一段几分钟到几十分钟的缺口。现场人员的第一反应通常是&quot;断电了&quot;或&quot;信号不好&quot;，换电源、重新上电、加强散热，折腾一圈，问题照旧。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>设备运行 2~6 周后随机死机，随后看门狗复位、自动恢复，时间点毫无规律。</li>
+<li>掉电保持的复位原因记录显示：绝大多数是独立看门狗（IWDG）复位。</li>
+<li>死机前串口和日志没有任何错误输出——死机瞬间根本来不及打印。</li>
+<li>故障率与数据上报频率呈正相关：上报越频繁的站点，重启越密。</li>
+<li>更换电源模块、检查晶振、加装散热之后，复现率没有变化。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p><strong>第一步，先查看门狗。</strong> 把 IWDG 超时从 8 秒放宽到 30 秒，逐任务核对喂狗逻辑——复发时间没变。看门狗只是&quot;收尸&quot;的，不是&quot;凶手&quot;，排除。</p>
+<p><strong>第二步，查硬件。</strong> 换电源、测晶振、加散热，故障率纹丝不动；而&quot;上报越频繁越容易死&quot;这个相关性越来越明显——信号指向软件时序问题：负载越重，某个边界越容易被踩到。</p>
+<p><strong>第三步，给死机装&quot;黑匣子&quot;。</strong> 设备死机时没有任何输出，等于每次案发现场都被看门狗复位冲掉了。我们在固件里加入 HardFault 处理：把故障状态寄存器（CFSR、HFSR、MMFAR、BFAR）和异常自动压栈的寄存器帧（R0~R3、R12、LR、PC、xPSR）写入不参与启动清零的 noinit 内存段——看门狗复位不断电，RAM 内容可以保留；下次上电由启动代码读出并上报。同时记录 RCC_CSR 的复位标志，确认复位来源。</p>
+<p><strong>第四步，等现场&quot;抓到一次&quot;。</strong> 两周后一台高频上报的终端触发了取证，读出的数据非常明确：</p>
+<ul>
+<li>复位标志：IWDG 复位，说明确实是看门狗兜底；</li>
+<li>CFSR = <code>0x00020000</code>，即 INVSTATE（无效执行状态）——典型的返回地址被破坏后跳到非法地址；</li>
+<li>保存的 PC 落在上报处理函数的中间，而 LR 指向的地址不在任何已知函数入口附近——栈被踩了。</li>
+</ul>
+<p><strong>第五步，验证栈溢出假设。</strong> 打开 FreeRTOS 的栈溢出检测（<code>configCHECK_FOR_STACK_OVERFLOW = 2</code>），并在任务创建时用固定模式填充栈空间；随后在实验室把上报频率拉到正常值的 5 倍做压力测试。结果：上报任务的 <code>uxTaskGetStackHighWaterMark</code> 长期只剩十几个字节的余量，压力测试下栈溢出钩子直接命中，崩溃时的 PC 与现场抓到的完全一致。</p>
+<p><strong>第六步，找到具体是哪个函数。</strong> 用 <code>arm-none-eabi-addr2line</code> 对照固件 ELF，把保存的 PC 翻译到源码行：问题出在上一版固件新增的&quot;报文组装&quot;函数——函数内声明了一个约 600 字节的局部数组，叠加原有调用链，在这个任务 1KB 的栈里几乎没有余量；一旦上报队列积压或中断嵌套加深，最后一点空间被压垮，返回地址被覆盖，异常返回跳到非法地址，HardFault 触发，看门狗复位收场。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>立即处理</strong>：把上报任务栈从 1KB 增加到 2KB，留足余量。</li>
+<li><strong>根治问题</strong>：报文组装的大局部数组改为静态缓冲区（启动时一次性分配），函数内部不再放大栈帧；同时排查其他任务的局部大变量。</li>
+<li><strong>保留黑匣子</strong>：HardFault 取证代码保留在正式固件里，故障信息纳入平台日志上报；现场设备远程升级新固件。</li>
+<li><strong>加监控</strong>：把上报任务的栈高水位随心跳上报，低于阈值即告警，让&quot;栈快满了&quot;在死机之前就被看见。</li>
+</ol>
+<p>验证：现场 20 台设备升级后连续运行 8 周零死机；实验室 10 倍上报频率压力测试 72 小时无异常。</p>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是<strong>任务栈空间不足叠加新增函数的大局部数组</strong>：平时栈余量就只剩十几字节，遇到上报队列积压或中断嵌套加深，栈溢出覆盖返回地址，异常返回跳向非法地址触发 HardFault，看门狗兜底复位。</p>
+<p>深层根因有三层：开发阶段没有做栈用量评估，栈大小是随手填的；新增功能只测&quot;功能对不对&quot;，没测&quot;资源够不够&quot;；设备部署在现场，没有调试器和日志，缺少故障取证手段——前两个问题注定会发生，第三个问题让定位拖了整整两个月。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>任务栈按实测高水位的 1.5~2 倍预留，关键任务启用栈溢出检测与填充模式校验；</li>
+<li>禁止在任务函数里声明大局部数组，统一用静态缓冲区或启动时一次性分配的堆内存；</li>
+<li>新固件上线前必须跑满负载压力测试（高频率上报、弱网重传、队列积压），把资源边界打出来；</li>
+<li>所有现场设备固件内置 HardFault 取证（寄存器加栈帧保存、复位原因上报），把&quot;黑匣子&quot;做成标准能力；</li>
+<li>排查纪律：先拿到证据再动手，避免&quot;换电源、放宽看门狗&quot;这类盲目试错。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>嵌入式设备的随机死机，难的不是修，而是&quot;看见&quot;——设备在客户现场，没有调试器、没有串口，死机瞬间什么都不会留下。这次能破案，靠的是把 Cortex-M 的异常机制用起来：让 HardFault 在死之前把寄存器现场写进不掉电的内存，等下一条命开始时&quot;开口说话&quot;。栈溢出是嵌入式世界最古老的死因之一，但只有当证据链补齐，它才会从玄学变成一行可以改的代码。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/10494fcc/" >RS485 总线干扰致采集网关每隔几小时集体掉线</a></li>
+<li><a class="link" href="/posts/7fec59ab/" >OTA 固件升级断电变砖：双分区方案缺位</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/hardfault/">HardFault</a>
+        
+            <a href="/tags/%E4%BB%BB%E5%8A%A1%E6%A0%88%E6%BA%A2%E5%87%BA/">任务栈溢出</a>
+        
+            <a href="/tags/stm32/">STM32</a>
+        
+            <a href="/tags/freertos/">FreeRTOS</a>
+        
+            <a href="/tags/%E7%9C%8B%E9%97%A8%E7%8B%97/">看门狗</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/10494fcc/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">RS485 总线干扰致采集网关每隔几小时集体掉线</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/c4f182e1/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">基于STM32的家庭气象站</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/f691db9d/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">基于STM32的空气质量检测仪</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
