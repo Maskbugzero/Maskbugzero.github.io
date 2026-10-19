@@ -5,7 +5,37 @@
         <description>Recent content in 标签 on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Sun, 18 Oct 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Mon, 19 Oct 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>资源释放</title>
+            <link>https://blog.5772447.xyz/tags/%E8%B5%84%E6%BA%90%E9%87%8A%E6%94%BE/</link>
+            <pubDate>Mon, 19 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E8%B5%84%E6%BA%90%E9%87%8A%E6%94%BE/</guid>
+            <description></description>
+        </item><item>
+            <title>内存泄漏</title>
+            <link>https://blog.5772447.xyz/tags/%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F/</link>
+            <pubDate>Mon, 19 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F/</guid>
+            <description></description>
+        </item><item>
+            <title>Python</title>
+            <link>https://blog.5772447.xyz/tags/python/</link>
+            <pubDate>Mon, 19 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/python/</guid>
+            <description></description>
+        </item><item>
+            <title>Objgraph</title>
+            <link>https://blog.5772447.xyz/tags/objgraph/</link>
+            <pubDate>Mon, 19 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/objgraph/</guid>
+            <description></description>
+        </item><item>
+            <title>Matplotlib</title>
+            <link>https://blog.5772447.xyz/tags/matplotlib/</link>
+            <pubDate>Mon, 19 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/matplotlib/</guid>
+            <description></description>
+        </item><item>
             <title>任务栈溢出</title>
             <link>https://blog.5772447.xyz/tags/%E4%BB%BB%E5%8A%A1%E6%A0%88%E6%BA%A2%E5%87%BA/</link>
             <pubDate>Sun, 18 Oct 2026 09:00:00 +0800</pubDate>
@@ -592,12 +622,6 @@
             <link>https://blog.5772447.xyz/tags/requests/</link>
             <pubDate>Fri, 25 Sep 2026 07:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/requests/</guid>
-            <description></description>
-        </item><item>
-            <title>Python</title>
-            <link>https://blog.5772447.xyz/tags/python/</link>
-            <pubDate>Fri, 25 Sep 2026 07:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/python/</guid>
             <description></description>
         </item><item>
             <title>ConnectionError</title>
@@ -1966,12 +1990,6 @@
             <link>https://blog.5772447.xyz/tags/ahk/</link>
             <pubDate>Fri, 27 Aug 2021 08:13:21 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/ahk/</guid>
-            <description></description>
-        </item><item>
-            <title>内存泄漏</title>
-            <link>https://blog.5772447.xyz/tags/%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F/</link>
-            <pubDate>Fri, 19 Jul 2024 23:47:34 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F/</guid>
             <description></description>
         </item><item>
             <title>OOM</title>

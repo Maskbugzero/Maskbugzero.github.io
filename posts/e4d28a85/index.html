@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="报表生成服务内存只涨不降，三四天被 OOM 杀掉一次。根因是每次生成图表后未关闭 Figure，pyplot 全局管理器持续持有对象，GC 无法回收。统一关闭图对象并加内存监控后曲线走平。">
+<title>图表对象未释放：报表服务内存只涨不降</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/e4d28a85/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="图表对象未释放：报表服务内存只涨不降">
+<meta property='og:description' content="报表生成服务内存只涨不降，三四天被 OOM 杀掉一次。根因是每次生成图表后未关闭 Figure，pyplot 全局管理器持续持有对象，GC 无法回收。统一关闭图对象并加内存监控后曲线走平。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/e4d28a85/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='matplotlib' /><meta property='article:tag' content='内存泄漏' /><meta property='article:tag' content='Python' /><meta property='article:tag' content='objgraph' /><meta property='article:tag' content='资源释放' /><meta property='article:published_time' content='2026-10-19T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-19T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="图表对象未释放：报表服务内存只涨不降">
+<meta name="twitter:description" content="报表生成服务内存只涨不降，三四天被 OOM 杀掉一次。根因是每次生成图表后未关闭 Figure，pyplot 全局管理器持续持有对象，GC 无法回收。统一关闭图对象并加内存监控后曲线走平。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/python/" style="background-color: hsl(31, 60%, 84%); color: hsl(31, 60%, 15%);">
+                Python
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/e4d28a85/">图表对象未释放：报表服务内存只涨不降</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            报表生成服务内存只涨不降，三四天被 OOM 杀掉一次。根因是每次生成图表后未关闭 Figure，pyplot 全局管理器持续持有对象，GC 无法回收。统一关闭图对象并加内存监控后曲线走平。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-10-19T09:00:00&#43;08:00'>2026年10月19日星期一</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>数据平台有一台报表生成服务器（Linux，8GB 内存），上面跑着一个 Python worker：从消息队列取任务，把业务数据渲染成图表、打包成日报和周报 PDF，每天生成约 3000 张图。服务由 systemd 托管，进程挂了会自动拉起，长期以来存在感很低。</p>
+<p>两个月前，值班同事开始注意到&quot;报表生成越来越慢&quot;；随后问题升级——进程每三四天就会被内核 OOM killer 杀掉一次，正在处理的任务丢失，当天的报表延迟。运维的临时对策是加了一个每天凌晨定时重启的脚本：只要重启，世界就正常——直到业务量再涨了一截，重启间隔从三四天缩短到两天，这条路也快走到头了。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>进程 RSS 呈标准的锯齿形：启动时几百 MB，每天上涨 1.5~2GB，三四天后触发 OOM killer，进程被杀后由守护拉起，曲线重置。</li>
+<li>重启后生成速度立刻恢复，但任务一多又开始变慢。</li>
+<li>机器整体内存并不紧张（其他服务加起来不到 1GB），不是&quot;机器不够用&quot;。</li>
+<li>图表生成耗时从每张 0.1 秒退化到 0.5 秒以上；Python 的循环垃圾回收越来越频繁，但每次回收几乎不释放内存。</li>
+<li>业务侧没有任何缓存逻辑，worker 是无状态的——&ldquo;缓存写大了&quot;这个常见解释在这里不成立。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p><strong>第一步，确认是不是真的泄漏。</strong> RSS 曲线只涨不降、重启才回落、无状态服务——三个特征把&quot;缓存无界&quot;和&quot;负载上涨&quot;都排除了。期间也有人怀疑内存碎片，或者建议调大 Python 的堆上限；但碎片不会让 RSS 随生成量线性增长，调大堆只是把 OOM 推迟几天，两条路都被曲线本身否掉了。问题指向进程内部有对象被持续持有。</p>
+<p><strong>第二步，做对象层面的取证。</strong> 用 <code>gc</code> 和 <code>objgraph</code> 对进程定期采样：统计对象数量与类型分布。结果非常醒目——<code>Figure</code>、<code>Axes</code>、<code>Line2D</code> 的数量与&quot;已经生成的图片张数&quot;几乎相等，而且只增不减。换句话说：每生成一张图，就有一个完整的图表对象留在内存里。</p>
+<p><strong>第三步，找到&quot;谁在持有它&rdquo;。</strong> 用 <code>objgraph.show_backrefs</code> 追其中一个 <code>Figure</code> 的引用链，终点指向 <code>matplotlib._pylab_helpers.Gcf</code>——matplotlib 的全局图管理器。机制清楚了：<code>pyplot</code> 为了支持 <code>plt.show()</code> 和交互式操作，会把通过 pyplot 接口创建的 Figure 全部注册进全局管理器并保持强引用。只要不显式 <code>plt.close(fig)</code>，即使代码里的变量已经出了作用域，Figure 连同它持有的大型 numpy 数组、图像缓冲区都不会被回收——Python 的垃圾回收看到&quot;还有引用&quot;，自然无能为力。</p>
+<p><strong>第四步，验证假设。</strong> 在测试环境写了个最小复现：循环创建 5000 个 Figure 且不关闭，RSS 一路稳定上涨；在循环里补上 <code>plt.close(fig)</code> 后，RSS 曲线走平。差异非常明确。</p>
+<p><strong>第五步，回溯代码。</strong> worker 里的图表函数是&quot;每请求创建一个 Figure，渲染后返回 PNG 字节流&quot;，全程没有 close，异常路径更是直接漏掉。这个函数是半年前上线的，上线初期业务量只有现在的三分之一，泄漏速度被低负载掩盖了——缓慢泄漏类问题最典型的时间差就藏在这里：代码没变，量变把它从&quot;可忽略&quot;熬成了&quot;致命&quot;。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>立即修复</strong>：在图表函数的 <code>finally</code> 分支统一执行 <code>plt.close(fig)</code>，确保正常和异常路径都会释放；灰度发布后 RSS 曲线立即走平，日增长归零。</li>
+<li><strong>规范渲染方式</strong>：服务端固定使用 Agg 后端（无显示环境必须）；图表渲染收敛到一个统一封装函数，内部负责创建、渲染、关闭，业务代码不再直接碰 pyplot 全局接口。</li>
+<li><strong>撤掉临时措施</strong>：删除每日凌晨定时重启的脚本——治标的窗户纸正式撕掉。</li>
+<li><strong>补监控</strong>：RSS、进程内对象数（Top N 类型）纳入监控，设置&quot;内存日增长超过 500MB&quot;告警。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是<strong>每次生成图表后未关闭 Figure，pyplot 的全局图管理器持续持有强引用，Figure 及其携带的大型数据对象无法被回收</strong>，RSS 随生成量单调增长，最终触发 OOM killer。</p>
+<p>深层根因有两点：一是对 Python 垃圾回收的误解——&ldquo;变量出了作用域就会释放&quot;只在没有外部强引用时成立，而框架的全局注册表正是这样一个隐藏的引用源；二是监控只看了&quot;内存使用率&rdquo;，没看&quot;内存增长趋势&quot;，缓慢泄漏在正常的波动噪声里潜伏了两个月，直到以 OOM 的形式暴露。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>资源创建与释放成对设计：create/close、open/close，异常路径同样覆盖（<code>finally</code> 或上下文管理器）；</li>
+<li>matplotlib 在服务端固定 Agg 后端，渲染逻辑统一封装，内部负责关闭对象；</li>
+<li>关键服务监控内存&quot;趋势&quot;而不只是&quot;水位&quot;：RSS 日增长、对象数 Top N，超阈值告警；</li>
+<li>压测按真实峰值而非均值跑满 24 小时以上，观察内存曲线是否收敛；</li>
+<li>值班手册收录&quot;锯齿状内存曲线&quot;的排查路径：RSS 曲线 → 对象统计 → 引用链 → 定位未释放点。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>内存泄漏最怕的不是&quot;漏&quot;，而是&quot;漏得慢&quot;——每天 1.5GB，单看每小时都像正常波动，熬到第三天才会以 OOM 的形式现身；而一旦 OOM，运维的直觉往往是&quot;加内存&quot;或&quot;定时重启&quot;，恰好把根因养得更深。这次的关键转折是把&quot;重启&quot;换成了&quot;看清&quot;：对象计数与引用链一画出来，泄漏点就无处可藏。Python 的自动回收保护不了被框架全局持有的对象——资源管理，最终还是要靠代码和人自己。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/5255de1b/" >asyncio 接口集体超时：同步调用阻塞事件循环</a></li>
+<li><a class="link" href="/posts/d5be3b26/" >requests 连接池耗尽致间歇性 ConnectionError</a></li>
+<li><a class="link" href="/posts/def9cf20/" >Docker 容器 OOM，服务雪崩是怎么炸开的？</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/matplotlib/">Matplotlib</a>
+        
+            <a href="/tags/%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F/">内存泄漏</a>
+        
+            <a href="/tags/python/">Python</a>
+        
+            <a href="/tags/objgraph/">Objgraph</a>
+        
+            <a href="/tags/%E8%B5%84%E6%BA%90%E9%87%8A%E6%94%BE/">资源释放</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/d5be3b26/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">requests 连接池耗尽致间歇性 ConnectionError</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/def9cf20/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Docker 容器 OOM，服务雪崩是怎么炸开的？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/5ae9b088/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">微软Bing站长使用Python自动提交URL</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/92e57a39/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">自用续火花的QQ机器人</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
