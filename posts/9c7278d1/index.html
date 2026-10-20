@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="容器内 headless Chromium 高并发渲染时随机崩溃，根因是 Docker 默认 /dev/shm 仅 64MB，渲染进程写共享内存触发 SIGBUS；调大 shm-size 后恢复稳定。">
+<title>容器共享内存默认 64MB：浏览器进程频繁崩溃</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/9c7278d1/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="容器共享内存默认 64MB：浏览器进程频繁崩溃">
+<meta property='og:description' content="容器内 headless Chromium 高并发渲染时随机崩溃，根因是 Docker 默认 /dev/shm 仅 64MB，渲染进程写共享内存触发 SIGBUS；调大 shm-size 后恢复稳定。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/9c7278d1/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Docker' /><meta property='article:tag' content='/dev/shm' /><meta property='article:tag' content='headless Chromium' /><meta property='article:tag' content='SIGBUS' /><meta property='article:tag' content='共享内存' /><meta property='article:published_time' content='2026-10-20T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-20T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="容器共享内存默认 64MB：浏览器进程频繁崩溃">
+<meta name="twitter:description" content="容器内 headless Chromium 高并发渲染时随机崩溃，根因是 Docker 默认 /dev/shm 仅 64MB，渲染进程写共享内存触发 SIGBUS；调大 shm-size 后恢复稳定。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(274, 60%, 84%); color: hsl(274, 60%, 15%);">
+                容器运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/9c7278d1/">容器共享内存默认 64MB：浏览器进程频繁崩溃</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            容器内 headless Chromium 高并发渲染时随机崩溃，根因是 Docker 默认 /dev/shm 仅 64MB，渲染进程写共享内存触发 SIGBUS；调大 shm-size 后恢复稳定。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-10-20T09:00:00&#43;08:00'>2026年10月20日星期二</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>报表中心有一套 PDF 生成服务：业务系统把报表模板和参数交给它，它用 headless Chromium 渲染成 PDF 返回。服务跑在 Docker 里，Node 进程启动 8 个渲染 worker，通过 Puppeteer 控制浏览器。日均生成 3000 余份报表，白天高峰集中在上午十点和下午三点。</p>
+<p>上线一年多一直稳定。上个月业务量上涨，我们把 worker 并发从 4 调到 10，容器规格没动：4 核、4GB 内存限制。扩容后吞吐确实上去了，但稳定性开始出问题——每天总有几次任务失败，重试往往又能成功，像随机故障。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>失败任务的日志基本是 <code>Page crashed!</code> 或 <code>Target closed</code>，偶尔能看到 <code>Bus error (core dumped)</code>。</li>
+<li>容器本身没有重启，Node 主进程一直活着，健康检查正常。</li>
+<li><code>docker stats</code> 显示容器内存长期在 1.2–1.4GB，离 4GB 限制很远；宿主机也还有大量空闲内存。</li>
+<li>失败集中在含图表的复杂报表上；简单纯文字报表几乎不出问题。</li>
+<li>并发越高失败越频繁，单并发压测 500 次一次没挂。</li>
+<li>失败没有固定时间点，和流量高峰大致相关，但同一时刻也有大量任务正常完成。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步先排除 OOM。容器限制了 4GB，但实际用量只有 1.3GB 左右，看起来不像内存问题。查 cgroup 计数确认：<code>/sys/fs/cgroup/memory.events</code> 里 <code>oom</code> 和 <code>oom_kill</code> 都是 0；<code>dmesg</code> 里没有 oom-killer 记录；容器 <code>RestartCount</code> 也是 0。主进程没被杀，说明不是容器级 OOM。</p>
+<p>第二步看失败形态。崩溃的不是 Node 主进程，而是 Chromium 的 renderer 子进程——Puppeteer 通过 DevTools 协议和浏览器通信，renderer 一死，页面就报 <code>Page crashed!</code>。这解释了为什么容器健康检查看不出来：监控只看主进程和容器状态，子进程崩溃被完全遮住了。</p>
+<p>第三步对比变量。把并发降回 4，连续跑一天零失败；升到 10，失败立刻回来。失败页面又集中在图表多的模板上——图表渲染要传大量位图，正是 Chromium 多进程架构里共享内存的主要用途。怀疑点开始从“内存不够”转向“共享内存不够”。</p>
+<p>第四步验证假设。进容器执行 <code>df -h /dev/shm</code>，输出是 64M、已用 100%、可用 0。再看 <code>docker inspect</code> 的 <code>HostConfig.ShmSize</code>，67108864 字节，正好 64MB。<code>ls /dev/shm</code> 下面是一堆 <code>.org.chromium.Chromium.*</code> 文件。也就是说，Chromium 的共享内存段已经被写满，renderer 再往 mmap 区域写就会收到 SIGBUS——日志里的 <code>Bus error</code> 正是这个信号。</p>
+<p>第五步复现。写了个压测脚本，10 并发连续渲染图表报表，每秒采样 <code>/dev/shm</code> 使用率：大约 20 秒后冲到 100%，随后必然出现 renderer 崩溃；同一脚本加上 <code>--disable-dev-shm-usage</code> 参数后不再复现。</p>
+<p>再估算一下量级：单个复杂报表在渲染期间占用的共享内存可达数十 MB，10 个并发同时渲染，64MB 的池子连两个页面都撑不住。这也解释了为什么单并发永远测不出来——单页面峰值低于 64MB，池子够用；并发一上来，多个 renderer 的共享内存段叠加，才把上限顶穿。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>调整共享内存</strong>：容器启动参数加 <code>--shm-size=1g</code>；docker-compose 里写 <code>shm_size: 1gb</code>；K8s 则挂一个 <code>emptyDir: {medium: Memory, sizeLimit: 1Gi}</code> 到 <code>/dev/shm</code>。</li>
+<li><strong>同步核对内存预算</strong>：tmpfs 的页会计入容器 memory cgroup，1GB shm 不是“额外白送”的。当前 4GB 限制下，应用 1.4GB 加 shm 1GB 仍有充足余量，所以限制保持不变；如果容器规格更小，就要把 shm 和 limit 一起算。另外要明确：<code>shm-size</code> 是上限而不是预分配，tmpfs 只按实际写入的页计费，调大到 1GB 不会立刻占掉 1GB 内存。</li>
+<li><strong>保留兜底参数</strong>：在镜像启动脚本里给 Chromium 加 <code>--disable-dev-shm-usage</code> 作为应急开关，它让 Chrome 改用 <code>/tmp</code> 存共享内存。代价是走磁盘 IO、且可能撑爆 <code>/tmp</code>，只作为临时手段，不作为默认配置。</li>
+<li><strong>加监控</strong>：采集每个容器 <code>/dev/shm</code> 使用率，80% 告警；同时监控 renderer 崩溃日志关键字，而不是只看容器是否重启。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是 <strong>Docker 默认给容器的 <code>/dev/shm</code> 只有 64MB，高并发下 Chromium 的共享内存需求撞上硬顶，renderer 写入 mmap 区域时触发 SIGBUS 而崩溃</strong>。64MB 是容器运行时沿用多年的保守默认值，为最小化共享内存占用而设，适合轻量进程，不适合浏览器这种重度依赖共享内存的多进程应用。同样的 64MB 默认值在 Kubernetes 里也存在，不显式挂载 <code>/dev/shm</code> 的 Pod 一样会遇到这个问题。</p>
+<p>更深一层，问题被两层“看起来正常”掩盖：容器内存只用了三分之一，所以没人往内存方向想；崩溃发生在子进程，容器和主进程都健康，监控也不报警。并发从 4 提到 10 时，我们只评估了 CPU 和内存余量，没有评估共享内存这类“隐形资源”——它不在常规容量评估表里，却在默认值里埋着上限。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>容器运行模板显式声明易被忽略的默认值：shm-size、ulimit nofile、pids-limit、stop grace period，不再依赖运行时默认。</li>
+<li>浏览器、桌面、机器学习这类多进程/共享内存型负载，上线前必须确认 <code>/dev/shm</code> 容量，并写入部署清单。</li>
+<li>监控从“容器是否活着”下沉到“子进程是否健康”：采集关键子进程退出、SIGBUS/SIGSEGV 计数和业务失败率。</li>
+<li>扩容或调并发前，按目标并发做一次压测，压测指标包含 <code>/dev/shm</code>、cgroup <code>memory.events</code>，而不只是 CPU/内存。</li>
+<li>基础镜像或运行模板变更时，把 shm-size、内存限制、ulimit 纳入回归清单；新镜像上线前用 <code>docker run --rm &lt;image&gt; df -h /dev/shm</code> 确认默认值，避免同类问题换个服务再犯一次。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这次故障的教训不是“该调大 shm”，而是“默认值也是容量决策”。容器的每一个默认参数，都是运行时替我们做的一个假设；负载轻时它沉默，负载上来它就变成天花板。<code>docker stats</code> 里内存只用三分之一，和“内存没问题”是两回事——真正被耗尽的资源可能根本不在那张表上。把隐式默认值显式化，是容器化负载从“能跑”到“跑得稳”之间最便宜的一步。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/def9cf20/" >Docker 容器 OOM，服务雪崩是怎么炸开的？</a></li>
+<li><a class="link" href="/posts/b1ca8efe/" >记一次 K8s Pod OOMKilled 触发的服务雪崩</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/docker/">Docker</a>
+        
+            <a href="/tags/dev/shm/">Dev/Shm</a>
+        
+            <a href="/tags/headless-chromium/">Headless Chromium</a>
+        
+            <a href="/tags/sigbus/">SIGBUS</a>
+        
+            <a href="/tags/%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98/">共享内存</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/7c34ba61/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Docker overlay2 inode 耗尽致容器批量创建失败</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/def9cf20/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Docker 容器 OOM，服务雪崩是怎么炸开的？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/248e1301/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 GitLab Runner 并发构建压垮宿主机的排查</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/d454c146/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 Docker 容器反复重启引发的微服务链路雪崩</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/0783d2cd/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Docker Swarm Overlay 跨节点不通，问题卡在哪？</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
