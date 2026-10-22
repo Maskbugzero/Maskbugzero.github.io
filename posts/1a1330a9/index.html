@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="内网终端访问公网域名超时，外网却正常，根因是路由器缺少 NAT 回环，DNAT 后没有配套 SNAT，回程绕过路由器形成非对称连接。开启 hairpin NAT 或内网 DNS 分离解析后恢复。">
+<title>NAT 回环缺失：内网访问公网域名超时</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/1a1330a9/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="NAT 回环缺失：内网访问公网域名超时">
+<meta property='og:description' content="内网终端访问公网域名超时，外网却正常，根因是路由器缺少 NAT 回环，DNAT 后没有配套 SNAT，回程绕过路由器形成非对称连接。开启 hairpin NAT 或内网 DNS 分离解析后恢复。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/1a1330a9/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='NAT 回环' /><meta property='article:tag' content='hairpin NAT' /><meta property='article:tag' content='端口映射' /><meta property='article:tag' content='DNS 分离解析' /><meta property='article:tag' content='非对称路由' /><meta property='article:published_time' content='2026-10-22T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-22T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="NAT 回环缺失：内网访问公网域名超时">
+<meta name="twitter:description" content="内网终端访问公网域名超时，外网却正常，根因是路由器缺少 NAT 回环，DNAT 后没有配套 SNAT，回程绕过路由器形成非对称连接。开启 hairpin NAT 或内网 DNS 分离解析后恢复。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%B7%AF%E7%94%B1%E5%99%A8/" style="background-color: hsl(353, 60%, 84%); color: hsl(353, 60%, 15%);">
+                路由器
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/1a1330a9/">NAT 回环缺失：内网访问公网域名超时</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            内网终端访问公网域名超时，外网却正常，根因是路由器缺少 NAT 回环，DNAT 后没有配套 SNAT，回程绕过路由器形成非对称连接。开启 hairpin NAT 或内网 DNS 分离解析后恢复。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-10-22T09:00:00&#43;08:00'>2026年10月22日星期四</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 4 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>一个四十人左右的研发团队，办公室拉了一条企业宽带，入口是一台企业级路由器。内网有一台 NAS，上面跑 GitLab 和文件服务，路由器把 WAN 的 443 端口映射到 NAS 的 443，公网侧用 DDNS 域名 <code>files.example.com</code> 访问。外网访问一直正常，办公室里用同一个域名访问也一直正常。</p>
+<p>上个月这台路由器老化，频繁重启，于是换了一台新的。配置是照着旧设备抄的：WAN 拨号、443 端口映射、DDNS 账号，三项填完，用手机流量访问域名验证通过，就把旧设备下架了。当时默认“外网能打开就说明配置没问题”，没有在内网再试一次。</p>
+<p>第二天开始，陆续有人反馈：在办公室打开 <code>files.example.com</code> 一直转圈，但直接输 NAS 的内网 IP 又是好的。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>办公室内浏览器访问 <code>https://files.example.com</code> 长时间无响应，最终超时；偶尔报 <code>ERR_CONNECTION_RESET</code>。</li>
+<li>同一台电脑访问 <code>https://192.168.10.20</code> 完全正常，GitLab 页面和文件下载都没问题。</li>
+<li>用手机 4G/5G 访问同一个域名正常，说明端口映射、证书、NAS 服务都没坏。</li>
+<li>域名解析正常，<code>nslookup</code> 得到的是公网 IP；内网 ping 这个公网 IP 也能通。</li>
+<li>有线、无线终端表现一致，换浏览器、清缓存都无效。</li>
+<li>把旧路由器临时接回去，内网访问立刻恢复。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步做分层排除。DNS 解析到公网 IP，正确；外网访问正常，说明端口映射和运营商没有封 443；内网用私有 IP 访问正常，说明 NAS 服务本身没问题。问题被压缩到一条很窄的路径上：内网终端访问自己的公网 IP。</p>
+<p>第二步抓包。在内网终端上抓，看到 SYN 反复发往公网 IP，一直没有收到合法的响应；在 NAS 上抓，SYN 确实到了，NAS 也回了 SYN-ACK，但这条 SYN-ACK 的源地址是 NAS 的内网 IP，不是客户端期望的公网 IP。客户端内核认为这个包和发出的连接对不上，直接丢弃，三次握手永远完不成。</p>
+<p>第三步解释这个现象。路由器做端口映射时只执行了 DNAT：把目的地址从公网 IP 改成 NAS 的内网 IP，源地址仍然是客户端的内网 IP。NAS 收到请求后回包，发现目的地址和自己同一网段，于是直接二层转发给客户端，根本不经过路由器。客户端发出去时目标是公网 IP，收到的却是内网 IP 的响应，连接自然建立不起来。这条路径是单向的——去程经过路由器，回程绕过了它。</p>
+<p>第四步确认设备能力。查新路由器的文档，它支持 NAT 回环（不同厂商叫 NAT Loopback、NAT Reflection 或 Hairpin NAT），但该选项默认关闭，藏在防火墙的高级设置里。旧路由器恰好默认开启，所以这些年大家一直没意识到存在这样一个隐式依赖。</p>
+<p>第五步验证。打开 NAT 回环后，内网访问域名立即恢复；再次抓包，可以看到路由器把源地址 SNAT 成了自己的内网接口地址，NAS 的回包先回到路由器，再由路由器转给客户端，往返路径对称，握手正常完成。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>首选开启 NAT 回环</strong>：在路由器的 NAT 或防火墙高级设置里启用 NAT Loopback / NAT Reflection / Hairpin NAT。开启后内网访问公网 IP 时，路由器会同时做 DNAT 和 SNAT，把回程拉回自己。</li>
+<li><strong>不支持时改用 DNS 分离解析</strong>：内部 DNS 把 <code>files.example.com</code> 解析成 NAS 的内网 IP，公网 DNS 仍返回公网 IP。TLS 证书按域名签发，内网访问同样受信，而且流量直接走内网，不经过路由器的 NAT 转发，性能和延迟都更好。</li>
+<li><strong>服务较少时可用内网反向代理</strong>：在路由器或一台内网服务器上做反向代理，把域名指向内网服务。缺点是引入单点和额外维护成本，不适合作为默认方案。</li>
+<li><strong>不建议逐台改 hosts</strong>：终端数量一多就无法维护，手机、平板等移动设备也改不了，出差场景还会留下错误解析。</li>
+<li><strong>改完双向验证</strong>：内网访问域名、外网访问域名各测一次，并检查证书链和重定向是否正常。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是 <strong>路由器缺少（或未启用）NAT 回环：端口映射只做了 DNAT，没有配套的 SNAT，内网访问公网 IP 时回程流量绕过路由器，形成非对称路径，TCP 握手无法完成</strong>。</p>
+<p>更深一层，问题出在配置迁移和验收方式上。换机时我们迁移的都是“填在页面里的显式配置”——拨号账号、端口映射、DDNS；而 NAT 回环是旧设备默认开启的隐式能力，从来没被写进文档，也没人知道它的存在。验收又只测了外网，没有测内网访问同一域名的路径，于是这个缺口被完整地带到了新设备上。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>设备更换或配置迁移时建立“访问路径矩阵”：内网访问内网 IP、内网访问公网域名、外网访问公网域名，逐条验收，缺一不可。</li>
+<li>路由器选型把 NAT 回环列为必检项；不支持或默认关闭时，统一采用内网 DNS 分离解析作为标准方案。</li>
+<li>文档记录隐式依赖，例如 NAT 回环、UPnP、DDNS 更新方式、端口映射清单，避免下次换机再踩同一个坑。</li>
+<li>对内网域名访问做可用性监控，配置变更后能第一时间发现回归。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>“外网能打开”不等于“哪里都能打开”。NAT 回环是一个不会出现在端口映射页面上的隐式能力：它靠额外一条 SNAT 把回程流量拉回路由器，少了这一步，连接就是单向的。换设备时真正容易丢的，往往不是那些填在表单里的配置，而是那些一直默默生效、却从没被写进文档的能力。验收要按访问路径走，而不是按配置页面走。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/66ccc411/" >OpenWrt 升级 firewall4 后旁路由专线全断</a></li>
+<li><a class="link" href="/posts/3a0c5c5f/" >tcp_tw_recycle 致 NAT 后用户 SYN 被静默丢弃</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/nat-%E5%9B%9E%E7%8E%AF/">NAT 回环</a>
+        
+            <a href="/tags/hairpin-nat/">Hairpin NAT</a>
+        
+            <a href="/tags/%E7%AB%AF%E5%8F%A3%E6%98%A0%E5%B0%84/">端口映射</a>
+        
+            <a href="/tags/dns-%E5%88%86%E7%A6%BB%E8%A7%A3%E6%9E%90/">DNS 分离解析</a>
+        
+            <a href="/tags/%E9%9D%9E%E5%AF%B9%E7%A7%B0%E8%B7%AF%E7%94%B1/">非对称路由</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/5453de23/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次机房搬迁网络割接后跨机房业务单向可达的排查</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
