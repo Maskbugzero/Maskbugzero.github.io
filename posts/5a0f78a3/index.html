@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="笔记本合盖放包里仍发热掉电，根因是 Modern Standby（S0）下网卡保持连接并反复唤醒，系统从未进入低功耗。用 sleepstudy 定位唤醒源、关闭网卡唤醒并调整电源策略后恢复。">
+<title>S0 待机被网卡唤醒：笔记本合盖后持续掉电</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/5a0f78a3/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="S0 待机被网卡唤醒：笔记本合盖后持续掉电">
+<meta property='og:description' content="笔记本合盖放包里仍发热掉电，根因是 Modern Standby（S0）下网卡保持连接并反复唤醒，系统从未进入低功耗。用 sleepstudy 定位唤醒源、关闭网卡唤醒并调整电源策略后恢复。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/5a0f78a3/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Modern Standby' /><meta property='article:tag' content='S0 待机' /><meta property='article:tag' content='powercfg' /><meta property='article:tag' content='唤醒源' /><meta property='article:tag' content='电池耗电' /><meta property='article:published_time' content='2026-10-23T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-23T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="S0 待机被网卡唤醒：笔记本合盖后持续掉电">
+<meta name="twitter:description" content="笔记本合盖放包里仍发热掉电，根因是 Modern Standby（S0）下网卡保持连接并反复唤醒，系统从未进入低功耗。用 sleepstudy 定位唤醒源、关闭网卡唤醒并调整电源策略后恢复。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" style="background-color: hsl(195, 60%, 84%); color: hsl(195, 60%, 15%);">
+                桌面运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/5a0f78a3/">S0 待机被网卡唤醒：笔记本合盖后持续掉电</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            笔记本合盖放包里仍发热掉电，根因是 Modern Standby（S0）下网卡保持连接并反复唤醒，系统从未进入低功耗。用 sleepstudy 定位唤醒源、关闭网卡唤醒并调整电源策略后恢复。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-10-23T09:00:00&#43;08:00'>2026年10月23日星期五</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司今年分两批换了 60 台商务本，预装 Windows 11，默认启用 Modern Standby。员工的使用习惯很统一：下班把笔记本合盖装进包里，或者插在工位扩展坞上，第二天上班再打开，很少有人真正关机。</p>
+<p>最近两个月，陆续有 8 台机器反馈“合盖一晚上，第二天从包里拿出来是热的，电量还掉了不少”。其中一位同事周五满电放进包里，周一开机只剩四成电。IT 起初按电池老化处理，换了两块电池，问题照旧，才开始往电源策略方向查。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>合盖后笔记本装在包里，外壳明显温热，偶尔能听到风扇转一下又停。</li>
+<li>电量下降没有规律：有的机器一晚掉 10%，有的掉 30% 以上；周末放置掉得更多。</li>
+<li>拔掉 USB-C 扩展坞后，掉电明显减轻，但没有完全消失。</li>
+<li><code>powercfg /a</code> 显示系统只支持“待机（S0 低功耗空闲）”，S3 状态不可用，固件不支持传统睡眠。</li>
+<li><code>powercfg /sleepstudy</code> 生成的报告里，一次约 14 小时的合盖会话中，Low Power Idle 只占三成多，其余时间系统处于 Active；报告同时列出了若干唤醒源。</li>
+<li>电池报告显示设计容量与满充容量衰减不到 10%，电池健康度正常。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步先排除电池。用 <code>powercfg /batteryreport</code> 对比设计容量和满充容量，衰减在正常范围内；换过电池的机器现象不变，说明不是电芯问题。</p>
+<p>第二步确认系统到底进了什么睡眠状态。<code>powercfg /a</code> 的输出很关键：这台机器支持的是 S0 低功耗空闲，S3 显示为“固件不支持”。也就是说，合盖并没有让机器断电休眠，而是进入一种“保持联网、随时可被唤醒”的低功耗状态。这是 Modern Standby 的设计，本身不是故障，但它意味着“合盖”不等于“停止工作”。</p>
+<p>第三步看睡眠质量。运行 <code>powercfg /sleepstudy</code> 生成 HTML 报告，重点看三处：Low Power Idle 占比、Active 时段、唤醒源。问题机器的报告里，Low Power Idle 只占三成多，大量时间在 Active；唤醒源列表里反复出现 USB 以太网设备和无线网卡。</p>
+<p>第四步确认唤醒权限。<code>powercfg /devicequery wake_armed</code> 列出当前被允许唤醒系统的设备，扩展坞网卡和无线网卡都在列表里；<code>powercfg /lastwake</code> 指向的正是 USB 网卡。再结合使用场景：这几台问题机器要么长期插着扩展坞，要么包里带着扩展坞、网线还接着。夜间网络里的 DHCP、ARP、组播流量，以及网卡的“唤醒模式匹配”，都可能把系统从低功耗拉回 Active。</p>
+<p>第五步验证。选一台问题机器，禁用网卡唤醒、关闭电池模式下的待机联网，再观察一晚：sleepstudy 显示 Low Power Idle 从三成多升到九成以上，整夜掉电从近三成降到个位数。变量唯一，结论成立。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>关闭不必要的唤醒源</strong>：设备管理器里找到有线网卡、无线网卡和扩展坞网卡，在“电源管理”中取消“允许此设备唤醒计算机”；同时在网卡高级设置里关闭 Wake on Magic Packet 和“唤醒模式匹配”。也可以用 <code>powercfg /devicedisablewake &quot;设备名&quot;</code> 批量处理。</li>
+<li><strong>关闭电池模式下的待机联网</strong>：通过组策略或 Intune 把“Allow network connectivity during connected-standby (on battery)”设为 Disabled。合盖后网络断开，邮件、网盘、更新等后台同步就不会持续把机器拉活。</li>
+<li><strong>关闭电池下的唤醒定时器</strong>：执行 <code>powercfg /setdcvalueindex scheme_current sub_sleep bd3b718a-0680-4d9d-8ab2-e1d2b4ac806d 0</code>，避免 Windows 更新、备份等计划任务在夜里唤醒机器。</li>
+<li><strong>更新驱动和固件</strong>：扩展坞固件、网卡驱动、芯片组驱动统一到厂商推荐版本。部分旧固件会在待机时反复重新枚举 USB 设备，把系统从低功耗里拽出来。</li>
+<li><strong>设置休眠兜底</strong>：对经常出差的机器启用休眠，并把电池模式下的“在此时间后休眠”设为 45 分钟。即使待机被异常唤醒，最终也会落盘休眠，不会整夜耗电。</li>
+<li><strong>不要强行禁用 Modern Standby</strong>：多数新平台不支持 S3，改注册表关闭 S0 可能导致无法睡眠、唤醒异常甚至无法关机。正确做法是治理唤醒源，而不是和平台能力对抗。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是 <strong>Modern Standby 下扩展坞网卡保持可唤醒状态，夜间网络流量反复把系统从低功耗拉回 Active，CPU、网络和后台同步持续工作，电量以“待机”的名义被消耗</strong>。</p>
+<p>更深一层，问题出在对“合盖”的认知错位。传统 S3 睡眠是断电，合盖就是停机；Modern Standby 把睡眠改成了“低功耗联网”，目的是即时唤醒和后台更新。功能本身没错，但默认策略没有区分插电和电池，也没有治理唤醒源。用户以为笔记本在休息，系统其实在包里继续上班。另一个偏差是把发热掉电直接归因于电池老化，换了电池才发现问题在策略层。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>新机型入网做 sleepstudy 基线：电池模式下合盖 8 小时，Low Power Idle 应高于 85%、掉电低于 5%；不达标不批量发放。</li>
+<li>扩展坞选型增加待机行为测试，固件统一版本，避免个别型号在待机时反复唤醒主机。</li>
+<li>用 Intune 或组策略统一电池模式下的待机联网、唤醒定时器和网卡唤醒策略，不依赖员工手动设置。</li>
+<li>资产巡检把 sleepstudy 异常纳入报表：Active 占比高、夜间唤醒次数多、待机掉电超阈值的机器主动排查。</li>
+<li>给员工的指引要具体：周末和长假前关机或休眠，不要把“合盖”当成关机。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>Modern Standby 不是“更省电的睡眠”，而是“让电脑在合盖后继续低功耗地工作”。它把选择权交给了设备和后台任务：谁能唤醒、何时联网，决定了包里那台机器是在休息还是在加班。把唤醒源当成资产管理项，比反复争论“为什么待机还耗电”有用得多。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/6d0ad74e/" >终端休眠后无法唤醒：快速启动与网卡唤醒冲突</a></li>
+<li><a class="link" href="/posts/cfb90b2b/" >USB-C 扩展坞接双屏为何没信号？桌面排障记</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/modern-standby/">Modern Standby</a>
+        
+            <a href="/tags/s0-%E5%BE%85%E6%9C%BA/">S0 待机</a>
+        
+            <a href="/tags/powercfg/">Powercfg</a>
+        
+            <a href="/tags/%E5%94%A4%E9%86%92%E6%BA%90/">唤醒源</a>
+        
+            <a href="/tags/%E7%94%B5%E6%B1%A0%E8%80%97%E7%94%B5/">电池耗电</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
