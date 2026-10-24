@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="办公网用 public 即可读取交换机 ARP 表与配置，部分 private 可写。根因是 SNMPv2c 明文团体名且管理面无 ACL，改 SNMPv3 authPriv 并限制监控源后收口。">
+<title>SNMP 仍是 public：内网为何能读走配置？</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/b0ab9ad7/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="SNMP 仍是 public：内网为何能读走配置？">
+<meta property='og:description' content="办公网用 public 即可读取交换机 ARP 表与配置，部分 private 可写。根因是 SNMPv2c 明文团体名且管理面无 ACL，改 SNMPv3 authPriv 并限制监控源后收口。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/b0ab9ad7/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='SNMPv3' /><meta property='article:tag' content='默认团体名' /><meta property='article:tag' content='管理面 ACL' /><meta property='article:tag' content='安全基线' /><meta property='article:tag' content='网络设备' /><meta property='article:published_time' content='2026-10-24T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-24T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="SNMP 仍是 public：内网为何能读走配置？">
+<meta name="twitter:description" content="办公网用 public 即可读取交换机 ARP 表与配置，部分 private 可写。根因是 SNMPv2c 明文团体名且管理面无 ACL，改 SNMPv3 authPriv 并限制监控源后收口。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
+                安全运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/b0ab9ad7/">SNMP 仍是 public：内网为何能读走配置？</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            办公网用 public 即可读取交换机 ARP 表与配置，部分 private 可写。根因是 SNMPv2c 明文团体名且管理面无 ACL，改 SNMPv3 authPriv 并限制监控源后收口。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-10-24T09:00:00&#43;08:00'>2026年10月24日星期六</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司内网有 32 台交换机、2 台防火墙和 4 台 UPS，统一由 Zabbix 监控。这套监控是五年前搭的，走 SNMPv2c，团体名沿用了厂商默认的 <code>public</code>（只读）和 <code>private</code>（读写）。当时的理由很朴素：SNMP 只在内网用，管理网段也不对办公网开放，没必要搞得太复杂。</p>
+<p>管理网段是 <code>10.10.0.0/24</code>，办公网段是 <code>10.20.x.0/24</code>，中间由核心交换机路由。理论上办公终端能 ping 到管理地址，但大家默认“能通不代表能随便访问”，没有在设备上做过任何 SNMP 访问控制。这个假设在季度安全巡检时被打破了。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>安全巡检工程师在办公网一台普通终端上执行 <code>snmpwalk -v2c -c public 10.10.0.1</code>，直接读出了核心交换机的系统信息、接口列表和 ARP 表。</li>
+<li>继续用 <code>private</code> 尝试，33 台设备中有 6 台返回了读写权限，理论上可以通过 <code>snmpset</code> 修改接口状态、VLAN 描述等对象。</li>
+<li>交换机 syslog 里出现大量来自办公网段地址的 SNMP 请求，源地址不是监控服务器 <code>10.10.5.20</code>。</li>
+<li>巡检报告把“网络设备 SNMP 默认团体名可读写”定为高危，要求限期整改。</li>
+<li>监控本身没有异常，Zabbix 曲线一切正常——这也解释了为什么这个问题多年没被发现：从运维视角看，SNMP 一直是“好用”的。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步复现。在受控的办公终端上执行 <code>snmpget -v2c -c public 10.10.0.1 1.3.6.1.2.1.1.1.0</code>，返回设备型号和固件版本；再走 <code>1.3.6.1.2.1.4.22</code>（ARP 表），能把管理网段和服务器的 IP-MAC 对应关系完整拉出来。这说明不是扫描器误报，默认团体名确实可用。</p>
+<p>第二步查设备配置。Cisco 设备上看 <code>show running-config | include snmp-server community</code>，Huawei/H3C 设备上看 <code>display current-configuration | include snmp-agent community</code>，结果很统一：只读团体名 <code>public</code>、读写团体名 <code>private</code>，后面没有跟 ACL 编号。也就是说，任何能路由到管理网段的地址都可以访问 SNMP。</p>
+<p>第三步确认网络路径。核心交换机上管理 VLAN 与办公 VLAN 之间是三层互通，没有 ACL 限制 UDP 161；防火墙的策略也只管出口，不管内网东西向。办公终端 ping 管理地址能通，SNMP 自然也能通。</p>
+<p>第四步评估影响面。在获得授权的前提下，从一台跳板机对管理网段做 UDP 161 探测，并用常见默认团体名尝试：33 台设备中 27 台响应 <code>public</code>，6 台响应 <code>private</code>。响应内容足以画出网络拓扑、定位服务器、识别设备型号和固件版本——这些都是攻击者做横向移动前最想要的信息。</p>
+<p>第五步确认监控依赖。Zabbix 的 SNMP 接口配置里写的就是 <code>public</code>，来源地址 <code>10.10.5.20</code>。这意味着整改不能直接改团体名了事，必须同步改监控，否则会引发大面积“设备不可达”告警。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><p>整改分两步：先止血，再治本。</p>
+<p><strong>止血（当天完成）</strong>：删除所有设备的读写团体名 <code>private</code>，只保留只读；把只读团体名改成强随机字符串；在每台设备上给 SNMP 绑定 ACL，只允许监控服务器 <code>10.10.5.20</code> 和跳板机访问 UDP 161。监控侧同步更新凭据，分批次改，每批改完立即验证 Zabbix 数据恢复。</p>
+<p><strong>治本（两周内完成）</strong>：升级到 SNMPv3 的 authPriv 模式，认证用 SHA-256，加密用 AES，彻底避免团体名明文传输。监控模板、设备账号和凭据管理同步调整；不支持 v3 的老设备保留“强团体名 + ACL + 只读”作为补偿措施，并列入淘汰计划。</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>方案</th>
+          <th>安全性</th>
+          <th>改造成本</th>
+          <th>适用场景</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>SNMPv2c 强团体名 + 管理 ACL</td>
+          <td>中：团体名仍明文，可被嗅探；ACL 限制来源后风险可控</td>
+          <td>低：改设备配置和监控凭据即可</td>
+          <td>不支持 v3 的老旧设备过渡</td>
+      </tr>
+      <tr>
+          <td>SNMPv3 authPriv</td>
+          <td>高：认证加加密，凭据不在网络上裸奔</td>
+          <td>中：设备、监控模板、账号体系都要改</td>
+          <td>主流设备的目标态</td>
+      </tr>
+      <tr>
+          <td>关闭 SNMP 改用 Agent</td>
+          <td>高：不暴露 UDP 161</td>
+          <td>高：需安装和维护 Agent</td>
+          <td>可装 Agent 的服务器类设备</td>
+      </tr>
+  </tbody>
+</table></div>
+<p>另外补一条管理面收口：把设备管理地址统一放进独立管理 VLAN，在核心交换机上拒绝办公网段直接访问 UDP 161/162，只放行监控服务器和跳板机。这样即使某台设备漏配 ACL，办公终端也无法直接摸到 SNMP。</p>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是 <strong>网络设备沿用默认 SNMP 团体名 <code>public</code>/<code>private</code>，且管理面没有 ACL，任何能路由到管理网段的终端都能读取甚至修改设备配置</strong>。</p>
+<p>更深一层，是把“默认值”当成了“配置”。设备出厂带 <code>public</code>，装上监控能用，就没人再问这个值意味着什么。SNMPv2c 的团体名本质上是明文密码，抓包就能看到；<code>private</code> 更是直接给了写权限。再叠加“内网可信”的假设——管理网段对办公网三层可达，却不做任何访问控制——默认值就从“方便”变成了“敞开的门”。</p>
+<p>还有一层是监控视角的盲区：Zabbix 只关心数据有没有采到，不关心采集通道是否安全；安全巡检只看报告里的端口和口令，很少去 <code>snmpwalk</code> 一下网络设备。两套体系各看一半，问题就一直悬在中间。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>设备入网基线增加“默认团体名/默认口令”检查项，<code>public</code>、<code>private</code>、<code>admin</code> 一律视为不合格，验收后才允许上线。</li>
+<li>管理面强制 ACL：SNMP、SSH、HTTPS 管理入口只允许监控服务器和跳板机，办公网段默认拒绝。</li>
+<li>新设备优先 SNMPv3 authPriv；存量设备制定分批升级计划，不能升级的写入风险台账。</li>
+<li>每季度做一次授权内的 SNMP 自测：从办公网和跳板机各试一次，确认只有预期来源能读。</li>
+<li>配置变更纳入审计，团体名、ACL、SNMP 用户变更要留记录，避免整改后又被临时需求改回去。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>监控协议也是攻击面。SNMP 让运维“看得见”设备，也让任何能访问 UDP 161 的人看得见同一批设备——包括 ARP 表、接口拓扑和固件版本。默认团体名不是配置，是欠账；内网也不是安全边界，只是攻击者少走几步路的地方。把管理面收进 ACL 和独立 VLAN，把 SNMPv2c 换成 authPriv，做的其实是一件事：让“能监控”和“谁都能看”彻底分开。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/83bf4e7f/" >一次服务器暴露面收敛 Checklist：从端口扫描到凭据治理的落地清单</a></li>
+<li><a class="link" href="/posts/37a35d29/" >堵住 NTLM 中继：一次 LLMNR 投毒导致域管理员凭据被窃的排查与加固</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/snmpv3/">SNMPv3</a>
+        
+            <a href="/tags/%E9%BB%98%E8%AE%A4%E5%9B%A2%E4%BD%93%E5%90%8D/">默认团体名</a>
+        
+            <a href="/tags/%E7%AE%A1%E7%90%86%E9%9D%A2-acl/">管理面 ACL</a>
+        
+            <a href="/tags/%E5%AE%89%E5%85%A8%E5%9F%BA%E7%BA%BF/">安全基线</a>
+        
+            <a href="/tags/%E7%BD%91%E7%BB%9C%E8%AE%BE%E5%A4%87/">网络设备</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
