@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="一批采集终端运行三年后频繁丢失校准参数，根因是固件每小时把运行计数写入同一 Flash 页，擦写次数耗尽寿命，CRC 校验失败后回退默认值。改用 A/B 双页加磨损均衡并降低写入频率后恢复。">
+<title>Flash 写穿：三年后设备配置频繁丢失</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/8c9e4882/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Flash 写穿：三年后设备配置频繁丢失">
+<meta property='og:description' content="一批采集终端运行三年后频繁丢失校准参数，根因是固件每小时把运行计数写入同一 Flash 页，擦写次数耗尽寿命，CRC 校验失败后回退默认值。改用 A/B 双页加磨损均衡并降低写入频率后恢复。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/8c9e4882/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Flash 磨损' /><meta property='article:tag' content='EEPROM 寿命' /><meta property='article:tag' content='磨损均衡' /><meta property='article:tag' content='CRC 校验' /><meta property='article:tag' content='掉电保存' /><meta property='article:published_time' content='2026-10-25T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-25T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="Flash 写穿：三年后设备配置频繁丢失">
+<meta name="twitter:description" content="一批采集终端运行三年后频繁丢失校准参数，根因是固件每小时把运行计数写入同一 Flash 页，擦写次数耗尽寿命，CRC 校验失败后回退默认值。改用 A/B 双页加磨损均衡并降低写入频率后恢复。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/" style="background-color: hsl(156, 60%, 84%); color: hsl(156, 60%, 15%);">
+                嵌入式
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/8c9e4882/">Flash 写穿：三年后设备配置频繁丢失</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            一批采集终端运行三年后频繁丢失校准参数，根因是固件每小时把运行计数写入同一 Flash 页，擦写次数耗尽寿命，CRC 校验失败后回退默认值。改用 A/B 双页加磨损均衡并降低写入频率后恢复。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-10-25T09:00:00&#43;08:00'>2026年10月25日星期日</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司三年前部署了一批环境采集终端，主控是 STM32F103，固件把设备配置和累计运行小时数放在内部 Flash 的最后一个 1KB 页里。配置包括采样间隔、报警阈值和传感器校准系数，运行小时数用于质保和维保提醒。设备分布在各厂区，共 500 多台，早期运行一直稳定。</p>
+<p>从今年年中开始，售后反馈逐渐增多：部分设备断电重启后，采样间隔变回默认的 60 秒，校准系数丢失，测量值出现明显偏差；有几台设备重启后直接进入默认配置，之前设置的报警阈值全部失效。故障设备的生产批次集中在最早部署的一批，数量每月递增。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>设备断电重启后配置恢复出厂值，重新设置后能正常工作，但下次断电又可能丢失。</li>
+<li>丢失的不只是配置，累计运行小时数也会归零或跳变。</li>
+<li>部分设备在保存设置时死机，看门狗复位后回到默认配置。</li>
+<li>用 ST-Link 读回故障设备的 Flash 配置页，CRC 校验不通过；本该是 <code>0xFF</code> 的空白区域出现零星 <code>0x00</code> 位。</li>
+<li>故障率与运行时间正相关：早期批次故障率明显更高，新批次暂时正常。</li>
+<li>重新刷写固件后设备能恢复一段时间，但几周后问题再次出现，说明不是偶发写坏，而是存储介质在持续退化。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步确认故障范围。把返修的 12 台设备逐一读回配置页，发现其中 9 台的 CRC 校验失败，配置结构体里出现非法值；另外 3 台能通过校验，但运行小时数与实际使用时间明显不符。问题集中在存储环节，不是传感器或电源。</p>
+<p>第二步看 Flash 内容。用 STM32CubeProgrammer 读出配置页，正常情况下擦除后的位应该是 <code>0xFF</code>，但故障设备出现了若干 <code>0x00</code> 位——这些位已经擦不掉，说明存储单元的擦写寿命接近或已经耗尽。部分设备在擦除时置位 <code>FLASH_SR</code> 的 <code>PGERR</code>，固件没有检查这个标志，仍然继续写入，最后写进去的是一份坏数据。</p>
+<p>第三步查固件写入逻辑。翻出三年前的代码，<code>save_runtime()</code> 每小时执行一次：先擦除整个 1KB 配置页，再把配置结构体和运行小时数一起写回去。配置和计数共用同一页，没有 A/B 备份，没有磨损均衡，也没有写入失败处理。也就是说，设备每运行一小时，这一页就被擦一次。</p>
+<p>第四步算账。STM32F103 的内部 Flash 标称每个页可擦写 1 万次；按每小时一次计算，一年是 8760 次，大约 14 个月就会达到标称寿命。设备已经运行三年，累计擦写约 2.6 万次，是额定值的两倍多。早期批次先坏，完全符合这个模型。</p>
+<p>第五步复现。拿一块备用板，把保存周期改成每分钟一次做加速测试，记录每次擦除后的校验结果。大约一万次之后，开始出现擦除不干净、CRC 偶发失败；继续写到一万两千次，配置页彻底无法保存。现象与现场设备一致，根因闭环。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>降低写入频率</strong>：运行小时数改为保存在 RAM 中，每小时累加但不落 Flash；每天零点或检测到市电掉电时再持久化一次。配置只在用户修改时写入，不再随计数一起擦写。这样年擦写量从 8760 次降到 365 次以内。</li>
+<li><strong>A/B 双页备份</strong>：把配置页拆成 A、B 两个槽位，每个槽位带序号和 CRC。写入时擦除非当前槽位、写入新数据、校验通过后再切换有效标志；任何一次掉电最多损失一份新数据，旧配置仍然可用。两页交替使用，磨损也减半。</li>
+<li><strong>磨损均衡</strong>：在 Flash 尾部划出 4 个页做环形轮转，每次写入换下一页，写满一圈再回到第一页。单页寿命 1 万次，四页合计可承受 4 万次擦写，配合降低后的写入频率，设计寿命覆盖十年以上。</li>
+<li><strong>写入失败检测</strong>：每次擦除和编程后检查 <code>FLASH_SR</code> 的 <code>PGERR</code>、<code>WRPRTERR</code> 标志；发现错误就把当前页标记为坏页，自动切换到备用页并上报告警，避免固件在坏页上反复写、静默丢配置。</li>
+<li><strong>高频数据换介质</strong>：如果确实需要频繁保存计数或日志，改用外部 FRAM（擦写次数可达 10¹² 量级）或带磨损均衡的 EEPROM，不要拿内部 Flash 当日志盘用。</li>
+<li><strong>存量设备处置</strong>：通过 OTA 推送新固件，升级前先读回并备份配置；对已经出现坏页的设备，固件自动重映射到备用页，无法重映射的安排换板。升级后连续观察一个月的 CRC 错误和配置丢失告警。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是 <strong>固件每小时擦写同一 Flash 页保存运行计数，累计擦写次数超过 1 万次的额定寿命，存储单元出现无法擦除的坏位，配置 CRC 校验失败后回退默认值</strong>。</p>
+<p>更深一层，是把 Flash 当成了“免费的持久化内存”。设计时只考虑了“掉电不能丢数据”，没有计算“写多少次会坏”；配置这种低频数据和运行计数这种高频数据混在同一页，导致配置被动地跟着计数一起被擦写。再加上没有 A/B 备份、没有写入失败检测，坏页出现后固件既不报警也不切换，而是静默回退默认值——设备看起来“恢复了”，实际上是把故障藏了起来。</p>
+<p>还有一层是验证方式的缺失。三年前的功能测试只验证了“保存后能读回”，没有做加速擦写测试，也没有算过写入预算。功能正确掩盖了寿命问题，而寿命问题只会在几年后以“偶发丢配置”的形式出现。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>存储设计评审必须算写入预算：每天写入次数 × 365 × 设计年限，与介质额定擦写次数对比，留出至少三倍余量。</li>
+<li>按写入频率给数据分类：配置、校准系数属于低频数据；运行计数、日志属于高频数据。高频数据放 RAM、RTC 备份寄存器或 FRAM，不落内部 Flash。</li>
+<li>A/B 双槽 + CRC + 磨损均衡列为嵌入式存储的标准模板，新项目直接复用，不再每次手写。</li>
+<li>出厂老化测试加入加速擦写项：按十年写入量压缩到几天跑完，提前暴露坏页和掉电竞态。</li>
+<li>设备遥测上报擦写计数、CRC 错误数和坏页标记，把“存储寿命”变成可观测指标，而不是等售后反馈。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>Flash 是消耗品，每一次擦除都是一次支取。嵌入式设备的故障不只有死机、跑飞和通信中断，还有这种以年为单位的缓慢磨损：功能一直正确，直到某一天存储单元再也写不进去。把写入预算写进设计评审，把配置和计数分开，把 A/B 备份和坏页检测做成默认能力，付出的只是一点代码和几个 Flash 页，换来的却是设备在十年后仍然记得自己是谁。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/7fec59ab/" >OTA 固件升级断电变砖：A/B 双分区缺位</a></li>
+<li><a class="link" href="/posts/3e0783d8/" >任务栈溢出致随机死机：HardFault 现场取证</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/flash-%E7%A3%A8%E6%8D%9F/">Flash 磨损</a>
+        
+            <a href="/tags/eeprom-%E5%AF%BF%E5%91%BD/">EEPROM 寿命</a>
+        
+            <a href="/tags/%E7%A3%A8%E6%8D%9F%E5%9D%87%E8%A1%A1/">磨损均衡</a>
+        
+            <a href="/tags/crc-%E6%A0%A1%E9%AA%8C/">CRC 校验</a>
+        
+            <a href="/tags/%E6%8E%89%E7%94%B5%E4%BF%9D%E5%AD%98/">掉电保存</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
