@@ -2,6 +2,42 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://blog.5772447.xyz/tags/communicate/</loc>
+    <lastmod>2026-10-26T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/pipe-%E6%AD%BB%E9%94%81/</loc>
+    <lastmod>2026-10-26T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/posts/15f31637/</loc>
+    <lastmod>2026-10-26T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/post/</loc>
+    <lastmod>2026-10-26T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/categories/python/</loc>
+    <lastmod>2026-10-26T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/subprocess/</loc>
+    <lastmod>2026-10-26T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/</loc>
+    <lastmod>2026-10-26T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/%E5%A4%87%E4%BB%BD%E8%84%9A%E6%9C%AC/</loc>
+    <lastmod>2026-10-26T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/</loc>
+    <lastmod>2026-10-26T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/categories/</loc>
+    <lastmod>2026-10-26T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/%E7%AE%A1%E9%81%93%E7%BC%93%E5%86%B2/</loc>
+    <lastmod>2026-10-26T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/categories/%E8%BF%90%E7%BB%B4/</loc>
+    <lastmod>2026-10-26T09:00:00+08:00</lastmod>
+  </url><url>
     <loc>https://blog.5772447.xyz/tags/crc-%E6%A0%A1%E9%AA%8C/</loc>
     <lastmod>2026-10-25T09:00:00+08:00</lastmod>
   </url><url>
@@ -14,28 +50,13 @@
     <loc>https://blog.5772447.xyz/posts/8c9e4882/</loc>
     <lastmod>2026-10-25T09:00:00+08:00</lastmod>
   </url><url>
-    <loc>https://blog.5772447.xyz/post/</loc>
-    <lastmod>2026-10-25T09:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/</loc>
-    <lastmod>2026-10-25T09:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/tags/</loc>
-    <lastmod>2026-10-25T09:00:00+08:00</lastmod>
-  </url><url>
     <loc>https://blog.5772447.xyz/tags/%E6%8E%89%E7%94%B5%E4%BF%9D%E5%AD%98/</loc>
-    <lastmod>2026-10-25T09:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/categories/</loc>
     <lastmod>2026-10-25T09:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/%E7%A3%A8%E6%8D%9F%E5%9D%87%E8%A1%A1/</loc>
     <lastmod>2026-10-25T09:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/</loc>
-    <lastmod>2026-10-25T09:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/categories/%E8%BF%90%E7%BB%B4/</loc>
     <lastmod>2026-10-25T09:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/posts/b0ab9ad7/</loc>
@@ -147,9 +168,6 @@
     <lastmod>2026-10-19T09:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/objgraph/</loc>
-    <lastmod>2026-10-19T09:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/categories/python/</loc>
     <lastmod>2026-10-19T09:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/python/</loc>
