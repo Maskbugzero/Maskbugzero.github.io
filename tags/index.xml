@@ -5,7 +5,37 @@
         <description>Recent content in 标签 on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Mon, 26 Oct 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Tue, 27 Oct 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>延迟抖动</title>
+            <link>https://blog.5772447.xyz/tags/%E5%BB%B6%E8%BF%9F%E6%8A%96%E5%8A%A8/</link>
+            <pubDate>Tue, 27 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%BB%B6%E8%BF%9F%E6%8A%96%E5%8A%A8/</guid>
+            <description></description>
+        </item><item>
+            <title>Cpu.stat</title>
+            <link>https://blog.5772447.xyz/tags/cpu.stat/</link>
+            <pubDate>Tue, 27 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/cpu.stat/</guid>
+            <description></description>
+        </item><item>
+            <title>CPU Limit</title>
+            <link>https://blog.5772447.xyz/tags/cpu-limit/</link>
+            <pubDate>Tue, 27 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/cpu-limit/</guid>
+            <description></description>
+        </item><item>
+            <title>Cgroup CPU 节流</title>
+            <link>https://blog.5772447.xyz/tags/cgroup-cpu-%E8%8A%82%E6%B5%81/</link>
+            <pubDate>Tue, 27 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/cgroup-cpu-%E8%8A%82%E6%B5%81/</guid>
+            <description></description>
+        </item><item>
+            <title>CFS Quota</title>
+            <link>https://blog.5772447.xyz/tags/cfs-quota/</link>
+            <pubDate>Tue, 27 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/cfs-quota/</guid>
+            <description></description>
+        </item><item>
             <title>管道缓冲</title>
             <link>https://blog.5772447.xyz/tags/%E7%AE%A1%E9%81%93%E7%BC%93%E5%86%B2/</link>
             <pubDate>Mon, 26 Oct 2026 09:00:00 +0800</pubDate>
