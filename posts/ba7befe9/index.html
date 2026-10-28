@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="会议室墙口沿用办公位模板，端口安全上限仅 2 个 MAC，接小交换机后设备数超限触发 violation shutdown，整口 err-disabled。调高上限并配置自动恢复后恢复。">
+<title>端口安全 max 2：会议室接交换机就断网</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/ba7befe9/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="端口安全 max 2：会议室接交换机就断网">
+<meta property='og:description' content="会议室墙口沿用办公位模板，端口安全上限仅 2 个 MAC，接小交换机后设备数超限触发 violation shutdown，整口 err-disabled。调高上限并配置自动恢复后恢复。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/ba7befe9/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='端口安全' /><meta property='article:tag' content='err-disable' /><meta property='article:tag' content='MAC 地址数' /><meta property='article:tag' content='接入交换机' /><meta property='article:tag' content='端口配置' /><meta property='article:published_time' content='2026-10-28T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-28T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="端口安全 max 2：会议室接交换机就断网">
+<meta name="twitter:description" content="会议室墙口沿用办公位模板，端口安全上限仅 2 个 MAC，接小交换机后设备数超限触发 violation shutdown，整口 err-disabled。调高上限并配置自动恢复后恢复。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
+                网络运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/ba7befe9/">端口安全 max 2：会议室接交换机就断网</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            会议室墙口沿用办公位模板，端口安全上限仅 2 个 MAC，接小交换机后设备数超限触发 violation shutdown，整口 err-disabled。调高上限并配置自动恢复后恢复。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-10-28T09:00:00&#43;08:00'>2026年10月28日星期三</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>办公楼有 200 多个接入端口，统一由一套配置模板下发。办公位的标准拓扑是“IP 话机 + 电脑”：话机接墙口，电脑接话机，所以模板里给每个端口配置了端口安全，最大 MAC 数设为 2，违规动作是 shutdown。这套策略跑了很多年，既能防止有人私接路由器，也限制了广播域里的 MAC 数量。</p>
+<p>会议室用的是同一套模板。过去会议室里只有一台电视和一台笔记本，两个 MAC 刚好卡在上限内，一直没出问题。上周行政在 4F 会议室加了一套视频会议终端，又为了让笔记本、电视、终端同时联网，在墙口上接了一个 5 口小交换机。当天下午，会议室的有限网络整体断了。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>4F 会议室墙口对应的交换机端口指示灯熄灭或呈琥珀色，房间内有线设备全部离线。</li>
+<li>同楼层其他房间网络正常，Wi-Fi 也正常，只有这一个端口出问题。</li>
+<li>交换机日志出现 <code>%PORT_SECURITY-2-PSECURE_VIOLATION</code>，提示端口因端口安全违规被禁用。</li>
+<li>把多余设备拔掉、只留一台笔记本，端口仍然不恢复；必须重新插拔或登录交换机操作。</li>
+<li><code>show interfaces status</code> 里该端口状态是 <code>err-disabled</code>，不是普通的 down。</li>
+<li>视频会议终端无法联网，会议只能改用无线，画面频繁卡顿。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步定位端口。先查 <code>show interfaces status err-disabled</code>，列出所有被 err-disable 的端口，4F 会议室的 <code>Gi1/0/23</code> 在列表里，原因列显示 <code>psecure-violation</code>。这说明不是网线、光模块或上联问题，而是端口安全策略主动把端口关了。</p>
+<p>第二步看端口安全状态。执行 <code>show port-security interface Gi1/0/23</code>，关键字段是：Maximum 2、Current 4、Violation Shutdown、Aging Disabled。也就是说，这个端口最多允许 2 个源 MAC，实际学到了 4 个，超过上限后按配置直接 shutdown。</p>
+<p>第三步看学到了哪些 MAC。<code>show port-security address</code> 列出该端口的 4 个 MAC：笔记本、电视、视频会议终端，以及一台 USB-C 扩展坞的网卡。小交换机本身是无管理的，不占 MAC，但它把四台设备的二层流量都汇总到了墙口，端口安全看到的就是 4 个源 MAC。</p>
+<p>第四步核对配置来源。<code>show running-config interface Gi1/0/23</code> 显示端口安全参数与办公位完全一致：<code>switchport port-security maximum 2</code>、<code>violation shutdown</code>、没有配置 aging。会议室的墙口从来没有单独模板，一直跟着办公位走。</p>
+<p>第五步解释为什么拔设备不恢复。端口进入 err-disabled 后不会因为链路恢复自动重新启用，需要 <code>shutdown</code> / <code>no shutdown</code>，或者开启 errdisable 自动恢复。现场同事只拔了设备，端口仍停在禁用状态，所以看起来“插回去也没用”。</p>
+<p>第六步复盘触发过程。会议室原来两个设备，刚好 2 个 MAC；加了视频终端和小交换机后变成 4 个，超过 max 2 的瞬间触发 violation，端口被关闭。只要拓扑不变，重新启用后还会再次触发。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>先恢复端口</strong>：在交换机上对该端口执行 <code>shutdown</code> 再 <code>no shutdown</code>，端口立即恢复；如果启用了 <code>errdisable recovery cause psecure-violation</code>，等待自动恢复周期（例如 300 秒）也可以。</li>
+<li><strong>给会议室单独建端口模板</strong>：最大 MAC 数调到 16，违规动作从 shutdown 改为 restrict（丢弃违规帧并记日志，端口保持 up），并配置 aging time（例如 10 分钟）。这样偶尔接入新设备不会直接把整个房间断网。</li>
+<li><strong>保留办公位模板</strong>：普通工位仍然维持 max 2、violation shutdown。办公位的拓扑固定，严格策略能有效阻止私接；不要把会议室的宽松策略全局套用。</li>
+<li><strong>按场景划分端口配置</strong>：至少区分办公位、会议室、打印机区、AP 上联、临时工位五类，每类明确最大 MAC 数、违规动作和 aging。模板按区域下发，不再一刀切。</li>
+<li><strong>补自动恢复与告警</strong>：全局开启 <code>errdisable recovery</code> 并设置合理间隔，同时把 <code>PSECURE_VIOLATION</code> 日志接入监控。自动恢复解决“端口一直死着”，告警解决“恢复了但没人知道为什么”。</li>
+<li><strong>验证</strong>：恢复后确认四台设备都能上线，<code>show port-security interface</code> 显示 Current 4、Maximum 16，违规计数不再增长；再模拟拔插一次，确认端口不会再次 shutdown。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是 <strong>会议室墙口沿用了办公位的端口安全模板，最大 MAC 数只有 2；接入小交换机后设备数变成 4，超过上限触发 violation shutdown，端口被 err-disable，整个房间的有线网络中断</strong>。</p>
+<p>更深一层，是把端口安全当成了“配了就行”的安全开关，而没有按使用场景设计容量。办公位的 2 个 MAC 是合理的，因为那里永远只有话机和电脑；会议室是共享空间，设备数量天然会变，继续套用同一个上限，等于给正常使用埋了一个硬阈值。再加上 violation 动作选了 shutdown、没有 aging、没有自动恢复，一次普通的设备增加就被放大成整口断网。</p>
+<p>还有一层是排障信息不对称。端口 err-disabled 在用户侧看起来就是“网口坏了”，现场第一反应是换线、换口；如果不知道去看 <code>show interfaces status err-disabled</code> 和端口安全计数，很容易在物理层绕圈。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>端口配置按场景分模板：办公位、会议室、打印区、AP 上联、临时工位分别定义最大 MAC 数、违规动作和 aging，禁止全楼一套参数。</li>
+<li>会议室和共享区域的 max MAC 数按“峰值设备数 + 余量”设定，并优先使用 restrict 而不是 shutdown，避免单台设备触发整口中断。</li>
+<li>全局启用 errdisable 自动恢复，同时把端口安全违规、err-disable 次数接入监控告警，做到既自动恢复又可追溯。</li>
+<li>网络变更管理覆盖“加一个小交换机”这类小动作：会议室增加设备前先确认墙口策略，必要时提前调整模板。</li>
+<li>定期导出端口安全表，核对各端口学到的 MAC 数与设备清单，发现异常增长及时处理。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>端口安全的本意是防止 MAC 泛洪和私接，但它同时是一条容量策略：上限设多少，决定了这个端口能容纳多少设备。办公位的 2 个 MAC 是精心设计的边界，搬到会议室就成了事故阈值。真正的问题不是“端口安全太严”，而是把不同场景塞进了同一个模板。按场景设计端口、给共享空间留余量、让违规动作从“关机”变成“限流加告警”，才能既守住安全，又不把正常变更变成断网。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/953d9b4c/" >堆叠后边缘端口频繁 errdisable：BPDU Guard 误触发</a></li>
+<li><a class="link" href="/posts/9aa5af71/" >storm-control 阈值过低误杀正常广播致整层卡顿</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E7%AB%AF%E5%8F%A3%E5%AE%89%E5%85%A8/">端口安全</a>
+        
+            <a href="/tags/err-disable/">Err-Disable</a>
+        
+            <a href="/tags/mac-%E5%9C%B0%E5%9D%80%E6%95%B0/">MAC 地址数</a>
+        
+            <a href="/tags/%E6%8E%A5%E5%85%A5%E4%BA%A4%E6%8D%A2%E6%9C%BA/">接入交换机</a>
+        
+            <a href="/tags/%E7%AB%AF%E5%8F%A3%E9%85%8D%E7%BD%AE/">端口配置</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/59789918/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次 DHCP 地址池耗尽引发的大面积断网</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/9aa5af71/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">storm-control 阈值过低误杀正常广播致整层卡顿</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
