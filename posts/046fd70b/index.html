@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="办公室 2.4G Wi-Fi 在拷贝 USB 硬盘时卡顿，根因是 USB 3.0 高速信号辐射噪声落在 2.4GHz 频段，抬高底噪。换屏蔽线、拉开距离并改用 5G 后恢复。">
+<title>USB 3.0 干扰 2.4G：拷文件时 Wi-Fi 卡顿</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/046fd70b/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="USB 3.0 干扰 2.4G：拷文件时 Wi-Fi 卡顿">
+<meta property='og:description' content="办公室 2.4G Wi-Fi 在拷贝 USB 硬盘时卡顿，根因是 USB 3.0 高速信号辐射噪声落在 2.4GHz 频段，抬高底噪。换屏蔽线、拉开距离并改用 5G 后恢复。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/046fd70b/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='USB 3.0' /><meta property='article:tag' content='2.4GHz 干扰' /><meta property='article:tag' content='射频噪声' /><meta property='article:tag' content='Wi-Fi 卡顿' /><meta property='article:tag' content='屏蔽' /><meta property='article:published_time' content='2026-10-30T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-30T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="USB 3.0 干扰 2.4G：拷文件时 Wi-Fi 卡顿">
+<meta name="twitter:description" content="办公室 2.4G Wi-Fi 在拷贝 USB 硬盘时卡顿，根因是 USB 3.0 高速信号辐射噪声落在 2.4GHz 频段，抬高底噪。换屏蔽线、拉开距离并改用 5G 后恢复。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%B7%AF%E7%94%B1%E5%99%A8/" style="background-color: hsl(353, 60%, 84%); color: hsl(353, 60%, 15%);">
+                路由器
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/046fd70b/">USB 3.0 干扰 2.4G：拷文件时 Wi-Fi 卡顿</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            办公室 2.4G Wi-Fi 在拷贝 USB 硬盘时卡顿，根因是 USB 3.0 高速信号辐射噪声落在 2.4GHz 频段，抬高底噪。换屏蔽线、拉开距离并改用 5G 后恢复。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-10-30T09:00:00&#43;08:00'>2026年10月30日星期五</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>一个小型办公室，十几个人，入口是一台带 USB 接口的无线路由器。路由器上插着一块移动硬盘，开 SMB 共享，大家把设计稿和文档放在上面，平时拷来拷去很方便。无线分了 2.4G 和 5G 两个 SSID：笔记本和手机主要连 5G，打印机、智能插座、几台老设备连 2.4G。</p>
+<p>之前插的是一块 USB 2.0 的旧 U 盘，容量小但一直稳定。上个月换了一块 USB 3.0 的移动固态硬盘，容量大了，拷贝速度也快了不少。也就是从那时候起，坐在路由器附近的同事开始抱怨：2.4G 的 Wi-Fi“一阵一阵地卡”，尤其是有人在拷文件的时候。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>2.4G 客户端在空闲时一切正常，ping 网关 1–2ms；一旦有人向 USB 硬盘拷文件，延迟立刻涨到几百毫秒，伴随丢包。</li>
+<li>5G 客户端和有线网络完全不受影响，同一时间测速正常。</li>
+<li>影响范围集中在路由器附近的 2.4G 设备，离得远的设备症状轻一些。</li>
+<li>2.4G 的智能插座偶尔掉线，打印机任务会卡住，但 5G 的笔记本一直正常。</li>
+<li>用 Wi-Fi 分析工具看，拷文件时 2.4G 频段的底噪明显抬高，而且是整段频段一起抬高，不是某个信道单独变差。</li>
+<li>停止拷贝后几秒钟，延迟和底噪都恢复正常；换回旧的 USB 2.0 U 盘，问题不再出现。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步建立对照。在 2.4G 客户端上持续 ping 网关，先测空闲状态，再让另一台机器向 USB 硬盘拷贝大文件。空闲时延迟稳定在 1–2ms，拷贝开始后立刻出现 200–800ms 的尖峰和 5%–10% 的丢包；停止拷贝后恢复。变量很明确：USB 硬盘的读写活动。</p>
+<p>第二步排除无线信道拥塞。用分析工具扫描 2.4G，周围 AP 的数量和信道占用没有变化，也没有新增干扰源；把路由器 2.4G 信道从 6 换到 1、再换到 11，现象依旧。信道拥塞通常只影响某个信道，而这次是整个 2.4G 频段一起变差，说明干扰源是宽带的，不是某个 Wi-Fi 网络。</p>
+<p>第三步看底噪。拷文件时，2.4G 的噪声底从大约 -95dBm 抬到 -70dBm 左右，而且从 2.4GHz 低频段到高频段都有分布。这个形态很像开关电源或高速数字信号的宽带辐射，而不是窄带的 Wi-Fi 或蓝牙信号。</p>
+<p>第四步做替换实验。把 USB 3.0 固态硬盘换成旧的 USB 2.0 U 盘，同样的拷贝量，底噪没有明显变化，延迟也正常；把 USB 3.0 硬盘插到一台远离路由器的电脑上，通过网线访问共享，2.4G 也不受影响；用一根带屏蔽的 USB 3.0 延长线把硬盘挪到离路由器半米远，底噪上升幅度明显减小。三个实验指向同一个结论：干扰来自 USB 3.0 接口和线缆本身。</p>
+<p>第五步解释机理。USB 3.0 的 SuperSpeed 信号速率是 5Gbps，其谐波和宽带噪声会覆盖 2.4GHz 频段。路由器上的 USB 3.0 口离 2.4G 天线很近，移动硬盘的线缆和金属外壳又像一根天线，把噪声辐射出去；2.4G 接收端底噪被抬高，信噪比下降，只能不断重传，表现就是延迟和丢包。5G 工作在 5GHz 频段，远离这些噪声，所以不受影响。Intel 在很多年前就发过 USB 3.0 对 2.4GHz 无线设备干扰的白皮书，这不是玄学，是射频共存问题。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>拉开距离</strong>：用带屏蔽的 USB 3.0 延长线把移动硬盘移到离路由器至少半米以外，避开 2.4G 天线方向。距离和屏蔽同时改善，效果最明显。</li>
+<li><strong>降速换稳定</strong>：如果共享盘主要放文档，速度要求不高，可以改用 USB 2.0 线缆或 USB 2.0 接口，把速率限制在 480Mbps，噪声会大幅下降；代价是拷贝速度变慢。</li>
+<li><strong>关闭 USB 3.0 模式</strong>：部分路由器固件提供“降低 USB 3.0 干扰”或“USB 3.0 模式”开关，打开后强制以 USB 2.0 工作，适合对无线稳定性要求高于磁盘速度的场景。</li>
+<li><strong>换屏蔽更好的硬盘盒</strong>：金属屏蔽外壳、带磁环的短线，比塑料外壳加长线的辐射小得多；劣质线缆往往就是最大的天线。</li>
+<li><strong>客户端尽量用 5G</strong>：把笔记本、手机迁到 5G，2.4G 只留给打印机、IoT 等低速率设备，从使用侧绕开干扰。</li>
+<li><strong>共享盘迁到 NAS</strong>：如果办公室对文件共享依赖度高，用网线接入的 NAS 比路由器 USB 口更稳，既避免射频干扰，也不占用路由器的 CPU 和内存。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是 <strong>USB 3.0 接口和线缆在高速传输时产生宽带射频噪声，落在 2.4GHz 频段，抬高了路由器 2.4G 接收端的底噪，导致信噪比下降、频繁重传，表现为拷贝文件时 Wi-Fi 卡顿和丢包</strong>。</p>
+<p>更深一层，是设备形态带来的射频共存问题。路由器厂商把 USB 3.0 口和 2.4G 天线放在同一个塑料壳里，端口离天线往往只有几厘米；用户只看到“USB 3.0 速度快”，看不到它同时也是一个宽带噪声源。办公室之前用 USB 2.0 一直没事，不是因为 2.4G 突然变差，而是因为换硬盘时把一个一直存在的干扰源放大了。</p>
+<p>还有一层是排障惯性。Wi-Fi 卡顿的第一反应通常是“信道拥塞”“邻居 AP 太多”“路由器该换了”，但这次信道扫描正常、换信道无效，只有把“USB 活动”和“底噪”关联起来才能定位。无线问题不一定出在无线侧，也可能出在同一台设备的有线接口上。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>路由器 USB 3.0 口接高速设备时，优先使用屏蔽线缆并让设备远离天线；不要把移动硬盘直接插在紧贴天线的端口上。</li>
+<li>部署前做一次“带载射频测试”：在 USB 硬盘满速读写的同时测 2.4G 底噪和延迟，而不是只测空载。</li>
+<li>2.4G 频段留给低速率 IoT，办公终端优先 5G；高吞吐共享需求用 NAS 或有线，不依赖路由器 USB。</li>
+<li>选购路由器时关注 USB 接口的屏蔽设计和天线布局，金属屏蔽、端口远离天线是加分项。</li>
+<li>把“USB 3.0 干扰”写进无线排障清单：遇到 2.4G 宽带底噪抬升、换信道无效时，先拔掉 USB 3.0 设备做对照。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>2.4G 的干扰源不一定来自邻居的 AP，也可能来自同一台路由器上的 USB 3.0 接口。USB 3.0 带来更快的拷贝速度，也带来一段覆盖 2.4GHz 的宽带噪声；当天线和接口被塞进同一个外壳，干扰就成了设计的一部分。把硬盘挪远、换一根好线、让终端上 5G，这些动作都不复杂，难的是先想到“无线变慢”可能是有线接口惹的祸。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/460eac0e/" >记一次无线 AP 信道干扰致高层半层网络瘫痪</a></li>
+<li><a class="link" href="/posts/c5aeeff2/" >AP 选了 DFS 信道：无线客户端反复掉线</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/usb-3.0/">USB 3.0</a>
+        
+            <a href="/tags/2.4ghz-%E5%B9%B2%E6%89%B0/">2.4GHz 干扰</a>
+        
+            <a href="/tags/%E5%B0%84%E9%A2%91%E5%99%AA%E5%A3%B0/">射频噪声</a>
+        
+            <a href="/tags/wi-fi-%E5%8D%A1%E9%A1%BF/">Wi-Fi 卡顿</a>
+        
+            <a href="/tags/%E5%B1%8F%E8%94%BD/">屏蔽</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

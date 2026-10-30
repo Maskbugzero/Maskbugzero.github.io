@@ -5,7 +5,37 @@
         <description>Recent content in 标签 on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Thu, 29 Oct 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Fri, 30 Oct 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>射频噪声</title>
+            <link>https://blog.5772447.xyz/tags/%E5%B0%84%E9%A2%91%E5%99%AA%E5%A3%B0/</link>
+            <pubDate>Fri, 30 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%B0%84%E9%A2%91%E5%99%AA%E5%A3%B0/</guid>
+            <description></description>
+        </item><item>
+            <title>屏蔽</title>
+            <link>https://blog.5772447.xyz/tags/%E5%B1%8F%E8%94%BD/</link>
+            <pubDate>Fri, 30 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%B1%8F%E8%94%BD/</guid>
+            <description></description>
+        </item><item>
+            <title>Wi-Fi 卡顿</title>
+            <link>https://blog.5772447.xyz/tags/wi-fi-%E5%8D%A1%E9%A1%BF/</link>
+            <pubDate>Fri, 30 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/wi-fi-%E5%8D%A1%E9%A1%BF/</guid>
+            <description></description>
+        </item><item>
+            <title>USB 3.0</title>
+            <link>https://blog.5772447.xyz/tags/usb-3.0/</link>
+            <pubDate>Fri, 30 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/usb-3.0/</guid>
+            <description></description>
+        </item><item>
+            <title>2.4GHz 干扰</title>
+            <link>https://blog.5772447.xyz/tags/2.4ghz-%E5%B9%B2%E6%89%B0/</link>
+            <pubDate>Fri, 30 Oct 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/2.4ghz-%E5%B9%B2%E6%89%B0/</guid>
+            <description></description>
+        </item><item>
             <title>邮件队列</title>
             <link>https://blog.5772447.xyz/tags/%E9%82%AE%E4%BB%B6%E9%98%9F%E5%88%97/</link>
             <pubDate>Thu, 29 Oct 2026 09:00:00 +0800</pubDate>
