@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="安全审计发现 AD CS 证书模板允许申请者自填 SAN，普通域用户可申请管理员证书并用于认证。关闭自填、收紧注册权限并吊销滥用证书后收口，附模板排查方法。">
+<title>模板允许自填 SAN：域用户可冒充管理员</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/6ed2cf28/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="模板允许自填 SAN：域用户可冒充管理员">
+<meta property='og:description' content="安全审计发现 AD CS 证书模板允许申请者自填 SAN，普通域用户可申请管理员证书并用于认证。关闭自填、收紧注册权限并吊销滥用证书后收口，附模板排查方法。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/6ed2cf28/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='AD CS' /><meta property='article:tag' content='证书模板' /><meta property='article:tag' content='ESC1' /><meta property='article:tag' content='SAN' /><meta property='article:tag' content='权限提升' /><meta property='article:published_time' content='2026-10-31T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-31T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="模板允许自填 SAN：域用户可冒充管理员">
+<meta name="twitter:description" content="安全审计发现 AD CS 证书模板允许申请者自填 SAN，普通域用户可申请管理员证书并用于认证。关闭自填、收紧注册权限并吊销滥用证书后收口，附模板排查方法。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
+                安全运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/6ed2cf28/">模板允许自填 SAN：域用户可冒充管理员</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            安全审计发现 AD CS 证书模板允许申请者自填 SAN，普通域用户可申请管理员证书并用于认证。关闭自填、收紧注册权限并吊销滥用证书后收口，附模板排查方法。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-10-31T09:00:00&#43;08:00'>2026年10月31日星期六</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 6 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司有一套内部 AD CS（Active Directory Certificate Services），主要给 802.1X 无线认证和 VPN 拨号签发用户证书。CA 是几年前部署的，证书模板由实施商提供，其中“VPN-Users”模板允许 Domain Users 注册，用途是让员工申请自己的拨号证书。这些年一直这么用，没人觉得有问题——证书嘛，不就是个网络准入凭证。</p>
+<p>今年的季度安全审计请了外部团队。他们在授权范围内做 AD 域安全评估时，用普通域账号在 CA 上申请了一张证书，把 SAN（Subject Alternative Name）填成了域管理员账号，CA 居然签发了。审计报告把这条列为高危：任何普通域用户都能拿到一张“写着管理员名字”的证书，并用它完成身份认证。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>审计人员在普通域账号下申请证书，请求中的 SAN 填的是另一个账号，CA 返回“颁发成功”。</li>
+<li>用这张证书做 LDAP 认证，服务端把它当成了 SAN 里那个账号，权限也随之继承。</li>
+<li>CA 的颁发日志里，申请者账号与证书 SAN 不一致，但没有任何告警或拦截。</li>
+<li>该模板的注册权限包含 Domain Users，没有启用管理员审批，也没有限制可申请的 SAN 范围。</li>
+<li>审计同时确认：除了这次测试申请，历史日志里没有发现其他 SAN 与申请者不一致的证书，暂未发现实际滥用。</li>
+<li>业务侧完全无感：802.1X 和 VPN 一直正常，证书到期续签也正常，问题只存在于“证书代表谁”这个最根本的语义上。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步盘点模板。在 CA 上执行 <code>certutil -CATemplates</code>，列出所有可用的证书模板；重点看哪些模板允许“在请求中提供使用者信息”。再用 <code>certutil -v -template &lt;模板名&gt;</code> 或直接查看 AD 中对应模板对象的属性，核对三个关键项：<code>msPKI-Certificate-Name-Flag</code> 是否包含 <code>CT_FLAG_ENROLLEE_SUPPLIES_SUBJECT</code>（值为 0x1）、<code>msPKI-Enrollment-Flag</code> 是否要求管理员审批、<code>pKIExtendedKeyUsage</code> 是否包含客户端认证。</p>
+<p>第二步确认注册权限。查看模板对象的安全描述符，发现 <code>Domain Users</code> 拥有注册权限，且没有额外的 issuance policy 限制。也就是说，任何登录域的普通账号都能发起申请，CA 不会核对 SAN 是否等于申请者本人。</p>
+<p>第三步做授权验证。在隔离测试环境里，用普通测试账号提交了一张 SAN 为测试管理员账号的证书请求，CA 正常签发；用该证书完成一次 LDAP 认证，读到了测试管理员权限下的对象属性。验证到此为止，没有进行任何横向操作，随后立即吊销了这张证书。结论明确：这不是理论风险，而是可复现的权限提升路径。</p>
+<p>第四步归类。对照 AD CS 的已知攻击面，这个配置命中 ESC1：模板允许申请者自填 SAN、包含客户端认证用途、低权限用户可注册、无需审批。四项条件同时满足，CA 就从“身份证明机构”变成了“身份代办机构”。</p>
+<p>第五步查历史日志。用 <code>certutil -viewlog</code> 导出 CA 的颁发记录，结合事件日志里的 4886/4887（证书颁发）事件，筛选申请者与证书 SAN 不一致的记录。历史数据里没有发现异常，说明目前只是配置缺陷，尚未被利用；但这条路径已经敞开很久，不能假设没人走过。</p>
+<p>第六步复盘来源。这个模板是部署时从一份旧实施文档里复制的，文档里勾选“允许在请求中提供使用者信息”是为了兼容某个老设备，后来设备下线了，模板设置没人回头清理。CA 本身没有错，错在模板把“谁能证明自己是谁”的决定权交给了申请者。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>关闭自填 SAN</strong>：在模板的“使用者名称”设置里取消“在请求中提供”选项，改为“从 AD 中的信息构建”，让 CA 根据申请者账号自动生成 SAN/UPN，申请者无法指定他人身份。</li>
+<li><strong>收紧注册权限</strong>：把模板的注册权限从 Domain Users 收敛到专门的 VPN 用户组；对敏感模板启用管理员审批，申请后必须由 PKI 管理员批准才签发。</li>
+<li><strong>按用途拆分模板</strong>：802.1X、VPN、服务器 TLS 各用独立模板，各自的 EKU、有效期、注册权限分开管理，避免一个宽松模板被所有场景复用。</li>
+<li><strong>吊销与清理</strong>：吊销测试证书和所有 SAN 与申请者不一致的证书，发布新的 CRL；对使用该模板签发的存量证书做一次复核，必要时强制重新注册。</li>
+<li><strong>排查其他模板</strong>：按 ESC1 的条件全量过一遍，同时检查 ESC2（any purpose EKU）、ESC3（注册代理）、ESC4（模板 ACL 过宽）、ESC6（CA 上启用 <code>EDITF_ATTRIBUTESUBJECTALTNAME2</code>）、ESC8（HTTP 注册端点暴露）等常见配置缺陷。</li>
+<li><strong>补审计与告警</strong>：开启 CA 审计，采集 4886/4887/4899/4900 事件；对“申请者与 SAN 不一致”“敏感账号证书签发”“模板权限变更”设置告警，而不是等下一次审计才发现。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是 <strong>证书模板同时满足四个条件：允许申请者自填 SAN、包含客户端认证 EKU、Domain Users 可注册、无需管理员审批，导致普通域用户可以为任意账号申请证书并完成身份认证</strong>。</p>
+<p>更深一层，是把 PKI 当成了网络准入的配套设施，而不是身份基础设施。证书的本质是“由 CA 背书的身份声明”，签发规则就是身份授权规则；但在很多组织里，模板是实施时一次性配好的，权限是“能让所有人用”最省事，之后几年无人复核。证书一旦能代表别人，它就不再是凭证，而是冒用工具。</p>
+<p>还有一层是监控缺位。CA 每天在签发证书，但没人看颁发日志，没人比对申请者和 SAN 是否一致，也没有模板变更告警。配置缺陷不可怕，可怕的是它可以在无人察觉的情况下被使用很久。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>建立 AD CS 模板基线：默认不允许自填 SAN，敏感模板必须审批，注册权限按组最小化，EKU 按用途最小化。</li>
+<li>每季度做一次 ESC 专项审计，用授权工具枚举脆弱模板，输出清单并跟踪整改；新模板上线前必须过同一套检查。</li>
+<li>PKI 管理纳入 Tier 0 资产：CA 服务器、模板 ACL、注册端点按域控级别保护，禁止普通运维账号随意改模板。</li>
+<li>采集并监控 CA 颁发日志，重点告警 SAN 与申请者不一致、管理员账号证书签发、模板权限变更和 CRL 发布异常。</li>
+<li>把 AD CS 纳入红队演练范围，验证“普通用户能否拿到他人证书”，而不是只测口令和票据。</li>
+<li>证书生命周期与人员生命周期联动：离职、转岗时吊销个人证书，避免“人走了证书还在”。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>一张证书的分量，取决于 CA 愿意为它背书到什么程度。当模板允许申请者自己填 SAN，CA 就放弃了“你是谁”的审核权，转而相信申请者的自我声明；这时候签出来的证书，和一张印着别人名字的工牌没有区别。AD CS 不是网络准入的附属品，它是域内身份体系的一部分。把模板当成安全策略来管，把颁发日志当成安全日志来看，才能避免 CA 从“证明身份”变成“代办身份”。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/37a35d29/" >堵住 NTLM 中继：一次 LLMNR 投毒导致域管理员凭据被窃的排查与加固</a></li>
+<li><a class="link" href="/posts/e3f8a2c1/" >一次域内 Kerberoasting 攻击的检测与加固实录</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/ad-cs/">AD CS</a>
+        
+            <a href="/tags/%E8%AF%81%E4%B9%A6%E6%A8%A1%E6%9D%BF/">证书模板</a>
+        
+            <a href="/tags/esc1/">ESC1</a>
+        
+            <a href="/tags/san/">SAN</a>
+        
+            <a href="/tags/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/">权限提升</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/ca7c58b6/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">记一次Web应用账户经sudo配置不当提权到root的入侵溯源与加固</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
