@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="LAPS 策略已下发但本地管理员密码未按预期轮换，事件日志提示权限不足与策略应用失败，排查发现 GPO 权限与事件转发配置缺失。">
-<title>LAPS 部署后终端本地管理员密码为何未更新？一次策略应用与事件日志的排查记录</title>
+<title>LAPS 密码未更新：策略应用与事件日志排查</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/903f5f9d/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="LAPS 部署后终端本地管理员密码为何未更新？一次策略应用与事件日志的排查记录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="LAPS 密码未更新：策略应用与事件日志排查">
 <meta property='og:description' content="LAPS 策略已下发但本地管理员密码未按预期轮换，事件日志提示权限不足与策略应用失败，排查发现 GPO 权限与事件转发配置缺失。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/903f5f9d/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='LAPS' /><meta property='article:tag' content='本地管理员密码' /><meta property='article:tag' content='GPO' /><meta property='article:tag' content='域权限' /><meta property='article:tag' content='ms-Mcs-AdmPwd' /><meta property='article:tag' content='Active Directory' /><meta property='article:published_time' content='2026-09-12T00:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-09-12T00:00:00&#43;00:00'/>
-<meta name="twitter:title" content="LAPS 部署后终端本地管理员密码为何未更新？一次策略应用与事件日志的排查记录">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='LAPS' /><meta property='article:tag' content='本地管理员密码' /><meta property='article:tag' content='GPO' /><meta property='article:tag' content='域权限' /><meta property='article:tag' content='ms-Mcs-AdmPwd' /><meta property='article:tag' content='Active Directory' /><meta property='article:published_time' content='2026-09-12T00:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="LAPS 密码未更新：策略应用与事件日志排查">
 <meta name="twitter:description" content="LAPS 策略已下发但本地管理员密码未按预期轮换，事件日志提示权限不足与策略应用失败，排查发现 GPO 权限与事件转发配置缺失。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -277,7 +277,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/903f5f9d/">LAPS 部署后终端本地管理员密码为何未更新？一次策略应用与事件日志的排查记录</a>
+            <a href="/posts/903f5f9d/">LAPS 密码未更新：策略应用与事件日志排查</a>
         </h2>
     
         
@@ -664,11 +664,11 @@
 <h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
 </h2><p><strong>域控与组策略</strong></p>
 <ul>
-<li><a class="link" href="/posts/0f35911f/" >迁移 AD 域控：SYSVOL 复制断裂与 FSMO 抢占风险的定位与回退复盘</a></li>
-<li><a class="link" href="/posts/75336643/" >记一次 AD 域中黄金票据攻击导致域控权限持久化的检测与清除</a></li>
+<li><a class="link" href="/posts/0f35911f/" >AD 域控迁移：SYSVOL 断裂与 FSMO 风险回退</a></li>
+<li><a class="link" href="/posts/75336643/" >黄金票据攻击：域控权限持久化检测与清除</a></li>
 <li><a class="link" href="/posts/3c75e975/" >域控 GPO 推送失败，终端安全基线为何不生效？</a></li>
-<li><a class="link" href="/posts/f78d7f76/" >域控 NTP 时间源失效，全公司 Kerberos 为何大面积失败？</a></li>
-<li><a class="link" href="/posts/3a307caa/" >域电脑重启后为何登不上？一次工作站与主域信任关系失败的排查记录</a></li>
+<li><a class="link" href="/posts/f78d7f76/" >域控 NTP 失效：全公司 Kerberos 认证失败</a></li>
+<li><a class="link" href="/posts/3a307caa/" >工作站信任关系失败：域电脑重启后无法登录</a></li>
 <li><a class="link" href="/posts/8c4b1183/" >Windows 域策略推送失败致新电脑无法登录的处理</a></li>
 </ul>
 
@@ -694,7 +694,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     
@@ -740,7 +752,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 NTP 异常致 Kerberos 认证全失效的排查</h2>
+            <h2 class="article-title">NTP 异常：Kerberos 认证全失效</h2>
         </div>
     </a>
 </article>
@@ -762,7 +774,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 Windows 域账号批量锁定事件的排查</h2>
+            <h2 class="article-title">服务账号改密未同步：域账号批量锁定</h2>
         </div>
     </a>
 </article>

@@ -229,6 +229,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -344,6 +345,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -407,6 +409,12 @@
 </ul>
 <h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
 </h2><p>这次事件的本质，是攻击者用 <code>crontab</code> 这个&quot;系统自带的合法调度器&quot;做持久化，规避了常驻进程的显眼特征，单看 CPU 和进程表很容易误判为偶发抖动。排查的关键转折在于：周期出网 + 短命进程 + 父进程是 <code>crond</code>，三者指向计划任务而非服务；顺藤摸到 <code>/var/spool/cron/</code> 的恶意条目后，问题迎刃而解。对运维来说，与其事后肉眼翻 cron，不如把 cron 变更、出网白名单、异常进程血缘做成常态化检测——让后门在&quot;被调度起来&quot;的那一刻就被抓住。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/b0613189/" >authorized_keys 后门：免密 SSH 登录溯源</a></li>
+<li><a class="link" href="/posts/45ad24c7/" >勒索软件加密共享目录：入侵还原与数据恢复</a></li>
+<li><a class="link" href="/posts/55563ba9/" >清除服务器 XMRig 挖矿木马：入侵路径还原与清剿实录</a></li>
+</ul>
 
 </section>
 

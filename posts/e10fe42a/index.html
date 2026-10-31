@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="实习生把硬编码 AccessKey 的脚本推上公开仓库，11 分钟后被扫描机器人捡走，攻击者在多地域批量开高配实例挖矿，账单一夜暴涨。">
-<title>记一次云账号 AccessKey 泄露导致云上资源被恶意开机挖矿的溯源与处置</title>
+<title>AccessKey 泄露：云主机被恶意开机挖矿</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/e10fe42a/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次云账号 AccessKey 泄露导致云上资源被恶意开机挖矿的溯源与处置">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="AccessKey 泄露：云主机被恶意开机挖矿">
 <meta property='og:description' content="实习生把硬编码 AccessKey 的脚本推上公开仓库，11 分钟后被扫描机器人捡走，攻击者在多地域批量开高配实例挖矿，账单一夜暴涨。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/e10fe42a/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='AccessKey泄露' /><meta property='article:tag' content='密钥硬编码' /><meta property='article:tag' content='云安全' /><meta property='article:tag' content='操作审计' /><meta property='article:tag' content='RAM最小权限' /><meta property='article:tag' content='gitleaks' /><meta property='article:published_time' content='2021-07-09T00:00:00&#43;00:00'/><meta property='article:modified_time' content='2021-07-09T00:00:00&#43;00:00'/>
-<meta name="twitter:title" content="记一次云账号 AccessKey 泄露导致云上资源被恶意开机挖矿的溯源与处置">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='AccessKey泄露' /><meta property='article:tag' content='密钥硬编码' /><meta property='article:tag' content='云安全' /><meta property='article:tag' content='操作审计' /><meta property='article:tag' content='RAM最小权限' /><meta property='article:tag' content='gitleaks' /><meta property='article:published_time' content='2021-07-09T00:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="AccessKey 泄露：云主机被恶意开机挖矿">
 <meta name="twitter:description" content="实习生把硬编码 AccessKey 的脚本推上公开仓库，11 分钟后被扫描机器人捡走，攻击者在多地域批量开高配实例挖矿，账单一夜暴涨。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -236,6 +236,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -274,7 +275,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/e10fe42a/">记一次云账号 AccessKey 泄露导致云上资源被恶意开机挖矿的溯源与处置</a>
+            <a href="/posts/e10fe42a/">AccessKey 泄露：云主机被恶意开机挖矿</a>
         </h2>
     
         
@@ -358,6 +359,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -562,6 +564,11 @@
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>这次事故里最扎眼的数字是 11 分钟：从密钥出现在公网，到它被自动化机器人捡起来用。这个速度决定了「事后发现再补救」这条路基本走不通，防线必须前移到提交那一刻。</p>
 <p>复盘时我们把它拆成一句话：<strong>泄露是必然会发生的，问题在于泄露的那把钥匙能开多大的门、多久会被发现。</strong> 静态密钥换成临时凭证，管理员权限降到最小集，无告警补上高危动作监控——三件事做完，同样的失误再来一次，损失只会是一条被拦下的提交记录。至于那位实习生，我们没有处分他，而是让他在部门周会上把这条时间线讲了一遍。效果比任何制度宣贯都好。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/7480195f/" >Elasticsearch 裸奔公网被扫库：数据泄露应急处置</a></li>
+<li><a class="link" href="/posts/55563ba9/" >清除服务器 XMRig 挖矿木马：入侵路径还原与清剿实录</a></li>
+</ul>
 
 </section>
 
@@ -585,7 +592,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     

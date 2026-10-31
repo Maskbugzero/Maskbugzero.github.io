@@ -236,6 +236,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -358,6 +359,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -515,6 +517,10 @@
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>这次故障的表象是「数据库连接池耗尽、接口大面积超时」,但数据库本身全程很闲,真正的元凶是一次被塞进事务里的同步外部 HTTP 调用,把每笔下单事务从毫秒拖成数秒,让连接被长期占用、池子被瞬间占满。</p>
 <p>排查的关键转折点有三个:一是通过异常里的 <code>active=10, idle=0, waiting=27</code> 判定瓶颈在连接池而非数据库;二是用 <code>leakDetectionThreshold</code> 直接打印出「攥着连接不放」的线程堆栈;三是顺着堆栈定位到事务里的外部调用。记住一条朴素的经验:<strong>数据库事务是很贵的资源,连接必须快借快还;任何把网络 IO 关进事务的写法,都是在给自己埋雷。</strong></p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/b1c93f57/" >长事务阻断 autovacuum：PG 表膨胀</a></li>
+</ul>
 
 </section>
 

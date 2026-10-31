@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="安全部例行改密后 17 个应用连环报数据库认证失败。根因是共享服务账号密码在 AD 中命中过期策略，而应用侧密码写死在配置里无法自动跟进；配套的变更通知也只发了两轮。修复后以 gMSA 和账号台账补上轮换断链。">
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="安全部例行改密后 17 个应用连环报数据库认证失败。根因是共享服务账号密码未同步更新，建立密码同步机制后恢复。">
 <title>服务账号密码过期，应用为何批量认证失败？</title>
 
 
@@ -13,12 +13,12 @@
 
 
 <link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="服务账号密码过期，应用为何批量认证失败？">
-<meta property='og:description' content="安全部例行改密后 17 个应用连环报数据库认证失败。根因是共享服务账号密码在 AD 中命中过期策略，而应用侧密码写死在配置里无法自动跟进；配套的变更通知也只发了两轮。修复后以 gMSA 和账号台账补上轮换断链。">
+<meta property='og:description' content="安全部例行改密后 17 个应用连环报数据库认证失败。根因是共享服务账号密码未同步更新，建立密码同步机制后恢复。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/13e99f9c/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='服务账号' /><meta property='article:tag' content='密码轮换' /><meta property='article:tag' content='AD' /><meta property='article:tag' content='gMSA' /><meta property='article:tag' content='安全运维' /><meta property='article:published_time' content='2026-10-08T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-08T09:00:00&#43;08:00'/>
 <meta name="twitter:title" content="服务账号密码过期，应用为何批量认证失败？">
-<meta name="twitter:description" content="安全部例行改密后 17 个应用连环报数据库认证失败。根因是共享服务账号密码在 AD 中命中过期策略，而应用侧密码写死在配置里无法自动跟进；配套的变更通知也只发了两轮。修复后以 gMSA 和账号台账补上轮换断链。">
+<meta name="twitter:description" content="安全部例行改密后 17 个应用连环报数据库认证失败。根因是共享服务账号密码未同步更新，建立密码同步机制后恢复。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
     </head>
@@ -273,7 +273,7 @@
     
         
         <h3 class="article-subtitle">
-            安全部例行改密后 17 个应用连环报数据库认证失败。根因是共享服务账号密码在 AD 中命中过期策略，而应用侧密码写死在配置里无法自动跟进；配套的变更通知也只发了两轮。修复后以 gMSA 和账号台账补上轮换断链。
+            安全部例行改密后 17 个应用连环报数据库认证失败。根因是共享服务账号密码未同步更新，建立密码同步机制后恢复。
         </h3>
         
     </div>
@@ -395,8 +395,8 @@
 <h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
 </h2><ul>
 <li><a class="link" href="/posts/6f0650ff/" >域用户密码过期，定时同步任务为何批量失败？</a></li>
-<li><a class="link" href="/posts/903f5f9d/" >LAPS 部署后终端本地管理员密码为何未更新？一次策略应用与事件日志的排查记录</a></li>
-<li><a class="link" href="/posts/f78d7f76/" >域控 NTP 时间源失效，全公司 Kerberos 为何大面积失败？</a></li>
+<li><a class="link" href="/posts/903f5f9d/" >LAPS 密码未更新：策略应用与事件日志排查</a></li>
+<li><a class="link" href="/posts/f78d7f76/" >域控 NTP 失效：全公司 Kerberos 认证失败</a></li>
 </ul>
 
 </section>
@@ -476,7 +476,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 SSH 暴力破解触发 fail2ban 自动封禁的处置</h2>
+            <h2 class="article-title">SSH 暴力破解：fail2ban 自动封禁处置</h2>
         </div>
     </a>
 </article>

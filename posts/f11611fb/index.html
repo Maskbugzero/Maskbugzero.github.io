@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="机房搬迁后跨机房 IPSec VPN 大包分片黑洞，应用小包正常但大包超时，PMTUD 黑洞 + MSS 钳制缺失导致。">
-<title>记一次跨机房 IPSec VPN 大包分片黑洞导致应用超时但小包正常的排查实录</title>
+<title>IPSec 大包分片黑洞：应用超时小包正常</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/f11611fb/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次跨机房 IPSec VPN 大包分片黑洞导致应用超时但小包正常的排查实录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="IPSec 大包分片黑洞：应用超时小包正常">
 <meta property='og:description' content="机房搬迁后跨机房 IPSec VPN 大包分片黑洞，应用小包正常但大包超时，PMTUD 黑洞 + MSS 钳制缺失导致。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/f11611fb/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='IPSec' /><meta property='article:tag' content='MTU' /><meta property='article:tag' content='PMTUD' /><meta property='article:tag' content='分片黑洞' /><meta property='article:tag' content='机房搬迁' /><meta property='article:tag' content='VPN' /><meta property='article:published_time' content='2026-09-02T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-02T07:00:00&#43;08:00'/>
-<meta name="twitter:title" content="记一次跨机房 IPSec VPN 大包分片黑洞导致应用超时但小包正常的排查实录">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='IPSec' /><meta property='article:tag' content='MTU' /><meta property='article:tag' content='PMTUD' /><meta property='article:tag' content='分片黑洞' /><meta property='article:tag' content='机房搬迁' /><meta property='article:tag' content='VPN' /><meta property='article:published_time' content='2026-09-02T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="IPSec 大包分片黑洞：应用超时小包正常">
 <meta name="twitter:description" content="机房搬迁后跨机房 IPSec VPN 大包分片黑洞，应用小包正常但大包超时，PMTUD 黑洞 + MSS 钳制缺失导致。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -268,7 +268,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/f11611fb/">记一次跨机房 IPSec VPN 大包分片黑洞导致应用超时但小包正常的排查实录</a>
+            <a href="/posts/f11611fb/">IPSec 大包分片黑洞：应用超时小包正常</a>
         </h2>
     
         
@@ -541,8 +541,8 @@
 <h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
 </h2><p><strong>IPSec 隧道与 MTU</strong></p>
 <ul>
-<li><a class="link" href="/posts/6ef1b86a/" >一次跨机房 IPSec VPN 隧道大包不通导致业务间歇性卡死的排查记录</a></li>
-<li><a class="link" href="/posts/3c48c9b3/" >IPSec VPN MTU 不匹配致 ERP 远程访问异常：定位与修复</a></li>
+<li><a class="link" href="/posts/6ef1b86a/" >IPSec VPN 大包不通：跨机房业务间歇卡死</a></li>
+<li><a class="link" href="/posts/3c48c9b3/" >MTU 不匹配：IPSec VPN 下 ERP 访问异常</a></li>
 <li><a class="link" href="/posts/7c686262/" >跨机房链路变更验收：连通矩阵、回程路由与 MTU</a></li>
 </ul>
 
@@ -568,7 +568,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     
@@ -592,7 +604,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">IPSec VPN MTU 不匹配致 ERP 远程访问异常：定位与修复</h2>
+            <h2 class="article-title">MTU 不匹配：IPSec VPN 下 ERP 访问异常</h2>
         </div>
     </a>
 </article>
@@ -603,7 +615,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次跨机房 IPSec VPN 隧道大包不通导致业务间歇性卡死的排查记录</h2>
+            <h2 class="article-title">IPSec VPN 大包不通：跨机房业务间歇卡死</h2>
         </div>
     </a>
 </article>
@@ -614,7 +626,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次机房搬迁网络割接后跨机房业务单向可达的排查</h2>
+            <h2 class="article-title">割接只画去程：跨机房业务单向黑洞</h2>
         </div>
     </a>
 </article>

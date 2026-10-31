@@ -236,6 +236,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -358,6 +359,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -527,6 +529,12 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>这次故障本身不复杂，却是 Linux 运维里辨识度最高的经典题：<code>rm</code> 只删目录项，不删被打开的 inode，<code>df</code> 和 <code>du</code> 的差值就是那些&quot;删而未放&quot;的幽灵文件。两条命令就能定位——<code>lsof +L1</code> 找元凶，<code>truncate -s 0 /proc/&lt;pid&gt;/fd/&lt;fd&gt;</code> 无损止血，全程不用重启进程。更值得记住的是链路上游：一份没有 <code>copytruncate</code> 的 logrotate 配置对着不会重开文件的进程空转了三个月，才是把 62GB 巨型日志&quot;养&quot;出来的真正推手。磁盘问题的排查顺序可以固化为：<code>df -h</code> 看块 → <code>df -i</code> 看 inode → <code>du</code> 对账 → 差值大就 <code>lsof +L1</code>，四步走完，九成磁盘疑难都能落地。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/b38ac0b7/" >磁盘 df 与 du 不一致：inode 耗尽</a></li>
+<li><a class="link" href="/posts/63250eb1/" >journald 配置被 override，日志刷爆根分区</a></li>
+<li><a class="link" href="/posts/8d0234d5/" >内核参数误配：TCP 性能断崖</a></li>
+</ul>
 
 </section>
 
@@ -585,7 +593,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次 Linux 内核参数调优误配导致 TCP 性能断崖的排查记录</h2>
+            <h2 class="article-title">内核参数误配：TCP 性能断崖</h2>
         </div>
     </a>
 </article>

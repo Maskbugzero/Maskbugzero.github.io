@@ -242,6 +242,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -370,6 +371,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -714,6 +716,12 @@
 <p>排查的关键转折点是在接口统计中发现CRC错误计数持续增长——如果只看端口状态（UP），永远找不到根因。这也提醒我们，网络监控不能只盯着&quot;端口UP/DOWN&quot;和&quot;带宽利用率&quot;，CRC错误、光功率这些物理层指标同样是核心监控项，而且往往能提前预警。</p>
 <p>OSPF→BGP的震荡传导机制也值得牢记：当BGP下一跳依赖OSPF路由时，OSPF邻接的任何抖动都会直接传导到BGP路由层。在核心互联设计中，要么让BGP下一跳不依赖OSPF（比如用直连地址做下一跳），要么给OSPF足够的容错参数，要么开启BGP dampening抑制震荡——三条防线缺一不可。</p>
 <p>最后，光纤端面清洁这个看似琐碎的操作，实际上是机房物理层可靠性的基础。一根未清洁的尾纤，可能就是下一次P1故障的起点。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/da7616e2/" >OSPF 邻居频繁 Flap：全网路由震荡</a></li>
+<li><a class="link" href="/posts/d11b5134/" >BGP 双线 AS-PATH 配错，业务流量为何全走错运营商</a></li>
+<li><a class="link" href="/posts/30de78ed/" >MPLS 专线抖动致跨机房数据库同步中断的定位</a></li>
+</ul>
 
 </section>
 
@@ -782,7 +790,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 RADIUS EAP-TLS 证书过期致全公司 802.1X 掉线</h2>
+            <h2 class="article-title">EAP-TLS 证书过期：全公司 802.1X 掉线</h2>
         </div>
     </a>
 </article>
@@ -793,7 +801,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次交换机物理环路引发的整栋楼广播风暴</h2>
+            <h2 class="article-title">交换机物理环路：整栋楼广播风暴</h2>
         </div>
     </a>
 </article>
@@ -804,7 +812,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">IPSec VPN MTU 不匹配致 ERP 远程访问异常：定位与修复</h2>
+            <h2 class="article-title">MTU 不匹配：IPSec VPN 下 ERP 访问异常</h2>
         </div>
     </a>
 </article>

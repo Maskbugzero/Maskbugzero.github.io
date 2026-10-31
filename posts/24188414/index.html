@@ -242,6 +242,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -370,6 +371,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -580,6 +582,11 @@ SIEM 规则示例：<code>mfa_push_count &gt; 5 in 10min AND approved == true AN
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>这起事故里，攻击者没有绕过密码哈希，也没有攻破 TOTP 种子，只是用已经到手的密码配上一轮「推送到你崩溃」的社会工程，让管理员自己完成了第二因子。日志里干干净净写着 Approved，若只看表面，会误判成「用户误操作」。</p>
 <p>处理顺序应当是：<strong>先当失陷封会话，再对齐推送与登录时间线，再追第一因子来源，最后改 MFA 形态与熔断策略</strong>。技术上优先把管理员从「一键 Allow」迁到 FIDO2 或号码匹配；运营上把推送风暴做成自动锁号信号。MFA 仍然值得做，但选错形态、又缺少阈值防护时，它会从盾牌变成催人点同意的门铃。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/75336643/" >黄金票据攻击：域控权限持久化检测与清除</a></li>
+<li><a class="link" href="/posts/6ed2cf28/" >模板允许自填 SAN：域用户可冒充管理员</a></li>
+</ul>
 
 </section>
 

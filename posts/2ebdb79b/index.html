@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="journald 因服务崩溃循环 + RateLimit 误配导致根分区 100% 写满，systemctl journalctl 全部卡死，排查出 StartLimit + RateLimitInterval 冲突与日志轮转缺失。">
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="journald 因服务崩溃循环叠加 RateLimit 误配刷满根分区。修正限速配置、清理日志并补磁盘告警后恢复，含与姊妹篇的差异说明。">
 <title>堵住 journald 日志风暴：一次根分区写满的定位与根治</title>
 
 
@@ -13,12 +13,12 @@
 
 
 <link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="堵住 journald 日志风暴：一次根分区写满的定位与根治">
-<meta property='og:description' content="journald 因服务崩溃循环 + RateLimit 误配导致根分区 100% 写满，systemctl journalctl 全部卡死，排查出 StartLimit + RateLimitInterval 冲突与日志轮转缺失。">
+<meta property='og:description' content="journald 因服务崩溃循环叠加 RateLimit 误配刷满根分区。修正限速配置、清理日志并补磁盘告警后恢复，含与姊妹篇的差异说明。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/2ebdb79b/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='journald' /><meta property='article:tag' content='systemd' /><meta property='article:tag' content='日志风暴' /><meta property='article:tag' content='根分区写满' /><meta property='article:tag' content='RateLimit' /><meta property='article:tag' content='日志轮转' /><meta property='article:published_time' content='2026-09-01T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-01T07:00:00&#43;08:00'/>
 <meta name="twitter:title" content="堵住 journald 日志风暴：一次根分区写满的定位与根治">
-<meta name="twitter:description" content="journald 因服务崩溃循环 + RateLimit 误配导致根分区 100% 写满，systemctl journalctl 全部卡死，排查出 StartLimit + RateLimitInterval 冲突与日志轮转缺失。">
+<meta name="twitter:description" content="journald 因服务崩溃循环叠加 RateLimit 误配刷满根分区。修正限速配置、清理日志并补磁盘告警后恢复，含与姊妹篇的差异说明。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
     </head>
@@ -279,7 +279,7 @@
     
         
         <h3 class="article-subtitle">
-            journald 因服务崩溃循环 &#43; RateLimit 误配导致根分区 100% 写满，systemctl journalctl 全部卡死，排查出 StartLimit &#43; RateLimitInterval 冲突与日志轮转缺失。
+            journald 因服务崩溃循环叠加 RateLimit 误配刷满根分区。修正限速配置、清理日志并补磁盘告警后恢复，含与姊妹篇的差异说明。
         </h3>
         
     </div>

@@ -250,6 +250,7 @@
       </ul>
     </li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -386,6 +387,7 @@
       </ul>
     </li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -837,6 +839,12 @@
 <p>Windows共享权限的两层叠加机制（共享层+NTFS层）是很多运维工程师和安全工程师都容易混淆的盲区。共享层是&quot;第一道关卡&quot;——如果共享层封死了入口，NTFS层再怎么精细配置都是无效的。&ldquo;禁止匿名访问&quot;的正确做法是启用&quot;Restrict anonymous access&quot;策略，而不是粗暴地移除Everyone的共享默认权限。</p>
 <p>在排查过程中，关键突破口是事件日志中的 <code>Everyone - No Access</code> 信息——这直接定位了共享权限层的问题。而后通过GPMC追踪GPO变更时间线，找到了策略配置的元凶。整个过程从接报到恢复业务约10分钟，但根因定位和长期加固需要更深入的机制建设。</p>
 <p>对于企业运维而言，组策略是强大的工具，也是危险的工具。一条看似简单的策略设置，如果脱离了对业务架构的理解，就可能引发全局性故障。<strong>安全与可用性的平衡，永远需要跨组协作和变更评审来保障</strong>。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/8c4b1183/" >Windows 域策略推送失败致新电脑无法登录的处理</a></li>
+<li><a class="link" href="/posts/3c75e975/" >域控 GPO 推送失败，终端安全基线为何不生效？</a></li>
+<li><a class="link" href="/posts/8d80996a/" >新购笔记本为何加不进 AD 域？出厂系统排障记</a></li>
+</ul>
 
 </section>
 

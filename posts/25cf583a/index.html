@@ -241,6 +241,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -322,7 +323,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 3 分钟
+                        阅读时长: 4 分钟
                     </time>
                 
             </div>
@@ -368,6 +369,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -558,6 +560,12 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p><code>/tmp</code> 是 Linux 上最&quot;透明&quot;又最危险的目录——几乎所有应用都在用它，但没人专门管理它。运维想做安全加固，方向没错，但 <code>noexec</code> + 定时清理这组组合拳在非 JNA 环境下可能没事，一碰到 Java 的 native 库加载就炸了。教训是：对共享资源的变更，影响的不是你自己用的那个应用，而是所有依赖它的应用。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/6455e1b5/" >磁盘有空间却写不进文件？Linux inode 耗尽的坑</a></li>
+<li><a class="link" href="/posts/5961e223/" >NFS 服务端故障：客户端进程 D 状态假死</a></li>
+<li><a class="link" href="/posts/8d0234d5/" >内核参数误配：TCP 性能断崖</a></li>
+</ul>
 
 </section>
 
@@ -603,7 +611,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 Redis 内存溢出、缓存服务全失效的排查</h2>
+            <h2 class="article-title">Redis 内存溢出：缓存服务全失效</h2>
         </div>
     </a>
 </article>

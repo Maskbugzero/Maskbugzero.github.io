@@ -400,7 +400,7 @@
 </h2><p>CPU limit 不是“最高速度”，而是“每个周期能领多少配额”。容器里看到 32 个核，不代表能用 32 个核；平均值只有 0.3 核，也不代表每个瞬间都够用。这个服务并不是 CPU 不够，而是配额在错误的时间尺度上被瞬间花光，然后在剩下的周期里被按下暂停键。把 <code>cpu.stat</code> 的节流比例当成一等指标，把运行时线程数和配额对齐，比盯着 CPU 使用率猜问题有效得多。</p>
 <h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
 </h2><ul>
-<li><a class="link" href="/posts/b1ca8efe/" >记一次 K8s Pod OOMKilled 触发的服务雪崩</a></li>
+<li><a class="link" href="/posts/b1ca8efe/" >K8s Pod OOMKilled：服务雪崩</a></li>
 <li><a class="link" href="/posts/9c7278d1/" >容器共享内存默认 64MB：浏览器进程频繁崩溃</a></li>
 </ul>
 

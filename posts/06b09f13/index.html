@@ -241,6 +241,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -368,6 +369,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -525,6 +527,12 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>Redis Cluster 的脑裂在理论上很少发生——前提是所有节点的关键配置一致。一个被人随手改了 5 秒 timeout 的节点，在网络抖动的瞬间就成了集群分裂的导火索。&ldquo;临时&quot;配置不应该出现在生产环境，如果一定需要测试，请在独立的 dev 集群中做。对 Redis Cluster 来说，一致性不是可选项，是存活前提。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/4dad391b/" >Redis 内存溢出：缓存服务全失效</a></li>
+<li><a class="link" href="/posts/60f0dc58/" >秒杀接口大面积超时：Redis 缓存雪崩的定位与修复</a></li>
+<li><a class="link" href="/posts/083f4e6d/" >Kafka Rebalance 风暴：业务数据延迟两小时</a></li>
+</ul>
 
 </section>
 
@@ -570,7 +578,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次服务器内存硬件故障导致的不定时宕机</h2>
+            <h2 class="article-title">内存硬件故障：服务器不定时宕机</h2>
         </div>
     </a>
 </article>
@@ -581,7 +589,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">Docker Swarm Overlay 跨节点不通，问题卡在哪？</h2>
+            <h2 class="article-title">Swarm Overlay 跨节点不通：逐层定位</h2>
         </div>
     </a>
 </article>
@@ -614,7 +622,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 Redis 内存溢出、缓存服务全失效的排查</h2>
+            <h2 class="article-title">Redis 内存溢出：缓存服务全失效</h2>
         </div>
     </a>
 </article>

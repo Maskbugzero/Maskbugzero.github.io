@@ -237,6 +237,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -318,7 +319,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 4 分钟
+                        阅读时长: 5 分钟
                     </time>
                 
             </div>
@@ -360,6 +361,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -525,6 +527,12 @@
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>服务器运维中，硬件故障是无法完全避免的，但可以通过完善的监控和告警机制，将影响降到最低。这次事故之所以造成 6 小时的业务中断，一方面是故障发生在凌晨，另一方面是在日常运维中没有关注到 ILO 里已经存在的 CE 告警（事后查看 ILO 日志，发现事故前两周就已经有 CE 告警，只是没有引起重视）。</p>
 <p><strong>要点：</strong> ECC 的可纠正错误（CE）是 UCE 和宕机的前兆，一旦出现 CE 告警就应计划更换内存，不要等到 UCE 发生时再被动处理。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/42fcb7d3/" >内存硬件故障：服务器不定时宕机</a></li>
+<li><a class="link" href="/posts/8153d8c0/" >Nginx 反代配错，上传文件大小限制为何失效？</a></li>
+<li><a class="link" href="/posts/be9e01dc/" >ES 集群变 Red，搜索服务怎么就不可用了？</a></li>
+</ul>
 
 </section>
 

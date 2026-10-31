@@ -376,7 +376,7 @@
     
     
     <blockquote>
-        <p><strong>与姊妹篇的区别</strong>：本案例聚焦<strong>STP 拓扑本身出问题</strong>（BPDU 泛洪 / 拓扑震荡）导致广播风暴；《<a class="link" href="/posts/8256a5f2/" >核心交换机 STP 根桥被抢，广播风暴怎么来的？</a>》聚焦<strong>根桥选举被意外抢占</strong>（优先级配错 / 新设备接入）；《<a class="link" href="/posts/a3490d86/" >记一次交换机物理环路引发的整栋楼广播风暴</a>》则是<strong>物理层成环</strong>（网线误接 / 端口未开 BPDU Guard）。三篇的现场表现都是「广播风暴 + 全楼瘫痪」，但<strong>根因分别在协议层、选举层、物理层</strong>，排查入口依次是 BPDU 抓包 → 根桥查看 → 端口环路检测。</p>
+        <p><strong>与姊妹篇的区别</strong>：本案例聚焦<strong>STP 拓扑本身出问题</strong>（BPDU 泛洪 / 拓扑震荡）导致广播风暴；《<a class="link" href="/posts/8256a5f2/" >核心交换机 STP 根桥被抢，广播风暴怎么来的？</a>》聚焦<strong>根桥选举被意外抢占</strong>（优先级配错 / 新设备接入）；《<a class="link" href="/posts/a3490d86/" >交换机物理环路：整栋楼广播风暴</a>》则是<strong>物理层成环</strong>（网线误接 / 端口未开 BPDU Guard）。三篇的现场表现都是「广播风暴 + 全楼瘫痪」，但<strong>根因分别在协议层、选举层、物理层</strong>，排查入口依次是 BPDU 抓包 → 根桥查看 → 端口环路检测。</p>
 
     </blockquote>
 <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景

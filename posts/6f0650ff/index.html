@@ -229,6 +229,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -344,6 +345,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -478,6 +480,12 @@
 <h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
 </h2><p>这次故障从表象看像&quot;cron 挂了&quot;，实则是<strong>域控侧账号密码过期</strong>沿着 Kerberos 认证链路传导到了数据同步任务。一线排查的关键，是把&quot;任务失败&quot;往&quot;认证失败&quot;再往&quot;账号生命周期&quot;逐层下钻，而不是停留在调度层打转。</p>
 <p>最大的教训是：服务账号也是一种资源，它的生命周期（创建、轮换、过期、回收）必须纳入运维监控体系，不能因为&quot;平时不出事&quot;就放进盲区。把人工密码轮换替换为自动托管，才是杜绝此类问题复发的根本办法。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/60f0dc58/" >秒杀接口大面积超时：Redis 缓存雪崩的定位与修复</a></li>
+<li><a class="link" href="/posts/8abd0b2a/" >Nginx 限流误杀正常请求：阈值调优与复盘</a></li>
+<li><a class="link" href="/posts/5961e223/" >NFS 服务端故障：客户端进程 D 状态假死</a></li>
+</ul>
 
 </section>
 
@@ -567,7 +575,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 MySQL 自动备份静默失败、缺失近一周备份</h2>
+            <h2 class="article-title">MySQL 自动备份静默失败：缺失一周备份</h2>
         </div>
     </a>
 </article>

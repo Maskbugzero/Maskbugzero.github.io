@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="公网服务器遭境外 IP 海量 SSH 暴破，fail2ban 自动封禁后分析攻击源并加固 SSH 防护。">
-<title>记一次 SSH 暴力破解触发 fail2ban 自动封禁的处置</title>
+<title>SSH 暴力破解：fail2ban 自动封禁处置</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/2d78d6bc/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次 SSH 暴力破解触发 fail2ban 自动封禁的处置">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="SSH 暴力破解：fail2ban 自动封禁处置">
 <meta property='og:description' content="公网服务器遭境外 IP 海量 SSH 暴破，fail2ban 自动封禁后分析攻击源并加固 SSH 防护。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/2d78d6bc/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='安全运维' /><meta property='article:tag' content='SSH' /><meta property='article:tag' content='fail2ban' /><meta property='article:tag' content='暴力破解' /><meta property='article:tag' content='入侵防护' /><meta property='article:published_time' content='2025-12-16T17:58:32&#43;00:00'/><meta property='article:modified_time' content='2025-12-16T17:58:32&#43;00:00'/>
-<meta name="twitter:title" content="记一次 SSH 暴力破解触发 fail2ban 自动封禁的处置">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='安全运维' /><meta property='article:tag' content='SSH' /><meta property='article:tag' content='fail2ban' /><meta property='article:tag' content='暴力破解' /><meta property='article:tag' content='入侵防护' /><meta property='article:published_time' content='2025-12-16T17:58:32&#43;00:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="SSH 暴力破解：fail2ban 自动封禁处置">
 <meta name="twitter:description" content="公网服务器遭境外 IP 海量 SSH 暴破，fail2ban 自动封禁后分析攻击源并加固 SSH 防护。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -229,6 +229,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -267,7 +268,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/2d78d6bc/">记一次 SSH 暴力破解触发 fail2ban 自动封禁的处置</a>
+            <a href="/posts/2d78d6bc/">SSH 暴力破解：fail2ban 自动封禁处置</a>
         </h2>
     
         
@@ -344,6 +345,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -503,6 +505,12 @@
 </ul>
 <h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
 </h2><p>这次事件是公网 SSH 暴露面被分布式暴破的典型案例。fail2ban 在认证层成功拦截了全部入侵尝试、未让任何境外 IP 登录得手，证明了它在&quot;最后一道防线&quot;上的价值；但它也用自身规则膨胀的副作用提醒我们：防御机制本身需要被正确调参，否则在攻击洪峰下会变成新的瓶颈。真正的解决之道不在&quot;封得更狠&quot;，而在&quot;暴露得更小&quot;——把 22 端口收进受信网段、用密钥替代口令，让暴破连&quot;试错的机会&quot;都没有。安全运维的常态，就是用一层层收敛的攻击面，把麻烦挡在门外头。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/765a54f9/" >堡垒机 SSH 超时：运维无法紧急操作</a></li>
+<li><a class="link" href="/posts/b0613189/" >authorized_keys 后门：免密 SSH 登录溯源</a></li>
+<li><a class="link" href="/posts/a801fe3b/" >员工域账号异地登录：告警研判与紧急锁定处置</a></li>
+</ul>
 
 </section>
 
@@ -524,7 +532,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     
@@ -570,7 +590,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次堡垒机 SSH 超时致运维无法紧急操作的排查</h2>
+            <h2 class="article-title">堡垒机 SSH 超时：运维无法紧急操作</h2>
         </div>
     </a>
 </article>

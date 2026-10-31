@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="市场部3楼每15-20分钟间歇断网，定位为员工私接小米路由开启DHCP并广播伪造网关ARP，引发ARP欺骗。">
-<title>记一次 ARP 欺骗攻击导致的楼层网络间歇断网</title>
+<title>ARP 欺骗：楼层网络间歇断网</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/518dc9fb/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次 ARP 欺骗攻击导致的楼层网络间歇断网">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="ARP 欺骗：楼层网络间歇断网">
 <meta property='og:description' content="市场部3楼每15-20分钟间歇断网，定位为员工私接小米路由开启DHCP并广播伪造网关ARP，引发ARP欺骗。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/518dc9fb/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='ARP欺骗' /><meta property='article:tag' content='DHCP' /><meta property='article:tag' content='交换机' /><meta property='article:tag' content='网络安全' /><meta property='article:tag' content='网络运维' /><meta property='article:published_time' content='2024-08-14T16:10:00&#43;00:00'/><meta property='article:modified_time' content='2024-08-14T16:10:00&#43;00:00'/>
-<meta name="twitter:title" content="记一次 ARP 欺骗攻击导致的楼层网络间歇断网">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='ARP欺骗' /><meta property='article:tag' content='DHCP' /><meta property='article:tag' content='交换机' /><meta property='article:tag' content='网络安全' /><meta property='article:tag' content='网络运维' /><meta property='article:published_time' content='2024-08-14T16:10:00&#43;00:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="ARP 欺骗：楼层网络间歇断网">
 <meta name="twitter:description" content="市场部3楼每15-20分钟间歇断网，定位为员工私接小米路由开启DHCP并广播伪造网关ARP，引发ARP欺骗。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -236,6 +236,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -274,7 +275,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/518dc9fb/">记一次 ARP 欺骗攻击导致的楼层网络间歇断网</a>
+            <a href="/posts/518dc9fb/">ARP 欺骗：楼层网络间歇断网</a>
         </h2>
     
         
@@ -358,6 +359,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -526,6 +528,12 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>一个价值 99 元的小米路由器，差点瘫痪了整个楼层的网络。&ldquo;自带设备&quot;是办公网络中最大的不可控因素。ARP 欺骗不是只有黑客才会做，很多时候一个同事的无心之举就能造成同等级别的破坏。从源头上看，只要开启 DHCP Snooping + DAI + 端口安全这&quot;三件套&rdquo;，99% 的类似事件都可以在接入层被扼杀在摇篮里。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/59789918/" >DHCP 地址池耗尽：大面积断网</a></li>
+<li><a class="link" href="/posts/bea8d60d/" >核心交换机 STP 风暴，全楼网络为何瘫痪？</a></li>
+<li><a class="link" href="/posts/f7f05e7d/" >核心交换机 LACP 协商失败：带宽骤降</a></li>
+</ul>
 
 </section>
 
@@ -547,7 +555,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     
@@ -571,7 +591,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次内网 DNS 递归超时导致的网页间歇卡顿</h2>
+            <h2 class="article-title">内网 DNS 递归超时：网页间歇卡顿</h2>
         </div>
     </a>
 </article>
@@ -615,7 +635,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次无线 AP 信道干扰致高层半层网络瘫痪</h2>
+            <h2 class="article-title">AP 信道干扰：高层半层网络瘫痪</h2>
         </div>
     </a>
 </article>

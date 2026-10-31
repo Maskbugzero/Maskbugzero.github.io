@@ -229,6 +229,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -344,6 +345,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -583,6 +585,12 @@
 </h2><p>这次故障给我们最深的教训是：<strong>网络策略的&quot;误拒绝&quot;比&quot;误允许&quot;更隐蔽</strong>。误允许会立刻有告警（被拒绝的路由完全消失、流量中断），而误拒绝会让路由&quot;看起来还在&rdquo;（实际被打上无效标记），却悄悄把流量引到错误的路径上，影响业务却难以第一时间定位。</p>
 <p>后续我们把&quot;路由策略变更必须配监控&quot;写进了运维SOP：任何新增的<code>deny</code>规则、任何修改的正则表达式、任何调整的<code>local-preference</code>，都必须配套一条监控项，且这条监控的告警接收人是这次变更的提交人本人——谁改的，谁兜底。</p>
 <p>BGP是互联网的&quot;神经系统&quot;，容不得半点马虎。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/0d552fca/" >OSPF 路由震荡致跨机房业务间歇中断的定位</a></li>
+<li><a class="link" href="/posts/66557bdd/" >FortiGate 策略配错，内网 DNS 为何解析失败？</a></li>
+<li><a class="link" href="/posts/bea8d60d/" >核心交换机 STP 风暴，全楼网络为何瘫痪？</a></li>
+</ul>
 
 </section>
 
@@ -650,7 +658,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 NTP 异常致 Kerberos 认证全失效的排查</h2>
+            <h2 class="article-title">NTP 异常：Kerberos 认证全失效</h2>
         </div>
     </a>
 </article>
@@ -672,7 +680,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 DHCP 地址池耗尽引发的大面积断网</h2>
+            <h2 class="article-title">DHCP 地址池耗尽：大面积断网</h2>
         </div>
     </a>
 </article>

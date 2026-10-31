@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="季度维护逐节点排空升级，第三个节点 drain 卡死不动。根因是 order-api 的 PDB 配成 minAvailable 100%，自愿中断额度为零，eviction 永远被拒。改为 maxUnavailable 1 后恢复，并补全 PDB 审计。">
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="季度维护逐节点排空升级，第三个节点 drain 卡死不动。根因是 PDB 配成 100% 禁止驱逐，修正配比后完成滚动升级。">
 <title>PDB 配成 100%：集群维护卡在节点排空</title>
 
 
@@ -13,12 +13,12 @@
 
 
 <link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="PDB 配成 100%：集群维护卡在节点排空">
-<meta property='og:description' content="季度维护逐节点排空升级，第三个节点 drain 卡死不动。根因是 order-api 的 PDB 配成 minAvailable 100%，自愿中断额度为零，eviction 永远被拒。改为 maxUnavailable 1 后恢复，并补全 PDB 审计。">
+<meta property='og:description' content="季度维护逐节点排空升级，第三个节点 drain 卡死不动。根因是 PDB 配成 100% 禁止驱逐，修正配比后完成滚动升级。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/8f3aa74b/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='PodDisruptionBudget' /><meta property='article:tag' content='kubectl drain' /><meta property='article:tag' content='维护窗口' /><meta property='article:tag' content='Eviction' /><meta property='article:published_time' content='2026-10-12T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-12T09:00:00&#43;08:00'/>
 <meta name="twitter:title" content="PDB 配成 100%：集群维护卡在节点排空">
-<meta name="twitter:description" content="季度维护逐节点排空升级，第三个节点 drain 卡死不动。根因是 order-api 的 PDB 配成 minAvailable 100%，自愿中断额度为零，eviction 永远被拒。改为 maxUnavailable 1 后恢复，并补全 PDB 审计。">
+<meta name="twitter:description" content="季度维护逐节点排空升级，第三个节点 drain 卡死不动。根因是 PDB 配成 100% 禁止驱逐，修正配比后完成滚动升级。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
     </head>
@@ -273,7 +273,7 @@
     
         
         <h3 class="article-subtitle">
-            季度维护逐节点排空升级，第三个节点 drain 卡死不动。根因是 order-api 的 PDB 配成 minAvailable 100%，自愿中断额度为零，eviction 永远被拒。改为 maxUnavailable 1 后恢复，并补全 PDB 审计。
+            季度维护逐节点排空升级，第三个节点 drain 卡死不动。根因是 PDB 配成 100% 禁止驱逐，修正配比后完成滚动升级。
         </h3>
         
     </div>

@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="K8s集群中部分Pod间TCP连接间歇性超时，最终定位到节点conntrack表满导致新连接被内核丢弃。">
-<title>记一次 K8s 节点 conntrack 表打满导致的服务间 TCP 超时</title>
+<title>conntrack 表打满：服务间 TCP 超时</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/48576c58/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次 K8s 节点 conntrack 表打满导致的服务间 TCP 超时">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="conntrack 表打满：服务间 TCP 超时">
 <meta property='og:description' content="K8s集群中部分Pod间TCP连接间歇性超时，最终定位到节点conntrack表满导致新连接被内核丢弃。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/48576c58/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='conntrack' /><meta property='article:tag' content='TCP' /><meta property='article:tag' content='网络排查' /><meta property='article:published_time' content='2026-07-06T04:52:26&#43;00:00'/><meta property='article:modified_time' content='2026-07-06T07:00:00&#43;00:00'/>
-<meta name="twitter:title" content="记一次 K8s 节点 conntrack 表打满导致的服务间 TCP 超时">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='conntrack' /><meta property='article:tag' content='TCP' /><meta property='article:tag' content='网络排查' /><meta property='article:published_time' content='2026-07-06T04:52:26&#43;00:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="conntrack 表打满：服务间 TCP 超时">
 <meta name="twitter:description" content="K8s集群中部分Pod间TCP连接间歇性超时，最终定位到节点conntrack表满导致新连接被内核丢弃。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -243,6 +243,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -281,7 +282,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/48576c58/">记一次 K8s 节点 conntrack 表打满导致的服务间 TCP 超时</a>
+            <a href="/posts/48576c58/">conntrack 表打满：服务间 TCP 超时</a>
         </h2>
     
         
@@ -372,6 +373,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -618,6 +620,12 @@
 </h2><p>conntrack 表满是一个典型的&quot;静默故障&quot;——不会触发明显的错误日志，监控面板上可能只是偶尔几个超时曲线的小抖动，容易被忽视。但一旦触发，影响面很大，且排查依赖 <code>dmesg</code> 内核日志和 <code>conntrack</code> 工具的熟练使用。</p>
 <p>这次排查再次印证了一个原则：<strong>在排查 K8s 网络问题时，不要只盯着 CNI 和 Service 层，宿主机内核网络栈的参数同样是关键变量。</strong> 很多时候问题的根因不在容器编排层，而在更底层的内核资源配置上。</p>
 <p>调整后的集群运行至今再未出现类似问题，conntrack 使用率稳定在 40%-55% 之间。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/8d0234d5/" >内核参数误配：TCP 性能断崖</a></li>
+<li><a class="link" href="/posts/13f63d70/" >HPA 不扩容：metrics-server 链路中断</a></li>
+<li><a class="link" href="/posts/1908b3a5/" >Calico IPAM 池耗尽致新增 Pod 无法分配 IP</a></li>
+</ul>
 
 </section>
 
@@ -647,7 +655,7 @@
 
 
         <span>
-            最后更新于 2026年7月6日星期一
+            最后更新于 2026年10月31日星期六
         </span>
     </section></footer>
 
@@ -673,7 +681,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 K8s Pod OOMKilled 触发的服务雪崩</h2>
+            <h2 class="article-title">K8s Pod OOMKilled：服务雪崩</h2>
         </div>
     </a>
 </article>
@@ -684,7 +692,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">私有仓库凭证过期致 Pod 卡在 ImagePullBackOff</h2>
+            <h2 class="article-title">凭证过期：Pod 卡在 ImagePullBackOff</h2>
         </div>
     </a>
 </article>
@@ -695,7 +703,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">ResourceQuota 配额耗尽致 Pod 卡在 Pending</h2>
+            <h2 class="article-title">ResourceQuota 耗尽：Pod 卡 Pending</h2>
         </div>
     </a>
 </article>

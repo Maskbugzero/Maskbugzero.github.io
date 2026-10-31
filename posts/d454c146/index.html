@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="某容器OOM反复重启，触发依赖它的微服务连锁故障，定位为内存限制过小与探活阈值配置不当。">
-<title>记一次 Docker 容器反复重启引发的微服务链路雪崩</title>
+<title>Docker 容器反复重启：微服务链路雪崩</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/d454c146/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次 Docker 容器反复重启引发的微服务链路雪崩">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Docker 容器反复重启：微服务链路雪崩">
 <meta property='og:description' content="某容器OOM反复重启，触发依赖它的微服务连锁故障，定位为内存限制过小与探活阈值配置不当。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/d454c146/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Docker' /><meta property='article:tag' content='微服务' /><meta property='article:tag' content='OOM' /><meta property='article:tag' content='雪崩' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2024-01-15T02:45:00&#43;00:00'/><meta property='article:modified_time' content='2024-01-15T02:45:00&#43;00:00'/>
-<meta name="twitter:title" content="记一次 Docker 容器反复重启引发的微服务链路雪崩">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Docker' /><meta property='article:tag' content='微服务' /><meta property='article:tag' content='OOM' /><meta property='article:tag' content='雪崩' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2024-01-15T02:45:00&#43;00:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="Docker 容器反复重启：微服务链路雪崩">
 <meta name="twitter:description" content="某容器OOM反复重启，触发依赖它的微服务连锁故障，定位为内存限制过小与探活阈值配置不当。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -275,7 +275,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/d454c146/">记一次 Docker 容器反复重启引发的微服务链路雪崩</a>
+            <a href="/posts/d454c146/">Docker 容器反复重启：微服务链路雪崩</a>
         </h2>
     
         
@@ -454,14 +454,14 @@
 </h2><p><strong>内存不足与服务雪崩</strong></p>
 <ul>
 <li><a class="link" href="/posts/60f0dc58/" >秒杀接口大面积超时：Redis 缓存雪崩的定位与修复</a></li>
-<li><a class="link" href="/posts/b1ca8efe/" >记一次 K8s Pod OOMKilled 触发的服务雪崩</a></li>
+<li><a class="link" href="/posts/b1ca8efe/" >K8s Pod OOMKilled：服务雪崩</a></li>
 <li><a class="link" href="/posts/def9cf20/" >Docker 容器 OOM，服务雪崩是怎么炸开的？</a></li>
-<li><a class="link" href="/posts/4dad391b/" >记一次 Redis 内存溢出、缓存服务全失效的排查</a></li>
+<li><a class="link" href="/posts/4dad391b/" >Redis 内存溢出：缓存服务全失效</a></li>
 </ul>
 <p><strong>Docker 容器运维</strong></p>
 <ul>
-<li><a class="link" href="/posts/7c34ba61/" >Docker overlay2 inode 耗尽致容器批量创建失败</a></li>
-<li><a class="link" href="/posts/0783d2cd/" >Docker Swarm Overlay 跨节点不通，问题卡在哪？</a></li>
+<li><a class="link" href="/posts/7c34ba61/" >overlay2 inode 耗尽：容器批量创建失败</a></li>
+<li><a class="link" href="/posts/0783d2cd/" >Swarm Overlay 跨节点不通：逐层定位</a></li>
 <li><a class="link" href="/posts/def9cf20/" >Docker 容器 OOM，服务雪崩是怎么炸开的？</a></li>
 </ul>
 
@@ -485,7 +485,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     
@@ -531,7 +543,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次服务器内存硬件故障导致的不定时宕机</h2>
+            <h2 class="article-title">内存硬件故障：服务器不定时宕机</h2>
         </div>
     </a>
 </article>
@@ -542,7 +554,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">Docker Swarm Overlay 跨节点不通，问题卡在哪？</h2>
+            <h2 class="article-title">Swarm Overlay 跨节点不通：逐层定位</h2>
         </div>
     </a>
 </article>

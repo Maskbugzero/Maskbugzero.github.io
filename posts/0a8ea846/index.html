@@ -229,6 +229,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -344,6 +345,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -497,6 +499,12 @@
 </ul>
 <h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
 </h2><p>这是一次标准的&quot;钓鱼 HTA → 无文件 PowerShell → DLL 远控&quot;终端失陷事件。EDR 的行为检测（IOA）在攻击链早期就抓住了 PowerShell 异常，配合一键网络隔离，把影响牢牢限制在了单台终端，没有波及内网。最大的启示是：传统&quot;基于文件哈希&quot;的杀毒对无文件攻击几乎无效，必须依赖 EDR 的行为分析与快速 containment 能力；而 GPO 对 mshta/脚本宿主的禁用，则是性价比极高的一道前置防线。终端安全没有银弹，但&quot;EDR 看得见 + 隔离快 + 策略收得紧 + 人训得到位&quot;四件套，足以把绝大多数同类事件挡在可控范围内。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/a801fe3b/" >员工域账号异地登录：告警研判与紧急锁定处置</a></li>
+<li><a class="link" href="/posts/55563ba9/" >清除服务器 XMRig 挖矿木马：入侵路径还原与清剿实录</a></li>
+<li><a class="link" href="/posts/0afe0629/" >门户网站被植入 Webshell：入侵溯源与清除</a></li>
+</ul>
 
 </section>
 
@@ -553,7 +561,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次堡垒机 SSH 超时致运维无法紧急操作的排查</h2>
+            <h2 class="article-title">堡垒机 SSH 超时：运维无法紧急操作</h2>
         </div>
     </a>
 </article>
@@ -564,7 +572,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次企业门户网站被植入 Webshell 的入侵溯源与清除</h2>
+            <h2 class="article-title">门户网站被植入 Webshell：入侵溯源与清除</h2>
         </div>
     </a>
 </article>
@@ -586,7 +594,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次堡垒机上线后运维账号收口不彻底导致生产 MySQL 被误操作的排查实录</h2>
+            <h2 class="article-title">堡垒机账号收口不彻底：生产 MySQL 被误操作</h2>
         </div>
     </a>
 </article>

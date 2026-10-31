@@ -242,6 +242,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -370,6 +371,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -588,6 +590,11 @@
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>这次故障的教训很直接：<strong>Pod 起不来，不一定是调度、镜像或配额；有 PVC 时优先看 VolumeAttachment 和 CSI 四段链路。</strong> 表面是 <code>DeadlineExceeded</code>，底下往往是某台节点的 iSCSI/multipath 半死不活；超时参数过紧只会让重试帮倒忙。</p>
 <p>排查顺序建议固化为：PVC Bound 了吗 → VolumeAttachment ATTACHED 了吗 → 卡在 Controller 还是 Node → 对照健康节点看 session/multipath/dmesg → 再决定 taint 止血还是调超时/修链路。有状态发布要把“存储数据面健康”写进门禁，而不是默认“节点 NotReady 才算有问题”。疏通 PVC 挂载，本质上是把 CSI 从“黑盒重试”变成“可观测、可熔断、可演练”的常规运维对象。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/6ac0d850/" >一次核心交换机VRRP双主导致内网间歇性断网的排查记录</a></li>
+<li><a class="link" href="/posts/82574309/" >一次数据库连接池耗尽导致接口大面积超时的排查记录</a></li>
+</ul>
 
 </section>
 

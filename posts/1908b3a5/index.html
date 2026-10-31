@@ -229,6 +229,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -344,6 +345,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -447,6 +449,12 @@
 </ul>
 <h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
 </h2><p>CNI 的 IP 池耗尽是「规模化集群的隐形杀手」——它不影响已有 Pod，只在「新增 Pod」时才暴露，且往往在凌晨高频任务集中爆发。防御的关键是「规划时多留一倍地址 + 监控利用率 + 限制单节点 block 借用」，把 IPAM 当成「另一种形式的资源配额」来治理。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/366a6499/" >NetworkPolicy 误配：集群服务全隔离与回退</a></li>
+<li><a class="link" href="/posts/13f63d70/" >HPA 不扩容：metrics-server 链路中断</a></li>
+<li><a class="link" href="/posts/97876a5b/" >Pod 长期卡在 Terminating 的定位与修复</a></li>
+</ul>
 
 </section>
 
@@ -494,7 +502,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">HPA 高峰不扩容：metrics-server 指标链路中断</h2>
+            <h2 class="article-title">HPA 不扩容：metrics-server 链路中断</h2>
         </div>
     </a>
 </article>
@@ -505,7 +513,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">收紧 NetworkPolicy：一次误配导致集群内服务全隔离的排查与回退</h2>
+            <h2 class="article-title">NetworkPolicy 误配：集群服务全隔离与回退</h2>
         </div>
     </a>
 </article>

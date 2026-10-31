@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="服务器上调 tcp_tw_reuse 与 netdev_max_backlog 后吞吐量骤降，tcpdump 定位到 PAWS 误判与 qdisc 拥塞丢包双重根因，最终靠精准回退 + sysctl 模板收口。">
-<title>一次 Linux 内核参数调优误配导致 TCP 性能断崖的排查记录</title>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="服务器调整 tcp_tw_reuse 与 netdev_max_backlog 后出现 TCP 性能断崖。根因是参数组合在高并发场景下相互冲突，回退误配项并逐项压测后恢复。">
+<title>内核参数误配：TCP 性能断崖</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/8d0234d5/">
@@ -12,13 +12,13 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次 Linux 内核参数调优误配导致 TCP 性能断崖的排查记录">
-<meta property='og:description' content="服务器上调 tcp_tw_reuse 与 netdev_max_backlog 后吞吐量骤降，tcpdump 定位到 PAWS 误判与 qdisc 拥塞丢包双重根因，最终靠精准回退 + sysctl 模板收口。">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="内核参数误配：TCP 性能断崖">
+<meta property='og:description' content="服务器调整 tcp_tw_reuse 与 netdev_max_backlog 后出现 TCP 性能断崖。根因是参数组合在高并发场景下相互冲突，回退误配项并逐项压测后恢复。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/8d0234d5/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Linux' /><meta property='article:tag' content='TCP' /><meta property='article:tag' content='内核参数' /><meta property='article:tag' content='tcp_tw_reuse' /><meta property='article:tag' content='netdev_max_backlog' /><meta property='article:tag' content='PAWS' /><meta property='article:published_time' content='2020-02-25T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2020-02-25T07:00:00&#43;08:00'/>
-<meta name="twitter:title" content="一次 Linux 内核参数调优误配导致 TCP 性能断崖的排查记录">
-<meta name="twitter:description" content="服务器上调 tcp_tw_reuse 与 netdev_max_backlog 后吞吐量骤降，tcpdump 定位到 PAWS 误判与 qdisc 拥塞丢包双重根因，最终靠精准回退 + sysctl 模板收口。">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Linux' /><meta property='article:tag' content='TCP' /><meta property='article:tag' content='内核参数' /><meta property='article:tag' content='tcp_tw_reuse' /><meta property='article:tag' content='netdev_max_backlog' /><meta property='article:tag' content='PAWS' /><meta property='article:published_time' content='2020-02-25T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="内核参数误配：TCP 性能断崖">
+<meta name="twitter:description" content="服务器调整 tcp_tw_reuse 与 netdev_max_backlog 后出现 TCP 性能断崖。根因是参数组合在高并发场景下相互冲突，回退误配项并逐项压测后恢复。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
     </head>
@@ -237,6 +237,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -275,12 +276,12 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/8d0234d5/">一次 Linux 内核参数调优误配导致 TCP 性能断崖的排查记录</a>
+            <a href="/posts/8d0234d5/">内核参数误配：TCP 性能断崖</a>
         </h2>
     
         
         <h3 class="article-subtitle">
-            服务器上调 tcp_tw_reuse 与 netdev_max_backlog 后吞吐量骤降，tcpdump 定位到 PAWS 误判与 qdisc 拥塞丢包双重根因，最终靠精准回退 &#43; sysctl 模板收口。
+            服务器调整 tcp_tw_reuse 与 netdev_max_backlog 后出现 TCP 性能断崖。根因是参数组合在高并发场景下相互冲突，回退误配项并逐项压测后恢复。
         </h3>
         
     </div>
@@ -360,6 +361,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -444,6 +446,12 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>一次看似「常规」的内核参数调优，因为缺少对 PAWS 时间戳语义与 qdisc 队列长度匹配的理解，反而引入了更严重的性能黑洞。通过系统性回溯、抓包定位、参数模板收口，最终把故障转化为可复用的 Checklist。本次事件再次印证：内核参数没有银弹，任何调优都必须经过「基线 → 变更 → 压测 → 监控」四步闭环。后续将把该 Checklist 固化进服务器上线流程，避免同类问题再次发生。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/1925cf22/" >TIME_WAIT 堆积耗尽端口，对外调用大面积失败</a></li>
+<li><a class="link" href="/posts/3a0c5c5f/" >tcp_tw_recycle：NAT 后 SYN 被静默丢弃</a></li>
+<li><a class="link" href="/posts/48576c58/" >conntrack 表打满：服务间 TCP 超时</a></li>
+</ul>
 
 </section>
 
@@ -467,7 +475,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     

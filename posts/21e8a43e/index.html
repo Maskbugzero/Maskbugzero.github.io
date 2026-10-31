@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="liveness 探针 initialDelay 小于应用真实启动时间，Pod 在依赖就绪前被反复 kill 陷入 CrashLoopBackOff">
-<title>liveness 探针过严致 Pod CrashLoopBackOff</title>
+<title>liveness 探针过严：Pod 反复重启</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/21e8a43e/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="liveness 探针过严致 Pod CrashLoopBackOff">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="liveness 探针过严：Pod 反复重启">
 <meta property='og:description' content="liveness 探针 initialDelay 小于应用真实启动时间，Pod 在依赖就绪前被反复 kill 陷入 CrashLoopBackOff">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/21e8a43e/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='CrashLoopBackOff' /><meta property='article:tag' content='livenessProbe' /><meta property='article:tag' content='readinessProbe' /><meta property='article:tag' content='startupProbe' /><meta property='article:tag' content='探针' /><meta property='article:published_time' content='2026-07-11T07:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-07-11T07:00:00&#43;00:00'/>
-<meta name="twitter:title" content="liveness 探针过严致 Pod CrashLoopBackOff">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='CrashLoopBackOff' /><meta property='article:tag' content='livenessProbe' /><meta property='article:tag' content='readinessProbe' /><meta property='article:tag' content='startupProbe' /><meta property='article:tag' content='探针' /><meta property='article:published_time' content='2026-07-11T07:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="liveness 探针过严：Pod 反复重启">
 <meta name="twitter:description" content="liveness 探针 initialDelay 小于应用真实启动时间，Pod 在依赖就绪前被反复 kill 陷入 CrashLoopBackOff">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -229,6 +229,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -267,7 +268,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/21e8a43e/">liveness 探针过严致 Pod CrashLoopBackOff</a>
+            <a href="/posts/21e8a43e/">liveness 探针过严：Pod 反复重启</a>
         </h2>
     
         
@@ -344,6 +345,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -416,6 +418,12 @@
 </ul>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>CrashLoopBackOff 不一定意味着代码崩了，很多时候是探针在&quot;帮倒忙&quot;。liveness 要宽松、readiness 管流量、startup 管慢启动，三者各司其职，容器才稳。把&quot;存活&quot;和&quot;就绪&quot;混为一谈，是容器化迁移里最高频、也最隐蔽的坑之一。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/13f63d70/" >HPA 不扩容：metrics-server 链路中断</a></li>
+<li><a class="link" href="/posts/1908b3a5/" >Calico IPAM 池耗尽致新增 Pod 无法分配 IP</a></li>
+<li><a class="link" href="/posts/97876a5b/" >Pod 长期卡在 Terminating 的定位与修复</a></li>
+</ul>
 
 </section>
 
@@ -439,7 +447,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     
@@ -463,7 +483,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 K8s 节点 conntrack 表打满导致的服务间 TCP 超时</h2>
+            <h2 class="article-title">conntrack 表打满：服务间 TCP 超时</h2>
         </div>
     </a>
 </article>
@@ -474,7 +494,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 K8s Pod OOMKilled 触发的服务雪崩</h2>
+            <h2 class="article-title">K8s Pod OOMKilled：服务雪崩</h2>
         </div>
     </a>
 </article>
@@ -485,7 +505,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">私有仓库凭证过期致 Pod 卡在 ImagePullBackOff</h2>
+            <h2 class="article-title">凭证过期：Pod 卡在 ImagePullBackOff</h2>
         </div>
     </a>
 </article>
@@ -496,7 +516,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">ResourceQuota 配额耗尽致 Pod 卡在 Pending</h2>
+            <h2 class="article-title">ResourceQuota 耗尽：Pod 卡 Pending</h2>
         </div>
     </a>
 </article>

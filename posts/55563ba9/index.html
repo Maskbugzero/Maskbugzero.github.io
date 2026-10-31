@@ -237,6 +237,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -360,6 +361,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -575,6 +577,12 @@
 </ul>
 <h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
 </h2><p>这次事件从&quot;CPU 满载、业务变慢&quot;的表象，一步步还原出&quot;弱口令爆破 → Docker 端口暴露 → 内网横向 → XMRig 挖矿&quot;的完整链条。技术上的清理并不复杂——杀进程、删自启、断外联、改凭证即可；真正的教训在<strong>暴露面收敛与纵深防御</strong>：不要把信任建立在&quot;机器没公网 IP&quot;上，内网横向移动往往比想象中容易。把 egress 白名单、主机 IDS、<code>noexec</code> 临时分区这三道防线补上，下次同类攻击大概率会在落地前就被拦下。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/a801fe3b/" >员工域账号异地登录：告警研判与紧急锁定处置</a></li>
+<li><a class="link" href="/posts/0a8ea846/" >钓鱼邮件致终端感染远控木马：溯源与处置</a></li>
+<li><a class="link" href="/posts/b0613189/" >authorized_keys 后门：免密 SSH 登录溯源</a></li>
+</ul>
 
 </section>
 
@@ -632,7 +640,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 SSH 暴力破解触发 fail2ban 自动封禁的处置</h2>
+            <h2 class="article-title">SSH 暴力破解：fail2ban 自动封禁处置</h2>
         </div>
     </a>
 </article>
@@ -676,7 +684,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次堡垒机 SSH 超时致运维无法紧急操作的排查</h2>
+            <h2 class="article-title">堡垒机 SSH 超时：运维无法紧急操作</h2>
         </div>
     </a>
 </article>

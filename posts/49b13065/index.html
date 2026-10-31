@@ -243,6 +243,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -372,6 +373,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -820,6 +822,12 @@ unit / 应用配置错误（路径笔误、端口冲突、环境变量未生效�
 </h2><p>这是一起典型的「<strong>管控平面放大配置错误</strong>」事故：应用其实已经「明确失败」，但 <code>Restart=always</code> 在无 StartLimit、短 RestartSec 下把失败变成每秒数十次的自攻击，主机 load、journal 与排障通道一起垮掉，业务表现为大面积 502 与间歇恢复的假象。</p>
 <p>处理顺序应当是 <strong>停风暴 → 修配置 → 受控拉起 → 补熔断与监控</strong>，而不是在 auto-restart 刷屏时继续叠变更。预防上，把 StartLimit、重启语义、NRestarts 验收和 unit 状态告警写进基线，比再写一百行业务重试更管用。</p>
 <p>一句话：<strong>自动重启是保险丝，不是永动机；该熔断时必须熔断，否则 systemd 会比攻击者更早打满你的机器。</strong></p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/2ebdb79b/" >堵住 journald 日志风暴：一次根分区写满的定位与根治</a></li>
+<li><a class="link" href="/posts/6cce181e/" >journald RateLimit 配错拖垮根分区</a></li>
+<li><a class="link" href="/posts/63250eb1/" >journald 配置被 override，日志刷爆根分区</a></li>
+</ul>
 
 </section>
 

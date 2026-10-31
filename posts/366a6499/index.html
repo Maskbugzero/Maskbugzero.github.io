@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="命名空间 default-deny 一开、白名单漏写，集群内 HTTP 全断；靠同源测试与事件日志定位，5 分钟回退止血。">
-<title>收紧 NetworkPolicy：一次误配导致集群内服务全隔离的排查与回退</title>
+<title>NetworkPolicy 误配：集群服务全隔离与回退</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/366a6499/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="收紧 NetworkPolicy：一次误配导致集群内服务全隔离的排查与回退">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="NetworkPolicy 误配：集群服务全隔离与回退">
 <meta property='og:description' content="命名空间 default-deny 一开、白名单漏写，集群内 HTTP 全断；靠同源测试与事件日志定位，5 分钟回退止血。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/366a6499/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='NetworkPolicy' /><meta property='article:tag' content='default-deny' /><meta property='article:tag' content='Calico' /><meta property='article:tag' content='东西向隔离' /><meta property='article:tag' content='CoreDNS被拒' /><meta property='article:tag' content='网络策略回退' /><meta property='article:published_time' content='2021-06-13T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2021-06-13T07:00:00&#43;08:00'/>
-<meta name="twitter:title" content="收紧 NetworkPolicy：一次误配导致集群内服务全隔离的排查与回退">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='NetworkPolicy' /><meta property='article:tag' content='default-deny' /><meta property='article:tag' content='Calico' /><meta property='article:tag' content='东西向隔离' /><meta property='article:tag' content='CoreDNS被拒' /><meta property='article:tag' content='网络策略回退' /><meta property='article:published_time' content='2021-06-13T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="NetworkPolicy 误配：集群服务全隔离与回退">
 <meta name="twitter:description" content="命名空间 default-deny 一开、白名单漏写，集群内 HTTP 全断；靠同源测试与事件日志定位，5 分钟回退止血。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -229,6 +229,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -267,7 +268,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/366a6499/">收紧 NetworkPolicy：一次误配导致集群内服务全隔离的排查与回退</a>
+            <a href="/posts/366a6499/">NetworkPolicy 误配：集群服务全隔离与回退</a>
         </h2>
     
         
@@ -344,6 +345,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -534,6 +536,10 @@
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>这是一起典型的「安全加固动机正确、落地验证残缺」事故：default-deny 本身是最佳实践，但在 Kubernetes 里它是<strong>硬默认拒绝</strong>，白名单少写一跳就是整片东西向网络静默黑洞。排查上不要被「Pod 都 Running」迷惑，Endpoints 在而 TCP 不通时，优先 <code>kubectl get networkpolicy</code> 和 CNI drop 计数；止血优先删策略恢复默认放行，再在预发用连通性矩阵把白名单补全后灰度。</p>
 <p>对日常运维的提醒就一句：<strong>NetworkPolicy 的爆炸半径不亚于改路由，测入口不等于测全图，先矩阵、后全量，随时能 delete 回滚。</strong></p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/1908b3a5/" >Calico IPAM 池耗尽致新增 Pod 无法分配 IP</a></li>
+</ul>
 
 </section>
 
@@ -557,7 +563,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     

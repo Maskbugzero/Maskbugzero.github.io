@@ -229,6 +229,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -344,6 +345,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -455,6 +457,10 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>这次事故的本质不是 BitLocker 的错，而是<strong>系统默认行为变了，管理动作没跟上</strong>。24H2 把自动设备加密推向几乎所有 TPM 2.0 机器，对纯云账户的个人用户是无感保护，对传统 AD 域企业却可能是&quot;密钥悬空&quot;的定时炸弹。侥幸在于旧主板还没被销毁，才换回了那台工作站的数据。给同行的提醒就一句：<strong>升级 24H2 的域环境，先查 <code>manage-bde -status</code>，再查 AD 里有没有密钥——两件事最好今天就做。</strong></p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/3a7f9e2d/" >24H2 BitLocker 密钥未托管到 AD</a></li>
+</ul>
 
 </section>
 

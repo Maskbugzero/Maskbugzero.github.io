@@ -229,6 +229,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -344,6 +345,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -490,6 +492,12 @@
 <h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
 </h2><p>这次故障是典型的&quot;网络抖动用数据一致性买单&quot;：一条 MPLS 专线的保护倒换演练，通过 MySQL 异步复制的脆弱连接，传导成了跨机房数据不一致。</p>
 <p>排查路径很清晰——<strong>从库复制报错 → 网络层对照 ping/mtr 定位专线抖动 → 网关接口统计确认 QoS 丢包 → 关联运营商变更</strong>，一线工程师只要按顺序下钻就能锁定。更深的启示是：跨机房复制这类&quot;看似数据库、实则强依赖网络&quot;的链路，必须在网络侧做 QoS 分级、多路径容灾，在数据库侧做超时与心跳加固，双管齐下才能扛住底层链路的日常抖动。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/5cafffbb/" >分支到总部专线丢包，视频会议为何全程卡顿？</a></li>
+<li><a class="link" href="/posts/8256a5f2/" >核心交换机 STP 根桥被抢，广播风暴怎么来的？</a></li>
+<li><a class="link" href="/posts/38f14096/" >公网 DNS 解析超时，CDN 回源为何大面积失败？</a></li>
+</ul>
 
 </section>
 
@@ -546,7 +554,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 NTP 异常致 Kerberos 认证全失效的排查</h2>
+            <h2 class="article-title">NTP 异常：Kerberos 认证全失效</h2>
         </div>
     </a>
 </article>
@@ -557,7 +565,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 K8s Pod OOMKilled 触发的服务雪崩</h2>
+            <h2 class="article-title">K8s Pod OOMKilled：服务雪崩</h2>
         </div>
     </a>
 </article>

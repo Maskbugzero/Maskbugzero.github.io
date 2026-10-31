@@ -229,6 +229,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -344,6 +345,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -469,6 +471,12 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>这是一起「变更遗漏协议流量依赖」导致的经典 VRRP 双主故障。它的教训在于：Trunk 上的 VLAN 不只为业务数据服务，控制平面协议（VRRP 心跳、STP BPDU）同样依赖这些通道；「变更当晚 ping 正常」不代表冗余机制还健康——双主状态在低负载下几乎无感，却是一颗定时炸弹。排查此类间歇性断网，<code>display vrrp brief</code> 两端比对与接入层 MAC 漂移记录是两把最快的钥匙；而根治之道，是让 VRRP 状态变成「看得见、会报警」的指标，而不是等早高峰用户来当探测器。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/bea8d60d/" >核心交换机 STP 风暴，全楼网络为何瘫痪？</a></li>
+<li><a class="link" href="/posts/f7f05e7d/" >核心交换机 LACP 协商失败：带宽骤降</a></li>
+<li><a class="link" href="/posts/518dc9fb/" >ARP 欺骗：楼层网络间歇断网</a></li>
+</ul>
 
 </section>
 

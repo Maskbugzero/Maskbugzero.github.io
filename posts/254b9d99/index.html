@@ -242,6 +242,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -363,6 +364,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -586,6 +588,12 @@
 </h2><p>本次故障再次印证了「etcd 压缩不是银弹」的观点：压缩解决了 DB 膨胀，但 WAL 的生命周期管理同样关键。生产环境必须把 WAL 视为独立的一等公民——物理隔离、尺寸限制、I/O 优先级、监控告警，四者缺一不可。</p>
 <p>故障处理过程中，团队也积累了「压缩窗口后 30 分钟是 WAL 延迟高发期」的经验，后续可据此调整业务低峰维护窗口，避免再次踩坑。</p>
 <p><strong>最终状态</strong>：集群已恢复平稳，etcd WAL fsync P99 回落至 15ms 以内，API Server 5xx 告警清零。预计通过磁盘分离与 WAL 策略收紧，可将同类问题发生概率降低 90% 以上。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/d4683312/" >K8s 节点磁盘压力致 Pod 批量驱逐的定位</a></li>
+<li><a class="link" href="/posts/13f63d70/" >HPA 不扩容：metrics-server 链路中断</a></li>
+<li><a class="link" href="/posts/1908b3a5/" >Calico IPAM 池耗尽致新增 Pod 无法分配 IP</a></li>
+</ul>
 
 </section>
 
@@ -644,7 +652,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">liveness 探针过严致 Pod CrashLoopBackOff</h2>
+            <h2 class="article-title">liveness 探针过严：Pod 反复重启</h2>
         </div>
     </a>
 </article>
@@ -655,7 +663,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 K8s 节点 conntrack 表打满导致的服务间 TCP 超时</h2>
+            <h2 class="article-title">conntrack 表打满：服务间 TCP 超时</h2>
         </div>
     </a>
 </article>
@@ -666,7 +674,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 K8s Pod OOMKilled 触发的服务雪崩</h2>
+            <h2 class="article-title">K8s Pod OOMKilled：服务雪崩</h2>
         </div>
     </a>
 </article>
@@ -677,7 +685,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">私有仓库凭证过期致 Pod 卡在 ImagePullBackOff</h2>
+            <h2 class="article-title">凭证过期：Pod 卡在 ImagePullBackOff</h2>
         </div>
     </a>
 </article>

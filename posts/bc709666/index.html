@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="改完 ConfigMap 应用里还是旧配置，重启 Pod 才恢复。根因是开发用 subPath 挂载单个配置文件，该方式不触发 kubelet 原地更新，叠加业务进程不重读文件。改造挂载方式并加 Reloader 后解决。">
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="ConfigMap 更新后应用仍读到旧配置，重启 Pod 才生效。根因是 subPath 挂载不跟随热更新，改挂载方式并规范发布流程后解决。">
 <title>ConfigMap 更新不生效：subPath 挂载陷阱</title>
 
 
@@ -13,12 +13,12 @@
 
 
 <link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="ConfigMap 更新不生效：subPath 挂载陷阱">
-<meta property='og:description' content="改完 ConfigMap 应用里还是旧配置，重启 Pod 才恢复。根因是开发用 subPath 挂载单个配置文件，该方式不触发 kubelet 原地更新，叠加业务进程不重读文件。改造挂载方式并加 Reloader 后解决。">
+<meta property='og:description' content="ConfigMap 更新后应用仍读到旧配置，重启 Pod 才生效。根因是 subPath 挂载不跟随热更新，改挂载方式并规范发布流程后解决。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/bc709666/'>
 <meta property='og:site_name' content='Zero Day Notes'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='K8s' /><meta property='article:tag' content='ConfigMap' /><meta property='article:tag' content='subPath' /><meta property='article:tag' content='配置管理' /><meta property='article:tag' content='容器运维' /><meta property='article:published_time' content='2026-09-30T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-30T09:00:00&#43;08:00'/>
 <meta name="twitter:title" content="ConfigMap 更新不生效：subPath 挂载陷阱">
-<meta name="twitter:description" content="改完 ConfigMap 应用里还是旧配置，重启 Pod 才恢复。根因是开发用 subPath 挂载单个配置文件，该方式不触发 kubelet 原地更新，叠加业务进程不重读文件。改造挂载方式并加 Reloader 后解决。">
+<meta name="twitter:description" content="ConfigMap 更新后应用仍读到旧配置，重启 Pod 才生效。根因是 subPath 挂载不跟随热更新，改挂载方式并规范发布流程后解决。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
     </head>
@@ -273,7 +273,7 @@
     
         
         <h3 class="article-subtitle">
-            改完 ConfigMap 应用里还是旧配置，重启 Pod 才恢复。根因是开发用 subPath 挂载单个配置文件，该方式不触发 kubelet 原地更新，叠加业务进程不重读文件。改造挂载方式并加 Reloader 后解决。
+            ConfigMap 更新后应用仍读到旧配置，重启 Pod 才生效。根因是 subPath 挂载不跟随热更新，改挂载方式并规范发布流程后解决。
         </h3>
         
     </div>
@@ -409,7 +409,7 @@
 </h2><ul>
 <li><a class="link" href="/posts/425c7ac4/" >CoreDNS 配置漂移致服务发现间歇性失败</a></li>
 <li><a class="link" href="/posts/fa6beef6/" >疏通PVC挂载：一次CSI插件超时导致业务Pod起不来的排查</a></li>
-<li><a class="link" href="/posts/13f63d70/" >HPA 高峰不扩容：metrics-server 指标链路中断</a></li>
+<li><a class="link" href="/posts/13f63d70/" >HPA 不扩容：metrics-server 链路中断</a></li>
 </ul>
 
 </section>
@@ -467,7 +467,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">Docker overlay2 inode 耗尽致容器批量创建失败</h2>
+            <h2 class="article-title">overlay2 inode 耗尽：容器批量创建失败</h2>
         </div>
     </a>
 </article>
@@ -489,7 +489,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 K8s Pod OOMKilled 触发的服务雪崩</h2>
+            <h2 class="article-title">K8s Pod OOMKilled：服务雪崩</h2>
         </div>
     </a>
 </article>
@@ -500,7 +500,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">私有仓库凭证过期致 Pod 卡在 ImagePullBackOff</h2>
+            <h2 class="article-title">凭证过期：Pod 卡在 ImagePullBackOff</h2>
         </div>
     </a>
 </article>

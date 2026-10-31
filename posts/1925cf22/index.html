@@ -235,6 +235,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -356,6 +357,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -562,6 +564,12 @@
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p><code>cannot assign requested address</code> 是个非常&quot;点题&quot;的错误——它几乎总是在告诉你：不是网络问题，也不是对端问题，而是<strong>本机的临时端口不够用了</strong>。这次故障的表象是下游调用失败，容易让人往网络和被调用方去查，但真正的病根在调用方自己的连接管理上。</p>
 <p>一句话经验：<strong>高并发服务，连接一定要复用</strong>。TIME_WAIT 堆积、端口耗尽这类问题，内核参数只能缓解，正确复用连接才是根治之道。排查时先用 <code>ss -ant | sort | uniq -c</code> 看一眼连接状态分布，往往几秒钟就能锁定方向。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/8d0234d5/" >内核参数误配：TCP 性能断崖</a></li>
+<li><a class="link" href="/posts/5961e223/" >NFS 服务端故障：客户端进程 D 状态假死</a></li>
+<li><a class="link" href="/posts/38f14096/" >公网 DNS 解析超时，CDN 回源为何大面积失败？</a></li>
+</ul>
 
 </section>
 
@@ -618,7 +626,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次NFS存储服务端故障导致客户端进程陷入D状态业务整体假死的排查记录</h2>
+            <h2 class="article-title">NFS 服务端故障：客户端进程 D 状态假死</h2>
         </div>
     </a>
 </article>
@@ -640,7 +648,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次办公网DHCP地址池耗尽导致部分终端无法获取IP的排查记录</h2>
+            <h2 class="article-title">办公网 DHCP 地址池耗尽：终端拿不到 IP</h2>
         </div>
     </a>
 </article>
@@ -651,7 +659,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">Docker overlay2 inode 耗尽致容器批量创建失败</h2>
+            <h2 class="article-title">overlay2 inode 耗尽：容器批量创建失败</h2>
         </div>
     </a>
 </article>

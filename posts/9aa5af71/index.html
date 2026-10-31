@@ -243,6 +243,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -372,6 +373,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -517,6 +519,10 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>这是一起典型的「安全基线好心办坏事」：storm-control 本身是防广播风暴的正确控件，但<strong>阈值脱离办公接入流量模型</strong>后，会在早高峰把 ARP/DHCP 等正常广播当攻击丢掉，制造整层间歇卡顿，而核心带宽与出口监控几乎无感。排查关键是缩小边界到接入口、读懂 StormControl drop、用变更窗口与抬阈值对照实验闭环，并排除真环路。处理上应「UU 从严、广播按模型核定、监控补 drop、变更带早高峰观察窗」。对网络运维而言，<strong>任何限速/抑制类保护，都必须先回答「合法峰值是多少」——答不上来的阈值，就不该进生产模板。</strong></p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/ba7befe9/" >端口安全 max 2：会议室接交换机就断网</a></li>
+</ul>
 
 </section>
 

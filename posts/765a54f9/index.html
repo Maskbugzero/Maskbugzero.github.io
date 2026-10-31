@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="堡垒机SSH登录响应超时，紧急故障无法操作，根因是后端资源紧张与会话代理连接池耗尽。">
-<title>记一次堡垒机 SSH 超时致运维无法紧急操作的排查</title>
+<title>堡垒机 SSH 超时：运维无法紧急操作</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/765a54f9/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次堡垒机 SSH 超时致运维无法紧急操作的排查">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="堡垒机 SSH 超时：运维无法紧急操作">
 <meta property='og:description' content="堡垒机SSH登录响应超时，紧急故障无法操作，根因是后端资源紧张与会话代理连接池耗尽。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/765a54f9/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='堡垒机' /><meta property='article:tag' content='SSH' /><meta property='article:tag' content='磁盘空间' /><meta property='article:tag' content='wtmp' /><meta property='article:tag' content='安全运维' /><meta property='article:published_time' content='2024-02-21T15:30:00&#43;00:00'/><meta property='article:modified_time' content='2024-02-21T15:30:00&#43;00:00'/>
-<meta name="twitter:title" content="记一次堡垒机 SSH 超时致运维无法紧急操作的排查">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='堡垒机' /><meta property='article:tag' content='SSH' /><meta property='article:tag' content='磁盘空间' /><meta property='article:tag' content='wtmp' /><meta property='article:tag' content='安全运维' /><meta property='article:published_time' content='2024-02-21T15:30:00&#43;00:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="堡垒机 SSH 超时：运维无法紧急操作">
 <meta name="twitter:description" content="堡垒机SSH登录响应超时，紧急故障无法操作，根因是后端资源紧张与会话代理连接池耗尽。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -275,7 +275,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/765a54f9/">记一次堡垒机 SSH 超时致运维无法紧急操作的排查</a>
+            <a href="/posts/765a54f9/">堡垒机 SSH 超时：运维无法紧急操作</a>
         </h2>
     
         
@@ -518,8 +518,8 @@
 <h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
 </h2><p><strong>堡垒机与运维账号收口</strong></p>
 <ul>
-<li><a class="link" href="/posts/fb201d40/" >收紧堡垒机上线：一次运维账号直连与免密跳板清剿实录</a></li>
-<li><a class="link" href="/posts/67067680/" >记一次堡垒机上线后运维账号收口不彻底导致生产 MySQL 被误操作的排查实录</a></li>
+<li><a class="link" href="/posts/fb201d40/" >堡垒机上线收口：清剿运维账号直连与免密跳板</a></li>
+<li><a class="link" href="/posts/67067680/" >堡垒机账号收口不彻底：生产 MySQL 被误操作</a></li>
 </ul>
 
 </section>
@@ -542,7 +542,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     
@@ -577,7 +589,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">收紧堡垒机上线：一次运维账号直连与免密跳板清剿实录</h2>
+            <h2 class="article-title">堡垒机上线收口：清剿运维账号直连与免密跳板</h2>
         </div>
     </a>
 </article>
@@ -588,7 +600,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次堡垒机上线后运维账号收口不彻底导致生产 MySQL 被误操作的排查实录</h2>
+            <h2 class="article-title">堡垒机账号收口不彻底：生产 MySQL 被误操作</h2>
         </div>
     </a>
 </article>

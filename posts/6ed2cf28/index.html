@@ -401,7 +401,7 @@
 </h2><p>一张证书的分量，取决于 CA 愿意为它背书到什么程度。当模板允许申请者自己填 SAN，CA 就放弃了“你是谁”的审核权，转而相信申请者的自我声明；这时候签出来的证书，和一张印着别人名字的工牌没有区别。AD CS 不是网络准入的附属品，它是域内身份体系的一部分。把模板当成安全策略来管，把颁发日志当成安全日志来看，才能避免 CA 从“证明身份”变成“代办身份”。</p>
 <h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
 </h2><ul>
-<li><a class="link" href="/posts/37a35d29/" >堵住 NTLM 中继：一次 LLMNR 投毒导致域管理员凭据被窃的排查与加固</a></li>
+<li><a class="link" href="/posts/37a35d29/" >LLMNR 投毒：域管理员凭据被 NTLM 中继窃取</a></li>
 <li><a class="link" href="/posts/e3f8a2c1/" >一次域内 Kerberoasting 攻击的检测与加固实录</a></li>
 </ul>
 
@@ -449,7 +449,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次Web应用账户经sudo配置不当提权到root的入侵溯源与加固</h2>
+            <h2 class="article-title">sudo 配置不当：Web 账户提权到 root</h2>
         </div>
     </a>
 </article>

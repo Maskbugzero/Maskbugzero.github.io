@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="RouterOS 7.24beta3 开启 App 平台后，hermes-agent 通过 veth pair 与宿主机通信失败，根因是 ip netns exec 进入隔离命名空间后未正确配置路由与 DNS，导致 agent 无法回连宿主侧的 hermes 服务。">
-<title>RouterOS App 平台 netns 隔离致 hermes-agent 失联</title>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="RouterOS 7.24beta3 开启 App 平台后 hermes-agent 失联。根因是容器 netns 隔离阻断了管理面通信，调整命名空间后恢复。">
+<title>netns 隔离致 hermes-agent 失联</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/763e74a1/">
@@ -12,13 +12,13 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="RouterOS App 平台 netns 隔离致 hermes-agent 失联">
-<meta property='og:description' content="RouterOS 7.24beta3 开启 App 平台后，hermes-agent 通过 veth pair 与宿主机通信失败，根因是 ip netns exec 进入隔离命名空间后未正确配置路由与 DNS，导致 agent 无法回连宿主侧的 hermes 服务。">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="netns 隔离致 hermes-agent 失联">
+<meta property='og:description' content="RouterOS 7.24beta3 开启 App 平台后 hermes-agent 失联。根因是容器 netns 隔离阻断了管理面通信，调整命名空间后恢复。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/763e74a1/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='RouterOS' /><meta property='article:tag' content='App平台' /><meta property='article:tag' content='hermes-agent' /><meta property='article:tag' content='netns' /><meta property='article:tag' content='网络命名空间' /><meta property='article:tag' content='veth pair' /><meta property='article:published_time' content='2026-09-23T00:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-09-23T00:00:00&#43;00:00'/>
-<meta name="twitter:title" content="RouterOS App 平台 netns 隔离致 hermes-agent 失联">
-<meta name="twitter:description" content="RouterOS 7.24beta3 开启 App 平台后，hermes-agent 通过 veth pair 与宿主机通信失败，根因是 ip netns exec 进入隔离命名空间后未正确配置路由与 DNS，导致 agent 无法回连宿主侧的 hermes 服务。">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='RouterOS' /><meta property='article:tag' content='App平台' /><meta property='article:tag' content='hermes-agent' /><meta property='article:tag' content='netns' /><meta property='article:tag' content='网络命名空间' /><meta property='article:tag' content='veth pair' /><meta property='article:published_time' content='2026-09-23T00:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="netns 隔离致 hermes-agent 失联">
+<meta name="twitter:description" content="RouterOS 7.24beta3 开启 App 平台后 hermes-agent 失联。根因是容器 netns 隔离阻断了管理面通信，调整命名空间后恢复。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
     </head>
@@ -276,12 +276,12 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/763e74a1/">RouterOS App 平台 netns 隔离致 hermes-agent 失联</a>
+            <a href="/posts/763e74a1/">netns 隔离致 hermes-agent 失联</a>
         </h2>
     
         
         <h3 class="article-subtitle">
-            RouterOS 7.24beta3 开启 App 平台后，hermes-agent 通过 veth pair 与宿主机通信失败，根因是 ip netns exec 进入隔离命名空间后未正确配置路由与 DNS，导致 agent 无法回连宿主侧的 hermes 服务。
+            RouterOS 7.24beta3 开启 App 平台后 hermes-agent 失联。根因是容器 netns 隔离阻断了管理面通信，调整命名空间后恢复。
         </h3>
         
     </div>
@@ -576,7 +576,7 @@
 </h2><ul>
 <li><a class="link" href="/posts/6ac0d850/" >一次核心交换机VRRP双主导致内网间歇性断网的排查记录</a></li>
 <li><a class="link" href="/posts/6ac0d850/" >一次核心交换机VRRP双主导致内网间歇性断网的排查记录</a></li>
-<li><a class="link" href="/posts/3d6d8adf/" >Hyper-V VHDX 异常膨胀：40GB 差异磁盘残留清理</a></li>
+<li><a class="link" href="/posts/3d6d8adf/" >VHDX 异常膨胀：40GB 差异磁盘残留</a></li>
 </ul>
 
 </section>
@@ -601,7 +601,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     

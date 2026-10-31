@@ -17,7 +17,7 @@
 <meta property='og:description' content="Life Oriented Programming">
 <meta property='og:url' content='https://blog.5772447.xyz/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='website'><meta property='og:updated_time' content=' 2026-10-31T09:00:00&#43;08:00 '/>
+<meta property='og:type' content='website'><meta property='og:updated_time' content=' 2026-10-31T12:00:00&#43;08:00 '/>
 <meta name="twitter:title" content="Zero Day Notes">
 <meta name="twitter:description" content="Life Oriented Programming"><link rel="alternate" type="application/rss&#43;xml" href="https://blog.5772447.xyz/index.xml">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -445,15 +445,15 @@
             
             
             
-            <a href="/categories/%E8%B7%AF%E7%94%B1%E5%99%A8/" style="background-color: hsl(353, 60%, 84%); color: hsl(353, 60%, 15%);">
-                路由器
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
             </a>
         
             
             
             
-            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
-                网络运维
+            <a href="/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" style="background-color: hsl(195, 60%, 84%); color: hsl(195, 60%, 15%);">
+                桌面运维
             </a>
         
     </header>
@@ -461,12 +461,12 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/c3837b48/">自用RouterOS系统设置命令</a>
+            <a href="/posts/4b5dd03a/">PVS 镜像升级致虚拟桌面批量蓝屏：vDisk 回滚恢复</a>
         </h2>
     
         
         <h3 class="article-subtitle">
-            自用RouterOS系统设置命令，包括DoH证书以及常用防火墙设置。
+            PVS vDisk 升级后虚拟桌面批量蓝屏，靠 versioning 回滚旧版本分钟级恢复，根因是新镜像驱动不兼容生产环境异构宿主。
         </h3>
         
     </div>
@@ -491,7 +491,7 @@
   <path d="M3 11h16" />
   <path d="M18 16.496v1.504l1 1" />
 </svg>
-                    <time class="article-time--published" datetime='2023-03-21T17:43:05Z'>2023年3月21日星期二</time>
+                    <time class="article-time--published" datetime='2024-03-21T07:00:00&#43;08:00'>2024年3月21日星期四</time>
                 
 
                 
@@ -504,7 +504,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 1 分钟
+                        阅读时长: 6 分钟
                     </time>
                 
             </div>
@@ -523,11 +523,17 @@
 
 
                 
-                    <a href="/tags/routeros/" class="link">RouterOS</a>
+                    <a href="/tags/citrix-pvs/" class="link">Citrix PVS</a>
                 
-                    <a href="/tags/%E8%B7%AF%E7%94%B1%E5%99%A8/" class="link">路由器</a>
+                    <a href="/tags/%E6%97%A0%E7%9B%98%E7%B3%BB%E7%BB%9F/" class="link">无盘系统</a>
                 
-                    <a href="/tags/%E5%91%BD%E4%BB%A4%E9%80%9F%E6%9F%A5/" class="link">命令速查</a>
+                    <a href="/tags/vdisk%E7%89%88%E6%9C%AC%E5%9B%9E%E6%BB%9A/" class="link">VDisk版本回滚</a>
+                
+                    <a href="/tags/%E8%99%9A%E6%8B%9F%E6%A1%8C%E9%9D%A2%E8%93%9D%E5%B1%8F/" class="link">虚拟桌面蓝屏</a>
+                
+                    <a href="/tags/vdi%E8%BF%90%E7%BB%B4/" class="link">VDI运维</a>
+                
+                    <a href="/tags/%E9%95%9C%E5%83%8F%E5%8F%98%E6%9B%B4%E5%9B%9E%E6%BB%9A/" class="link">镜像变更回滚</a>
                 
             </div>
         
@@ -565,12 +571,12 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/25cf583a/">tmp 目录被定时清理致 Java 应用建不了临时文件</a>
+            <a href="/posts/d4683312/">K8s 节点磁盘压力致 Pod 批量驱逐的定位</a>
         </h2>
     
         
         <h3 class="article-subtitle">
-            Java应用突发无法创建临时文件，根因是系统定时任务清理/tmp误删了应用正在使用的临时文件。
+            Kubernetes集群中多个节点相继出现DiskPressure，大量Pod被强制驱逐，业务告警持续不断，排查发现是节点上的日志文件未轮转导致磁盘耗尽。
         </h3>
         
     </div>
@@ -595,221 +601,7 @@
   <path d="M3 11h16" />
   <path d="M18 16.496v1.504l1 1" />
 </svg>
-                    <time class="article-time--published" datetime='2023-03-10T16:20:00Z'>2023年3月10日星期五</time>
-                
-
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <circle cx="12" cy="12" r="9" />
-  <polyline points="12 7 12 12 15 15" />
-</svg>
-
-
-
-                    <time class="article-time--reading">
-                        阅读时长: 3 分钟
-                    </time>
-                
-            </div>
-        
-
-        
-
-        
-            <div class="article-tags inline-meta">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
-  <circle cx="9" cy="9" r="2" />
-</svg>
-
-
-
-                
-                    <a href="/tags/linux/" class="link">Linux</a>
-                
-                    <a href="/tags/tmp/" class="link">Tmp</a>
-                
-                    <a href="/tags/systemd/" class="link">Systemd</a>
-                
-                    <a href="/tags/java/" class="link">Java</a>
-                
-                    <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" class="link">服务运维</a>
-                
-            </div>
-        
-    </footer>
-    
-</div>
-
-</header>
-</article>
-        
-            
-<article class="">
-    <header class="article-header">
-
-    <div class="article-details">
-    
-    <header class="article-category">
-        
-            
-            
-            
-            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
-                运维
-            </a>
-        
-            
-            
-            
-            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
-                服务运维
-            </a>
-        
-    </header>
-    
-
-    <div class="article-title-wrapper">
-        <h2 class="article-title">
-            <a href="/posts/4dad391b/">记一次 Redis 内存溢出、缓存服务全失效的排查</a>
-        </h2>
-    
-        
-        <h3 class="article-subtitle">
-            生产Redis实例因maxmemory配置不当，在业务高峰期内存耗尽后开始拒绝写入，上层应用缓存大面积穿透，数据库瞬间承压飙升。
-        </h3>
-        
-    </div>
-
-    
-    
-    
-    
-    
-    
-    
-    <footer class="article-meta">
-        
-            <div class="inline-meta">
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
-  <circle cx="18" cy="18" r="4" />
-  <path d="M15 3v4" />
-  <path d="M7 3v4" />
-  <path d="M3 11h16" />
-  <path d="M18 16.496v1.504l1 1" />
-</svg>
-                    <time class="article-time--published" datetime='2023-02-22T15:30:00Z'>2023年2月22日星期三</time>
-                
-
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <circle cx="12" cy="12" r="9" />
-  <polyline points="12 7 12 12 15 15" />
-</svg>
-
-
-
-                    <time class="article-time--reading">
-                        阅读时长: 5 分钟
-                    </time>
-                
-            </div>
-        
-
-        
-
-        
-            <div class="article-tags inline-meta">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
-  <circle cx="9" cy="9" r="2" />
-</svg>
-
-
-
-                
-                    <a href="/tags/redis/" class="link">Redis</a>
-                
-                    <a href="/tags/%E7%BC%93%E5%AD%98/" class="link">缓存</a>
-                
-                    <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" class="link">服务运维</a>
-                
-                    <a href="/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/" class="link">内存管理</a>
-                
-            </div>
-        
-    </footer>
-    
-</div>
-
-</header>
-</article>
-        
-            
-<article class="">
-    <header class="article-header">
-
-    <div class="article-details">
-    
-    <header class="article-category">
-        
-            
-            
-            
-            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
-                运维
-            </a>
-        
-            
-            
-            
-            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
-                网络运维
-            </a>
-        
-    </header>
-    
-
-    <div class="article-title-wrapper">
-        <h2 class="article-title">
-            <a href="/posts/f7f05e7d/">记一次核心交换机 LACP 协商失败致带宽骤降</a>
-        </h2>
-    
-        
-        <h3 class="article-subtitle">
-            核心交换机链路聚合带宽骤降，根因是LACP协商失败、两端模式/负载策略不一致导致成员口掉线。
-        </h3>
-        
-    </div>
-
-    
-    
-    
-    
-    
-    
-    
-    <footer class="article-meta">
-        
-            <div class="inline-meta">
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
-  <circle cx="18" cy="18" r="4" />
-  <path d="M15 3v4" />
-  <path d="M7 3v4" />
-  <path d="M3 11h16" />
-  <path d="M18 16.496v1.504l1 1" />
-</svg>
-                    <time class="article-time--published" datetime='2023-02-05T10:45:00Z'>2023年2月5日星期日</time>
+                    <time class="article-time--published" datetime='2024-03-12T06:02:50Z'>2024年3月12日星期二</time>
                 
 
                 
@@ -841,15 +633,231 @@
 
 
                 
-                    <a href="/tags/%E9%93%BE%E8%B7%AF%E8%81%9A%E5%90%88/" class="link">链路聚合</a>
+                    <a href="/tags/kubernetes/" class="link">Kubernetes</a>
                 
-                    <a href="/tags/lacp/" class="link">LACP</a>
+                    <a href="/tags/k8s/" class="link">K8s</a>
                 
-                    <a href="/tags/%E4%BA%A4%E6%8D%A2%E6%9C%BA/" class="link">交换机</a>
+                    <a href="/tags/%E7%A3%81%E7%9B%98%E5%8E%8B%E5%8A%9B/" class="link">磁盘压力</a>
                 
-                    <a href="/tags/%E5%85%89%E6%A8%A1%E5%9D%97/" class="link">光模块</a>
+                    <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" class="link">服务运维</a>
                 
-                    <a href="/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" class="link">网络运维</a>
+            </div>
+        
+    </footer>
+    
+</div>
+
+</header>
+</article>
+        
+            
+<article class="">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/ff0ff270/">MySQL 主从延迟致报表数据差异过大：定位与修复</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            报表数据与业务库差异巨大，根因是MySQL主从复制延迟，大事务与从库查询拖慢了SQL线程。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2024-03-05T09:30:00Z'>2024年3月5日星期二</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 3 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+            <div class="article-tags inline-meta">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                    <a href="/tags/mysql/" class="link">MySQL</a>
+                
+                    <a href="/tags/%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/" class="link">主从复制</a>
+                
+                    <a href="/tags/%E6%8A%A5%E8%A1%A8/" class="link">报表</a>
+                
+                    <a href="/tags/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" class="link">性能优化</a>
+                
+                    <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" class="link">服务运维</a>
+                
+            </div>
+        
+    </footer>
+    
+</div>
+
+</header>
+</article>
+        
+            
+<article class="">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(274, 60%, 84%); color: hsl(274, 60%, 15%);">
+                容器运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/97876a5b/">Pod 长期卡在 Terminating 的定位与修复</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            滚动更新后旧 Pod 卡在 Terminating 数十分钟，根因是 preStop 超时与 finalizer 残留导致删除语义错位。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2024-01-16T07:00:00&#43;08:00'>2024年1月16日星期二</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 6 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+            <div class="article-tags inline-meta">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                    <a href="/tags/kubernetes/" class="link">Kubernetes</a>
+                
+                    <a href="/tags/terminating/" class="link">Terminating</a>
+                
+                    <a href="/tags/finalizer/" class="link">Finalizer</a>
+                
+                    <a href="/tags/prestop/" class="link">PreStop</a>
+                
+                    <a href="/tags/%E4%BC%98%E9%9B%85%E9%80%80%E5%87%BA/" class="link">优雅退出</a>
+                
+                    <a href="/tags/%E5%88%A0%E9%99%A4%E8%AF%AD%E4%B9%89/" class="link">删除语义</a>
                 
             </div>
         
@@ -887,12 +895,12 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/ecb32d7f/">记一次 Windows 域账号批量锁定事件的排查</a>
+            <a href="/posts/472b6e86/">机房精密空调故障，服务器集群怎么就过热降频了？</a>
         </h2>
     
         
         <h3 class="article-subtitle">
-            某早高峰时段，大量员工同时反映AD域账号被锁定无法登录，排查发现是一台服务器上的服务账号密码过期后反复尝试认证导致的连锁锁定。
+            年终机房精密空调故障，服务器集群过热降频，根因是空调冗余失效且温度告警未被及时响应。
         </h3>
         
     </div>
@@ -917,7 +925,7 @@
   <path d="M3 11h16" />
   <path d="M18 16.496v1.504l1 1" />
 </svg>
-                    <time class="article-time--published" datetime='2023-01-16T20:56:36Z'>2023年1月16日星期一</time>
+                    <time class="article-time--published" datetime='2023-12-13T10:35:00Z'>2023年12月13日星期三</time>
                 
 
                 
@@ -930,7 +938,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 5 分钟
+                        阅读时长: 4 分钟
                     </time>
                 
             </div>
@@ -949,11 +957,15 @@
 
 
                 
-                    <a href="/tags/active-directory/" class="link">Active Directory</a>
+                    <a href="/tags/%E6%9C%BA%E6%88%BF/" class="link">机房</a>
                 
-                    <a href="/tags/%E5%9F%9F%E6%8E%A7/" class="link">域控</a>
+                    <a href="/tags/%E7%A9%BA%E8%B0%83/" class="link">空调</a>
                 
-                    <a href="/tags/%E8%B4%A6%E5%8F%B7%E9%94%81%E5%AE%9A/" class="link">账号锁定</a>
+                    <a href="/tags/%E6%95%A3%E7%83%AD/" class="link">散热</a>
+                
+                    <a href="/tags/%E9%99%8D%E9%A2%91/" class="link">降频</a>
+                
+                    <a href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8/" class="link">服务器</a>
                 
                     <a href="/tags/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" class="link">桌面运维</a>
                 
@@ -993,12 +1005,12 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/be9e01dc/">ES 集群变 Red，搜索服务怎么就不可用了？</a>
+            <a href="/posts/7476618a/">Nginx 健康检查误判，服务节点怎么被批量剔除？</a>
         </h2>
     
         
         <h3 class="article-subtitle">
-            ES集群进入Red状态、搜索全不可用，根因是主分片所在节点宕机且副本未分配导致数据不可用。
+            Nginx将正常节点批量剔除致服务不可用，根因是健康检查路径/超时配置不当产生误判。
         </h3>
         
     </div>
@@ -1023,115 +1035,7 @@
   <path d="M3 11h16" />
   <path d="M18 16.496v1.504l1 1" />
 </svg>
-                    <time class="article-time--published" datetime='2023-01-08T14:30:00Z'>2023年1月8日星期日</time>
-                
-
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <circle cx="12" cy="12" r="9" />
-  <polyline points="12 7 12 12 15 15" />
-</svg>
-
-
-
-                    <time class="article-time--reading">
-                        阅读时长: 3 分钟
-                    </time>
-                
-            </div>
-        
-
-        
-
-        
-            <div class="article-tags inline-meta">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
-  <circle cx="9" cy="9" r="2" />
-</svg>
-
-
-
-                
-                    <a href="/tags/elasticsearch/" class="link">Elasticsearch</a>
-                
-                    <a href="/tags/%E6%90%9C%E7%B4%A2/" class="link">搜索</a>
-                
-                    <a href="/tags/%E7%A3%81%E7%9B%98/" class="link">磁盘</a>
-                
-                    <a href="/tags/%E5%88%86%E7%89%87/" class="link">分片</a>
-                
-                    <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" class="link">服务运维</a>
-                
-            </div>
-        
-    </footer>
-    
-</div>
-
-</header>
-</article>
-        
-            
-<article class="">
-    <header class="article-header">
-
-    <div class="article-details">
-    
-    <header class="article-category">
-        
-            
-            
-            
-            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
-                运维
-            </a>
-        
-            
-            
-            
-            <a href="/categories/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(274, 60%, 84%); color: hsl(274, 60%, 15%);">
-                容器运维
-            </a>
-        
-    </header>
-    
-
-    <div class="article-title-wrapper">
-        <h2 class="article-title">
-            <a href="/posts/1908b3a5/">Calico IPAM 池耗尽致新增 Pod 无法分配 IP</a>
-        </h2>
-    
-        
-        <h3 class="article-subtitle">
-            集群规模扩张后新增 Pod 批量报 CNI 分配 IP 失败，根因是 Calico IPAM 池耗尽且自动扩容被配置上限卡死。
-        </h3>
-        
-    </div>
-
-    
-    
-    
-    
-    
-    
-    
-    <footer class="article-meta">
-        
-            <div class="inline-meta">
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
-  <circle cx="18" cy="18" r="4" />
-  <path d="M15 3v4" />
-  <path d="M7 3v4" />
-  <path d="M3 11h16" />
-  <path d="M18 16.496v1.504l1 1" />
-</svg>
-                    <time class="article-time--published" datetime='2022-12-21T19:00:00&#43;08:00'>2022年12月21日星期三</time>
+                    <time class="article-time--published" datetime='2023-11-22T20:10:00Z'>2023年11月22日星期三</time>
                 
 
                 
@@ -1163,127 +1067,15 @@
 
 
                 
-                    <a href="/tags/kubernetes/" class="link">Kubernetes</a>
+                    <a href="/tags/nginx/" class="link">Nginx</a>
                 
-                    <a href="/tags/cni/" class="link">CNI</a>
+                    <a href="/tags/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1/" class="link">负载均衡</a>
                 
-                    <a href="/tags/calico/" class="link">Calico</a>
+                    <a href="/tags/%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5/" class="link">健康检查</a>
                 
-                    <a href="/tags/ipam/" class="link">IPAM</a>
+                    <a href="/tags/full-gc/" class="link">Full GC</a>
                 
-                    <a href="/tags/ip-%E6%B1%A0%E8%80%97%E5%B0%BD/" class="link">IP 池耗尽</a>
-                
-                    <a href="/tags/pod-%E6%97%A0%E6%B3%95%E8%B0%83%E5%BA%A6/" class="link">Pod 无法调度</a>
-                
-            </div>
-        
-    </footer>
-    
-</div>
-
-</header>
-</article>
-        
-            
-<article class="">
-    <header class="article-header">
-
-    <div class="article-details">
-    
-    <header class="article-category">
-        
-            
-            
-            
-            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
-                运维
-            </a>
-        
-            
-            
-            
-            <a href="/categories/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(274, 60%, 84%); color: hsl(274, 60%, 15%);">
-                容器运维
-            </a>
-        
-    </header>
-    
-
-    <div class="article-title-wrapper">
-        <h2 class="article-title">
-            <a href="/posts/13f63d70/">HPA 高峰不扩容：metrics-server 指标链路中断</a>
-        </h2>
-    
-        
-        <h3 class="article-subtitle">
-            晚高峰 QPS 翻倍但 HPA 副本纹丝不动，kubectl get hpa 的 TARGETS 显示 unknown，根因是 metrics-server 指标链路中断。
-        </h3>
-        
-    </div>
-
-    
-    
-    
-    
-    
-    
-    
-    <footer class="article-meta">
-        
-            <div class="inline-meta">
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
-  <circle cx="18" cy="18" r="4" />
-  <path d="M15 3v4" />
-  <path d="M7 3v4" />
-  <path d="M3 11h16" />
-  <path d="M18 16.496v1.504l1 1" />
-</svg>
-                    <time class="article-time--published" datetime='2022-11-05T07:00:00&#43;08:00'>2022年11月5日星期六</time>
-                
-
-                
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <circle cx="12" cy="12" r="9" />
-  <polyline points="12 7 12 12 15 15" />
-</svg>
-
-
-
-                    <time class="article-time--reading">
-                        阅读时长: 6 分钟
-                    </time>
-                
-            </div>
-        
-
-        
-
-        
-            <div class="article-tags inline-meta">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path stroke="none" d="M0 0h24v24H0z"/>
-  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
-  <circle cx="9" cy="9" r="2" />
-</svg>
-
-
-
-                
-                    <a href="/tags/kubernetes/" class="link">Kubernetes</a>
-                
-                    <a href="/tags/hpa/" class="link">HPA</a>
-                
-                    <a href="/tags/metrics-server/" class="link">Metrics-Server</a>
-                
-                    <a href="/tags/%E8%87%AA%E5%8A%A8%E6%89%A9%E5%AE%B9/" class="link">自动扩容</a>
-                
-                    <a href="/tags/aggregation-layer/" class="link">Aggregation Layer</a>
-                
-                    <a href="/tags/kubelet-summary-api/" class="link">Kubelet Summary API</a>
+                    <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" class="link">服务运维</a>
                 
             </div>
         
@@ -1321,12 +1113,12 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/6ef1b86a/">一次跨机房 IPSec VPN 隧道大包不通导致业务间歇性卡死的排查记录</a>
+            <a href="/posts/cbaa3ade/">办公区无线网络为何间歇性断连？</a>
         </h2>
     
         
         <h3 class="article-subtitle">
-            跨机房 IPSec VPN 下 ping 通、SSH 正常，但文件传输和数据库同步一到大数据量就卡死，最终定位到 PMTUD 黑洞并用 MSS 钳制根治。
+            办公区员工反馈WiFi频繁断线，尤其是视频会议期间，排查发现是2.4GHz频段信道拥挤叠加非法AP干扰共同导致，通过重新规划信道和启用频段引导解决。
         </h3>
         
     </div>
@@ -1351,7 +1143,7 @@
   <path d="M3 11h16" />
   <path d="M18 16.496v1.504l1 1" />
 </svg>
-                    <time class="article-time--published" datetime='2022-10-20T07:00:00&#43;08:00'>2022年10月20日星期四</time>
+                    <time class="article-time--published" datetime='2023-11-07T11:11:17Z'>2023年11月7日星期二</time>
                 
 
                 
@@ -1364,7 +1156,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 7 分钟
+                        阅读时长: 5 分钟
                     </time>
                 
             </div>
@@ -1383,17 +1175,13 @@
 
 
                 
-                    <a href="/tags/mtu/" class="link">MTU</a>
+                    <a href="/tags/wifi/" class="link">WiFi</a>
                 
-                    <a href="/tags/mss/" class="link">MSS</a>
+                    <a href="/tags/%E6%97%A0%E7%BA%BF%E7%BD%91%E7%BB%9C/" class="link">无线网络</a>
                 
-                    <a href="/tags/pmtud/" class="link">PMTUD</a>
+                    <a href="/tags/%E4%BF%A1%E9%81%93%E5%B9%B2%E6%89%B0/" class="link">信道干扰</a>
                 
-                    <a href="/tags/ipsec/" class="link">IPSec</a>
-                
-                    <a href="/tags/vpn/" class="link">VPN</a>
-                
-                    <a href="/tags/icmp/" class="link">ICMP</a>
+                    <a href="/tags/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" class="link">网络运维</a>
                 
             </div>
         
@@ -1431,12 +1219,12 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/6651b58c/">Too many open files：nofile 过小与句柄泄漏</a>
+            <a href="/posts/06b09f13/">Redis Cluster 脑裂，缓存数据为何对不上？</a>
         </h2>
     
         
         <h3 class="article-subtitle">
-            一个跑了几天的 Java 服务突然大量报 Too many open files，新连接被拒、健康检查失败，最终定位到 systemd nofile 太小叠加句柄泄漏，用 lsof/proc 定位并根治。
+            Redis Cluster发生脑裂，主从两边均写入导致缓存数据不一致，根因是min-replicas与超时配置不足。
         </h3>
         
     </div>
@@ -1461,7 +1249,7 @@
   <path d="M3 11h16" />
   <path d="M18 16.496v1.504l1 1" />
 </svg>
-                    <time class="article-time--published" datetime='2022-09-25T07:00:00&#43;08:00'>2022年9月25日星期日</time>
+                    <time class="article-time--published" datetime='2023-10-19T15:25:00Z'>2023年10月19日星期四</time>
                 
 
                 
@@ -1474,7 +1262,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 6 分钟
+                        阅读时长: 4 分钟
                     </time>
                 
             </div>
@@ -1493,17 +1281,229 @@
 
 
                 
-                    <a href="/tags/%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6/" class="link">文件描述符</a>
+                    <a href="/tags/redis/" class="link">Redis</a>
                 
-                    <a href="/tags/too-many-open-files/" class="link">Too Many Open Files</a>
+                    <a href="/tags/%E8%84%91%E8%A3%82/" class="link">脑裂</a>
                 
-                    <a href="/tags/emfile/" class="link">EMFILE</a>
+                    <a href="/tags/cluster/" class="link">Cluster</a>
                 
-                    <a href="/tags/limitnofile/" class="link">LimitNOFILE</a>
+                    <a href="/tags/%E7%BC%93%E5%AD%98/" class="link">缓存</a>
                 
-                    <a href="/tags/%E5%8F%A5%E6%9F%84%E6%B3%84%E6%BC%8F/" class="link">句柄泄漏</a>
+                    <a href="/tags/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" class="link">服务运维</a>
                 
-                    <a href="/tags/lsof/" class="link">Lsof</a>
+            </div>
+        
+    </footer>
+    
+</div>
+
+</header>
+</article>
+        
+            
+<article class="">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" style="background-color: hsl(195, 60%, 84%); color: hsl(195, 60%, 15%);">
+                桌面运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/8c4b1183/">Windows 域策略推送失败致新电脑无法登录的处理</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            新装机电脑无法登录域，根因是GPO策略推送失败导致计算机账户未就绪/启动脚本未应用。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2023-09-15T08:50:00Z'>2023年9月15日星期五</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 4 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+            <div class="article-tags inline-meta">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                    <a href="/tags/windows/" class="link">Windows</a>
+                
+                    <a href="/tags/ad%E5%9F%9F/" class="link">AD域</a>
+                
+                    <a href="/tags/%E5%9F%9F%E7%AD%96%E7%95%A5/" class="link">域策略</a>
+                
+                    <a href="/tags/sysvol/" class="link">SYSVOL</a>
+                
+                    <a href="/tags/netlogon/" class="link">Netlogon</a>
+                
+                    <a href="/tags/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" class="link">桌面运维</a>
+                
+            </div>
+        
+    </footer>
+    
+</div>
+
+</header>
+</article>
+        
+            
+<article class="">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" style="background-color: hsl(195, 60%, 84%); color: hsl(195, 60%, 15%);">
+                桌面运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/709d31a9/">微软输入法快速输入时间</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            用微软拼音自定义短语快速输入当前日期与时间，%yyyy% 等占位符的配置方法与两套常用格式示例，一条命令都不用敲。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2023-08-26T22:32:20Z'>2023年8月26日星期六</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 1 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+            <div class="article-tags inline-meta">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                    <a href="/tags/windows/" class="link">Windows</a>
+                
+                    <a href="/tags/%E8%BE%93%E5%85%A5%E6%B3%95/" class="link">输入法</a>
+                
+                    <a href="/tags/%E6%8A%80%E5%B7%A7/" class="link">技巧</a>
                 
             </div>
         

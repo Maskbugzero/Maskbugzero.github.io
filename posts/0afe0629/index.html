@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="对外门户 Tomcat 疑似加密外联，顺藤摸到文件上传接口被绕过植入哥斯拉 Webshell 的溯源清剿全过程">
-<title>记一次企业门户网站被植入 Webshell 的入侵溯源与清除</title>
+<title>门户网站被植入 Webshell：入侵溯源与清除</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/0afe0629/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次企业门户网站被植入 Webshell 的入侵溯源与清除">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="门户网站被植入 Webshell：入侵溯源与清除">
 <meta property='og:description' content="对外门户 Tomcat 疑似加密外联，顺藤摸到文件上传接口被绕过植入哥斯拉 Webshell 的溯源清剿全过程">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/0afe0629/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Webshell' /><meta property='article:tag' content='文件上传漏洞' /><meta property='article:tag' content='入侵溯源' /><meta property='article:tag' content='应急响应' /><meta property='article:tag' content='哥斯拉' /><meta property='article:tag' content='Web日志分析' /><meta property='article:published_time' content='2022-08-22T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2022-08-22T07:00:00&#43;08:00'/>
-<meta name="twitter:title" content="记一次企业门户网站被植入 Webshell 的入侵溯源与清除">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Webshell' /><meta property='article:tag' content='文件上传漏洞' /><meta property='article:tag' content='入侵溯源' /><meta property='article:tag' content='应急响应' /><meta property='article:tag' content='哥斯拉' /><meta property='article:tag' content='Web日志分析' /><meta property='article:published_time' content='2022-08-22T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="门户网站被植入 Webshell：入侵溯源与清除">
 <meta name="twitter:description" content="对外门户 Tomcat 疑似加密外联，顺藤摸到文件上传接口被绕过植入哥斯拉 Webshell 的溯源清剿全过程">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -229,6 +229,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -267,7 +268,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/0afe0629/">记一次企业门户网站被植入 Webshell 的入侵溯源与清除</a>
+            <a href="/posts/0afe0629/">门户网站被植入 Webshell：入侵溯源与清除</a>
         </h2>
     
         
@@ -310,7 +311,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 5 分钟
+                        阅读时长: 6 分钟
                     </time>
                 
             </div>
@@ -344,6 +345,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -417,6 +419,12 @@
 </ul>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>这次事件的隐蔽点在于：外联主体是 Tomcat 自己、木马是加密的、入口是个不起眼的头像上传接口，任何一个单看都容易被当成&quot;业务正常&quot;或&quot;误报&quot;放过。真正把线索串起来的是<strong>全流量告警 + Web 访问日志的高频 POST 特征分析</strong>这两把钥匙。对运维来说，最该记住的不是&quot;哥斯拉长什么样&quot;，而是：<strong>任意文件上传永远要按白名单 + 内容校验 + 存储执行分离三件套来防，而不是靠拦几个危险后缀</strong>；同时对外暴露面必须有日志、有监控、有兜底，别让老系统成为攻击者最舒服的落脚点。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/55563ba9/" >清除服务器 XMRig 挖矿木马：入侵路径还原与清剿实录</a></li>
+<li><a class="link" href="/posts/0a8ea846/" >钓鱼邮件致终端感染远控木马：溯源与处置</a></li>
+<li><a class="link" href="/posts/7480195f/" >Elasticsearch 裸奔公网被扫库：数据泄露应急处置</a></li>
+</ul>
 
 </section>
 
@@ -440,7 +448,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     
@@ -475,7 +495,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次堡垒机上线后运维账号收口不彻底导致生产 MySQL 被误操作的排查实录</h2>
+            <h2 class="article-title">堡垒机账号收口不彻底：生产 MySQL 被误操作</h2>
         </div>
     </a>
 </article>

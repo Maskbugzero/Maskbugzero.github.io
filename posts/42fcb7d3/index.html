@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="服务器不定时宕机，根因是某条内存硬件故障触发ECC不可纠正错误导致内核panic。">
-<title>记一次服务器内存硬件故障导致的不定时宕机</title>
+<title>内存硬件故障：服务器不定时宕机</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/42fcb7d3/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次服务器内存硬件故障导致的不定时宕机">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="内存硬件故障：服务器不定时宕机">
 <meta property='og:description' content="服务器不定时宕机，根因是某条内存硬件故障触发ECC不可纠正错误导致内核panic。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/42fcb7d3/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='服务器' /><meta property='article:tag' content='内存故障' /><meta property='article:tag' content='MCE' /><meta property='article:tag' content='宕机' /><meta property='article:tag' content='硬件' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2023-07-12T11:55:00&#43;00:00'/><meta property='article:modified_time' content='2023-07-12T11:55:00&#43;00:00'/>
-<meta name="twitter:title" content="记一次服务器内存硬件故障导致的不定时宕机">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='服务器' /><meta property='article:tag' content='内存故障' /><meta property='article:tag' content='MCE' /><meta property='article:tag' content='宕机' /><meta property='article:tag' content='硬件' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2023-07-12T11:55:00&#43;00:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="内存硬件故障：服务器不定时宕机">
 <meta name="twitter:description" content="服务器不定时宕机，根因是某条内存硬件故障触发ECC不可纠正错误导致内核panic。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -236,6 +236,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -274,7 +275,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/42fcb7d3/">记一次服务器内存硬件故障导致的不定时宕机</a>
+            <a href="/posts/42fcb7d3/">内存硬件故障：服务器不定时宕机</a>
         </h2>
     
         
@@ -358,6 +359,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -490,6 +492,12 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>硬件故障不是&quot;会不会发生&quot;的问题，而是&quot;什么时候发生&quot;的问题。ECC 内存的可纠正错误（CE）是硬件健康的&quot;矿工金丝雀&quot;——当它开始频繁出现时，意味着那条内存条离彻底损坏不远了。这次故障的教训不是 ECC 不够强，而是 CE 的 edac 日志沉默了一整周而没有人关注。在运维中，比监控&quot;已经宕机&quot;更重要的是监控&quot;即将宕机&quot;的信号。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/636f1d7a/" >VMware ESXi 紫屏宕机：排查与恢复实录</a></li>
+<li><a class="link" href="/posts/4dad391b/" >Redis 内存溢出：缓存服务全失效</a></li>
+<li><a class="link" href="/posts/6f0650ff/" >域用户密码过期，定时同步任务为何批量失败？</a></li>
+</ul>
 
 </section>
 
@@ -513,7 +521,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     
@@ -537,7 +557,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">Docker Swarm Overlay 跨节点不通，问题卡在哪？</h2>
+            <h2 class="article-title">Swarm Overlay 跨节点不通：逐层定位</h2>
         </div>
     </a>
 </article>
@@ -570,7 +590,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 Redis 内存溢出、缓存服务全失效的排查</h2>
+            <h2 class="article-title">Redis 内存溢出：缓存服务全失效</h2>
         </div>
     </a>
 </article>

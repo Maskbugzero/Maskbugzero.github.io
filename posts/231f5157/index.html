@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="rsyslog 模板配置中 action(type=\"omfile\") 与全局 $template 重复生效，导致同一条日志被写入两次，引发磁盘空间异常增长与 journald 回压。">
-<title>记一次 rsyslog 模板配置错误导致日志重复写入与磁盘异常增长的排查记录</title>
+<title>rsyslog 模板配错：日志重复写与磁盘暴涨</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/231f5157/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次 rsyslog 模板配置错误导致日志重复写入与磁盘异常增长的排查记录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="rsyslog 模板配错：日志重复写与磁盘暴涨">
 <meta property='og:description' content="rsyslog 模板配置中 action(type=\"omfile\") 与全局 $template 重复生效，导致同一条日志被写入两次，引发磁盘空间异常增长与 journald 回压。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/231f5157/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='rsyslog' /><meta property='article:tag' content='日志重复写入' /><meta property='article:tag' content='模板配置' /><meta property='article:tag' content='磁盘空间' /><meta property='article:tag' content='journald' /><meta property='article:tag' content='日志轮转' /><meta property='article:published_time' content='2026-09-19T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-19T07:00:00&#43;08:00'/>
-<meta name="twitter:title" content="记一次 rsyslog 模板配置错误导致日志重复写入与磁盘异常增长的排查记录">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='rsyslog' /><meta property='article:tag' content='日志重复写入' /><meta property='article:tag' content='模板配置' /><meta property='article:tag' content='磁盘空间' /><meta property='article:tag' content='journald' /><meta property='article:tag' content='日志轮转' /><meta property='article:published_time' content='2026-09-19T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="rsyslog 模板配错：日志重复写与磁盘暴涨">
 <meta name="twitter:description" content="rsyslog 模板配置中 action(type=\"omfile\") 与全局 $template 重复生效，导致同一条日志被写入两次，引发磁盘空间异常增长与 journald 回压。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -274,7 +274,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/231f5157/">记一次 rsyslog 模板配置错误导致日志重复写入与磁盘异常增长的排查记录</a>
+            <a href="/posts/231f5157/">rsyslog 模板配错：日志重复写与磁盘暴涨</a>
         </h2>
     
         
@@ -572,9 +572,9 @@
 </h2><p>一次看似「日志模板自定义」的细微配置差异，在 rsyslog 双语法共存的场景下演变为磁盘空间危机与 journald 回压。本次排查再次印证：<strong>日志系统配置必须「单一事实来源」，传统 selector 与 action 模块不可混用指向同一目标文件</strong>。后续将把 rsyslog 配置统一收敛到模块化语法，并纳入变更前 lint 门禁，避免同类问题复发。</p>
 <h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
 </h2><ul>
-<li><a class="link" href="/posts/49b13065/" >一次 systemd 重启风暴：Restart=always 叠加配置错误拖垮整机的排查</a></li>
-<li><a class="link" href="/posts/b38ac0b7/" >磁盘空间为何删了大日志也不释放？一次 df 与 du 相差 60GB 的排查记录</a></li>
-<li><a class="link" href="/posts/150709e6/" >记一次生产服务变更验收Checklist落地：预检、灰度与回滚三道闸</a></li>
+<li><a class="link" href="/posts/49b13065/" >Restart=always 无退避致重启风暴拖垮整机</a></li>
+<li><a class="link" href="/posts/b38ac0b7/" >磁盘 df 与 du 不一致：inode 耗尽</a></li>
+<li><a class="link" href="/posts/150709e6/" >变更验收三道闸：预检、灰度与回滚</a></li>
 </ul>
 
 </section>
@@ -599,7 +599,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     
@@ -645,7 +657,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次堡垒机 SSH 超时致运维无法紧急操作的排查</h2>
+            <h2 class="article-title">堡垒机 SSH 超时：运维无法紧急操作</h2>
         </div>
     </a>
 </article>

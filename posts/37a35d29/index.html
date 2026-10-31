@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="内网 LLMNR/NBT-NS 投毒配合 NTLM 中继，域管会话被窃后横向提权；关闭广播名解析并强制 SMB 签名收口。">
-<title>堵住NTLM中继：一次LLMNR投毒导致域管理员凭据被窃的排查与加固</title>
+<title>LLMNR 投毒：域管理员凭据被 NTLM 中继窃取</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/37a35d29/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="堵住NTLM中继：一次LLMNR投毒导致域管理员凭据被窃的排查与加固">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="LLMNR 投毒：域管理员凭据被 NTLM 中继窃取">
 <meta property='og:description' content="内网 LLMNR/NBT-NS 投毒配合 NTLM 中继，域管会话被窃后横向提权；关闭广播名解析并强制 SMB 签名收口。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/37a35d29/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='NTLM中继' /><meta property='article:tag' content='NTLM Relay' /><meta property='article:tag' content='LLMNR投毒' /><meta property='article:tag' content='NBT-NS投毒' /><meta property='article:tag' content='Responder' /><meta property='article:tag' content='SMB签名强制' /><meta property='article:published_time' content='2020-06-25T07:05:00&#43;08:00'/><meta property='article:modified_time' content='2026-08-19T07:05:00&#43;08:00'/>
-<meta name="twitter:title" content="堵住NTLM中继：一次LLMNR投毒导致域管理员凭据被窃的排查与加固">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='NTLM中继' /><meta property='article:tag' content='NTLM Relay' /><meta property='article:tag' content='LLMNR投毒' /><meta property='article:tag' content='NBT-NS投毒' /><meta property='article:tag' content='Responder' /><meta property='article:tag' content='SMB签名强制' /><meta property='article:published_time' content='2020-06-25T07:05:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="LLMNR 投毒：域管理员凭据被 NTLM 中继窃取">
 <meta name="twitter:description" content="内网 LLMNR/NBT-NS 投毒配合 NTLM 中继，域管会话被窃后横向提权；关闭广播名解析并强制 SMB 签名收口。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -243,6 +243,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -281,7 +282,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/37a35d29/">堵住NTLM中继：一次LLMNR投毒导致域管理员凭据被窃的排查与加固</a>
+            <a href="/posts/37a35d29/">LLMNR 投毒：域管理员凭据被 NTLM 中继窃取</a>
         </h2>
     
         
@@ -372,6 +373,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -539,6 +541,11 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>这是一起典型的「内网二层名解析投毒 + NTLM 中继」事件：表象是高权限账号异常登录，本质是 <strong>认证握手被改道兑现</strong>。排查上应从域控身份日志与 NDR 横向告警入手，锁定桥头堡工具链，再用流量验证 LLMNR/NBNS 伪应答，最后用策略基线对账解释「为何中继能成」。处置上，禁用账号与隔离桥头堡只是止血；真正收口靠 <strong>关广播名解析、强制 SMB 签名、收缩 NTLM、隔离 Tier-0 账号</strong>。与黄金票据（窃 krbtgt 造票）、RDP 暴破勒索、MFA 疲劳等场景不同，中继攻击往往 <strong>不碰密码本、不炸业务面</strong>，更考验日常加固是否把「默认协议弱点」堵死。把这次清单写进装机模板与域基线，比再买一套检测盒子更管用。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/83bf4e7f/" >暴露面收敛落地：从端口扫描到凭据治理</a></li>
+<li><a class="link" href="/posts/fd39f333/" >npm 依赖投毒：CI 构建产物被植入后门</a></li>
+</ul>
 
 </section>
 
@@ -572,7 +579,7 @@
 
 
         <span>
-            最后更新于 2026年8月19日星期三
+            最后更新于 2026年10月31日星期六
         </span>
     </section></footer>
 

@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="某早高峰时段，大量员工同时反映AD域账号被锁定无法登录，排查发现是一台服务器上的服务账号密码过期后反复尝试认证导致的连锁锁定。">
-<title>记一次 Windows 域账号批量锁定事件的排查</title>
+<title>服务账号改密未同步：域账号批量锁定</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/ecb32d7f/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次 Windows 域账号批量锁定事件的排查">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="服务账号改密未同步：域账号批量锁定">
 <meta property='og:description' content="某早高峰时段，大量员工同时反映AD域账号被锁定无法登录，排查发现是一台服务器上的服务账号密码过期后反复尝试认证导致的连锁锁定。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/ecb32d7f/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Active Directory' /><meta property='article:tag' content='域控' /><meta property='article:tag' content='账号锁定' /><meta property='article:tag' content='桌面运维' /><meta property='article:published_time' content='2023-01-16T20:56:36&#43;00:00'/><meta property='article:modified_time' content='2023-01-16T09:00:00&#43;00:00'/>
-<meta name="twitter:title" content="记一次 Windows 域账号批量锁定事件的排查">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Active Directory' /><meta property='article:tag' content='域控' /><meta property='article:tag' content='账号锁定' /><meta property='article:tag' content='桌面运维' /><meta property='article:published_time' content='2023-01-16T20:56:36&#43;00:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="服务账号改密未同步：域账号批量锁定">
 <meta name="twitter:description" content="某早高峰时段，大量员工同时反映AD域账号被锁定无法登录，排查发现是一台服务器上的服务账号密码过期后反复尝试认证导致的连锁锁定。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -237,6 +237,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -275,7 +276,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/ecb32d7f/">记一次 Windows 域账号批量锁定事件的排查</a>
+            <a href="/posts/ecb32d7f/">服务账号改密未同步：域账号批量锁定</a>
         </h2>
     
         
@@ -360,6 +361,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -489,6 +491,12 @@
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>账号批量锁定事件看起来是个用户问题，实际上根源在于服务侧的配置管理疏漏。一个看不见的服务账号在后台不停地用错误密码敲门，却殃及了数十名员工的正常工作。</p>
 <p>这次事件之后，我们对公司所有服务账号做了全面梳理，整理了台账，并推进了核心系统服务账号向 gMSA 的迁移。事实证明，这类&quot;基础设施维护&quot;的工作，往往是避免大故障的关键。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/8c4b1183/" >Windows 域策略推送失败致新电脑无法登录的处理</a></li>
+<li><a class="link" href="/posts/472b6e86/" >机房精密空调故障，服务器集群怎么就过热降频了？</a></li>
+<li><a class="link" href="/posts/a9919450/" >部门共享打印机为何间歇脱机、打印任务积压？</a></li>
+</ul>
 
 </section>
 
@@ -518,7 +526,7 @@
 
 
         <span>
-            最后更新于 2023年1月16日星期一
+            最后更新于 2026年10月31日星期六
         </span>
     </section></footer>
 

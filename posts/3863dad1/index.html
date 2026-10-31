@@ -242,6 +242,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -370,6 +371,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -561,6 +563,12 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>Kafka 消息积压的根因往往不在 broker，而在消费端——不是消费者挂了，就是消费者处理不了某条消息。这次故障的教训是双重的：技术层面，Jackson 的 FAIL_ON_UNKNOWN_PROPERTIES 应该作为 Kafka 消费者的&quot;强制关闭项&quot;；流程层面，消息格式变更必须有跨团队的兼容性审查。当一个字段上线导致 12 万条消息被丢弃，这笔账要算在整个发布流程上，而不只是写 bug 的开发者。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/083f4e6d/" >Kafka Rebalance 风暴：业务数据延迟两小时</a></li>
+<li><a class="link" href="/posts/200f6914/" >RabbitMQ 发布端卡死：未确认消息撑爆内存水位</a></li>
+<li><a class="link" href="/posts/ff0ff270/" >MySQL 主从延迟致报表数据差异过大：定位与修复</a></li>
+</ul>
 
 </section>
 
@@ -606,7 +614,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 SSL 证书过期致内网 HTTPS 全面中断</h2>
+            <h2 class="article-title">SSL 证书过期：内网 HTTPS 全面中断</h2>
         </div>
     </a>
 </article>
@@ -628,7 +636,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 GitLab Runner 并发构建压垮宿主机的排查</h2>
+            <h2 class="article-title">GitLab Runner 并发构建：压垮宿主机</h2>
         </div>
     </a>
 </article>

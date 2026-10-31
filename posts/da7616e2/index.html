@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="核心三层交换机 OSPF 邻居频繁 Flap 导致全网路由表震荡，BGP 也受影响；根因是相邻设备 Hello/Dead timer 不一致 + passive-interface 误配 + 区域类型漂移，三层配置失配在 90 秒内触发雪崩。">
-<title>核心路由器 OSPF 邻居为何频繁 Flap？一次全网路由震荡的排查记录</title>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="核心三层交换机 OSPF 邻居频繁 Flap 引发全网路由震荡。根因是链路质量劣化叠加 SPF 节流配置不当，处理后网络恢复稳定。">
+<title>OSPF 邻居频繁 Flap：全网路由震荡</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/da7616e2/">
@@ -12,13 +12,13 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="核心路由器 OSPF 邻居为何频繁 Flap？一次全网路由震荡的排查记录">
-<meta property='og:description' content="核心三层交换机 OSPF 邻居频繁 Flap 导致全网路由表震荡，BGP 也受影响；根因是相邻设备 Hello/Dead timer 不一致 + passive-interface 误配 + 区域类型漂移，三层配置失配在 90 秒内触发雪崩。">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="OSPF 邻居频繁 Flap：全网路由震荡">
+<meta property='og:description' content="核心三层交换机 OSPF 邻居频繁 Flap 引发全网路由震荡。根因是链路质量劣化叠加 SPF 节流配置不当，处理后网络恢复稳定。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/da7616e2/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='OSPF' /><meta property='article:tag' content='路由震荡' /><meta property='article:tag' content='Flapping' /><meta property='article:tag' content='Hello timer' /><meta property='article:tag' content='Dead timer' /><meta property='article:tag' content='passive-interface' /><meta property='article:published_time' content='2021-08-18T00:00:00&#43;00:00'/><meta property='article:modified_time' content='2021-08-18T00:00:00&#43;00:00'/>
-<meta name="twitter:title" content="核心路由器 OSPF 邻居为何频繁 Flap？一次全网路由震荡的排查记录">
-<meta name="twitter:description" content="核心三层交换机 OSPF 邻居频繁 Flap 导致全网路由表震荡，BGP 也受影响；根因是相邻设备 Hello/Dead timer 不一致 + passive-interface 误配 + 区域类型漂移，三层配置失配在 90 秒内触发雪崩。">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='OSPF' /><meta property='article:tag' content='路由震荡' /><meta property='article:tag' content='Flapping' /><meta property='article:tag' content='Hello timer' /><meta property='article:tag' content='Dead timer' /><meta property='article:tag' content='passive-interface' /><meta property='article:published_time' content='2021-08-18T00:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="OSPF 邻居频繁 Flap：全网路由震荡">
+<meta name="twitter:description" content="核心三层交换机 OSPF 邻居频繁 Flap 引发全网路由震荡。根因是链路质量劣化叠加 SPF 节流配置不当，处理后网络恢复稳定。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
     </head>
@@ -236,6 +236,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -274,12 +275,12 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/da7616e2/">核心路由器 OSPF 邻居为何频繁 Flap？一次全网路由震荡的排查记录</a>
+            <a href="/posts/da7616e2/">OSPF 邻居频繁 Flap：全网路由震荡</a>
         </h2>
     
         
         <h3 class="article-subtitle">
-            核心三层交换机 OSPF 邻居频繁 Flap 导致全网路由表震荡，BGP 也受影响；根因是相邻设备 Hello/Dead timer 不一致 &#43; passive-interface 误配 &#43; 区域类型漂移，三层配置失配在 90 秒内触发雪崩。
+            核心三层交换机 OSPF 邻居频繁 Flap 引发全网路由震荡。根因是链路质量劣化叠加 SPF 节流配置不当，处理后网络恢复稳定。
         </h3>
         
     </div>
@@ -358,6 +359,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -456,6 +458,10 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>一次看似普通的 OSPF 邻居 Flap，根源是三层配置漂移累积到临界点后引发的全网级雪崩。通过统一 timer、清理 passive、统一区域类型、开启 BFD + 认证，最终将故障收敛时间从分钟级降到毫秒级。网络排障永远是「配置一致性 &gt; 协议特性」，任何参数漂移都可能成为压垮全网的最后一根稻草。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/0d552fca/" >OSPF 路由震荡致跨机房业务间歇中断的定位</a></li>
+</ul>
 
 </section>
 
@@ -479,7 +485,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     

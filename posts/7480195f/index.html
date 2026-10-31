@@ -229,6 +229,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -344,6 +345,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -436,6 +438,12 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>这次事件损失可控纯属运气好：攻击者是删库勒索的脚本流，而非有耐心的拖库者；上游 Kafka 和数仓恰好能重建数据。复盘时最让人后怕的不是攻击本身，而是那条放行规则安静躺了二十多天没有任何机制能发现它。安全上最贵的不是防火墙和设备，而是&quot;临时&quot;两个字——所有临时的放行、临时的免密、临时的绕过，只要没有强制回收机制，最终都会变成永久的洞。数据端口不上公网、组件必须带认证、备份独立于集群，这三条底线缺一不可。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/83bf4e7f/" >暴露面收敛落地：从端口扫描到凭据治理</a></li>
+<li><a class="link" href="/posts/0afe0629/" >门户网站被植入 Webshell：入侵溯源与清除</a></li>
+<li><a class="link" href="/posts/a801fe3b/" >员工域账号异地登录：告警研判与紧急锁定处置</a></li>
+</ul>
 
 </section>
 
@@ -481,7 +489,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">一次服务器暴露面收敛Checklist：从端口扫描到凭据治理的落地清单</h2>
+            <h2 class="article-title">暴露面收敛落地：从端口扫描到凭据治理</h2>
         </div>
     </a>
 </article>
@@ -492,7 +500,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次堡垒机上线后运维账号收口不彻底导致生产 MySQL 被误操作的排查实录</h2>
+            <h2 class="article-title">堡垒机账号收口不彻底：生产 MySQL 被误操作</h2>
         </div>
     </a>
 </article>

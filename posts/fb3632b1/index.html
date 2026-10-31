@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="K8s 命名空间资源配额被副本扩容与 LimitRange 隐性注入吃满，新 Pod 卡在 Pending 无法调度。">
-<title>ResourceQuota 配额耗尽致 Pod 卡在 Pending</title>
+<title>ResourceQuota 耗尽：Pod 卡 Pending</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/fb3632b1/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="ResourceQuota 配额耗尽致 Pod 卡在 Pending">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="ResourceQuota 耗尽：Pod 卡 Pending">
 <meta property='og:description' content="K8s 命名空间资源配额被副本扩容与 LimitRange 隐性注入吃满，新 Pod 卡在 Pending 无法调度。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/fb3632b1/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='ResourceQuota' /><meta property='article:tag' content='LimitRange' /><meta property='article:tag' content='Pod Pending' /><meta property='article:tag' content='FailedScheduling' /><meta property='article:tag' content='资源配额' /><meta property='article:published_time' content='2025-01-19T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2025-01-19T07:00:00&#43;08:00'/>
-<meta name="twitter:title" content="ResourceQuota 配额耗尽致 Pod 卡在 Pending">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='ResourceQuota' /><meta property='article:tag' content='LimitRange' /><meta property='article:tag' content='Pod Pending' /><meta property='article:tag' content='FailedScheduling' /><meta property='article:tag' content='资源配额' /><meta property='article:published_time' content='2025-01-19T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="ResourceQuota 耗尽：Pod 卡 Pending">
 <meta name="twitter:description" content="K8s 命名空间资源配额被副本扩容与 LimitRange 隐性注入吃满，新 Pod 卡在 Pending 无法调度。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -229,6 +229,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -267,7 +268,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/fb3632b1/">ResourceQuota 配额耗尽致 Pod 卡在 Pending</a>
+            <a href="/posts/fb3632b1/">ResourceQuota 耗尽：Pod 卡 Pending</a>
         </h2>
     
         
@@ -344,6 +345,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -453,6 +455,12 @@
 <h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
 </h2><p>这次故障的教训是：Kubernetes 的资源约束是<strong>多层叠加</strong>的——ResourceQuota（命名空间预算）、LimitRange（默认值注入）、节点可分配资源（真实算力）各管一段，而调度失败往往出在最上游那道&quot;配额门&quot;上。节点有空闲只是必要条件，命名空间配额见顶照样让 Pod 永远 Pending。</p>
 <p>排查的核心动作就是三板斧：<code>kubectl describe quota</code> 看 used vs hard 是否顶满 → <code>kubectl get pods</code> 累加 requests 找&quot;吃配额的大户&quot; → <code>kubectl get limitrange</code> 确认是否有默认请求被隐性注入。把配额当预算管、加监控、拆隔离，就能让这类&quot;发布到一半卡住&quot;的事故从偶发变成可预警。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/13f63d70/" >HPA 不扩容：metrics-server 链路中断</a></li>
+<li><a class="link" href="/posts/1908b3a5/" >Calico IPAM 池耗尽致新增 Pod 无法分配 IP</a></li>
+<li><a class="link" href="/posts/97876a5b/" >Pod 长期卡在 Terminating 的定位与修复</a></li>
+</ul>
 
 </section>
 
@@ -476,7 +484,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     
@@ -533,7 +553,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">HPA 高峰不扩容：metrics-server 指标链路中断</h2>
+            <h2 class="article-title">HPA 不扩容：metrics-server 链路中断</h2>
         </div>
     </a>
 </article>

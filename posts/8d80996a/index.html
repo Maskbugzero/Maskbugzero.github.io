@@ -229,6 +229,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -344,6 +345,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -512,6 +514,12 @@
 </ol>
 <h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
 </h2><p>这次故障看似诡异——能上网、能开 OA 却加不了域，本质就是最基础的 DNS 问题。OEM 为出厂体验写死公网 DNS 的小动作，在内网加域场景下直接变成拦路虎。排查上只要牢牢记住“加域先查 DNS、先 <code>nslookup</code> 域控 SRV 记录”这条铁律，5 分钟就能定位。真正的教训在流程：新机验收必须包含 DNS 与域解析校验，把标准镜像和预检脚本固化进采购 SOP，才能避免下一次批量踩坑。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/8c4b1183/" >Windows 域策略推送失败致新电脑无法登录的处理</a></li>
+<li><a class="link" href="/posts/3c75e975/" >域控 GPO 推送失败，终端安全基线为何不生效？</a></li>
+<li><a class="link" href="/posts/ac8933af/" >组策略共享权限配错致全公司无法访问共享文件夹</a></li>
+</ul>
 
 </section>
 
@@ -568,7 +576,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 NAS 权限继承异常导致的跨部门文件访问故障</h2>
+            <h2 class="article-title">NAS 权限继承异常：跨部门文件访问故障</h2>
         </div>
     </a>
 </article>
@@ -590,7 +598,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 AD 域中黄金票据攻击导致域控权限持久化的检测与清除</h2>
+            <h2 class="article-title">黄金票据攻击：域控权限持久化检测与清除</h2>
         </div>
     </a>
 </article>

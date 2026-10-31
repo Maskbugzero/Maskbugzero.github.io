@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Kafka 消费者频繁 Rebalance 引发消费停滞，业务数据延迟近 2 小时，根因是轮询超时与分区再均衡风暴，调大 max.poll.interval 并优化消费逻辑后稳定。">
-<title>Kafka Rebalance 风暴致业务数据延迟两小时的定位</title>
+<title>Kafka Rebalance 风暴：业务数据延迟两小时</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/083f4e6d/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Kafka Rebalance 风暴致业务数据延迟两小时的定位">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="Kafka Rebalance 风暴：业务数据延迟两小时">
 <meta property='og:description' content="Kafka 消费者频繁 Rebalance 引发消费停滞，业务数据延迟近 2 小时，根因是轮询超时与分区再均衡风暴，调大 max.poll.interval 并优化消费逻辑后稳定。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/083f4e6d/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kafka' /><meta property='article:tag' content='Rebalance' /><meta property='article:tag' content='Consumer Group' /><meta property='article:tag' content='服务运维' /><meta property='article:tag' content='消息队列' /><meta property='article:published_time' content='2026-06-25T06:27:15&#43;00:00'/><meta property='article:modified_time' content='2026-06-25T07:00:00&#43;00:00'/>
-<meta name="twitter:title" content="Kafka Rebalance 风暴致业务数据延迟两小时的定位">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kafka' /><meta property='article:tag' content='Rebalance' /><meta property='article:tag' content='Consumer Group' /><meta property='article:tag' content='服务运维' /><meta property='article:tag' content='消息队列' /><meta property='article:published_time' content='2026-06-25T06:27:15&#43;00:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="Kafka Rebalance 风暴：业务数据延迟两小时">
 <meta name="twitter:description" content="Kafka 消费者频繁 Rebalance 引发消费停滞，业务数据延迟近 2 小时，根因是轮询超时与分区再均衡风暴，调大 max.poll.interval 并优化消费逻辑后稳定。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -241,6 +241,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -279,7 +280,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/083f4e6d/">Kafka Rebalance 风暴致业务数据延迟两小时的定位</a>
+            <a href="/posts/083f4e6d/">Kafka Rebalance 风暴：业务数据延迟两小时</a>
         </h2>
     
         
@@ -368,6 +369,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -793,6 +795,12 @@
 <p>三个看似独立的问题——内存泄漏、不合理的 Consumer 参数、缺失的 JVM 监控——在凌晨 02:48 不约而同地交汇在一起，形成了一个从内存逐步溢出到集群级消费瘫痪的连锁反应。</p>
 <p>过往我们的关注点总是在 Consumer Lag 这个结果指标上，当 Lag 飙升时第一反应是&quot;是不是生产者突发流量&quot;。但这次事故说明，消费端的处理能力衰减同样是导致 Lag 的重要原因，而这种衰减往往是渐进式的——内存泄漏不是一瞬间发生的，而是日积月累的，直到某个临界点被突破，所有预警信号同时出现。</p>
 <p>运维同学在接入 Kafka 时，Consumer 的参数配置不应该只抄一个&quot;常见配置&quot;就上线，而应该根据自己的消息处理逻辑做针对性调优。尤其是 <code>max.poll.records</code>、<code>session.timeout.ms</code>、<code>max.poll.interval.ms</code> 这三个参数的关系一定要理解透——它们共同决定了消费者在处理能力波动时是会触发 Rebalance 还是能自我恢复。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/3863dad1/" >Kafka 消费者组积压，订单为何延迟两小时才处理？</a></li>
+<li><a class="link" href="/posts/200f6914/" >RabbitMQ 发布端卡死：未确认消息撑爆内存水位</a></li>
+<li><a class="link" href="/posts/06b09f13/" >Redis Cluster 脑裂，缓存数据为何对不上？</a></li>
+</ul>
 
 </section>
 
@@ -824,7 +832,7 @@
 
 
         <span>
-            最后更新于 2026年6月25日星期四
+            最后更新于 2026年10月31日星期六
         </span>
     </section></footer>
 
@@ -850,7 +858,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次大事务拖慢 MySQL 主从、订单数据不一致的排查</h2>
+            <h2 class="article-title">MySQL 大事务：主从延迟与订单数据不一致</h2>
         </div>
     </a>
 </article>
@@ -894,7 +902,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 MySQL 自动备份静默失败、缺失近一周备份</h2>
+            <h2 class="article-title">MySQL 自动备份静默失败：缺失一周备份</h2>
         </div>
     </a>
 </article>

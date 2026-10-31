@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="高层半层无线瘫痪，根因是AP信道规划不当、同频干扰严重导致终端频繁掉线。">
-<title>记一次无线 AP 信道干扰致高层半层网络瘫痪</title>
+<title>AP 信道干扰：高层半层网络瘫痪</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/460eac0e/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次无线 AP 信道干扰致高层半层网络瘫痪">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="AP 信道干扰：高层半层网络瘫痪">
 <meta property='og:description' content="高层半层无线瘫痪，根因是AP信道规划不当、同频干扰严重导致终端频繁掉线。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/460eac0e/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='WiFi' /><meta property='article:tag' content='信道干扰' /><meta property='article:tag' content='AP' /><meta property='article:tag' content='无线网络' /><meta property='article:tag' content='网络运维' /><meta property='article:published_time' content='2023-04-18T09:10:00&#43;00:00'/><meta property='article:modified_time' content='2023-04-18T09:10:00&#43;00:00'/>
-<meta name="twitter:title" content="记一次无线 AP 信道干扰致高层半层网络瘫痪">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='WiFi' /><meta property='article:tag' content='信道干扰' /><meta property='article:tag' content='AP' /><meta property='article:tag' content='无线网络' /><meta property='article:tag' content='网络运维' /><meta property='article:published_time' content='2023-04-18T09:10:00&#43;00:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="AP 信道干扰：高层半层网络瘫痪">
 <meta name="twitter:description" content="高层半层无线瘫痪，根因是AP信道规划不当、同频干扰严重导致终端频繁掉线。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -236,6 +236,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -274,7 +275,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/460eac0e/">记一次无线 AP 信道干扰致高层半层网络瘫痪</a>
+            <a href="/posts/460eac0e/">AP 信道干扰：高层半层网络瘫痪</a>
         </h2>
     
         
@@ -317,7 +318,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 3 分钟
+                        阅读时长: 4 分钟
                     </time>
                 
             </div>
@@ -358,6 +359,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -514,6 +516,12 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>2.4GHz WiFi 只有 3 个有效信道，在 8 台 AP 的楼层里全部挤在同一条信道上就是灾难。ARM 自动信道分配不是&quot;自动驾驶&quot;——它追求的是单 AP 最优，不是整层最优。高密度部署场景下，手动干预信道规划 + 降低 2.4GHz 功率 + 引导终端上 5GHz，是解决无线拥塞的三板斧。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/cbaa3ade/" >办公区无线网络为何间歇性断连？</a></li>
+<li><a class="link" href="/posts/bea8d60d/" >核心交换机 STP 风暴，全楼网络为何瘫痪？</a></li>
+<li><a class="link" href="/posts/518dc9fb/" >ARP 欺骗：楼层网络间歇断网</a></li>
+</ul>
 
 </section>
 
@@ -535,7 +543,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     
@@ -559,7 +579,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次核心交换机 LACP 协商失败致带宽骤降</h2>
+            <h2 class="article-title">核心交换机 LACP 协商失败：带宽骤降</h2>
         </div>
     </a>
 </article>

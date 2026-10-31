@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="跨机房 IPSec VPN 下 ping 通、SSH 正常，但文件传输和数据库同步一到大数据量就卡死，最终定位到 PMTUD 黑洞并用 MSS 钳制根治。">
-<title>一次跨机房 IPSec VPN 隧道大包不通导致业务间歇性卡死的排查记录</title>
+<title>IPSec VPN 大包不通：跨机房业务间歇卡死</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/6ef1b86a/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="一次跨机房 IPSec VPN 隧道大包不通导致业务间歇性卡死的排查记录">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="IPSec VPN 大包不通：跨机房业务间歇卡死">
 <meta property='og:description' content="跨机房 IPSec VPN 下 ping 通、SSH 正常，但文件传输和数据库同步一到大数据量就卡死，最终定位到 PMTUD 黑洞并用 MSS 钳制根治。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/6ef1b86a/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='MTU' /><meta property='article:tag' content='MSS' /><meta property='article:tag' content='PMTUD' /><meta property='article:tag' content='IPSec' /><meta property='article:tag' content='VPN' /><meta property='article:tag' content='ICMP' /><meta property='article:published_time' content='2022-10-20T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2022-10-20T07:00:00&#43;08:00'/>
-<meta name="twitter:title" content="一次跨机房 IPSec VPN 隧道大包不通导致业务间歇性卡死的排查记录">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='MTU' /><meta property='article:tag' content='MSS' /><meta property='article:tag' content='PMTUD' /><meta property='article:tag' content='IPSec' /><meta property='article:tag' content='VPN' /><meta property='article:tag' content='ICMP' /><meta property='article:published_time' content='2022-10-20T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="IPSec VPN 大包不通：跨机房业务间歇卡死">
 <meta name="twitter:description" content="跨机房 IPSec VPN 下 ping 通、SSH 正常，但文件传输和数据库同步一到大数据量就卡死，最终定位到 PMTUD 黑洞并用 MSS 钳制根治。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -268,7 +268,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/6ef1b86a/">一次跨机房 IPSec VPN 隧道大包不通导致业务间歇性卡死的排查记录</a>
+            <a href="/posts/6ef1b86a/">IPSec VPN 大包不通：跨机房业务间歇卡死</a>
         </h2>
     
         
@@ -311,7 +311,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 7 分钟
+                        阅读时长: 6 分钟
                     </time>
                 
             </div>
@@ -467,8 +467,8 @@
 <h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
 </h2><p><strong>IPSec 隧道与 MTU</strong></p>
 <ul>
-<li><a class="link" href="/posts/f11611fb/" >记一次跨机房 IPSec VPN 大包分片黑洞导致应用超时但小包正常的排查实录</a></li>
-<li><a class="link" href="/posts/3c48c9b3/" >IPSec VPN MTU 不匹配致 ERP 远程访问异常：定位与修复</a></li>
+<li><a class="link" href="/posts/f11611fb/" >IPSec 大包分片黑洞：应用超时小包正常</a></li>
+<li><a class="link" href="/posts/3c48c9b3/" >MTU 不匹配：IPSec VPN 下 ERP 访问异常</a></li>
 <li><a class="link" href="/posts/7c686262/" >跨机房链路变更验收：连通矩阵、回程路由与 MTU</a></li>
 </ul>
 
@@ -494,7 +494,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     

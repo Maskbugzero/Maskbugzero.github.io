@@ -250,6 +250,7 @@
       </ul>
     </li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -386,6 +387,7 @@
       </ul>
     </li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -866,6 +868,12 @@
 <p>Linux文件系统中的inode和blocks是两个独立的资源。<code>df -h</code>只看blocks（数据块），<code>df -i</code>看inodes（索引节点）。很多运维工程师只关注前者，直到某天服务器磁盘&quot;明明有空间却写不进去&quot;才恍然大悟——原来还有inode这回事。</p>
 <p>这次排查也让我意识到<code>ARG_MAX</code>这个内核参数在批量文件操作中的真实影响。日常运维中<code>find -delete</code>用得很多，通常不会出问题，但当文件数量达到百万级时，它就会成为隐藏的炸弹。<code>xargs</code>分批处理是一个简单而有效的解决方案，成本极低但能把系统稳定性提升一个量级。</p>
 <p>最后，<strong>&ldquo;能写文件的磁盘就是好磁盘&quot;是一个危险的假设</strong>。生产环境中，inode的消耗通常比blocks更隐蔽、更难以发现，因为小文件对物理空间的占用微乎其微，但每个文件都必须消耗一个inode。对于频繁创建临时文件的应用，inode耗尽的速度可能远超你的想象。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/25cf583a/" >tmp 目录被定时清理致 Java 应用建不了临时文件</a></li>
+<li><a class="link" href="/posts/5961e223/" >NFS 服务端故障：客户端进程 D 状态假死</a></li>
+<li><a class="link" href="/posts/7c34ba61/" >overlay2 inode 耗尽：容器批量创建失败</a></li>
+</ul>
 
 </section>
 
@@ -911,7 +919,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">Kafka Rebalance 风暴致业务数据延迟两小时的定位</h2>
+            <h2 class="article-title">Kafka Rebalance 风暴：业务数据延迟两小时</h2>
         </div>
     </a>
 </article>
@@ -922,7 +930,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次大事务拖慢 MySQL 主从、订单数据不一致的排查</h2>
+            <h2 class="article-title">MySQL 大事务：主从延迟与订单数据不一致</h2>
         </div>
     </a>
 </article>

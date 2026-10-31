@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="ZN M2（IPQ6000）路由器编译 OpenWrt 时 NSS 硬件加速未生效，速度卡在 200Mbps。排查 firmware 缺失、kernel config 与 ECM 规则后打通 900Mbps+ 转发。">
-<title>IPQ60XX NSS 加速未生效：OpenWrt 固件编译调优</title>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="IPQ60XX 路由器编译 OpenWrt 后 NSS 硬件加速未生效，吞吐上不去。根因是固件缺少 NSS 支持，调整编译配置后恢复正常。">
+<title>IPQ60XX NSS 未生效：OpenWrt 编译调优</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/30736ddf/">
@@ -12,13 +12,13 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="IPQ60XX NSS 加速未生效：OpenWrt 固件编译调优">
-<meta property='og:description' content="ZN M2（IPQ6000）路由器编译 OpenWrt 时 NSS 硬件加速未生效，速度卡在 200Mbps。排查 firmware 缺失、kernel config 与 ECM 规则后打通 900Mbps+ 转发。">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="IPQ60XX NSS 未生效：OpenWrt 编译调优">
+<meta property='og:description' content="IPQ60XX 路由器编译 OpenWrt 后 NSS 硬件加速未生效，吞吐上不去。根因是固件缺少 NSS 支持，调整编译配置后恢复正常。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/30736ddf/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='OpenWrt' /><meta property='article:tag' content='IPQ60XX' /><meta property='article:tag' content='NSS' /><meta property='article:tag' content='硬件加速' /><meta property='article:tag' content='固件编译' /><meta property='article:tag' content='LibWrt' /><meta property='article:published_time' content='2026-09-24T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-24T07:00:00&#43;08:00'/>
-<meta name="twitter:title" content="IPQ60XX NSS 加速未生效：OpenWrt 固件编译调优">
-<meta name="twitter:description" content="ZN M2（IPQ6000）路由器编译 OpenWrt 时 NSS 硬件加速未生效，速度卡在 200Mbps。排查 firmware 缺失、kernel config 与 ECM 规则后打通 900Mbps+ 转发。">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='OpenWrt' /><meta property='article:tag' content='IPQ60XX' /><meta property='article:tag' content='NSS' /><meta property='article:tag' content='硬件加速' /><meta property='article:tag' content='固件编译' /><meta property='article:tag' content='LibWrt' /><meta property='article:published_time' content='2026-09-24T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="IPQ60XX NSS 未生效：OpenWrt 编译调优">
+<meta name="twitter:description" content="IPQ60XX 路由器编译 OpenWrt 后 NSS 硬件加速未生效，吞吐上不去。根因是固件缺少 NSS 支持，调整编译配置后恢复正常。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
     </head>
@@ -268,12 +268,12 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/30736ddf/">IPQ60XX NSS 加速未生效：OpenWrt 固件编译调优</a>
+            <a href="/posts/30736ddf/">IPQ60XX NSS 未生效：OpenWrt 编译调优</a>
         </h2>
     
         
         <h3 class="article-subtitle">
-            ZN M2（IPQ6000）路由器编译 OpenWrt 时 NSS 硬件加速未生效，速度卡在 200Mbps。排查 firmware 缺失、kernel config 与 ECM 规则后打通 900Mbps&#43; 转发。
+            IPQ60XX 路由器编译 OpenWrt 后 NSS 硬件加速未生效，吞吐上不去。根因是固件缺少 NSS 支持，调整编译配置后恢复正常。
         </h3>
         
     </div>
@@ -530,8 +530,8 @@
 </h2><p>IPQ60XX 的 NSS 加速本质上是“用正确姿势喂闭源 blob”。只要把 firmware、ECM、mark 规则三件事做全，900Mbps+ 转发轻而易举。后续计划把这套 build 脚本开源，方便更多 ZN M2 / Redmi AX6000 / 小米 BE3600 用户白嫖硬件加速。</p>
 <h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
 </h2><ul>
-<li><a class="link" href="/posts/763e74a1/" >RouterOS App 平台 netns 隔离致 hermes-agent 失联</a></li>
-<li><a class="link" href="/posts/953d9b4c/" >堆叠后边缘端口频繁 errdisable：BPDU Guard 误触发</a></li>
+<li><a class="link" href="/posts/763e74a1/" >netns 隔离致 hermes-agent 失联</a></li>
+<li><a class="link" href="/posts/953d9b4c/" >BPDU Guard 误触发：边缘端口 errdisable</a></li>
 </ul>
 
 </section>
@@ -556,7 +556,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     

@@ -241,6 +241,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -368,6 +369,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -624,6 +626,11 @@
 <p><strong>OpenWrt 大版本升级 → 防火墙从 fw3 切到 fw4 → 默认 FORWARD 收紧 + 部分 forwarding 迁移丢失 → 旁路由本机仍通但跨站转发静默丢包 → 专线与主路由“背锅”。</strong></p>
 <p>排查口诀可以压成一句：<strong>旁路由疑难，先看 FORWARD policy 与 counter，再看专线。</strong><br>
 处理上止血可以短暂放开 defaults.forward，根治必须按 zone 矩阵最小放行，并把 firewall4 纳入升级验收清单。家里或公司的 x86 软路由如果还在 “能上网就当健康”，下次跨大版本前务必先在备机验证一条真实业务的转发路径——否则周一早上等你的，一定是“专线没问题，就是业务全死”的灵魂拷问。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/500de237/" >Netkeeper-OpenWrt——专注闪讯上网</a></li>
+<li><a class="link" href="/posts/30736ddf/" >IPQ60XX NSS 未生效：OpenWrt 编译调优</a></li>
+</ul>
 
 </section>
 

@@ -229,6 +229,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -344,6 +345,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -391,6 +393,12 @@
 </ul>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>这次事故最大的教训是：<strong>免密登录成功 ≠ 安全，反而可能是后门已落地的信号</strong>。和显眼的挖矿木马不同，<code>authorized_keys</code> 后门不消耗资源、不触发传统告警，只是安静地替攻击者保留一道门。排查的关键，是从&quot;Accepted publickey 但来源可疑&quot;这一反常切入，顺藤摸到被篡改的密钥文件与背后的初始入侵链。防御上，把信任收口到堡垒机 + 来源白名单 + 不可变密钥文件，远比事后清剿重要——门装好了，后门就无从落地。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/765a54f9/" >堡垒机 SSH 超时：运维无法紧急操作</a></li>
+<li><a class="link" href="/posts/2d78d6bc/" >SSH 暴力破解：fail2ban 自动封禁处置</a></li>
+<li><a class="link" href="/posts/55563ba9/" >清除服务器 XMRig 挖矿木马：入侵路径还原与清剿实录</a></li>
+</ul>
 
 </section>
 
@@ -449,7 +457,7 @@
         
 
         <div class="article-details">
-            <h2 class="article-title">记一次 SSH 暴力破解触发 fail2ban 自动封禁的处置</h2>
+            <h2 class="article-title">SSH 暴力破解：fail2ban 自动封禁处置</h2>
         </div>
     </a>
 </article>

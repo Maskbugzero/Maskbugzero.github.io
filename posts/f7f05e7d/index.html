@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="核心交换机链路聚合带宽骤降，根因是LACP协商失败、两端模式/负载策略不一致导致成员口掉线。">
-<title>记一次核心交换机 LACP 协商失败致带宽骤降</title>
+<title>核心交换机 LACP 协商失败：带宽骤降</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/f7f05e7d/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="记一次核心交换机 LACP 协商失败致带宽骤降">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="核心交换机 LACP 协商失败：带宽骤降">
 <meta property='og:description' content="核心交换机链路聚合带宽骤降，根因是LACP协商失败、两端模式/负载策略不一致导致成员口掉线。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/f7f05e7d/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='链路聚合' /><meta property='article:tag' content='LACP' /><meta property='article:tag' content='交换机' /><meta property='article:tag' content='光模块' /><meta property='article:tag' content='网络运维' /><meta property='article:published_time' content='2023-02-05T10:45:00&#43;00:00'/><meta property='article:modified_time' content='2023-02-05T10:45:00&#43;00:00'/>
-<meta name="twitter:title" content="记一次核心交换机 LACP 协商失败致带宽骤降">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='链路聚合' /><meta property='article:tag' content='LACP' /><meta property='article:tag' content='交换机' /><meta property='article:tag' content='光模块' /><meta property='article:tag' content='网络运维' /><meta property='article:published_time' content='2023-02-05T10:45:00&#43;00:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="核心交换机 LACP 协商失败：带宽骤降">
 <meta name="twitter:description" content="核心交换机链路聚合带宽骤降，根因是LACP协商失败、两端模式/负载策略不一致导致成员口掉线。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -235,6 +235,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -273,7 +274,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/f7f05e7d/">记一次核心交换机 LACP 协商失败致带宽骤降</a>
+            <a href="/posts/f7f05e7d/">核心交换机 LACP 协商失败：带宽骤降</a>
         </h2>
     
         
@@ -356,6 +357,7 @@
     <li><a href="#根因分析">根因分析</a></li>
     <li><a href="#预防措施">预防措施</a></li>
     <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -523,6 +525,12 @@
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>链路聚合故障的排查往往最先关注的是协议配置、系统版本、电缆质量，很少人会第一时间想到——光模块型号。但这次就是典型的物理层欺骗：两个波长不对的光模块硬生生点亮了对方的端口状态灯（因为确实检测到了光），让运维在第一轮排查时排除了物理层故障的可能性。在数据中心环境中，光模块型号的严格管理不是矫情，是底线。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/bea8d60d/" >核心交换机 STP 风暴，全楼网络为何瘫痪？</a></li>
+<li><a class="link" href="/posts/8256a5f2/" >核心交换机 STP 根桥被抢，广播风暴怎么来的？</a></li>
+<li><a class="link" href="/posts/469a6c38/" >堆叠后 LACP 状态漂移：VLAN 单通</a></li>
+</ul>
 
 </section>
 
@@ -544,7 +552,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     

@@ -2,7 +2,7 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="晚高峰 QPS 翻倍但 HPA 副本纹丝不动，kubectl get hpa 的 TARGETS 显示 unknown，根因是 metrics-server 指标链路中断。">
-<title>HPA 高峰不扩容：metrics-server 指标链路中断</title>
+<title>HPA 不扩容：metrics-server 链路中断</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/13f63d70/">
@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="HPA 高峰不扩容：metrics-server 指标链路中断">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="HPA 不扩容：metrics-server 链路中断">
 <meta property='og:description' content="晚高峰 QPS 翻倍但 HPA 副本纹丝不动，kubectl get hpa 的 TARGETS 显示 unknown，根因是 metrics-server 指标链路中断。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/13f63d70/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='HPA' /><meta property='article:tag' content='metrics-server' /><meta property='article:tag' content='自动扩容' /><meta property='article:tag' content='Aggregation Layer' /><meta property='article:tag' content='kubelet Summary API' /><meta property='article:published_time' content='2022-11-05T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2022-11-05T07:00:00&#43;08:00'/>
-<meta name="twitter:title" content="HPA 高峰不扩容：metrics-server 指标链路中断">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='HPA' /><meta property='article:tag' content='metrics-server' /><meta property='article:tag' content='自动扩容' /><meta property='article:tag' content='Aggregation Layer' /><meta property='article:tag' content='kubelet Summary API' /><meta property='article:published_time' content='2022-11-05T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-31T12:00:00&#43;08:00'/>
+<meta name="twitter:title" content="HPA 不扩容：metrics-server 链路中断">
 <meta name="twitter:description" content="晚高峰 QPS 翻倍但 HPA 副本纹丝不动，kubectl get hpa 的 TARGETS 显示 unknown，根因是 metrics-server 指标链路中断。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
@@ -236,6 +236,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -274,7 +275,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/13f63d70/">HPA 高峰不扩容：metrics-server 指标链路中断</a>
+            <a href="/posts/13f63d70/">HPA 不扩容：metrics-server 链路中断</a>
         </h2>
     
         
@@ -317,7 +318,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 6 分钟
+                        阅读时长: 7 分钟
                     </time>
                 
             </div>
@@ -358,6 +359,7 @@
     <li><a href="#五根因分析">五、根因分析</a></li>
     <li><a href="#六预防措施">六、预防措施</a></li>
     <li><a href="#七总结">七、总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
   </ul>
 
             </nav>
@@ -587,6 +589,12 @@
 <h2 id="七总结"><a href="#%e4%b8%83%e6%80%bb%e7%bb%93" class="header-anchor"></a>七、总结
 </h2><p>这是一次典型的&quot;配置变更埋雷、需求触发引爆&quot;的故障：证书轮换的一个疏漏，让 metrics-server 静默失明，进而让 HPA 在最需要扩容的晚高峰彻底失灵。排查的关键路径其实很短——从 <code>TARGETS</code> 的 <code>&lt;unknown&gt;</code> 一眼看出指标缺失，顺着 <code>describe hpa</code> → <code>apiservices</code> → metrics-server 日志三步就能锁定 <code>x509</code> 证书信任问题。</p>
 <p>真正值得记取的教训有两点：一是<strong>指标链路和监控链路一样是生产的一等公民</strong>，它一旦断裂，自动化能力（扩容、调度决策）就会静默降级，必须为它单独设哨兵；二是<strong>变更影响面要顺着依赖链推演到底</strong>，改一端证书，要问清楚&quot;谁在校验这张证书&quot;，否则埋下的雷只会在最不合适的时刻炸响。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/1908b3a5/" >Calico IPAM 池耗尽致新增 Pod 无法分配 IP</a></li>
+<li><a class="link" href="/posts/97876a5b/" >Pod 长期卡在 Terminating 的定位与修复</a></li>
+<li><a class="link" href="/posts/fb3632b1/" >ResourceQuota 耗尽：Pod 卡 Pending</a></li>
+</ul>
 
 </section>
 
@@ -610,7 +618,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年10月31日星期六
+        </span>
+    </section></footer>
 
 
     
