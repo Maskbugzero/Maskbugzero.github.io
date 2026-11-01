@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="采集终端偶发传感器读数全部超时，根因是从机受电源扰动后把 SDA 拉低锁死总线，主控又缺少恢复机制。加入 9 个时钟脉冲的总线恢复与传感器复位后稳定。">
+<title>I2C 总线被拉死：传感器读数全部超时</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/65c53b2c/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="I2C 总线被拉死：传感器读数全部超时">
+<meta property='og:description' content="采集终端偶发传感器读数全部超时，根因是从机受电源扰动后把 SDA 拉低锁死总线，主控又缺少恢复机制。加入 9 个时钟脉冲的总线恢复与传感器复位后稳定。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/65c53b2c/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='I2C' /><meta property='article:tag' content='总线锁死' /><meta property='article:tag' content='SDA' /><meta property='article:tag' content='从机复位' /><meta property='article:tag' content='HAL_BUSY' /><meta property='article:published_time' content='2026-11-01T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-01T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="I2C 总线被拉死：传感器读数全部超时">
+<meta name="twitter:description" content="采集终端偶发传感器读数全部超时，根因是从机受电源扰动后把 SDA 拉低锁死总线，主控又缺少恢复机制。加入 9 个时钟脉冲的总线恢复与传感器复位后稳定。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/" style="background-color: hsl(156, 60%, 84%); color: hsl(156, 60%, 15%);">
+                嵌入式
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/65c53b2c/">I2C 总线被拉死：传感器读数全部超时</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            采集终端偶发传感器读数全部超时，根因是从机受电源扰动后把 SDA 拉低锁死总线，主控又缺少恢复机制。加入 9 个时钟脉冲的总线恢复与传感器复位后稳定。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-11-01T09:00:00&#43;08:00'>2026年11月1日星期日</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司给一家工厂部署了 200 多台环境采集终端，主控是 STM32F103，通过 I2C 总线挂了三类传感器：温湿度、可燃气体和粉尘。终端每 10 秒采集一轮，数据通过 4G 上报到平台。设备装在车间和仓库，附近有大功率接触器、变频器和行车，电磁环境不算友好。</p>
+<p>设备运行一年多，大部分稳定。近两个月，现场陆续反馈 6 台终端“某一个传感器数值不动了”：平台上其余指标正常刷新，唯独温湿度或气体浓度停在某个值上，设备本身仍在线。现场同事断电重启后恢复，过几周又可能出现。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>平台上单台终端的部分传感器数值长时间不变，时间戳停止更新；其他传感器和 4G 上报正常。</li>
+<li>设备没有死机，看门狗没有动作，串口调试口还能打印日志。</li>
+<li>日志里反复出现 <code>HAL_I2C_Master_Transmit</code> 返回 <code>HAL_TIMEOUT</code> 或 <code>HAL_BUSY</code>，之后所有 I2C 操作都失败。</li>
+<li>用万用表量总线：SCL 保持高电平，SDA 被拉到 0.2V 左右，明显被某个从机按住。</li>
+<li>断电重启后总线恢复，设备能正常工作几周，直到下一次偶发。</li>
+<li>故障设备集中在接触器动作频繁的车间，仓库里的设备基本没出现。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步确认故障边界。平台上数据停更，但设备在线、其他传感器正常，说明不是 4G、电源或主控整体死机，问题缩到 I2C 总线这一段。串口日志显示第一笔失败发生在一次传感器读取，之后所有设备地址都访问不了。</p>
+<p>第二步量总线电平。正常时 SDA、SCL 都被上拉电阻拉到 3.3V；故障时 SCL 仍是高，SDA 却停在 0.2V。I2C 是开漏总线，任何设备都可以把线拉低，SDA 长期为低意味着某个从机把总线按住了，主控根本无法发出 START 条件。</p>
+<p>第三步查固件。驱动用的是 HAL 阻塞式接口，超时参数给的是 1000ms，失败后只打印日志、下一轮继续重试，没有总线恢复动作。更关键的是，<code>HAL_I2C_Master_Transmit</code> 失败后 HAL 内部状态停在 BUSY，后续调用直接返回 <code>HAL_BUSY</code>，永远不会自己恢复。也就是说，只要从机锁死一次，这条总线就废了，直到断电。</p>
+<p>第四步找锁死原因。把故障终端拆回实验室，用示波器抓总线，同时用可调电源给传感器做掉电复现：在传感器供电瞬间跌落到 2V 以下再恢复，约十分之一概率出现 SDA 被拉低不放。对照现场环境，接触器吸合瞬间的浪涌和地弹正好能造成这种电源扰动。传感器在传输过程中被打断，内部 I2C 状态机停在“正在输出低电平”的状态，主控再怎么发时钟都不松手。</p>
+<p>第五步验证恢复方案。I2C 规范里对这种场景有标准做法：主控把 SCL 切成普通 GPIO，手动输出最多 9 个时钟脉冲，让从机把没发完的字节发完、释放 SDA；然后补一个 STOP 条件，再重新初始化 I2C 外设。实验室里对锁死状态执行这套动作，9 个脉冲内 SDA 全部释放，总线恢复；不执行恢复、只反复重试，则永远失败。</p>
+<p>第六步确认硬件侧。检查传感器供电，发现它和主控共用一路 3.3V，传感器端只有一颗 0.1μF 去耦，没有独立稳压和 TVS。接触器动作时的浪涌通过电源和地耦合进来，传感器比主控更敏感，先挂的是它。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>加总线恢复函数</strong>：检测到 I2C 超时或 BUSY 后，把 SCL 配成开漏 GPIO，输出 9 个时钟脉冲并逐次检查 SDA 是否释放；释放后补 STOP，再 <code>HAL_I2C_DeInit</code> / <code>HAL_I2C_Init</code> 重新初始化外设。恢复失败则记录错误并触发传感器复位。</li>
+<li><strong>缩短超时并区分错误</strong>：每笔 I2C 事务超时从 1000ms 改为 10ms，超时立即走恢复流程，不再用长超时阻塞采集任务；对 <code>HAL_TIMEOUT</code>、<code>HAL_BUSY</code>、<code>HAL_ERROR</code> 分别计数上报。</li>
+<li><strong>给传感器加复位能力</strong>：硬件上为每路传感器增加 GPIO 控制的负载开关或使能脚，软件在总线恢复失败时给传感器断电 50ms 再上电，让它彻底退出异常状态。</li>
+<li><strong>电源与防护</strong>：传感器供电增加独立 LDO 或 RC 滤波，入口加 TVS；I2C 上拉保持 4.7k，长线场景评估总线电容。硬件改动随下一批设备实施，存量设备先靠软件恢复兜底。</li>
+<li><strong>故障注入测试</strong>：出厂测试增加“拉低 SDA”“传感器掉电 100ms”两项，验证固件能在 1 秒内恢复总线并继续采集，而不是等现场断电。</li>
+<li><strong>验证</strong>：实验室连续注入 500 次故障，恢复成功率 100%，单次恢复耗时小于 200ms；现场跟踪一个月，6 台问题设备未再出现数据停更。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是 <strong>传感器在电源扰动下 I2C 状态机异常，把 SDA 持续拉低锁死总线；主控固件没有总线恢复机制，HAL 状态停在 BUSY 后所有后续访问失败，只能靠断电重启恢复</strong>。</p>
+<p>更深一层，是把 I2C 当成了“不会坏的板内总线”。I2C 的电气特性决定了任何从机都能拉低总线，从机异常、掉电、复位不完整都会把整条总线拖死；而很多驱动示例只演示“读到了数据”，不演示“读不到时怎么把总线救回来”。产品在实验室里没有接触器、没有浪涌，自然测不出这个问题。</p>
+<p>还有一层是硬件设计的余量不足。传感器和主控共用电源、去耦不足，等于把现场的电源扰动直接传给最脆弱的从机；软件又没有恢复手段，硬件和软件两道防线同时缺位，故障就只能以“断电重启”收场。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>I2C 驱动模板强制包含三件事：事务超时、总线恢复（9 时钟 + STOP + 重新初始化）、从机复位；新项目直接复用，不再每次手写。</li>
+<li>出厂测试加入总线故障注入：拉低 SDA、从机掉电、总线短路，验证恢复时间与成功率，作为量产门槛。</li>
+<li>传感器供电与主控分开滤波，关键设备加 TVS 和独立 LDO；长线、多从机场景核算总线电容与上拉。</li>
+<li>设备遥测上报 I2C 错误计数、恢复次数、传感器复位次数，把“总线健康度”变成可观测指标。</li>
+<li>现场选型时把电磁环境纳入评估，接触器、变频器附近的终端优先选用带隔离或更强防护的接口方案。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>I2C 是一条没有仲裁者的共享总线：只要有一个从机按住 SDA，整条总线就停摆，而主控通常只会“再试一次”。这次故障里，传感器没有坏，主控也没有死，坏的是两者之间那条没人负责恢复的线。把总线恢复写进驱动、把故障注入写进测试、把传感器复位做成硬件能力，才能让设备在电磁环境里自己站起来，而不是等人去拔电。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/10494fcc/" >RS485 总线干扰致采集网关每隔几小时集体掉线</a></li>
+<li><a class="link" href="/posts/3e0783d8/" >任务栈溢出致随机死机：HardFault 现场取证</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/i2c/">I2C</a>
+        
+            <a href="/tags/%E6%80%BB%E7%BA%BF%E9%94%81%E6%AD%BB/">总线锁死</a>
+        
+            <a href="/tags/sda/">SDA</a>
+        
+            <a href="/tags/%E4%BB%8E%E6%9C%BA%E5%A4%8D%E4%BD%8D/">从机复位</a>
+        
+            <a href="/tags/hal_busy/">HAL_BUSY</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
