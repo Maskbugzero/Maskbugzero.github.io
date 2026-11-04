@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Windows 11 终端右键文件卡死数秒，根因是第三方 Shell 扩展在资源管理器 UI 线程里同步等待云服务响应。用 ProcMon 与 ShellExView 定位并禁用该扩展后恢复。">
+<title>第三方 Shell 扩展：右键菜单卡死 Explorer</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/279c8982/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="第三方 Shell 扩展：右键菜单卡死 Explorer">
+<meta property='og:description' content="Windows 11 终端右键文件卡死数秒，根因是第三方 Shell 扩展在资源管理器 UI 线程里同步等待云服务响应。用 ProcMon 与 ShellExView 定位并禁用该扩展后恢复。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/279c8982/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Shell 扩展' /><meta property='article:tag' content='右键菜单' /><meta property='article:tag' content='explorer.exe' /><meta property='article:tag' content='ProcMon' /><meta property='article:tag' content='ShellExView' /><meta property='article:published_time' content='2026-11-04T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-04T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="第三方 Shell 扩展：右键菜单卡死 Explorer">
+<meta name="twitter:description" content="Windows 11 终端右键文件卡死数秒，根因是第三方 Shell 扩展在资源管理器 UI 线程里同步等待云服务响应。用 ProcMon 与 ShellExView 定位并禁用该扩展后恢复。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" style="background-color: hsl(195, 60%, 84%); color: hsl(195, 60%, 15%);">
+                桌面运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/279c8982/">第三方 Shell 扩展：右键菜单卡死 Explorer</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            Windows 11 终端右键文件卡死数秒，根因是第三方 Shell 扩展在资源管理器 UI 线程里同步等待云服务响应。用 ProcMon 与 ShellExView 定位并禁用该扩展后恢复。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-11-04T09:00:00&#43;08:00'>2026年11月4日星期三</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司有 300 多台 Windows 11 终端，今年统一升级到 24H2，桌面镜像由 IT 标准化维护。上个月业务部门采购了一款 PDF 阅读器，带云同步功能，IT 按流程打包后推送给设计部和财务部共 60 台终端。</p>
+<p>推送两周后，服务台陆续接到报修：在资源管理器里右键点文件，菜单要转五六秒才出来，期间窗口标题后面挂着“未响应”；严重的时候 explorer.exe 直接重启，桌面闪一下。双击打开文件、复制粘贴都正常，只有右键特别慢。受影响的机器都装了那款 PDF 阅读器。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>右键单击任意文件或文件夹，上下文菜单延迟 5–8 秒才弹出，偶尔超过 10 秒。</li>
+<li>延迟期间资源管理器窗口变灰，标题栏显示“未响应”；部分机器 explorer.exe 崩溃后自动重启。</li>
+<li>双击打开、拖拽、复制粘贴均正常，磁盘和 CPU 占用不高，Defender 全盘扫描也没有异常。</li>
+<li>在本地磁盘和网络共享目录上都能复现，与文件类型无关，<code>.txt</code>、<code>.pdf</code>、文件夹都一样。</li>
+<li>卸载 PDF 阅读器后右键立即恢复；重装后问题复现。</li>
+<li>事件查看器里有多条 <code>Application Hang</code>（事件 ID 1002），进程名是 <code>explorer.exe</code>。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步排除系统资源问题。任务管理器里 CPU、内存、磁盘都平稳，右键卡顿的几秒内没有明显占用尖峰；Defender 排除项正常，磁盘健康度正常。卡顿是“等待”而不是“忙碌”，方向转向某个同步调用。</p>
+<p>第二步看事件日志。<code>Application Hang</code> 事件记录 explorer.exe 在某个时间点停止响应，和用户报修时间吻合；没有蓝屏、没有驱动错误。资源管理器卡死通常和它加载的第三方组件有关，因为 Explorer 是一个会承载大量插件的进程。</p>
+<p>第三步用 Process Monitor 抓。过滤 <code>Process Name is explorer.exe</code>，再筛 <code>Duration &gt; 1 second</code>，右键复现时看到一条 <code>CreateFile</code> 操作指向命名管道 <code>\Device\NamedPipe\...pdfsync...</code>，耗时 5 秒多才返回。也就是说，右键菜单弹出前，Explorer 在等 PDF 阅读器的云同步服务回应。</p>
+<p>第四步定位加载项。用 ShellExView 列出所有非微软的上下文菜单处理程序，找到一条名为“PDF Cloud Sync Context Menu”的扩展，DLL 指向该阅读器的安装目录。它注册在 <code>HKCR\*\shellex\ContextMenuHandlers</code> 下，对所有文件生效；右键时 Explorer 会加载这个 DLL，DLL 再通过命名管道向同步服务查询文件状态。</p>
+<p>第五步验证因果。在 ShellExView 里禁用这条扩展，右键延迟立刻降到几百毫秒；重新启用，延迟回到 5 秒以上；把 PDF 阅读器升级到厂商后续版本，问题不再复现。三个动作构成闭环：扩展在，问题在；扩展停，问题停。</p>
+<p>第六步解释为什么是 5 秒。查看同步服务的日志，右键触发查询时服务正忙于扫描大目录，命名管道请求排队；Shell 扩展用的是同步调用，没有超时或超时设得很长，Explorer 的 UI 线程只能干等。Windows 11 的新版右键菜单把部分旧扩展收进“显示更多选项”，但只要用户点开那一层，慢扩展照样会阻塞。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>立即止血</strong>：用 ShellExView 禁用该扩展（右键菜单里选 Disable Selected Items），或者卸载/升级 PDF 阅读器。禁用是可逆的，ShellExView 会保留重新启用的入口，比直接删注册表安全。</li>
+<li><strong>按需保留功能</strong>：如果业务确实需要云同步菜单，升级到厂商修复版本；或在阅读器设置里关闭“资源管理器集成/右键菜单集成”，保留同步功能但不注入 Shell 扩展。</li>
+<li><strong>批量处理</strong>：对已推送的 60 台终端，用 Intune 或登录脚本调用 ShellExView 命令行模式禁用指定 CLSID，或者推送修复版安装包；处理完抽查右键延迟。</li>
+<li><strong>验证标准</strong>：在本地盘、网络盘、桌面各右键 10 个文件和文件夹，菜单弹出时间应小于 500ms；事件日志不再新增 explorer.exe 的 Application Hang。</li>
+<li><strong>回滚预案</strong>：保留原安装包和扩展 CLSID 清单，出现兼容问题时能快速禁用；不要用“删掉整个 ContextMenuHandlers 键”这种不可逆做法。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是 <strong>第三方 PDF 阅读器的 Shell 扩展在资源管理器的 UI 线程里同步调用云同步服务，服务繁忙时请求排队 5 秒以上，右键菜单被阻塞，Explorer 表现为未响应甚至崩溃</strong>。</p>
+<p>更深一层，是 Shell 扩展的运行模型决定的。上下文菜单处理程序是加载进 explorer.exe 的进程内 COM 组件，和资源管理器共享同一个 UI 线程；它没有独立进程、没有隔离、没有超时保护。厂商为了做“无缝集成”，把网络查询、文件状态检查这类可能很慢的操作放进了右键回调，等于把外部服务的延迟直接注入到桌面外壳里。</p>
+<p>还有一层是上线验证的缺口。软件打包时只验证了“能安装、能打开 PDF、能同步”，没有验证“右键菜单延迟”“资源管理器稳定性”这类外壳级指标；测试机上新装的应用少、同步目录小，服务响应快，问题自然暴露不出来。等到 60 台终端都装上、同步目录变大，延迟才变成普遍现象。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>应用上线测试增加外壳交互项：右键延迟、打开/另存为对话框、缩略图加载、explorer.exe 稳定性，作为兼容性验收的一部分。</li>
+<li>软件选型优先选择不注入 Shell 扩展的实现；必须集成时，默认关闭“资源管理器右键集成”，让用户按需开启。</li>
+<li>建立 Shell 扩展清单：打包前用 ShellExView 或注册表扫描记录新增的 ContextMenuHandlers，升级时对比差异，发现异常扩展及时拦截。</li>
+<li>监控终端 <code>Application Hang</code>/<code>Application Error</code> 事件，按进程名聚合；explorer.exe 异常升高时先查最近安装的软件。</li>
+<li>分批灰度：新软件先推 5% 终端观察一周，确认外壳行为正常再全量，避免 60 台一起踩坑。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>右键菜单看起来是系统自带的一小块界面，实际上是 explorer.exe 里一条共享的 UI 线程，任何第三方扩展都可以往上面挂代码。一个云同步插件为了“体验无缝”，把网络请求放进了右键回调，结果把整个资源管理器拖进等待。排查这类问题，关键不是猜哪个软件，而是用 ProcMon 找到 Explorer 在等什么、用 ShellExView 找到谁挂了上去；治理的关键，则是把外壳交互纳入软件上线的验收项，而不是等用户报“右键卡了”。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/cfb90b2b/" >USB-C 扩展坞接双屏为何没信号？桌面排障记</a></li>
+<li><a class="link" href="/posts/36719bcb/" >Windows 漫游配置文件损坏致终端登录卡死的修复</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/shell-%E6%89%A9%E5%B1%95/">Shell 扩展</a>
+        
+            <a href="/tags/%E5%8F%B3%E9%94%AE%E8%8F%9C%E5%8D%95/">右键菜单</a>
+        
+            <a href="/tags/explorer.exe/">Explorer.exe</a>
+        
+            <a href="/tags/procmon/">ProcMon</a>
+        
+            <a href="/tags/shellexview/">ShellExView</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

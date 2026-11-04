@@ -5,7 +5,37 @@
         <description>Recent content in 标签 on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Tue, 03 Nov 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Wed, 04 Nov 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>右键菜单</title>
+            <link>https://blog.5772447.xyz/tags/%E5%8F%B3%E9%94%AE%E8%8F%9C%E5%8D%95/</link>
+            <pubDate>Wed, 04 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%8F%B3%E9%94%AE%E8%8F%9C%E5%8D%95/</guid>
+            <description></description>
+        </item><item>
+            <title>ShellExView</title>
+            <link>https://blog.5772447.xyz/tags/shellexview/</link>
+            <pubDate>Wed, 04 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/shellexview/</guid>
+            <description></description>
+        </item><item>
+            <title>Shell 扩展</title>
+            <link>https://blog.5772447.xyz/tags/shell-%E6%89%A9%E5%B1%95/</link>
+            <pubDate>Wed, 04 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/shell-%E6%89%A9%E5%B1%95/</guid>
+            <description></description>
+        </item><item>
+            <title>ProcMon</title>
+            <link>https://blog.5772447.xyz/tags/procmon/</link>
+            <pubDate>Wed, 04 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/procmon/</guid>
+            <description></description>
+        </item><item>
+            <title>Explorer.exe</title>
+            <link>https://blog.5772447.xyz/tags/explorer.exe/</link>
+            <pubDate>Wed, 04 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/explorer.exe/</guid>
+            <description></description>
+        </item><item>
             <title>线程泄漏</title>
             <link>https://blog.5772447.xyz/tags/%E7%BA%BF%E7%A8%8B%E6%B3%84%E6%BC%8F/</link>
             <pubDate>Tue, 03 Nov 2026 09:00:00 +0800</pubDate>
