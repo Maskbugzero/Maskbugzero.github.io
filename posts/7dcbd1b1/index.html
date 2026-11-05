@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="交换机万兆链路每隔几小时 down/up 一次，业务短暂丢包。根因是非原厂光模块 DDM 温度越界触发端口保护性重置，换回原厂模块并改善散热后恢复稳定。">
+<title>非原厂光模块：链路每隔几小时翻转</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/7dcbd1b1/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="非原厂光模块：链路每隔几小时翻转">
+<meta property='og:description' content="交换机万兆链路每隔几小时 down/up 一次，业务短暂丢包。根因是非原厂光模块 DDM 温度越界触发端口保护性重置，换回原厂模块并改善散热后恢复稳定。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/7dcbd1b1/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='光模块' /><meta property='article:tag' content='SFP&#43;' /><meta property='article:tag' content='DDM' /><meta property='article:tag' content='链路翻转' /><meta property='article:tag' content='兼容性' /><meta property='article:published_time' content='2026-11-05T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-05T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="非原厂光模块：链路每隔几小时翻转">
+<meta name="twitter:description" content="交换机万兆链路每隔几小时 down/up 一次，业务短暂丢包。根因是非原厂光模块 DDM 温度越界触发端口保护性重置，换回原厂模块并改善散热后恢复稳定。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
+                网络运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/7dcbd1b1/">非原厂光模块：链路每隔几小时翻转</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            交换机万兆链路每隔几小时 down/up 一次，业务短暂丢包。根因是非原厂光模块 DDM 温度越界触发端口保护性重置，换回原厂模块并改善散热后恢复稳定。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-11-05T09:00:00&#43;08:00'>2026年11月5日星期四</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>园区网是两层架构：两台核心交换机、八台接入交换机，接入到核心走万兆光纤上联。今年新增一批接入交换机时，采购为了控制成本，没有买原厂光模块，而是从渠道买了一批“兼容 Cisco/Huawei”的第三方 SFP+ 模块，单价只有原厂的三分之一。上架时链路都能起来，测速也正常，验收就过了。</p>
+<p>运行两个月后，其中一台机柜里的几条万兆链路开始出现规律性的闪断：每隔两三个小时，接口 down 几秒再 up，服务器和接入交换机短暂丢包。监控上能看到端口状态抖动，但业务侧只是偶尔卡一下，一开始没人太在意。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>同一机柜内 6 个第三方光模块所在的端口，每隔 2–4 小时出现一次 link down/up，持续 5–10 秒。</li>
+<li>其他机柜的原厂模块链路稳定，运行几个月零翻转。</li>
+<li>交换机日志里有 <code>SFP temperature alarm</code> 和 <code>unsupported transceiver</code> 提示，但端口没有被彻底禁用。</li>
+<li><code>show interfaces transceiver detail</code> 显示故障模块温度在 75–80°C，正常模块只有 45–55°C；部分模块 Tx power 也在缓慢漂移。</li>
+<li>把故障模块拔下来插到另一个正常端口，几小时后同样的翻转跟着模块走；把原厂模块插到原端口，则不再翻转。</li>
+<li>机柜环境温度偏高，但原厂模块在同一机柜里温度正常。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步确认是链路层还是上层。接口计数器没有大量 CRC 错误，但 <code>link flap</code> 计数持续增长；每次翻转时服务器侧网卡也记录 link down，说明是物理链路真的断了，不是 STP、LACP 或路由协议导致的逻辑震荡。</p>
+<p>第二步看光模块诊断数据。<code>show interfaces transceiver detail</code> 能读到温度、电压、Tx bias、Tx power、Rx power。故障模块的温度明显高于同类原厂模块，且越接近 80°C 翻转越频繁；有几个模块的 Tx power 比标称值低 1–2dB。这个形态很像模块自身的热保护或校准异常，而不是光纤脏污或衰减——如果是链路衰减，Rx power 会低，但温度不会异常。</p>
+<p>第三步做替换实验。把疑似故障模块换到另一个端口，翻转跟着模块走；把原厂模块换到原端口，稳定。变量唯一，问题在模块，不在端口、不在光纤、也不在交换机板卡。</p>
+<p>第四步查兼容性。交换机日志里的 <code>unsupported transceiver</code> 说明模块 EEPROM 里的厂商信息不在官方支持列表里；进一步对比固件版本，这批第三方模块的 DDM 校准数据与交换机固件预期的格式不完全一致，温度读数可能被放大，交换机按保护策略在温度越界时复位端口。也就是说，模块不是“完全不能用”，而是“能用，但交换机会在特定条件下把它踢掉”。</p>
+<p>第五步看环境。机柜在弱电间角落，空调回风不畅，柜内温度 35°C 左右；第三方模块没有原厂那种散热鳍片，长期工作在高温下，DDM 温度很快冲到阈值。原厂模块散热设计更好，同一环境下温度低 20 多度，所以没触发。</p>
+<p>第六步验证。把 6 个故障模块全部换成原厂模块，连续观察 30 天，端口零翻转；再把其中一个第三方模块插到测试交换机上，在常温下运行一周没事，放进高温箱后几小时就复现翻转，确认温度是触发条件。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>更换模块</strong>：故障批次的第三方模块全部换下，改用原厂或厂商认证的兼容模块；采购时把“厂商兼容列表 + 固件版本”写进技术要求，不再只看“能亮灯”。</li>
+<li><strong>改善散热</strong>：清理机柜滤网、调整弱电间空调回风、在机柜内增加盲板引导气流；光模块工作温度每降 10°C，寿命和稳定性都会明显改善。</li>
+<li><strong>不要长期依赖跳过检查</strong>：部分交换机可以用 <code>service unsupported-transceiver</code> 强制接受第三方模块，但这只是关闭告警，不解决 DDM 校准和热设计问题，生产环境不建议作为长期方案。</li>
+<li><strong>补监控</strong>：采集光模块温度、Tx/Rx power、bias 和端口 flap 计数，设置温度阈值（例如 70°C 预警）和 flap 告警；不要等业务报丢包才查。</li>
+<li><strong>批次管理</strong>：同一批次模块集中上架前先做 24 小时烤机，记录 DDM 曲线；不同批次、不同厂商的模块不要混插在同一机柜，便于定位。</li>
+<li><strong>验证</strong>：更换后连续观察一个月，端口 flap 为 0，模块温度回到 55°C 以下，业务无感知丢包。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是 <strong>非原厂光模块的 DDM 校准与散热设计不满足交换机固件的预期，在机柜高温环境下温度读数越界，交换机按保护策略复位端口，导致链路周期性 down/up</strong>。</p>
+<p>更深一层，是把光模块当成了“被动配件”。光模块是有 EEPROM、有校准数据、有激光器和温控的主动器件，厂商兼容性不只是“接口能插上、链路能起来”，还包括 DDM 精度、告警阈值、固件交互和热设计。采购只比了价格和“能不能通”，验收只测了带宽，等于把兼容性风险留给了运行期。</p>
+<p>还有一层是环境与监控的缺位。弱电间温度偏高、机柜气流组织差，原厂模块靠散热余量扛住了，第三方模块没有余量；而监控只看端口 up/down，没有看光模块温度和光功率，所以问题反复出现却一直定位不到根因。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>光模块纳入选型管理：要求厂商提供兼容性矩阵和固件版本，优先原厂或官方认证的第三方模块，禁止无来源的渠道货。</li>
+<li>到货批次做 24 小时烤机与 DDM 基线测试，记录温度、Tx/Rx power、bias，超出阈值的批次整批退回。</li>
+<li>监控光模块 DDM 与端口 flap：温度 70°C 预警、flap 次数每分钟增长即告警，纳入网络设备基础监控。</li>
+<li>弱电间和机柜做热评估，保证进风温度与气流组织；高温区域优先使用散热更好的模块。</li>
+<li>备件按型号和批次管理，故障更换时整批排查，避免同批次隐患继续留在网里。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>“链路能起来”只是光模块的最低要求，不是兼容性的全部。模块里的 EEPROM、DDM 校准和散热设计，决定了它在高温、长运行、固件交互下还能不能稳定工作；采购省下的单价，可能会以周期性闪断和排障成本还回来。把光模块当成有寿命、有温度、有固件的器件来管，把 DDM 纳入监控，链路才不会在半夜自己翻一次。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/e0440e03/" >光衰超标：链路 UP 却间歇丢包</a></li>
+<li><a class="link" href="/posts/953d9b4c/" >BPDU Guard 误触发：边缘端口 errdisable</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E5%85%89%E6%A8%A1%E5%9D%97/">光模块</a>
+        
+            <a href="/tags/sfp&#43;/">SFP&#43;</a>
+        
+            <a href="/tags/ddm/">DDM</a>
+        
+            <a href="/tags/%E9%93%BE%E8%B7%AF%E7%BF%BB%E8%BD%AC/">链路翻转</a>
+        
+            <a href="/tags/%E5%85%BC%E5%AE%B9%E6%80%A7/">兼容性</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/e0440e03/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">光衰超标：链路 UP 却间歇丢包</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/f7f05e7d/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">核心交换机 LACP 协商失败：带宽骤降</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
