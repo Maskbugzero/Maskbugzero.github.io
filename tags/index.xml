@@ -5,7 +5,37 @@
         <description>Recent content in 标签 on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Thu, 05 Nov 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Fri, 06 Nov 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>小区锁定</title>
+            <link>https://blog.5772447.xyz/tags/%E5%B0%8F%E5%8C%BA%E9%94%81%E5%AE%9A/</link>
+            <pubDate>Fri, 06 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%B0%8F%E5%8C%BA%E9%94%81%E5%AE%9A/</guid>
+            <description></description>
+        </item><item>
+            <title>频段锁定</title>
+            <link>https://blog.5772447.xyz/tags/%E9%A2%91%E6%AE%B5%E9%94%81%E5%AE%9A/</link>
+            <pubDate>Fri, 06 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E9%A2%91%E6%AE%B5%E9%94%81%E5%AE%9A/</guid>
+            <description></description>
+        </item><item>
+            <title>SINR</title>
+            <link>https://blog.5772447.xyz/tags/sinr/</link>
+            <pubDate>Fri, 06 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/sinr/</guid>
+            <description></description>
+        </item><item>
+            <title>RSRP</title>
+            <link>https://blog.5772447.xyz/tags/rsrp/</link>
+            <pubDate>Fri, 06 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/rsrp/</guid>
+            <description></description>
+        </item><item>
+            <title>5G CPE</title>
+            <link>https://blog.5772447.xyz/tags/5g-cpe/</link>
+            <pubDate>Fri, 06 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/5g-cpe/</guid>
+            <description></description>
+        </item><item>
             <title>链路翻转</title>
             <link>https://blog.5772447.xyz/tags/%E9%93%BE%E8%B7%AF%E7%BF%BB%E8%BD%AC/</link>
             <pubDate>Thu, 05 Nov 2026 09:00:00 +0800</pubDate>
