@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="客户陆续收到冒充公司域名的邮件，根因是 SPF/DKIM/DMARC 均未配置，收件方无法判断发件人真伪。梳理发信源、补 SPF 与 DKIM、DMARC 逐步收紧到 reject 后收敛。">
+<title>DMARC 缺失：冒充邮件为何能直达客户？</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/74d0c7d4/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="DMARC 缺失：冒充邮件为何能直达客户？">
+<meta property='og:description' content="客户陆续收到冒充公司域名的邮件，根因是 SPF/DKIM/DMARC 均未配置，收件方无法判断发件人真伪。梳理发信源、补 SPF 与 DKIM、DMARC 逐步收紧到 reject 后收敛。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/74d0c7d4/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='DMARC' /><meta property='article:tag' content='SPF' /><meta property='article:tag' content='DKIM' /><meta property='article:tag' content='邮件仿冒' /><meta property='article:tag' content='发件人认证' /><meta property='article:published_time' content='2026-11-07T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-07T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="DMARC 缺失：冒充邮件为何能直达客户？">
+<meta name="twitter:description" content="客户陆续收到冒充公司域名的邮件，根因是 SPF/DKIM/DMARC 均未配置，收件方无法判断发件人真伪。梳理发信源、补 SPF 与 DKIM、DMARC 逐步收紧到 reject 后收敛。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
+                安全运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/74d0c7d4/">DMARC 缺失：冒充邮件为何能直达客户？</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            客户陆续收到冒充公司域名的邮件，根因是 SPF/DKIM/DMARC 均未配置，收件方无法判断发件人真伪。梳理发信源、补 SPF 与 DKIM、DMARC 逐步收紧到 reject 后收敛。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-11-07T09:00:00&#43;08:00'>2026年11月7日星期六</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司的对公邮箱用的是 Microsoft 365，域名是 <code>example.com</code>。日常发信有三类来源：员工在 Outlook 里正常收发、市场部用一家 SaaS 平台发活动通知、ERP 通过本地 SMTP 中继给客户发发货和账单邮件。三类来源各自配置，IT 只保证“能发出去”，从来没在 DNS 里配过 SPF、DKIM 或 DMARC。</p>
+<p>上个月，几个老客户先后把收到的邮件转给销售：发件人显示是 <code>service@example.com</code>，标题是“【发货通知】您的订单已发出”，正文让点击链接查看物流，链接指向一个仿冒的登录页。客户问“这是你们发的吗”，销售一看域名是真的、签名栏也是公司的，差点没看出来。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>多封仿冒邮件发件人显示名和地址都是公司域名，内容围绕发货、账单、合同，针对性很强。</li>
+<li>客户邮件网关的 <code>Authentication-Results</code> 里，SPF、DKIM、DMARC 三项全是 <code>none</code>，没有任何认证结果。</li>
+<li>有一封邮件甚至进了客户高管的收件箱，没有进垃圾箱；客户的安全团队随后发来问询。</li>
+<li>公司自己的邮件网关只按内容打分，没有发件人认证数据可用，无法判断哪些是真、哪些是假。</li>
+<li>检查 DNS：<code>example.com</code> 没有 SPF 记录，<code>_dmarc.example.com</code> 不存在，DKIM 选择器也查不到公钥。</li>
+<li>市场部、ERP 的邮件一直正常发着，员工侧完全没有感知。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步确认仿冒方式。把客户转来的邮件头完整取出来看：<code>From</code> 是 <code>service@example.com</code>，<code>Return-Path</code> 是攻击者自己的域名，<code>Authentication-Results</code> 三项都是 none。这说明收件方没有任何依据去验证发件人，只能按内容打分；内容写得像正经业务邮件，就很容易过。</p>
+<p>第二步查 DNS 配置。<code>dig TXT example.com</code> 没有任何以 <code>v=spf1</code> 开头的记录；<code>dig TXT _dmarc.example.com</code> 返回 NXDOMAIN；再按常见选择器查 <code>selector1._domainkey.example.com</code> 和 <code>selector2._domainkey.example.com</code>，也没有记录。SPF、DKIM、DMARC 三件套一个都没有。</p>
+<p>第三步解释为什么“没有记录”就等于“随便冒充”。SPF 用发信 IP 和域名授权列表做比对，没有记录时收件方只能返回 none；DKIM 用私钥签名、公钥验签，没有签名就无法证明邮件经过公司授权；DMARC 则要求 SPF 或 DKIM 至少一项与 From 域名对齐，并告诉收件方“认证失败时怎么处理”。三者都没有，收件方既没有证据、也没有策略，仿冒邮件就按普通邮件处理。</p>
+<p>第四步梳理合法发信源。这一步不能跳：SPF 一旦配错，正常邮件会被自己拦掉。逐个确认：M365 的出口、市场 SaaS 的发送域和 SPF include、ERP 中继的公网 IP，以及是否有其他部门在用第三方邮件服务。把所有来源列成清单，再算 SPF 的 DNS 查询次数，确保不超过 10 次上限。</p>
+<p>第五步设计分阶段方案。直接上 <code>p=reject</code> 风险太高，先 <code>p=none</code> 只收集报告，观察哪些合法来源认证失败；修完再进 <code>p=quarantine</code>，最后到 <code>p=reject</code>。这样既保护域名，又不会把业务邮件误杀。</p>
+<p>第六步验证。配置完成后，从 M365、市场 SaaS、ERP 各发一封测试邮件到外部邮箱，确认 SPF、DKIM、DMARC 全部 pass；再从一台外部 VPS 伪造 <code>service@example.com</code> 发信，确认收件方按 DMARC 策略拒收或隔离。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>先补 SPF</strong>：在 <code>example.com</code> 发布一条 TXT，把 M365、市场 SaaS 和中继 IP 都 include 进去，结尾用 <code>-all</code> 表示未授权 IP 一律失败。注意 SPF 的 10 次 DNS 查询上限，include 太多时要合并或做 flatten，不要拆成多条 SPF 记录。</li>
+<li><strong>再上 DKIM</strong>：在 M365 启用 DKIM 签名，发布 <code>selector1</code>/<code>selector2</code> 公钥；市场 SaaS 在平台侧开启 DKIM 并把选择器记录加到 DNS；ERP 中继如果支持 DKIM 就签名，不支持则至少保证 SPF 对齐。</li>
+<li><strong>DMARC 分三步走</strong>：第一阶段 <code>p=none</code>，带 <code>rua</code> 收集聚合报告，跑两到四周；把报告里认证失败的合法来源逐个修好；第二阶段 <code>p=quarantine</code>，可先用 <code>pct=25</code> 逐步放量；第三阶段 <code>p=reject</code>，并给子域设置 <code>sp=reject</code>。</li>
+<li><strong>收件侧配合</strong>：确认公司邮件网关支持并按 DMARC 结果处理入站邮件；对员工做一次识别仿冒邮件的提示，保留举报入口。</li>
+<li><strong>DNS 变更管理</strong>：SPF/DKIM/DMARC 记录纳入变更审批，避免多条 SPF 记录并存（多条会直接导致 SPF 失效），TTL 设置合理，变更后立即用外部 DNS 验证。</li>
+<li><strong>持续监控</strong>：定期解析 DMARC 聚合报告，发现新的失败来源先判断是合法新系统还是仿冒；对外包/新采购的邮件服务，把“提供 SPF include 与 DKIM 公钥”写进上线清单。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是 <strong>公司域名没有配置 SPF、DKIM、DMARC，收件方无法验证发件人是否经过授权，仿冒邮件因此可以伪装成公司地址直接投递</strong>。</p>
+<p>更深一层，是把邮件安全理解成了“邮件网关的事”。网关能拦垃圾邮件、能查附件，但发件人认证是域名所有者的责任：SPF 告诉世界“哪些 IP 有权代表我发信”，DKIM 给邮件加签名，DMARC 告诉收件方“没通过认证时怎么办”。这三样不在网关上，而在 DNS 里；不配，就等于把 domain 的解释权交给了任何人。</p>
+<p>还有一层是“我们不发垃圾邮件，所以不需要 DMARC”的误解。DMARC 防的不是自己发垃圾邮件，而是别人冒用你的域名发邮件；它保护的是品牌和客户信任，不是自家收件箱。等客户已经收到仿冒邮件再补，损失的是解释成本和信任。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>建立发信源清单：每新增一个 SaaS、中继或营销平台，上线前必须补齐 SPF include 与 DKIM，变更走 DNS 审批。</li>
+<li>DMARC 上线后持续看聚合报告，按来源 IP/域名归因；出现新的失败来源，先确认是否合法系统，再决定放行或封禁。</li>
+<li>定期做外部仿冒测试：从第三方 VPS 尝试伪造本域发信，验证 DMARC 策略确实生效。</li>
+<li>对客户和员工公布举报渠道，收到可疑邮件时能快速转交安全团队分析。</li>
+<li>把域名邮件认证纳入品牌保护范围，和官网、商标、证书一起管理，而不是留给某个人的“顺手配置”。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>邮件头的 From 只是一个声明，SPF、DKIM、DMARC 才是让这个声明可信的签名和规则。没有它们，任何人都可以在自己的服务器上写一句 <code>From: service@example.com</code>，而收件方没有任何依据拒绝。补这三条 DNS 记录不需要买新设备，也不需要改业务流程，但它决定了客户收到的那封信到底是不是你发的。域名是品牌资产，发件人认证就是它的防伪标识。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/0a8ea846/" >钓鱼邮件致终端感染远控木马：溯源与处置</a></li>
+<li><a class="link" href="/posts/37a35d29/" >堵住 NTLM 中继：LLMNR 投毒致域管理员凭据被窃</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/dmarc/">DMARC</a>
+        
+            <a href="/tags/spf/">SPF</a>
+        
+            <a href="/tags/dkim/">DKIM</a>
+        
+            <a href="/tags/%E9%82%AE%E4%BB%B6%E4%BB%BF%E5%86%92/">邮件仿冒</a>
+        
+            <a href="/tags/%E5%8F%91%E4%BB%B6%E4%BA%BA%E8%AE%A4%E8%AF%81/">发件人认证</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/b32a0e63/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">企业邮箱 SMTP 发信为何总被腾讯拒收？</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
