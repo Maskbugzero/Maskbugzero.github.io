@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="产线 CAN 网络多个节点每隔几小时失联，根因是总线一端缺少 120Ω 终端电阻、长支线反射导致位错误，节点反复进入 bus-off 且未自动恢复。补终端电阻并启用自动恢复后稳定。">
+<title>终端电阻缺失：CAN 节点频繁 bus-off</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/b7e66573/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="终端电阻缺失：CAN 节点频繁 bus-off">
+<meta property='og:description' content="产线 CAN 网络多个节点每隔几小时失联，根因是总线一端缺少 120Ω 终端电阻、长支线反射导致位错误，节点反复进入 bus-off 且未自动恢复。补终端电阻并启用自动恢复后稳定。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/b7e66573/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='CAN' /><meta property='article:tag' content='bus-off' /><meta property='article:tag' content='终端电阻' /><meta property='article:tag' content='TEC' /><meta property='article:tag' content='位错误' /><meta property='article:published_time' content='2026-11-08T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-08T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="终端电阻缺失：CAN 节点频繁 bus-off">
+<meta name="twitter:description" content="产线 CAN 网络多个节点每隔几小时失联，根因是总线一端缺少 120Ω 终端电阻、长支线反射导致位错误，节点反复进入 bus-off 且未自动恢复。补终端电阻并启用自动恢复后稳定。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/" style="background-color: hsl(156, 60%, 84%); color: hsl(156, 60%, 15%);">
+                嵌入式
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/b7e66573/">终端电阻缺失：CAN 节点频繁 bus-off</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            产线 CAN 网络多个节点每隔几小时失联，根因是总线一端缺少 120Ω 终端电阻、长支线反射导致位错误，节点反复进入 bus-off 且未自动恢复。补终端电阻并启用自动恢复后稳定。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-11-08T09:00:00&#43;08:00'>2026年11月8日星期日</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>工厂一条产线的控制系统用 CAN 总线组网，主控网关加 11 个执行节点，主控是 STM32F103 加 TJA1050 收发器，速率 500kbps，总线长度大约 80 米。节点负责电机、气缸、传感器的控制与采集，网关每秒轮询一轮，掉线的节点会在上位机标红。</p>
+<p>这套网络运行了一年多，偶发单节点掉线，重启节点就好。上个月产线改造，新增了一个检测工位，施工队在总线中段拉了一根 5 米的支线接新节点。之后掉线开始变多：每天都有几个节点失联，重启后能撑几个小时，然后再次掉线。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>上位机多个节点随机标红，每次掉线的节点不固定，有时一个，有时三四个。</li>
+<li>节点失联后不会自己恢复，必须断电重启；重启后正常一段时间，几小时到一天不等。</li>
+<li>节点固件里读到 <code>HAL_CAN_GetError</code> 返回 <code>HAL_CAN_ERROR_BOF</code>，CAN 控制器的发送错误计数器 TEC 已经到 255。</li>
+<li>总线负载不高，正常时不到 30%，排除带宽打满。</li>
+<li>产线电机启动、变频器工作时掉线更频繁，夜里停机时明显减少。</li>
+<li>网关侧能看到节点停止发送心跳，但总线上的其他节点还在正常通信。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步确认控制器状态。在故障节点上通过调试串口打印 <code>CAN_ESR</code>，TEC 已经到 255，REC 也不低，LEC 显示位错误或填充错误。CAN 控制器在发送错误累计到 255 时会进入 bus-off，主动退出总线，不再发送任何帧；如果固件没有开启自动恢复，它就会一直停在那里，表现就是“节点失联”。</p>
+<p>第二步量总线。断电后用万用表测 CAN_H 与 CAN_L 之间的电阻，正常应该是两个 120Ω 终端并联后的 60Ω；实际测到 120Ω，说明只有一端接了终端电阻，另一端是开路的。再上示波器看波形，CAN_H/CAN_L 上有明显的振铃和过冲，边沿不干净，典型的总线反射。</p>
+<p>第三步查布线。现场是手拉手加中途分支的混合拓扑：网关在控制柜，末端节点在产线尾部，最远端的节点没有终端电阻；新增的检测工位从总线中段拉了一根 5 米支线，支线末端也没有匹配。500kbps 下，支线建议控制在 0.3 米以内，5 米支线相当于一根天线，反射会把位电平搅乱。</p>
+<p>第四步解释链路。CAN 是差分总线，靠两根线的电平差判位；终端电阻的作用是吸收信号能量、抑制反射。缺一端终端、加上长支线，信号在末端反射回来，和后续位叠加，采样点就可能判错；每次位错误让 TEC 加 8，成功发送一次减 1，错误率一高，TEC 很快冲到 255，节点进入 bus-off。电机和变频器工作时干扰更强，错误率更高，所以掉线更频繁。</p>
+<p>第五步验证。在末端节点并联一只 120Ω 电阻，总线电阻变成 60Ω；把 5 米支线缩短到 0.3 米以内，重新压接屏蔽层；示波器上的振铃明显收敛。再给固件开启 STM32 的 ABOM（自动 bus-off 管理），并在初始化里加 bus-off 恢复流程，节点在 bus-off 后能自动重新上线。连续观察一周，TEC 保持在个位数，没有节点再失联。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>补终端电阻</strong>：在总线物理两端各装一只 120Ω 电阻，断电测量 CAN_H 与 CAN_L 之间应为 60Ω 左右；不要在每个节点上都装，也不要只在网关一端装。</li>
+<li><strong>改拓扑</strong>：改成手拉手菊花链，主干走双绞屏蔽线；节点支线控制在 0.3 米以内，新增设备必须从主干节点串接，不能从总线中段随便拉长线。</li>
+<li><strong>处理屏蔽与地</strong>：屏蔽层单端接地，避免形成地环路；所有节点共地，CAN 收发器的参考地电位差过大会直接破坏差分信号。</li>
+<li><strong>开启 bus-off 自动恢复</strong>：STM32 bxCAN 置位 <code>CAN_MCR</code> 的 ABOM，让控制器在 bus-off 后自动执行恢复序列；同时在应用层记录 bus-off 次数、TEC/REC 峰值，恢复后重新初始化过滤器。</li>
+<li><strong>加错误监控</strong>：节点心跳里带上 TEC、REC、bus-off 计数，网关侧对错误计数持续上升的节点告警，不要等它彻底失联。</li>
+<li><strong>验收标准</strong>：总线电阻 60Ω、示波器无明显振铃、72 小时无 bus-off、TEC 峰值低于 30；新增节点上线前按这套标准复测。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是 <strong>CAN 总线一端缺少 120Ω 终端电阻，加上新增的 5 米长支线，信号在末端反射造成位错误；错误累计使 TEC 超过 255，节点进入 bus-off，而固件没有开启自动恢复，节点一直停在离线状态</strong>。</p>
+<p>更深一层，是把 CAN 当成“两根线接上就能通”的总线。CAN 是传输线，终端匹配、拓扑、支线长度、共地和屏蔽都是电气规范的一部分；500kbps 下这些参数对信号完整性的影响会被放大，少一个电阻、多一根支线，实验室短距离可能看不出来，到了产线 80 米的现场就会以随机掉线的形式暴露。</p>
+<p>还有一层是监控只看了“节点在不在线”，没看“节点错误计数高不高”。TEC 从 0 涨到 255 是一个过程，如果提前采集错误计数器，完全可以在节点真正 bus-off 之前发现总线质量在恶化。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>CAN 布线纳入施工规范：菊花链拓扑、两端 120Ω、支线长度上限、双绞屏蔽、单端接地、共地要求，验收时逐项测量。</li>
+<li>新增节点或改线必须做总线评审，禁止从主干中段拉长支线；改完用示波器和电阻测量复验。</li>
+<li>固件默认开启 bus-off 自动恢复，并记录 bus-off、TEC/REC 峰值，作为设备健康指标上报。</li>
+<li>网关侧对节点错误计数做趋势告警，TEC 持续上升或 bus-off 次数增加时提前排查。</li>
+<li>产线强干扰区域（变频器、伺服、大功率电机）优先使用隔离收发器或光纤转换，减少共模干扰。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>CAN 总线不是两根普通导线，而是一条有阻抗、有反射、有终端匹配的传输线。一个 120Ω 电阻和一根 5 米支线，足以让节点从“偶尔掉线”变成“每天失联”；而固件不开自动恢复，又把一次总线错误变成了永久离线。把电气规范写进施工验收，把错误计数器纳入监控，CAN 网络才能在强干扰的产线上长期稳定。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/10494fcc/" >RS485 总线干扰致采集网关每隔几小时集体掉线</a></li>
+<li><a class="link" href="/posts/65c53b2c/" >I2C 总线被拉死：传感器读数全部超时</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/can/">CAN</a>
+        
+            <a href="/tags/bus-off/">Bus-Off</a>
+        
+            <a href="/tags/%E7%BB%88%E7%AB%AF%E7%94%B5%E9%98%BB/">终端电阻</a>
+        
+            <a href="/tags/tec/">TEC</a>
+        
+            <a href="/tags/%E4%BD%8D%E9%94%99%E8%AF%AF/">位错误</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
