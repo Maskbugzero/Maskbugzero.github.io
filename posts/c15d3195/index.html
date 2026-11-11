@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="终端搜索失效、系统盘被占满，根因是 Windows Search 索引库膨胀到 30GB 并陷入重建循环。清理索引、排除网络盘与 PST 后恢复，附重建步骤。">
+<title>索引库膨胀：SearchIndexer 拖满系统盘</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/c15d3195/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="索引库膨胀：SearchIndexer 拖满系统盘">
+<meta property='og:description' content="终端搜索失效、系统盘被占满，根因是 Windows Search 索引库膨胀到 30GB 并陷入重建循环。清理索引、排除网络盘与 PST 后恢复，附重建步骤。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/c15d3195/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Windows Search' /><meta property='article:tag' content='SearchIndexer' /><meta property='article:tag' content='Windows.edb' /><meta property='article:tag' content='索引重建' /><meta property='article:tag' content='系统盘' /><meta property='article:published_time' content='2026-11-11T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-11T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="索引库膨胀：SearchIndexer 拖满系统盘">
+<meta name="twitter:description" content="终端搜索失效、系统盘被占满，根因是 Windows Search 索引库膨胀到 30GB 并陷入重建循环。清理索引、排除网络盘与 PST 后恢复，附重建步骤。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/" style="background-color: hsl(195, 60%, 84%); color: hsl(195, 60%, 15%);">
+                桌面运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/c15d3195/">索引库膨胀：SearchIndexer 拖满系统盘</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            终端搜索失效、系统盘被占满，根因是 Windows Search 索引库膨胀到 30GB 并陷入重建循环。清理索引、排除网络盘与 PST 后恢复，附重建步骤。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-11-11T09:00:00&#43;08:00'>2026年11月11日星期三</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司有 300 多台 Windows 11 终端，标准镜像里保留了 Windows Search 的默认配置。财务和法务的同事习惯把历史邮件导出成 PST 归档，放在本地 D 盘，再挂到 Outlook 里随时查。今年做邮箱容量治理，几个部门集中导入了一批历史 PST，单个文件二三十 GB。</p>
+<p>一个月后，陆续有终端报“开始菜单和 Outlook 里搜不到东西”，同时 IT 的磁盘告警开始响：十几台机器的 C 盘使用率超过 95%。远程一看，<code>SearchIndexer.exe</code> 长期占用 30%–50% 的 CPU 和大量磁盘 IO，风扇一直转，机器卡得厉害。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>开始菜单搜索、文件资源管理器搜索、Outlook 搜索都返回空结果或结果不全。</li>
+<li>受影响终端的 C 盘剩余空间不足 5GB，<code>Windows.edb</code> 单个文件就有 20–30GB。</li>
+<li><code>SearchIndexer.exe</code> 持续高 CPU、高磁盘占用，任务管理器里磁盘队列长期接近 100%。</li>
+<li>事件查看器里有大量 ESENT 623（数据库损坏）和搜索服务重建相关错误。</li>
+<li>在“索引选项”里点重建，进度条走一会儿就回到起点，反复循环，永远建不完。</li>
+<li>受影响机器集中在导入过大 PST 的财务、法务部门；普通办公终端基本正常。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步确认资源占用来源。资源监视器里按“磁盘”排序，<code>SearchIndexer.exe</code> 的读取/写入长期排在前面；CPU 占用不算顶格，但磁盘队列一直满，用户侧表现就是整机卡顿。先排除磁盘硬件问题：SMART 正常，其他进程读写正常。</p>
+<p>第二步查索引库大小。默认路径是 <code>C:\ProgramData\Microsoft\Search\Data\Applications\Windows\Windows.edb</code>，用 PowerShell 看文件大小，故障机器普遍在 20–30GB；正常终端一般 2–5GB。再看 C 盘剩余空间，只剩几个 GB，索引重建需要额外空间，空间不足会直接失败并重试。</p>
+<p>第三步看事件日志。<code>Application</code> 日志里反复出现 ESENT 623，提示数据库损坏；搜索服务随后尝试重建，又因为磁盘空间不足或数据量过大失败。重建失败后索引处于不可用状态，搜索自然没有结果。</p>
+<p>第四步查索引范围。打开“索引选项 → 修改”，发现故障机器把 <code>D:\Archive</code> 下的 PST 目录、甚至一个网络共享盘都勾进了索引范围；Outlook 数据文件也被默认纳入。一个 30GB 的 PST 里可能有几十万封邮件，每封都要抽属性、建倒排，索引库体积会膨胀到和源数据同一量级甚至更大。</p>
+<p>第五步解释循环。Windows Search 的索引是一个 ESE 数据库，单文件、有事务日志；数据量过大、磁盘写满或异常关机都可能导致数据库损坏。损坏后服务尝试重建，重建过程需要临时空间和大量 IO；C 盘已经只剩几 GB，重建写不下，失败后又重试，形成“重建—失败—再重建”的循环，CPU 和磁盘被持续占用。</p>
+<p>第六步验证。先停掉 <code>WSearch</code> 服务，把损坏的 <code>Windows.edb</code> 改名备份，腾出空间；再把 PST 目录和网络盘从索引范围里移除；重启服务让系统重建一个干净的索引库。重建完成后索引库只有 3GB 左右，搜索恢复，<code>SearchIndexer</code> 的 CPU 和磁盘回到正常水平。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>清理损坏索引</strong>：以管理员身份执行 <code>net stop wsearch</code>，把 <code>Windows.edb</code> 重命名为 <code>Windows.edb.old</code>（确认新索引正常后再删），再 <code>net start wsearch</code>；也可以走“索引选项 → 高级 → 重建”，前提是磁盘有足够空间。</li>
+<li><strong>收缩索引范围</strong>：在“索引选项 → 修改”里取消 PST 目录、网络共享盘和不必要的资料盘，只保留用户真正需要快速搜索的本地工作目录；<code>*.pst</code> 不建议纳入索引。</li>
+<li><strong>处理 PST</strong>：历史 PST 移到文件服务器或归档系统，不要长期放在终端本地；Outlook 里只挂当前需要的归档，避免一次性挂几十 GB。邮箱容量治理应该配套归档策略，而不是把压力转移到终端。</li>
+<li><strong>用组策略统一</strong>：通过 GPO 配置索引范围、禁止索引 Outlook 数据文件、禁止索引网络位置，避免每台机器手工设置；新终端加入域后自动生效。</li>
+<li><strong>预留磁盘空间</strong>：系统盘至少保留 15%–20% 空闲；索引重建前先清理临时文件、旧更新缓存，确保重建有足够空间。数据量特别大的终端，可以把索引位置迁到数据盘（通过 Windows Search 的 <code>DataDirectory</code> 配置，操作前备份并确认权限）。</li>
+<li><strong>验证</strong>：重建后检查 <code>Windows.edb</code> 大小、搜索是否返回结果、<code>SearchIndexer</code> 的 CPU/磁盘占用；连续观察一周，确认不再出现 ESENT 623。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是 <strong>终端把几十 GB 的 PST 归档和网络共享盘纳入 Windows Search 索引，索引库膨胀到 20–30GB，并在磁盘空间不足时发生 ESE 数据库损坏；损坏后重建又因空间不足失败，形成持续重建循环，最终拖满系统盘、搜索不可用</strong>。</p>
+<p>更深一层，是把 Windows Search 当成了“无成本的系统功能”。索引本质上是一个数据库，数据量、磁盘空间、文件类型都会影响它的体积和稳定性；PST 本身也是一个数据库，把它当普通文件挂进索引，相当于让搜索服务去索引另一个几十 GB 的数据库。两个数据库叠加，终端承受不了。</p>
+<p>还有一层是容量治理的方向问题。邮箱容量不够，正确做法是归档到服务器、做生命周期管理；把历史邮件导成 PST 堆在终端，只是把存储压力从邮箱转移到了本地磁盘和索引服务，问题没有消失，只是换了个地方爆发。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>标准镜像和组策略统一索引范围：排除 PST、网络盘、虚拟磁盘和大型归档目录，只索引本地工作文件。</li>
+<li>建立归档规范：历史邮件进归档系统或文件服务器，终端不长期保存大体积 PST；Outlook 只挂必要归档。</li>
+<li>监控终端索引库大小和 <code>SearchIndexer</code> 资源占用，<code>Windows.edb</code> 超过阈值或 ESENT 623 出现时告警。</li>
+<li>系统盘容量基线：保留至少 15% 空闲，磁盘告警提前到 80% 触发，避免重建时无空间可用。</li>
+<li>把“重建索引”写成标准操作步骤，包含停服务、备份/删除 edb、检查空间、验证搜索，避免现场反复点重建。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>Windows Search 的索引库是一个会长的数据库，PST 也是一个数据库；把几十 GB 的 PST 挂进索引，相当于让两个数据库在终端上互相拖拽。搜索失效只是表象，真正的问题是系统盘被索引库吃满、损坏后又陷入重建循环。把索引范围收窄、把归档放回服务器、把索引大小纳入监控，终端才不会因为“搜不到文件”而整机卡死。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/36719bcb/" >Windows 漫游配置文件损坏致终端登录卡死的修复</a></li>
+<li><a class="link" href="/posts/279c8982/" >第三方 Shell 扩展：右键菜单卡死 Explorer</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/windows-search/">Windows Search</a>
+        
+            <a href="/tags/searchindexer/">SearchIndexer</a>
+        
+            <a href="/tags/windows.edb/">Windows.edb</a>
+        
+            <a href="/tags/%E7%B4%A2%E5%BC%95%E9%87%8D%E5%BB%BA/">索引重建</a>
+        
+            <a href="/tags/%E7%B3%BB%E7%BB%9F%E7%9B%98/">系统盘</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

@@ -2,6 +2,42 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://blog.5772447.xyz/post/</loc>
+    <lastmod>2026-11-11T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/searchindexer/</loc>
+    <lastmod>2026-11-11T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/windows-search/</loc>
+    <lastmod>2026-11-11T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/windows.edb/</loc>
+    <lastmod>2026-11-11T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/</loc>
+    <lastmod>2026-11-11T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/</loc>
+    <lastmod>2026-11-11T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/categories/</loc>
+    <lastmod>2026-11-11T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/posts/c15d3195/</loc>
+    <lastmod>2026-11-11T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/%E7%B4%A2%E5%BC%95%E9%87%8D%E5%BB%BA/</loc>
+    <lastmod>2026-11-11T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/tags/%E7%B3%BB%E7%BB%9F%E7%9B%98/</loc>
+    <lastmod>2026-11-11T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/categories/%E8%BF%90%E7%BB%B4/</loc>
+    <lastmod>2026-11-11T09:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.5772447.xyz/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/</loc>
+    <lastmod>2026-11-11T09:00:00+08:00</lastmod>
+  </url><url>
     <loc>https://blog.5772447.xyz/tags/activedeadlineseconds/</loc>
     <lastmod>2026-11-10T09:00:00+08:00</lastmod>
   </url><url>
@@ -17,25 +53,10 @@
     <loc>https://blog.5772447.xyz/tags/job-%E9%87%8D%E5%8F%A0/</loc>
     <lastmod>2026-11-10T09:00:00+08:00</lastmod>
   </url><url>
-    <loc>https://blog.5772447.xyz/post/</loc>
-    <lastmod>2026-11-10T09:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/</loc>
-    <lastmod>2026-11-10T09:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/tags/</loc>
-    <lastmod>2026-11-10T09:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/categories/</loc>
-    <lastmod>2026-11-10T09:00:00+08:00</lastmod>
-  </url><url>
     <loc>https://blog.5772447.xyz/tags/%E5%B9%82%E7%AD%89/</loc>
     <lastmod>2026-11-10T09:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/categories/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/</loc>
-    <lastmod>2026-11-10T09:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/categories/%E8%BF%90%E7%BB%B4/</loc>
     <lastmod>2026-11-10T09:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/email.py/</loc>
@@ -159,9 +180,6 @@
     <lastmod>2026-11-04T09:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/%E5%8F%B3%E9%94%AE%E8%8F%9C%E5%8D%95/</loc>
-    <lastmod>2026-11-04T09:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.5772447.xyz/categories/%E6%A1%8C%E9%9D%A2%E8%BF%90%E7%BB%B4/</loc>
     <lastmod>2026-11-04T09:00:00+08:00</lastmod>
   </url><url>
     <loc>https://blog.5772447.xyz/tags/kubelet/</loc>
