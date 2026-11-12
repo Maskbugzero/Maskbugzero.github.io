@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="无线终端跨楼层漫游时通话断 3–5 秒，根因是各 AP 组的 802.11r 移动域与 R0KH 标识不一致，快速切换失败退化成完整 802.1X 认证。统一密钥域并启用 11k/v 后恢复。">
+<title>漫游断五秒：802.11r 密钥域不一致</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/32083ef1/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="漫游断五秒：802.11r 密钥域不一致">
+<meta property='og:description' content="无线终端跨楼层漫游时通话断 3–5 秒，根因是各 AP 组的 802.11r 移动域与 R0KH 标识不一致，快速切换失败退化成完整 802.1X 认证。统一密钥域并启用 11k/v 后恢复。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/32083ef1/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='802.11r' /><meta property='article:tag' content='快速漫游' /><meta property='article:tag' content='移动域' /><meta property='article:tag' content='R0KH' /><meta property='article:tag' content='802.1X' /><meta property='article:published_time' content='2026-11-12T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-12T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="漫游断五秒：802.11r 密钥域不一致">
+<meta name="twitter:description" content="无线终端跨楼层漫游时通话断 3–5 秒，根因是各 AP 组的 802.11r 移动域与 R0KH 标识不一致，快速切换失败退化成完整 802.1X 认证。统一密钥域并启用 11k/v 后恢复。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E7%BD%91%E7%BB%9C%E8%BF%90%E7%BB%B4/" style="background-color: hsl(229, 60%, 84%); color: hsl(229, 60%, 15%);">
+                网络运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%BF%90%E7%BB%B4/" style="background-color: hsl(50, 60%, 84%); color: hsl(50, 60%, 15%);">
+                运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/32083ef1/">漫游断五秒：802.11r 密钥域不一致</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            无线终端跨楼层漫游时通话断 3–5 秒，根因是各 AP 组的 802.11r 移动域与 R0KH 标识不一致，快速切换失败退化成完整 802.1X 认证。统一密钥域并启用 11k/v 后恢复。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-11-12T09:00:00&#43;08:00'>2026年11月12日星期四</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司办公楼共 6 层，部署了 48 台吸顶 AP，由无线控制器统一管理。办公 SSID 使用 802.1X EAP-TLS 认证，终端连上后由 RADIUS 下发 VLAN 和权限。日常办公、视频会议、无线话机都跑在这个网络上。</p>
+<p>AP 是分批建设的：3 层和 4 层最早由一家集成商实施，其余楼层是后来扩容时另一家做的。两批 AP 都开了 802.11r 快速漫游，控制器界面上看都是“已启用”。但员工反馈，拿着笔记本从 3 层走到 4 层、或者从 4 层走到 5 层时，视频会议会卡住三五秒，无线话机通话直接断掉；在同一层内走动反而基本正常。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><ul>
+<li>跨楼层漫游时，终端重新关联要 3–5 秒，期间 ping 丢包、视频冻结、通话中断。</li>
+<li>同层漫游偶尔也有 1 秒左右抖动，但比跨层轻得多。</li>
+<li>控制器日志里能看到 <code>FT authentication failed</code>、<code>mobility domain mismatch</code>、<code>R0KH not found</code> 之类记录。</li>
+<li>抓包看漫游过程，终端走的是完整的 EAP-TLS 认证，而不是 802.11r 的 FT 认证；认证完成后还要重新走一次 DHCP。</li>
+<li>受影响的终端不分品牌，笔记本、手机、无线话机都有；但都集中在跨 AP 组的漫游路径上。</li>
+<li>有线网络、固定位置办公完全正常，问题只在“移动中切换 AP”。</li>
+</ul>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步确认漫游耗时花在哪。在终端上持续 ping 网关，同时拿着设备从 3 层走到 4 层，记录丢包时间段；再用无线分析工具抓漫游前后的管理帧，看到终端先断开关联、重新扫描、发起完整的 802.1X 认证，整个 EAP-TLS 握手加上 DHCP 拿地址，正好三到五秒。</p>
+<p>第二步看是不是 802.11r 没生效。抓包里的认证算法字段是 Open（0），不是 FT（3）；重关联请求里也没有 FTIE。也就是说，终端和 AP 都退回了普通漫游，快速切换根本没有发生。</p>
+<p>第三步查控制器日志。跨组漫游时日志出现 <code>mobility domain mismatch</code> 和 <code>R0KH not found</code>：前者说明两个 AP 组的移动域标识不一致，后者说明目标 AP 找不到源 AP 的 R0KH 密钥持有者。802.11r 的 FT 依赖同一个移动域内共享的 PMK-R0/R1 密钥材料；移动域不同、R0KH 标识不同，终端就无法复用之前的认证结果，只能重新做一次完整认证。</p>
+<p>第四步对比 AP 组配置。把 3/4 层和 5/6 层的 AP 组配置逐项导出对比：移动域 ID 一个是 <code>0x1122</code>，另一个是 <code>0x3344</code>；R0KH-ID 一个是控制器地址，另一个是集成商自定义的字符串；有一组还关掉了 11k 邻居报告。三处不一致叠加，跨组漫游必然失败。</p>
+<p>第五步做对照实验。先把 5/6 层 AP 组的移动域和 R0KH-ID 改成与 3/4 层一致，只改这一项，再走一次跨层漫游：抓包里出现 FT 认证（算法 3）和 FTIE，漫游耗时降到 100–200ms，ping 只丢一个包，视频会议不再冻结。再把 11k 打开，终端扫描邻居的时间进一步缩短。</p>
+<p>第六步确认客户端侧。部分老款无线话机不支持 802.11r，这类终端即使网络侧配置正确也只能走完整认证；把它们固定到 5G 频段、减少跨组漫游路径，并在话机侧开启 11k/v 支持（如果厂商提供），把中断控制在可接受范围。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>统一移动域与密钥域</strong>：同一个 ESS 内所有 AP 组的移动域 ID、R0KH-ID、R1KH-ID 必须一致，R0KH 密钥要能互相分发；这是 802.11r 生效的前提，不是“每台 AP 打开开关”就行。</li>
+<li><strong>统一 11k/v</strong>：打开 802.11k 邻居报告和 802.11v BSS 过渡管理，让终端在漫游前就知道目标 AP、减少扫描时间；11r 负责快速认证，11k/v 负责快速发现和决策，三者配合才顺。</li>
+<li><strong>按 ESS 规划 AP 组</strong>：不要按“施工批次”划分 AP 组，按 ESS/楼层/区域划分；同一 ESS 内配置模板统一，扩容时从模板复制而不是重新填。</li>
+<li><strong>客户端分类处理</strong>：支持 11r 的终端走 FT；不支持的终端用 OKC（机会密钥缓存）或接受完整认证，并通过 AP 布放减少跨组漫游；无线话机优先固定 5G、靠近 AP。</li>
+<li><strong>验收加漫游测试</strong>：上线前用终端在相邻 AP 间来回走动，抓包确认 FT 认证、记录漫游时延和丢包；验收标准可以是漫游中断小于 200ms、ping 丢包不超过 1 个。</li>
+<li><strong>监控与告警</strong>：控制器侧采集漫游失败、FT 失败、R0KH 错误计数，按 AP 组聚合；跨组漫游失败率升高时提前排查，不等用户报会议卡顿。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是 <strong>两批 AP 分属不同的移动域、R0KH 标识不一致，802.11r 的 FT 认证无法跨组复用密钥，终端每次跨层漫游都退化成完整的 EAP-TLS 认证加 DHCP，耗时 3–5 秒</strong>。</p>
+<p>更深一层，是把 802.11r 当成了“每台 AP 上的一个开关”。快速漫游不是单机功能，而是一个域级能力：移动域 ID 定义了“谁和谁是一伙的”，R0KH 密钥域决定了“能不能复用之前的认证”。开关都打开、但域不一致，等于每家店都挂了“连锁”招牌，却互相不认会员卡。</p>
+<p>还有一层是建设方式留下的债。AP 分批、由不同集成商实施，配置模板没有统一，验收只测了“能连上、能上网”，没有测“走动时断多久”。静态办公场景完全正常，移动场景才暴露，问题因此藏了很久。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li>无线配置基线化：同一 ESS 的移动域、R0KH/R1KH、11k/v、安全套件全部写入模板，扩容和改造只能从模板派生。</li>
+<li>验收必须包含移动性测试：相邻 AP 间往返漫游、跨楼层漫游、不同终端类型各测一遍，记录时延和丢包。</li>
+<li>AP 组按 ESS/区域划分，不按施工批次划分；控制器上定期对比各组配置差异，发现漂移及时收敛。</li>
+<li>监控控制器漫游日志与 FT 失败计数，按 AP 组和终端类型聚合，异常升高时告警。</li>
+<li>对不支持 11r 的终端建立清单，评估 OKC、固件升级或 AP 布放优化，不把“兼容性”留给用户感知。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>802.11r 的“开”不是每台 AP 各自打开一个开关，而是所有 AP 在同一个移动域里共享同一套密钥。域不一致时，终端看起来还能漫游，实际上每次都在重新做一遍完整认证；三五秒的中断，足够让一场视频会议卡成幻灯片。把移动域、R0KH 和 11k/v 作为一套基线来管，把漫游时延纳入验收，无线网络才真正“走得动”。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/04006cb8/" >EAP-TLS 证书过期：全公司 802.1X 掉线</a></li>
+<li><a class="link" href="/posts/4561423f/" >802.1X 认证后终端拿不到 IP 的排查</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/802.11r/">802.11r</a>
+        
+            <a href="/tags/%E5%BF%AB%E9%80%9F%E6%BC%AB%E6%B8%B8/">快速漫游</a>
+        
+            <a href="/tags/%E7%A7%BB%E5%8A%A8%E5%9F%9F/">移动域</a>
+        
+            <a href="/tags/r0kh/">R0KH</a>
+        
+            <a href="/tags/802.1x/">802.1X</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/4561423f/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">802.1X 认证后终端拿不到 IP 的排查</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/04006cb8/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">EAP-TLS 证书过期：全公司 802.1X 掉线</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
