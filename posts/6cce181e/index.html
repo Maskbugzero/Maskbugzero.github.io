@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="外部扫描流量触发 journald 日志风暴，RateLimit 配置错误使刷盘速度超过磁盘承载，根分区被写满。修正参数并补监控后恢复。">
-<title>journald RateLimit 配错拖垮根分区</title>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="服务崩溃循环与外部扫描流量两类触发都把根分区写满：默认 RateLimit 过宽、SystemMaxUse 为空、单文件无轮转。显式硬配额、收紧限速并前置日志聚合后根治。">
+<title>journald 默认配置失守：两类风暴灌满根分区</title>
 
 
 <link rel="canonical" href="https://blog.5772447.xyz/posts/6cce181e/">
@@ -12,13 +12,13 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="journald RateLimit 配错拖垮根分区">
-<meta property='og:description' content="外部扫描流量触发 journald 日志风暴，RateLimit 配置错误使刷盘速度超过磁盘承载，根分区被写满。修正参数并补监控后恢复。">
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="journald 默认配置失守：两类风暴灌满根分区">
+<meta property='og:description' content="服务崩溃循环与外部扫描流量两类触发都把根分区写满：默认 RateLimit 过宽、SystemMaxUse 为空、单文件无轮转。显式硬配额、收紧限速并前置日志聚合后根治。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/6cce181e/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='journald' /><meta property='article:tag' content='RateLimit' /><meta property='article:tag' content='日志风暴' /><meta property='article:tag' content='根分区写满' /><meta property='article:tag' content='systemd' /><meta property='article:tag' content='日志轮转' /><meta property='article:published_time' content='2026-09-08T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-08T07:00:00&#43;08:00'/>
-<meta name="twitter:title" content="journald RateLimit 配错拖垮根分区">
-<meta name="twitter:description" content="外部扫描流量触发 journald 日志风暴，RateLimit 配置错误使刷盘速度超过磁盘承载，根分区被写满。修正参数并补监控后恢复。">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='journald' /><meta property='article:tag' content='RateLimit' /><meta property='article:tag' content='日志风暴' /><meta property='article:tag' content='根分区写满' /><meta property='article:tag' content='systemd' /><meta property='article:published_time' content='2026-09-08T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-14T17:30:00&#43;08:00'/>
+<meta name="twitter:title" content="journald 默认配置失守：两类风暴灌满根分区">
+<meta name="twitter:description" content="服务崩溃循环与外部扫描流量两类触发都把根分区写满：默认 RateLimit 过宽、SystemMaxUse 为空、单文件无轮转。显式硬配额、收紧限速并前置日志聚合后根治。">
     <link rel="shortcut icon" href="/img/favicon.png" />
 
     </head>
@@ -226,17 +226,18 @@
     <li><a href="#故障现象">故障现象</a></li>
     <li><a href="#排查过程">排查过程</a>
       <ul>
-        <li><a href="#步骤-1定位日志堆积源头">步骤 1：定位日志堆积源头</a></li>
-        <li><a href="#步骤-2分析-ratelimit-配置">步骤 2：分析 RateLimit 配置</a></li>
-        <li><a href="#步骤-3确认日志来源与内容">步骤 3：确认日志来源与内容</a></li>
-        <li><a href="#步骤-4复现日志风暴">步骤 4：复现日志风暴</a></li>
+        <li><a href="#共同点journal-目录独占根分区">共同点：journal 目录独占根分区</a></li>
+        <li><a href="#场景一a-机服务崩溃循环">场景一（A 机）：服务崩溃循环</a></li>
+        <li><a href="#场景二b-机外部扫描流量">场景二（B 机）：外部扫描流量</a></li>
+        <li><a href="#复现验证">复现验证</a></li>
       </ul>
     </li>
     <li><a href="#解决方案">解决方案</a>
       <ul>
-        <li><a href="#立即止血不重启">立即止血（不重启）</a></li>
-        <li><a href="#根治配置持久化">根治配置（持久化）</a></li>
-        <li><a href="#配套监控与告警">配套监控与告警</a></li>
+        <li><a href="#紧急止血">紧急止血</a></li>
+        <li><a href="#根治配置统一基线drop-in-下发">根治配置（统一基线，drop-in 下发）</a></li>
+        <li><a href="#服务侧">服务侧</a></li>
+        <li><a href="#监控与验证">监控与验证</a></li>
       </ul>
     </li>
     <li><a href="#根因分析">根因分析</a></li>
@@ -274,12 +275,12 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/posts/6cce181e/">journald RateLimit 配错拖垮根分区</a>
+            <a href="/posts/6cce181e/">journald 默认配置失守：两类风暴灌满根分区</a>
         </h2>
     
         
         <h3 class="article-subtitle">
-            外部扫描流量触发 journald 日志风暴，RateLimit 配置错误使刷盘速度超过磁盘承载，根分区被写满。修正参数并补监控后恢复。
+            服务崩溃循环与外部扫描流量两类触发都把根分区写满：默认 RateLimit 过宽、SystemMaxUse 为空、单文件无轮转。显式硬配额、收紧限速并前置日志聚合后根治。
         </h3>
         
     </div>
@@ -317,7 +318,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 7 分钟
+                        阅读时长: 6 分钟
                     </time>
                 
             </div>
@@ -348,17 +349,18 @@
     <li><a href="#故障现象">故障现象</a></li>
     <li><a href="#排查过程">排查过程</a>
       <ul>
-        <li><a href="#步骤-1定位日志堆积源头">步骤 1：定位日志堆积源头</a></li>
-        <li><a href="#步骤-2分析-ratelimit-配置">步骤 2：分析 RateLimit 配置</a></li>
-        <li><a href="#步骤-3确认日志来源与内容">步骤 3：确认日志来源与内容</a></li>
-        <li><a href="#步骤-4复现日志风暴">步骤 4：复现日志风暴</a></li>
+        <li><a href="#共同点journal-目录独占根分区">共同点：journal 目录独占根分区</a></li>
+        <li><a href="#场景一a-机服务崩溃循环">场景一（A 机）：服务崩溃循环</a></li>
+        <li><a href="#场景二b-机外部扫描流量">场景二（B 机）：外部扫描流量</a></li>
+        <li><a href="#复现验证">复现验证</a></li>
       </ul>
     </li>
     <li><a href="#解决方案">解决方案</a>
       <ul>
-        <li><a href="#立即止血不重启">立即止血（不重启）</a></li>
-        <li><a href="#根治配置持久化">根治配置（持久化）</a></li>
-        <li><a href="#配套监控与告警">配套监控与告警</a></li>
+        <li><a href="#紧急止血">紧急止血</a></li>
+        <li><a href="#根治配置统一基线drop-in-下发">根治配置（统一基线，drop-in 下发）</a></li>
+        <li><a href="#服务侧">服务侧</a></li>
+        <li><a href="#监控与验证">监控与验证</a></li>
       </ul>
     </li>
     <li><a href="#根因分析">根因分析</a></li>
@@ -375,299 +377,95 @@
     <section class="article-content">
     
     
-    
-    <blockquote>
-        <p><strong>与姊妹篇的区别</strong>：本案例的触发源是<strong>外部扫描流量</strong>（UFW BLOCK + sshd 失败登录）灌满 journal，且发生在<strong>监控采集节点</strong>上；另一篇《<a class="link" href="/posts/2ebdb79b/" >堵住 journald 日志风暴：一次根分区写满的定位与根治</a>》的触发源是<strong>服务崩溃循环</strong>（<code>Restart=always</code> + <code>RestartSec=1</code>），宿主是<strong>堡垒机</strong>。两者的表象（根分区写满、journalctl 卡死）与根治方向（journald 硬配额 + 轮转）一致，但<strong>定位路径完全不同</strong>：前者查 RateLimit 与外部流量来源，后者查 unit 重启策略。建议两篇对照阅读。</p>
-
-    </blockquote>
-<h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
-</h2><p>2026 年 9 月初，公司在 DC 域控服务器（Windows Server 2022 + Hyper-V 虚拟化）上部署一套基于 Debian 12 的监控与日志采集节点，用于集中收集 PVS 服务器与无盘终端的运行日志与性能指标。系统上线后前两周运行平稳，journald 默认配置（RateLimitIntervalSec=30s、RateLimitBurst=10000）被认为「足够宽松」。</p>
-<p>9 月 7 日凌晨 03:12 开始，监控大盘突然出现大量「node down」告警，SSH 登录延迟剧增，部分服务开始 OOM。运维值班同学通过 IPMI 远程控制台发现根分区使用率已达 100%，journalctl -f 刷屏输出，系统进入只读模式无法写入任何文件。紧急重启后服务逐步恢复，但根分区使用率在 10 分钟内再次冲顶，呈现典型的「日志风暴」特征。</p>
-<p>本次故障波及范围：监控节点本身 + 通过该节点上报的 3 台 PVS 服务器（间接影响 200+ 无盘终端的性能数据采集）。故障持续约 47 分钟，业务影响面为「监控盲区 + 性能数据丢失」。</p>
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>两个月内，同一类故障发生了两次。9 月 1 日凌晨，堡垒机根分区写满：journalctl 卡死、systemctl 全部超时、Web 登录 502，只能靠 IPMI 进单用户模式救援。一周后的 9 月 7 日凌晨，一台刚上线一周的监控采集节点以同样的方式倒下，还连带 3 台 PVS 服务器的日志上报中断。</p>
+<p>两台机器系统不同（Rocky 9.4 与 Debian 12），部署时间和用途都不同，但 journald 都是默认配置，也都「从没出过事」。触发源不同——一个是服务崩溃循环，一个是外部扫描流量——结局却完全一样：日志把根分区吃光。</p>
 <h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
-</h2><ol>
-<li><strong>根分区瞬间写满</strong>：<code>df -h /</code> 显示 <code>/dev/mapper/vg-root</code> 使用率从 68% → 100%（用时 8 分钟），可用空间从 12 GB → 0。</li>
-<li><strong>journalctl 刷屏</strong>：<code>journalctl -f</code> 输出频率超过每秒 200 行，主要为 <code>kernel: [UFW BLOCK]</code> 与 <code>sshd[xxxx]: Failed password for invalid user</code>（疑似外部扫描）。</li>
-<li><strong>RateLimit 告警</strong>：<code>journalctl --since &quot;1 hour ago&quot; | grep -i &quot;rate limit&quot;</code> 出现大量 <code>journal: Suppressed X messages from Y</code> 提示，说明 RateLimit 已触发但仍无法抑制刷盘。</li>
-<li><strong>服务雪崩</strong>：<code>systemctl list-units --failed</code> 显示 <code>node-exporter</code>、<code>promtail</code>、<code>sshd</code> 相继失败，根因是 <code>No space left on device</code> 导致 journal 无法写入，进而触发 systemd 服务启动失败。</li>
-<li><strong>磁盘 I/O 飙升</strong>：<code>iostat -x 1</code> 显示 <code>sda</code> 的 <code>%util</code> 长期维持在 95% 以上，<code>await</code> 从 12 ms → 380 ms，确认是「写盘速度远超磁盘能力」。</li>
-</ol>
+</h2><p>两台机器的表象高度一致：</p>
+<ul>
+<li>根分区 100%：A 机 48G/48G，B 机 8 分钟内从 12GB 可用直接归零。</li>
+<li>journalctl 卡死或刷屏：A 机执行任何 journalctl 命令无响应；B 机 <code>journalctl -f</code> 每秒输出 200 行以上。</li>
+<li>systemctl 全部超时，服务因 <code>No space left on device</code> 相继失败；B 机一度进入只读模式。</li>
+<li>A 机堡垒机 Web 登录 502；B 机连带 200 多台无盘终端的性能数据采集中断。</li>
+<li>都只影响本机，排除共享存储与全局变更。</li>
+</ul>
+<p>差异在日志来源：A 机是自研 Agent 崩溃循环，每秒数百行 traceback；B 机是外部扫描流量，日志以 <code>kernel: UFW BLOCK</code> 和 <code>sshd: Failed password</code> 为主。</p>
 <h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
-</h2><h3 id="步骤-1定位日志堆积源头"><a href="#%e6%ad%a5%e9%aa%a4-1%e5%ae%9a%e4%bd%8d%e6%97%a5%e5%bf%97%e5%a0%86%e7%a7%af%e6%ba%90%e5%a4%b4" class="header-anchor"></a>步骤 1：定位日志堆积源头
-</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
-<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
-</span></code></pre></td>
-<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 查看 journal 日志目录大小</span>
-</span></span><span style="display:flex;"><span>du -sh /var/log/journal/*
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># 结果：/var/log/journal/xxxx  47G（异常！）</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>默认情况下 journald 采用 <code>Storage=auto</code>：<strong>若 <code>/var/log/journal</code> 目录存在就持久化到磁盘，否则退回内存（volatile）</strong>。判定依据是目录是否存在，<strong>与剩余空间无关</strong>——所以本次故障中磁盘被日志本身吃光后，journald 并不会因此自动切换到内存。</p>
-<p>真正与空间有关的开关是 <code>SystemMaxUse</code>（默认取其所在文件系统的 10%）与 <code>SystemKeepFree</code>（默认 15%）。本例中 <code>SystemMaxUse</code> 与 <code>SystemKeepFree</code> 均为<strong>空值</strong>，等于接受默认比例；而 47 GB 的日志已经远超默认上限本该触发自动回收——问题在于活跃 journal 文件的写入速度远快于回收速度，且单文件没有 <code>MaxFileSec</code> 约束，回收来不及释放。</p>
-<h3 id="步骤-2分析-ratelimit-配置"><a href="#%e6%ad%a5%e9%aa%a4-2%e5%88%86%e6%9e%90-ratelimit-%e9%85%8d%e7%bd%ae" class="header-anchor"></a>步骤 2：分析 RateLimit 配置
-</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
-<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
-</span></code></pre></td>
-<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>journalctl --disk-usage
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># Archived and active journals take up 47.2G in the file system.</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>cat /etc/systemd/journald.conf | grep -E <span style="color:#e6db74">&#34;RateLimit|Storage|SystemMax&#34;</span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># RateLimitIntervalSec=30s</span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># RateLimitBurst=10000</span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># Storage=auto</span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># SystemMaxUse=</span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># SystemKeepFree=</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>关键发现</strong>：</p>
-<ul>
-<li><code>RateLimitBurst=10000</code> 看似很大，但在「每秒 200 行」的刷屏场景下，30 秒内实际产生的日志量远超 10000 条。</li>
-<li><code>RateLimitIntervalSec=30s</code> 意味着每 30 秒才重置一次计数器，攻击/扫描流量在 30 秒内持续产生日志，RateLimit 形同虚设。</li>
-<li><code>SystemMaxUse=</code> 为空，journald 默认按「根分区 10%」计算上限（约 12 GB），但实际已写满 47 GB，说明「日志轮转/清理策略未生效」。</li>
-</ul>
-<h3 id="步骤-3确认日志来源与内容"><a href="#%e6%ad%a5%e9%aa%a4-3%e7%a1%ae%e8%ae%a4%e6%97%a5%e5%bf%97%e6%9d%a5%e6%ba%90%e4%b8%8e%e5%86%85%e5%ae%b9" class="header-anchor"></a>步骤 3：确认日志来源与内容
-</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
-<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
-</span></code></pre></td>
-<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>journalctl --since <span style="color:#e6db74">&#34;2026-09-07 02:00:00&#34;</span> --until <span style="color:#e6db74">&#34;2026-09-07 04:00:00&#34;</span> <span style="color:#ae81ff">\
-</span></span></span><span style="display:flex;"><span>  | awk <span style="color:#e6db74">&#39;{print $5}&#39;</span> | sort | uniq -c | sort -rn | head -20
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># 结果：</span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e">#  1240000 kernel:</span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e">#   312000 sshd[xxxx]:</span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e">#    89000 CRON[xxxx]:</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>日志内容以 <code>UFW BLOCK</code>（防火墙拦截记录）与 <code>sshd Failed password</code> 为主，属于「外部扫描 + 内部日志未聚合」导致的「日志放大攻击」。</p>
-<h3 id="步骤-4复现日志风暴"><a href="#%e6%ad%a5%e9%aa%a4-4%e5%a4%8d%e7%8e%b0%e6%97%a5%e5%bf%97%e9%a3%8e%e6%9a%b4" class="header-anchor"></a>步骤 4：复现日志风暴
-</h3><p>在测试环境模拟 <code>journalctl</code> 高频写入：</p>
-<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
-<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
-</span></code></pre></td>
-<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 模拟每秒 300 行日志</span>
-</span></span><span style="display:flex;"><span>python3 -c <span style="color:#e6db74">&#34;
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">import time, subprocess
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">for i in range(300):
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    subprocess.run([&#39;logger&#39;, f&#39;test log line {i}&#39;])
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    time.sleep(0.003)
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">&#34;</span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># 观察 journal 日志目录增长速度</span>
-</span></span><span style="display:flex;"><span>watch -n1 <span style="color:#e6db74">&#39;du -sh /var/log/journal/*&#39;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>复现结果：30 秒内写入 1.2 GB 日志，确认「磁盘 I/O 能力（约 80 MB/s）远低于日志产生速度」。</p>
+</h2><h3 id="共同点journal-目录独占根分区"><a href="#%e5%85%b1%e5%90%8c%e7%82%b9journal-%e7%9b%ae%e5%bd%95%e7%8b%ac%e5%8d%a0%e6%a0%b9%e5%88%86%e5%8c%ba" class="header-anchor"></a>共同点：journal 目录独占根分区
+</h3><p><code>du -sh /var/log/journal/*</code> 显示 48G 与 47G。这里要先弄清 journald 的三个语义：</p>
+<ol>
+<li><strong><code>Storage=auto</code></strong> 只看 <code>/var/log/journal</code> 目录是否存在——存在即持久化，与剩余空间无关，磁盘被日志吃光也不会退回内存。</li>
+<li><strong><code>SystemMaxUse</code>/<code>SystemKeepFree</code> 为空</strong>时按「所在文件系统 10%/15%」计算上限，但活跃文件的写入速度远快于回收速度。</li>
+<li><strong>单文件没有 <code>MaxFileSec</code> 约束</strong>，A 机的 <code>system.journal</code> 单文件涨到 48G。</li>
+</ol>
+<h3 id="场景一a-机服务崩溃循环"><a href="#%e5%9c%ba%e6%99%af%e4%b8%80a-%e6%9c%ba%e6%9c%8d%e5%8a%a1%e5%b4%a9%e6%ba%83%e5%be%aa%e7%8e%af" class="header-anchor"></a>场景一（A 机）：服务崩溃循环
+</h3><p><code>systemctl status</code> 显示自研 Agent 处于 <code>start-limit-hit</code>，触发源是白名单收口后审计转发接口 403。服务配置是致命组合：<code>Restart=always</code> + <code>RestartSec=1</code> + <code>StartLimitBurst=100/60s</code>，约每秒 1.7 次重启；Python 服务每次启动失败输出数十行 traceback 与 systemd 事件，折算每秒数百行日志持续灌入。</p>
+<p>这里有一个语义陷阱：把 <code>Restart=always</code> 改成 <code>on-failure</code> 并不能止血——exit 1 属于非干净退出，照样会重启。真正有效的是把 <code>RestartSec</code> 拉到 10 秒以上、把 <code>StartLimitBurst/IntervalSec</code> 收紧到「5 分钟 5 次」，让服务在触发 start-limit 后进入 failed 终态而不再刷屏。定位风暴起点也很关键：<code>journalctl --list-boots</code> 与 <code>systemctl status</code> 的时间戳对齐后，确认刷屏从白名单收口当晚 23:50 开始——把「什么时候开始」钉死，才能回溯到「当晚改了什么」，而不是泛泛地怀疑系统。</p>
+<h3 id="场景二b-机外部扫描流量"><a href="#%e5%9c%ba%e6%99%af%e4%ba%8cb-%e6%9c%ba%e5%a4%96%e9%83%a8%e6%89%ab%e6%8f%8f%e6%b5%81%e9%87%8f" class="header-anchor"></a>场景二（B 机）：外部扫描流量
+</h3><p><code>journalctl</code> 按进程统计一小时日志来源：124 万条 <code>kernel: UFW BLOCK</code>、31 万条 <code>sshd: Failed password</code>。默认 <code>RateLimitBurst=10000 / RateLimitIntervalSec=30s</code> 在每秒 200 行的持续刷写下形同虚设——计数器 30 秒才重置一次，30 秒内产生的日志早已远超上限；触发的 <code>Suppressed X messages</code> 只丢弃部分消息，剩下的照样落盘。<code>iostat</code> 显示 <code>await</code> 从 12ms 飙到 380ms，写入速度超过磁盘能力。</p>
+<h3 id="复现验证"><a href="#%e5%a4%8d%e7%8e%b0%e9%aa%8c%e8%af%81" class="header-anchor"></a>复现验证
+</h3><p>用 <code>logger</code> 以每秒 300 行灌日志，30 秒写入 1.2GB，确认瓶颈是「日志产生速度远超磁盘 I/O 与回收速度」，两台机器的机制完全一致。</p>
 <h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
-</h2><h3 id="立即止血不重启"><a href="#%e7%ab%8b%e5%8d%b3%e6%ad%a2%e8%a1%80%e4%b8%8d%e9%87%8d%e5%90%af" class="header-anchor"></a>立即止血（不重启）
-</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
-<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
-</span></code></pre></td>
-<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 1. 临时调低 RateLimit（立即生效）</span>
-</span></span><span style="display:flex;"><span>sudo mkdir -p /etc/systemd/journald.conf.d
-</span></span><span style="display:flex;"><span>sudo tee /etc/systemd/journald.conf.d/ratelimit.conf <span style="color:#e6db74">&lt;&lt;EOF
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">[Journal]
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">RateLimitIntervalSec=10s
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">RateLimitBurst=2000
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># 2. 强制触发 journal 轮转与清理</span>
-</span></span><span style="display:flex;"><span>sudo journalctl --vacuum-time<span style="color:#f92672">=</span>2d
-</span></span><span style="display:flex;"><span>sudo systemctl restart systemd-journald
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># 3. 观察磁盘使用率回落</span>
-</span></span><span style="display:flex;"><span>watch -n2 <span style="color:#e6db74">&#39;df -h /&#39;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>执行后 3 分钟内根分区使用率从 100% → 71%，服务逐步恢复。</p>
-<h3 id="根治配置持久化"><a href="#%e6%a0%b9%e6%b2%bb%e9%85%8d%e7%bd%ae%e6%8c%81%e4%b9%85%e5%8c%96" class="header-anchor"></a>根治配置（持久化）
-</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
-<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
-</span></code></pre></td>
-<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo tee /etc/systemd/journald.conf.d/optimize.conf <span style="color:#e6db74">&lt;&lt;EOF
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">[Journal]
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74"># 存储策略：限制最大使用量 + 保留天数
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">Storage=persistent
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">SystemMaxUse=4G
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">SystemKeepFree=2G
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">MaxFileSec=1day
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">MaxRetentionSec=14day
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74"># RateLimit 收紧：10 秒内最多 2000 条，超限静默丢弃
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">RateLimitIntervalSec=10s
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">RateLimitBurst=2000
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74"># 压缩 + 同步策略
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">Compress=yes
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">SyncIntervalSec=5m
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>sudo systemctl restart systemd-journald
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="配套监控与告警"><a href="#%e9%85%8d%e5%a5%97%e7%9b%91%e6%8e%a7%e4%b8%8e%e5%91%8a%e8%ad%a6" class="header-anchor"></a>配套监控与告警
-</h3><p>在 Prometheus <code>node-exporter</code> 中增加 journal 监控：</p>
-<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
-<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
-</span></code></pre></td>
-<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#75715e"># /etc/prometheus/exporters/journald.rules</span>
-</span></span><span style="display:flex;"><span>- <span style="color:#f92672">alert</span>: <span style="color:#ae81ff">JournaldDiskUsageHigh</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">expr</span>: <span style="color:#ae81ff">node_filesystem_avail_bytes{mountpoint=&#34;/&#34;} / node_filesystem_size_bytes{mountpoint=&#34;/&#34;} &lt; 0.15</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">for</span>: <span style="color:#ae81ff">5m</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">labels</span>:
-</span></span><span style="display:flex;"><span>    <span style="color:#f92672">severity</span>: <span style="color:#ae81ff">critical</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">annotations</span>:
-</span></span><span style="display:flex;"><span>    <span style="color:#f92672">summary</span>: <span style="color:#e6db74">&#34;journald 日志占用根分区超过 85%&#34;</span>
-</span></span><span style="display:flex;"><span>    <span style="color:#f92672">description</span>: <span style="color:#e6db74">&#34;当前可用空间 {{ $value | humanizePercentage }}，请检查 journald 配置&#34;</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>- <span style="color:#f92672">alert</span>: <span style="color:#ae81ff">JournaldRateLimitTriggered</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">expr</span>: <span style="color:#ae81ff">rate(journald_messages_suppressed_total[5m]) &gt; 100</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">for</span>: <span style="color:#ae81ff">2m</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">labels</span>:
-</span></span><span style="display:flex;"><span>    <span style="color:#f92672">severity</span>: <span style="color:#ae81ff">warning</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">annotations</span>:
-</span></span><span style="display:flex;"><span>    <span style="color:#f92672">summary</span>: <span style="color:#e6db74">&#34;journald RateLimit 已触发，日志被静默丢弃&#34;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
-</h2><ol>
-<li><strong>RateLimit 配置过宽</strong>：默认 <code>RateLimitBurst=10000 / 30s</code> 在「每秒 200 行」的扫描场景下完全失效，日志以 80 MB/s 的速度持续写入磁盘。</li>
-<li><strong>SystemMaxUse 为空</strong>：journald 默认按「根分区 10%」计算上限，但当日志本身吃光可用空间时，清理策略无法触发，形成「死循环」。</li>
-<li><strong>日志来源未收敛</strong>：UFW 与 sshd 日志未做聚合/限流，外部扫描流量被完整记录到 journal，导致「日志放大」。</li>
-<li><strong>磁盘 I/O 能力不足</strong>：根分区使用普通 SATA SSD（顺序写 ~120 MB/s），在「日志风暴」场景下 <code>await</code> 飙升至 380 ms，服务因无法写入 journal 而 OOM。</li>
+</h2><h3 id="紧急止血"><a href="#%e7%b4%a7%e6%80%a5%e6%ad%a2%e8%a1%80" class="header-anchor"></a>紧急止血
+</h3><ol>
+<li>停掉刷屏来源：A 机 <code>systemctl stop fortress-agent</code>；B 机用 drop-in 临时收紧限速（<code>RateLimitIntervalSec=10s</code>、<code>RateLimitBurst=2000</code>）。</li>
+<li><code>journalctl --vacuum-time=2d</code> 回收历史日志，<code>systemctl restart systemd-journald</code>。</li>
+<li>B 机 3 分钟内根分区从 100% 回落到 71%，服务逐步恢复。</li>
 </ol>
+<h3 id="根治配置统一基线drop-in-下发"><a href="#%e6%a0%b9%e6%b2%bb%e9%85%8d%e7%bd%ae%e7%bb%9f%e4%b8%80%e5%9f%ba%e7%ba%bfdrop-in-%e4%b8%8b%e5%8f%91" class="header-anchor"></a>根治配置（统一基线，drop-in 下发）
+</h3><div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ini" data-lang="ini"><span style="display:flex;"><span><span style="color:#66d9ef">[Journal]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Storage</span><span style="color:#f92672">=</span><span style="color:#e6db74">persistent</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Compress</span><span style="color:#f92672">=</span><span style="color:#e6db74">yes</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">RateLimitIntervalSec</span><span style="color:#f92672">=</span><span style="color:#e6db74">10s</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">RateLimitBurst</span><span style="color:#f92672">=</span><span style="color:#e6db74">2000</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">SystemMaxUse</span><span style="color:#f92672">=</span><span style="color:#e6db74">2G</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">SystemMaxFileSize</span><span style="color:#f92672">=</span><span style="color:#e6db74">256M</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">SystemKeepFree</span><span style="color:#f92672">=</span><span style="color:#e6db74">2G</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">MaxFileSec</span><span style="color:#f92672">=</span><span style="color:#e6db74">1day</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">MaxRetentionSec</span><span style="color:#f92672">=</span><span style="color:#e6db74">14day</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="服务侧"><a href="#%e6%9c%8d%e5%8a%a1%e4%be%a7" class="header-anchor"></a>服务侧
+</h3><ul>
+<li>重启策略基线：<code>Restart=on-failure</code> + <code>RestartSec≥10</code> + <code>StartLimitBurst=5/300s</code>；退出码规范化，非致命错误返回 0。</li>
+<li>日志聚合前置：UFW、sshd、kernel 这类高频日志交给 rsyslog/fluent-bit 送日志服务器，journald 只留关键事件；主机侧启用 fail2ban 从源头减少无效日志。</li>
+</ul>
+<h3 id="监控与验证"><a href="#%e7%9b%91%e6%8e%a7%e4%b8%8e%e9%aa%8c%e8%af%81" class="header-anchor"></a>监控与验证
+</h3><ul>
+<li>根分区可用空间低于 15%–20% 告警；<code>journalctl --disk-usage</code> 与 RateLimit 触发计数纳入监控。</li>
+<li>模拟每秒 300 行写入，确认限速生效、根分区不再增长；两台机器连续 30 天零复发。</li>
+</ul>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>直接根因是 <strong>journald 默认配置在两类高频写入场景下都不设防：RateLimit 默认值过宽、SystemMaxUse/SystemKeepFree 为空依赖比例默认、单文件无轮转约束；叠加各自的应用层缺陷——A 机 <code>Restart=always + RestartSec=1</code> 的崩溃循环、B 机扫描流量未聚合未限流——日志产生速度超过磁盘回收速度，根分区被写满后连锁触发服务失败</strong>。</p>
+<p>更深一层，是默认值被当成了基线。journald 的默认配置面向「安静的单机」，面向的是不折腾的开发机；生产服务器上任何「每秒数百行」的来源——无论是失控的崩溃循环还是公网的扫描流量——都会把这套默认值击穿。另外，<code>Storage=auto</code> 的判定只看目录存在性，磁盘写满也不会自我保护，这些语义不弄清楚，排障就会在「为什么自动清理没生效」上打转。还有一层值得记住：两台机器都是上线不久的新节点，一台是堡垒机收口的配套 Agent，一台是新建的监控采集节点。它们的共同点不是「年久失修」，而是「新上线的默认配置加上新引入的日志来源」——上线前没有任何一道门禁问过一句：这台机器最坏的日志产生速率是多少、根分区撑不撑得住？</p>
 <h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
-</h2><ol>
-<li>
-<p><strong>journald 配置基线</strong>：</p>
-<ul>
-<li>所有生产服务器必须显式设置 <code>SystemMaxUse=4G</code>、<code>RateLimitBurst=2000</code>。</li>
-<li>定期执行 <code>journalctl --vacuum-time=7d</code> 作为 cron 任务（防止配置漂移）。</li>
+</h2><ul>
+<li>全部服务器以 drop-in 显式下发 journald 基线：SystemMaxUse、RateLimit、MaxFileSec、MaxRetentionSec，禁止裸默认上线。</li>
+<li>服务重启策略基线化：<code>Restart=on-failure</code> + <code>RestartSec≥10</code> + <code>StartLimitBurst=5/300s</code>，退出码规范化纳入代码规范。</li>
+<li>日志聚合前置：高频来源送日志服务器，主机启用 fail2ban；<code>/var/log/journal</code> 评估独立挂载，避免日志拖垮根分区。</li>
+<li>监控双指标：根分区可用空间与日志增长/限速触发速率，任一异常即告警。</li>
+<li>变更验收加「journald 配置 review」与日志风暴演练：模拟高频写入，验证限速与配额真实生效。</li>
 </ul>
-</li>
-<li>
-<p><strong>日志聚合前置</strong>：</p>
-<ul>
-<li>将高频日志（UFW、sshd、kernel）通过 <code>rsyslog</code> 或 <code>fluent-bit</code> 聚合到独立日志服务器，journald 仅保留「结构化 + 关键事件」。</li>
-<li>在防火墙/主机上启用 <code>fail2ban</code> 或 <code>sshguard</code>，从源头减少无效日志产生。</li>
-</ul>
-</li>
-<li>
-<p><strong>监控与告警前置</strong>：</p>
-<ul>
-<li>增加 <code>JournaldDiskUsageHigh</code> 与 <code>JournaldRateLimitTriggered</code> 告警，提前 15 分钟发现异常。</li>
-<li>在 Grafana 中增加「journal 日志增长速率」面板，设置阈值告警。</li>
-</ul>
-</li>
-<li>
-<p><strong>变更验收 Checklist</strong>：</p>
-<ul>
-<li>新增「journald 配置 review」项：RateLimit 是否收紧？SystemMaxUse 是否显式设置？日志是否聚合？</li>
-<li>变更后执行「日志风暴演练」：模拟每秒 300 行日志，验证 RateLimit 是否生效、根分区是否写满。</li>
-</ul>
-</li>
-<li>
-<p><strong>根分区隔离</strong>：</p>
-<ul>
-<li>未来服务器部署时，将 <code>/var/log/journal</code> 单独挂载到独立 LV 或 NFS，防止日志吃光根分区导致系统只读。</li>
-</ul>
-</li>
-</ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
-</h2><p>本次故障的本质是「日志产生速度远超磁盘 I/O 能力 + RateLimit 配置过宽 + SystemMaxUse 为空」三重因素叠加，导致 journald 日志风暴吃光根分区，进而引发服务雪崩。排查过程通过 <code>du</code> 定位日志目录、<code>journalctl</code> 分析 RateLimit 配置、<code>iostat</code> 确认 I/O 瓶颈，最终通过「立即止血（vacuum + 重启 journald）」与「根治配置（SystemMaxUse=4G + RateLimitBurst=2000）」双管齐下恢复服务。</p>
-<p><strong>关键教训</strong>：</p>
-<ul>
-<li>journald 默认配置在「高频日志场景」下并不安全，必须显式收紧 RateLimit 与 SystemMaxUse。</li>
-<li>监控告警必须覆盖「日志增长速率」而非仅「磁盘使用率」，否则故障发现时已晚。</li>
-<li>变更验收 Checklist 必须包含「日志配置 review」，防止「默认配置」带来的隐性风险。</li>
-</ul>
-<p>后续将把「journald 日志风暴演练」纳入每月变更验收门禁，并更新「服务器暴露面收敛 Checklist」与「服务健康检查 Checklist」，确保同类问题不再复发。</p>
-<hr>
+</h2><p>两个场景、两台机器、两种触发，最终都落在同一套默认配置上：RateLimit 过宽、上限为空、单文件不轮转。崩溃循环和扫描流量只是两种「怎么灌水」的方式，真正的问题是桶没有盖。journald 的默认值面向安静的单机，而生产环境的日志来源从来不会安静——把限速、配额、轮转显式写下来，把高频日志送走，把增长速率监控起来，才是让根分区不再被日志淹掉的完整答案。</p>
 <h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
-</h2><p><strong>journald 日志风暴</strong></p>
-<ul>
-<li><a class="link" href="/posts/2ebdb79b/" >堵住 journald 日志风暴：一次根分区写满的定位与根治</a></li>
+</h2><ul>
+<li><a class="link" href="/posts/63250eb1/" >journald 配置被 override，日志刷爆根分区</a></li>
+<li><a class="link" href="/posts/231f5157/" >rsyslog 模板配错：日志重复写与磁盘暴涨</a></li>
 </ul>
 
 </section>
@@ -687,12 +485,22 @@
         
             <a href="/tags/systemd/">Systemd</a>
         
-            <a href="/tags/%E6%97%A5%E5%BF%97%E8%BD%AE%E8%BD%AC/">日志轮转</a>
-        
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年11月14日星期六
+        </span>
+    </section></footer>
 
 
     
@@ -709,17 +517,6 @@
     <h2 class="section-title">相关文章</h2>
     <div class="subsection-list">
         <div class="article-list--tile">
-            
-                
-<article class="">
-    <a href="/posts/2ebdb79b/">
-        
-
-        <div class="article-details">
-            <h2 class="article-title">堵住 journald 日志风暴：一次根分区写满的定位与根治</h2>
-        </div>
-    </a>
-</article>
             
                 
 <article class="">
