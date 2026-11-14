@@ -16,7 +16,7 @@
 <meta property='og:description' content="etcd 定期压缩后 WAL 仍持续增长，fsync 延迟偶发飙升，导致 API Server 间歇 5xx，根因定位到 WAL 文件过大与磁盘 I/O 抖动。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/254b9d99/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='etcd' /><meta property='article:tag' content='WAL' /><meta property='article:tag' content='API Server' /><meta property='article:tag' content='磁盘延迟' /><meta property='article:tag' content='压缩' /><meta property='article:tag' content='Kubernetes' /><meta property='article:published_time' content='2026-09-09T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-09T07:00:00&#43;08:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='etcd' /><meta property='article:tag' content='WAL' /><meta property='article:tag' content='API Server' /><meta property='article:tag' content='磁盘延迟' /><meta property='article:tag' content='压缩' /><meta property='article:tag' content='Kubernetes' /><meta property='article:published_time' content='2026-09-09T07:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-14T18:00:00&#43;08:00'/>
 <meta name="twitter:title" content="etcd 压缩后仍偶发 5xx：WAL 增长与磁盘延迟">
 <meta name="twitter:description" content="etcd 定期压缩后 WAL 仍持续增长，fsync 延迟偶发飙升，导致 API Server 间歇 5xx，根因定位到 WAL 文件过大与磁盘 I/O 抖动。">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -317,7 +317,7 @@
 
 
                     <time class="article-time--reading">
-                        阅读时长: 5 分钟
+                        阅读时长: 6 分钟
                     </time>
                 
             </div>
@@ -484,6 +484,7 @@
 </span></span></code></pre></td></tr></table>
 </div>
 </div><p>发现单个 WAL segment 在物理盘上被分配到 1843200-1875967 连续块，但相邻的另一个 segment 却散布在 1920000+ 区域，存在跨 zone 的分配。</p>
+<p>把 fsync 的行为再拆开看：WAL 的 fsync 刷的是整个活跃段文件，段内积压的未落盘数据越多，一次 fsync 要推的量就越大；压缩完成后 etcd 还会触发 defrag 与快照写盘，与业务写入三方叠加，I/O 峰值很容易超过 NVMe 的持续写带宽。</p>
 <h3 id="步骤-5复现与验证"><a href="#%e6%ad%a5%e9%aa%a4-5%e5%a4%8d%e7%8e%b0%e4%b8%8e%e9%aa%8c%e8%af%81" class="header-anchor"></a>步骤 5：复现与验证
 </h3><p>在测试环境用相同 etcd 版本（v3.5.12）与磁盘类型重放：</p>
 <ol>
@@ -576,6 +577,7 @@
 <h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
 </h2><p>根本原因是 <strong>etcd 压缩后的 WAL 重写窗口与业务高峰写入存在 I/O 竞争，且 WAL segment 默认 64MB 在高写入场景下增长过快，单个 fsync 操作需刷盘 128MB+ 数据，叠加 NVMe 盘在 zone 分配时的轻微碎片，导致 P99 延迟偶发飙升</strong>。</p>
 <p>压缩本身是正确的（<code>dbSizeInUse</code> 下降），但 WAL 清理滞后 + 磁盘未分离 + 缺少 <code>wal-keep-size</code> 限制，形成了「压缩后反而更忙」的反直觉现象。</p>
+<p>从时序上看，「压缩后反而更忙」是一条完整链条：压缩本身产生 compaction 与 defrag 的 I/O，紧跟着的快照要写整份 DB，业务写入没有停——三者叠加把盘打到 95% 以上，fsync 排队，API Server 跟着超时。这不是压缩的 bug，而是存储规划没有给压缩窗口留出 I/O 余量。</p>
 <h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
 </h2><ol>
 <li><strong>WAL 与 DB 物理分离</strong>：所有 etcd 节点必须在下次滚动重启时完成磁盘分离，预计 2026-09-15 前落地。</li>
@@ -583,6 +585,7 @@
 <li><strong>引入 etcd 版本升级窗口</strong>：计划 Q4 将 etcd 升级至 v3.5.15（含 WAL 预分配与 direct I/O 正式支持），提前在 staging 环境验证。</li>
 <li><strong>每月 WAL 健康巡检</strong>：在 <code>auto_review.py</code> 中增加 <code>etcd_wal_segment_count &gt; 12</code> 的告警项，防止 WAL 段文件无限累积。</li>
 <li><strong>变更 checklist 补充</strong>：任何涉及 etcd 存储层的变更，必须在「变更前 checklist」中增加「确认 WAL 与 DB 物理磁盘分离」「确认 wal-keep-size 已生效」两项门禁。</li>
+<li><strong>压缩窗口与业务错峰</strong>：将 auto-compaction 的触发时间调整到业务低峰，或改用手动压缩排班；压缩窗口前后 30 分钟列为观察期，高峰时段不安排压缩。</li>
 </ol>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
 </h2><p>本次故障再次印证了「etcd 压缩不是银弹」的观点：压缩解决了 DB 膨胀，但 WAL 的生命周期管理同样关键。生产环境必须把 WAL 视为独立的一等公民——物理隔离、尺寸限制、I/O 优先级、监控告警，四者缺一不可。</p>
@@ -617,7 +620,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年11月14日星期六
+        </span>
+    </section></footer>
 
 
     
