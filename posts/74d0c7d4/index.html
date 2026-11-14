@@ -16,7 +16,7 @@
 <meta property='og:description' content="客户陆续收到冒充公司域名的邮件，根因是 SPF/DKIM/DMARC 均未配置，收件方无法判断发件人真伪。梳理发信源、补 SPF 与 DKIM、DMARC 逐步收紧到 reject 后收敛。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/74d0c7d4/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='DMARC' /><meta property='article:tag' content='SPF' /><meta property='article:tag' content='DKIM' /><meta property='article:tag' content='邮件仿冒' /><meta property='article:tag' content='发件人认证' /><meta property='article:published_time' content='2026-11-07T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-07T09:00:00&#43;08:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='DMARC' /><meta property='article:tag' content='SPF' /><meta property='article:tag' content='DKIM' /><meta property='article:tag' content='邮件仿冒' /><meta property='article:tag' content='发件人认证' /><meta property='article:published_time' content='2026-11-07T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-14T15:00:00&#43;08:00'/>
 <meta name="twitter:title" content="DMARC 缺失：冒充邮件为何能直达客户？">
 <meta name="twitter:description" content="客户陆续收到冒充公司域名的邮件，根因是 SPF/DKIM/DMARC 均未配置，收件方无法判断发件人真伪。梳理发信源、补 SPF 与 DKIM、DMARC 逐步收紧到 reject 后收敛。">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -401,7 +401,7 @@
 <h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
 </h2><ul>
 <li><a class="link" href="/posts/0a8ea846/" >钓鱼邮件致终端感染远控木马：溯源与处置</a></li>
-<li><a class="link" href="/posts/37a35d29/" >堵住 NTLM 中继：LLMNR 投毒致域管理员凭据被窃</a></li>
+<li><a class="link" href="/posts/37a35d29/" >LLMNR 投毒：域管理员凭据被 NTLM 中继窃取</a></li>
 </ul>
 
 </section>
@@ -424,7 +424,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年11月14日星期六
+        </span>
+    </section></footer>
 
 
     

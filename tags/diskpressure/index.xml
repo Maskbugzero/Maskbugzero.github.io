@@ -5,7 +5,7 @@
         <description>Recent content in DiskPressure on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Mon, 13 Jul 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/diskpressure/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Sat, 14 Nov 2026 15:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/diskpressure/index.xml" rel="self" type="application/rss+xml" /><item>
             <title>磁盘压力触发驱逐：日志与镜像未治理致 Pod 批量被删</title>
             <link>https://blog.5772447.xyz/posts/c0337851/</link>
             <pubDate>Mon, 13 Jul 2026 00:00:00 +0000</pubDate>

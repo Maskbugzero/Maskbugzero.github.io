@@ -16,7 +16,7 @@
 <meta property='og:description' content="员工按钓鱼邮件提示输入设备码后，邮箱被异地读取，根因是租户允许 OAuth 设备码流程且未加条件访问限制。禁用设备码流、吊销令牌并补 CA 策略后收口。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/878c4ce3/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='设备码钓鱼' /><meta property='article:tag' content='OAuth' /><meta property='article:tag' content='条件访问' /><meta property='article:tag' content='令牌吊销' /><meta property='article:tag' content='MFA 绕过' /><meta property='article:published_time' content='2026-11-14T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-14T09:00:00&#43;08:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='设备码钓鱼' /><meta property='article:tag' content='OAuth' /><meta property='article:tag' content='条件访问' /><meta property='article:tag' content='令牌吊销' /><meta property='article:tag' content='MFA 绕过' /><meta property='article:published_time' content='2026-11-14T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-14T15:00:00&#43;08:00'/>
 <meta name="twitter:title" content="设备码流程未禁用：攻击者绕过 MFA 读邮箱">
 <meta name="twitter:description" content="员工按钓鱼邮件提示输入设备码后，邮箱被异地读取，根因是租户允许 OAuth 设备码流程且未加条件访问限制。禁用设备码流、吊销令牌并补 CA 策略后收口。">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -400,7 +400,7 @@
 </h2><p>MFA 挡得住“猜密码的人”，挡不住“把令牌领走的人”。设备码流程本来是为输入受限设备设计的便利通道，租户默认全开、又没有条件访问约束时，它就变成了一条绕过 MFA 的侧门：用户认证是真的，MFA 是真的，只有令牌落到了 attacker 手里。把不用的认证流关掉、把令牌签发纳入监控、把“输入代码”列为钓鱼话术，身份安全才不只停留在登录框上。</p>
 <h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
 </h2><ul>
-<li><a class="link" href="/posts/24188414/" >一次 MFA 疲劳攻击导致管理员账号被接管的排查记录</a></li>
+<li><a class="link" href="/posts/24188414/" >一次MFA疲劳攻击导致管理员账号被接管的排查记录</a></li>
 <li><a class="link" href="/posts/a801fe3b/" >员工域账号异地登录：告警研判与紧急锁定处置</a></li>
 </ul>
 
@@ -424,7 +424,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年11月14日星期六
+        </span>
+    </section></footer>
 
 
     
