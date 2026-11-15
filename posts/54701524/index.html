@@ -16,7 +16,7 @@
 <meta property='og:description' content="自研业务埋点上线后 Prometheus 频繁 OOM 重启、TSDB 写放大拖满磁盘。根因是新指标携带用户 ID 等高基数标签，series 数失控。治理标签并设基数上限后恢复。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/54701524/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Prometheus' /><meta property='article:tag' content='TSDB' /><meta property='article:tag' content='高基数' /><meta property='article:tag' content='监控运维' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2026-09-29T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-29T09:00:00&#43;08:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Prometheus' /><meta property='article:tag' content='TSDB' /><meta property='article:tag' content='高基数' /><meta property='article:tag' content='监控运维' /><meta property='article:tag' content='服务运维' /><meta property='article:published_time' content='2026-09-29T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-14T19:30:00&#43;08:00'/>
 <meta name="twitter:title" content="Prometheus 指标基数爆炸：TSDB 内存与磁盘双满">
 <meta name="twitter:description" content="自研业务埋点上线后 Prometheus 频繁 OOM 重启、TSDB 写放大拖满磁盘。根因是新指标携带用户 ID 等高基数标签，series 数失控。治理标签并设基数上限后恢复。">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -389,7 +389,7 @@
 <li>用户级追溯需求一律路由到日志平台，监控指标只做聚合维度——这条边界写进埋点开发规范。</li>
 </ul>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
-</h2><p>这次故障最值得记下的不是&quot;高基数标签会炸&quot;这个知识点，而是它揭示的监控平台脆弱性模型:Prometheus 的成本不是随&quot;监控对象数&quot;线性增长，而是随&quot;标签取值组合数&quot;增长，一个看起来无害的埋点字段就能把成本模型改写。监控平台自身被拖垮时，全站告警同时失明——这九天的盲飞窗口提醒我们，监控系统的容量与防线，值得用和生产服务同等级别的方式去管理。</p>
+</h2><p>这次故障最值得记下的不是&quot;高基数标签会炸&quot;这个知识点，而是它揭示的监控平台脆弱性模型:Prometheus 的成本不是随&quot;监控对象数&quot;线性增长，而是随&quot;标签取值组合数&quot;增长，一个看起来无害的埋点字段就能把成本模型改写。监控平台自身被拖垮时，全站告警同时失明——这九天的盲飞窗口提醒我们，监控系统的容量与防线，值得用和生产服务同等级别的方式去管理。落到操作层面有三件事值得马上做：埋点评审把「标签基数」作为准入项、relabel 阶段丢弃无价值的高基数标签、为单条 series 与 active series 总量设置硬上限并告警；同时把本次根因沉淀成巡检项，每周导出 top 10 高基数指标，趋势一抬手就能看见。再在 Grafana 上线「series 新增速率」看板，把这个数字纳入发布评审——基数问题就从爆发式事故，变成一条可以提前预告的斜率，斜率异常当天就能追到具体指标。</p>
 <h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
 </h2><ul>
 <li><a class="link" href="/posts/0468b1c8/" >Prometheus 告警风暴：邮件与企微通道被拖垮</a></li>
@@ -417,7 +417,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年11月14日星期六
+        </span>
+    </section></footer>
 
 
     

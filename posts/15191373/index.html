@@ -16,7 +16,7 @@
 <meta property='og:description' content="12 台无线 AP 与 8 路摄像头接入同一台 PoE 交换机后批量重启。根因是 PoE 功率预算被低估，重算功率并分级供电后恢复。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/15191373/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='PoE' /><meta property='article:tag' content='无线AP' /><meta property='article:tag' content='功率预算' /><meta property='article:tag' content='交换机' /><meta property='article:tag' content='网络运维' /><meta property='article:published_time' content='2026-10-06T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-10-06T09:00:00&#43;08:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='PoE' /><meta property='article:tag' content='无线AP' /><meta property='article:tag' content='功率预算' /><meta property='article:tag' content='交换机' /><meta property='article:tag' content='网络运维' /><meta property='article:published_time' content='2026-10-06T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-14T19:00:00&#43;08:00'/>
 <meta name="twitter:title" content="PoE 供电不足致 AP 批量重启：功率预算被低估">
 <meta name="twitter:description" content="12 台无线 AP 与 8 路摄像头接入同一台 PoE 交换机后批量重启。根因是 PoE 功率预算被低估，重算功率并分级供电后恢复。">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -389,7 +389,7 @@
 <li>功率占用率指标纳入网管采集，80% 告警、90% 严重。</li>
 </ul>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
-</h2><p>PoE 功率问题和机房 UPS 容量问题是同一类错误的两张面孔：按&quot;铭牌最低值&quot;而不是&quot;实际协商上限&quot;做容量规划。370W 听起来很大，但 12 台 at 级 AP 就是 360W 起步——数字不会骗人，被跳过的只是那一步乘法。这次还暴露了告警体系的盲区：数据一直在，指标没定义，等于没有。容量类资源(功率、IP 池、存储、license)的占用率，都应该成为一等公民的监控项。</p>
+</h2><p>PoE 功率问题和机房 UPS 容量问题是同一类错误的两张面孔：按&quot;铭牌最低值&quot;而不是&quot;实际协商上限&quot;做容量规划。370W 听起来很大，但 12 台 at 级 AP 就是 360W 起步——数字不会骗人，被跳过的只是那一步乘法。这次还暴露了告警体系的盲区：数据一直在，指标没定义，等于没有。容量类资源(功率、IP 池、存储、license)的占用率，都应该成为一等公民的监控项。把两个动作固化下来：部署前用 LLDP 协商值重算功率预算、监控里加上每端口实时功耗——下一个 370W 就不会再靠猜。</p>
 <h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
 </h2><ul>
 <li><a class="link" href="/posts/460eac0e/" >AP 信道干扰：高层半层网络瘫痪</a></li>
@@ -417,7 +417,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年11月14日星期六
+        </span>
+    </section></footer>
 
 
     

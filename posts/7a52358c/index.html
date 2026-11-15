@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="日志校验正则含嵌套量词，一条超长失配日志触发灾难性回溯，单核 CPU 被打满、解析接口超时；重写为非回溯写法并限制输入长度后恢复。">
+<title>正则回溯爆炸：一条日志把 CPU 打满</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/7a52358c/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="正则回溯爆炸：一条日志把 CPU 打满">
+<meta property='og:description' content="日志校验正则含嵌套量词，一条超长失配日志触发灾难性回溯，单核 CPU 被打满、解析接口超时；重写为非回溯写法并限制输入长度后恢复。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/7a52358c/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='正则表达式' /><meta property='article:tag' content='灾难性回溯' /><meta property='article:tag' content='ReDoS' /><meta property='article:tag' content='CPU 打满' /><meta property='article:tag' content='Python' /><meta property='article:published_time' content='2026-11-15T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-15T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="正则回溯爆炸：一条日志把 CPU 打满">
+<meta name="twitter:description" content="日志校验正则含嵌套量词，一条超长失配日志触发灾难性回溯，单核 CPU 被打满、解析接口超时；重写为非回溯写法并限制输入长度后恢复。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/python/" style="background-color: hsl(31, 60%, 84%); color: hsl(31, 60%, 15%);">
+                Python
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/7a52358c/">正则回溯爆炸：一条日志把 CPU 打满</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            日志校验正则含嵌套量词，一条超长失配日志触发灾难性回溯，单核 CPU 被打满、解析接口超时；重写为非回溯写法并限制输入长度后恢复。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-11-15T09:00:00&#43;08:00'>2026年11月15日星期日</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>日志清洗服务负责消费上游应用日志，按行解析成结构化字段后写入分析库，高峰期每天要处理几百万行。解析逻辑是一组随业务迭代不断追加的正则规则，每行依次匹配，命中哪条就按哪条的格式提取。</p>
+<p>上周为「单行 kv 校验」新增了一条规则：整行只允许由单词和空白组成。规则写成了 <code>^(\w+\s?)+$</code>，上线前拿正常日志样本测过，单行匹配都在毫秒级，评审时也就按「简单正则」放行了。当时没人觉得这条规则会有什么问题——它只做校验，不提取、不落盘。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>一个工作日的上午，监控开始告警：日志解析接口的 P99 从 20ms 一路涨到 30s 以上，超时率飙升。登录机器看，gunicorn 的 5 个 worker 里有 3 个把单核 CPU 跑到了 100%，内存平稳、磁盘 IO 正常，负载均衡把流量切给剩下两个 worker，几分钟后它们也相继打满。</p>
+<p>更让人困惑的是进程状态：健康检查连续失败，但日志里没有 traceback，只有 worker 超时后被 SIGKILL 的记录。重启进程能短暂恢复，十来分钟后又复现，像是某个环节在「算死」，而不是卡在等锁、等网络、等磁盘。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>先做排除。内存曲线平稳，排除泄漏；磁盘 IO 几乎为零，排除落盘阻塞；连接数正常，排除连接池耗尽（此前 requests 连接池那篇的教训）；线程栈没有锁等待，排除 fork 继承锁那类死锁。</p>
+<p>然后 <code>top -H -p &lt;pid&gt;</code> 看线程级占用：只有一个线程跑满单核，其余线程在排队。结合 GIL 的特性，这更像「一个线程在 C 层长跑」，把同进程其他线程一起拖住，而不是多线程各自变慢。</p>
+<p>接着 <code>py-spy dump --pid &lt;pid&gt;</code> 抓栈，栈顶停在 <code>re.match()</code>，没有进入任何业务函数——时间花在正则引擎里，不是业务逻辑或网络 IO。再用 <code>strace -c -p &lt;pid&gt;</code> 观察，几乎没有系统调用，确认是纯用户态 CPU 计算。</p>
+<p>给解析入口加临时日志，记录每行长度与耗时。规律很快出来：耗时与行长强相关，而且只在「以合法字符开头、以非法字符结尾」的超长行上出现。当天上游新增了一种导出的二进制字段，base64 字符串末尾带着 <code>#</code>，单行长度 8KB。</p>
+<p>本机复现，旧正则 <code>^(\w+\s?)+$</code> 匹配「n 个 a 再补一个 #」：</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>输入</th>
+          <th>旧正则耗时</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>14 个 a + #</td>
+          <td>1.5 ms</td>
+      </tr>
+      <tr>
+          <td>18 个 a + #</td>
+          <td>25.7 ms</td>
+      </tr>
+      <tr>
+          <td>22 个 a + #</td>
+          <td>440 ms</td>
+      </tr>
+      <tr>
+          <td>24 个 a + #</td>
+          <td>1.8 s</td>
+      </tr>
+  </tbody>
+</table></div>
+<p>每多一个字符，耗时约翻一倍；24 个字符已经要 1.8 秒，8KB 的失配行在旧正则下是天文数字。换成重写后的 <code>^\w+(?:\s+\w+)*$</code>，同样 8KB 的失配行只要 0.39ms，合法行 0.07ms。</p>
+<p>回溯为什么是 2 的幂：<code>(\w+\s?)+</code> 的外层 <code>+</code> 与内层 <code>\w+</code> 在匹配范围上重叠，同一段 a 可以被切成 1+1+…、2+1+…、3+2+… 等任意组合；结尾那个 <code>#</code> 让所有组合都在最后一步失败，引擎必须把所有切分方式逐一试完才能判定不匹配，路径数随长度指数增长。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>重写正则，消除嵌套量词</strong>：改为 <code>^\w+(?:\s+\w+)*$</code>。词与词之间只允许「一段空白 + 一个词」这一种切分方式，没有重叠量词，回溯路径退化为线性。</li>
+<li><strong>能不用正则就不用</strong>：这行校验本身并不需要整行正则，<code>line.strip()</code> 后按空白 split、再逐 token 校验字符集即可；单 token 校验用 <code>re.fullmatch(r'\w+', tok)</code> 也安全，关键是不要套整行嵌套量词。</li>
+<li><strong>输入长度上限</strong>：解析前 <code>len(line) &gt; 4096</code> 的行直接截断或跳过并计数；上游采集端同步限制单行长度，做双层兜底。</li>
+<li><strong>超时兜底</strong>：关键路径改用第三方 <code>regex</code> 模块，<code>regex.match(pattern, line, timeout=0.05)</code> 超时抛异常，按坏行处理并告警；标准库 <code>re</code> 没有超时参数。</li>
+<li><strong>灰度验证</strong>：新规则先用「正常短行 + 超长合法行 + 超长失配行」三组语料跑计时断言，单次匹配超过 50ms 不允许上线。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><ul>
+<li><strong>回溯型引擎的语义</strong>：正则匹配是「尝试—失败—回退」，嵌套或重叠量词会把失败路径的数量指数级放大；输入越接近失配边界，代价越高。</li>
+<li><strong>输入长度无界</strong>：任何处理外部输入的逐行入口，都必须假设单行可能很长。长度本身就是一种资源，和内存、连接数一样需要配额。</li>
+<li><strong>测试语料偏置</strong>：上线前只测了正常短行，既没有失配样本，也没有长度边界样本，最危险的分支被完整漏掉。</li>
+<li><strong>GIL 放大影响面</strong>：<code>re</code> 的匹配在 C 层执行并持有 GIL，一个线程卡住会让同进程其他线程一并排队，所以外部看到的是整个 worker 失联，而不是单个请求变慢。</li>
+<li><strong>监控盲区</strong>：只监控了接口耗时和错误率，没有「单请求 CPU 时间」指标，事后只能从进程 CPU 反推原因。</li>
+</ul>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li><strong>正则评审清单</strong>：禁止 <code>(A+)+</code>、<code>(A|A)*</code>、<code>(.*)*</code> 这类嵌套/重叠量词；能用字符串方法解决的不用正则；复杂解析拆成多步，每步保持线性。</li>
+<li><strong>CI 性能回归</strong>：每条新增正则跑三组样本（正常 1KB、超长合法 8KB、超长失配 8KB），单次匹配超过 50ms 直接判定失败。</li>
+<li><strong>输入侧双保险</strong>：网关限制请求体大小，日志采集端按 4KB 截断单行，应用层再做一次长度校验。</li>
+<li><strong>监控补齐</strong>：新增「单请求 CPU 时间 P99」与「worker 超时重启次数」告警；正则匹配按规则名做耗时埋点。</li>
+<li><strong>依赖兜底</strong>：所有处理不可信输入的匹配统一走带 <code>timeout</code> 的 <code>regex</code> 模块，标准库 <code>re</code> 只用于纯内部、已知长度的字符串。</li>
+<li><strong>知识沉淀</strong>：把那张「每加一个字符耗时翻倍」的实验表放进团队 wiki，作为正则评审的反面教材。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>这次故障的教训不是「正则很危险」这么笼统，而是：正则的耗时不是输入长度的线性函数，嵌套量词会让它变成指数函数。线上代码只要处理外部输入，就必须同时约束「正则复杂度」和「输入长度」，两个约束缺一个，都可能在某个普通的工作日被一条 8KB 的日志打穿。</p>
+<p>事后回看，上线前那组只含正常样本的测试，恰好把最危险的分支完完整整地漏掉了。测试语料的设计，和正则本身一样值得认真对待。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/15f31637/" >Popen 未读管道：备份脚本卡在 64KB</a></li>
+<li><a class="link" href="/posts/1112ecdc/" >fork 撞上多线程：子进程启动即死锁</a></li>
+<li><a class="link" href="/posts/6bd44f06/" >email.py 撞名标准库：smtplib 报错</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/">正则表达式</a>
+        
+            <a href="/tags/%E7%81%BE%E9%9A%BE%E6%80%A7%E5%9B%9E%E6%BA%AF/">灾难性回溯</a>
+        
+            <a href="/tags/redos/">ReDoS</a>
+        
+            <a href="/tags/cpu-%E6%89%93%E6%BB%A1/">CPU 打满</a>
+        
+            <a href="/tags/python/">Python</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/e4d28a85/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">图表对象未释放：报表服务内存只涨不降</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/d5be3b26/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">requests 连接池耗尽：ConnectionError</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/5ae9b088/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">微软Bing站长使用Python自动提交URL</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/92e57a39/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">自用续火花的QQ机器人</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>

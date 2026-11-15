@@ -16,7 +16,7 @@
 <meta property='og:description' content="两节点 Hyper-V 群集实时迁移间歇失败并回滚，虚拟机短暂卡顿。根因是巡检脚本重建 vSwitch 后仅单侧节点同步 QoS 带宽策略，迁移校验失败。统一配置并加基线核对后恢复。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/3ac611a9/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Hyper-V' /><meta property='article:tag' content='实时迁移' /><meta property='article:tag' content='vSwitch' /><meta property='article:tag' content='配置漂移' /><meta property='article:tag' content='故障群集' /><meta property='article:tag' content='桌面运维' /><meta property='article:published_time' content='2026-09-28T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-28T09:00:00&#43;08:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Hyper-V' /><meta property='article:tag' content='实时迁移' /><meta property='article:tag' content='vSwitch' /><meta property='article:tag' content='配置漂移' /><meta property='article:tag' content='故障群集' /><meta property='article:tag' content='桌面运维' /><meta property='article:published_time' content='2026-09-28T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-14T19:00:00&#43;08:00'/>
 <meta name="twitter:title" content="Hyper-V 虚拟机实时迁移失败：vSwitch 配置漂移">
 <meta name="twitter:description" content="两节点 Hyper-V 群集实时迁移间歇失败并回滚，虚拟机短暂卡顿。根因是巡检脚本重建 vSwitch 后仅单侧节点同步 QoS 带宽策略，迁移校验失败。统一配置并加基线核对后恢复。">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -390,7 +390,7 @@
 <li>固件升级、系统变更类巡检上线前，先在测试群集验证脚本副作用。</li>
 </ul>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
-</h2><p>这次的故障链没有一帧是&quot;坏&quot;的：每次单点操作都合理，每项健康检查都通过，但单侧变更加上对称性无人校验，就让两台本该镜像的宿主机悄悄分道扬镳。双节点群集的运维纪律核心只有一句话：<strong>凡是一侧能做的变更，另一侧要么同步做了，要么显式记录为什么不做</strong>——&ldquo;没碰到&quot;永远不该是配置不一致的理由。</p>
+</h2><p>这次的故障链没有一帧是&quot;坏&quot;的：每次单点操作都合理，每项健康检查都通过，但单侧变更加上对称性无人校验，就让两台本该镜像的宿主机悄悄分道扬镳。双节点群集的运维纪律核心只有一句话：<strong>凡是一侧能做的变更，另一侧要么同步做了，要么显式记录为什么不做</strong>——&ldquo;没碰到&quot;永远不该是配置不一致的理由。把这句话落进工具链：用脚本定期导出两侧 vSwitch 与 VMNetworkAdapter 参数做 diff，diff 非空即告警，纪律就有了执行载体。</p>
 <h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
 </h2><ul>
 <li><a class="link" href="/posts/3d6d8adf/" >VHDX 异常膨胀：40GB 差异磁盘残留</a></li>
@@ -419,7 +419,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年11月14日星期六
+        </span>
+    </section></footer>
 
 
     

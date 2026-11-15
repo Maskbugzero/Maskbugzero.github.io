@@ -16,7 +16,7 @@
 <meta property='og:description' content="ConfigMap 更新后应用仍读到旧配置，重启 Pod 才生效。根因是 subPath 挂载不跟随热更新，改挂载方式并规范发布流程后解决。">
 <meta property='og:url' content='https://blog.5772447.xyz/posts/bc709666/'>
 <meta property='og:site_name' content='Zero Day Notes'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='K8s' /><meta property='article:tag' content='ConfigMap' /><meta property='article:tag' content='subPath' /><meta property='article:tag' content='配置管理' /><meta property='article:tag' content='容器运维' /><meta property='article:published_time' content='2026-09-30T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-09-30T09:00:00&#43;08:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='K8s' /><meta property='article:tag' content='ConfigMap' /><meta property='article:tag' content='subPath' /><meta property='article:tag' content='配置管理' /><meta property='article:tag' content='容器运维' /><meta property='article:published_time' content='2026-09-30T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-14T19:00:00&#43;08:00'/>
 <meta name="twitter:title" content="ConfigMap 更新不生效：subPath 挂载陷阱">
 <meta name="twitter:description" content="ConfigMap 更新后应用仍读到旧配置，重启 Pod 才生效。根因是 subPath 挂载不跟随热更新，改挂载方式并规范发布流程后解决。">
     <link rel="shortcut icon" href="/img/favicon.png" />
@@ -404,7 +404,7 @@
 <li>大促封网期的配置变更走 refresh 通道，提前演练。</li>
 </ul>
 <h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
-</h2><p>这起&quot;配置改不动&quot;的背后是两个各自独立、叠加后才致命的机制细节：subPath 挂载不联动更新，应用不重读文件。单看哪一个都有人知道，但组合起来形成的失效模式没有人在事前推演过。K8s 的配置体系有三条完全不同的生效路径(目录挂载热更新、subPath 静态快照、环境变量仅创建时注入)，团队对&quot;哪条路通、哪条路不通&quot;的模糊认知，最终都会在&quot;最不能重启的那个夜晚&quot;连本带利地讨回去。</p>
+</h2><p>这起&quot;配置改不动&quot;的背后是两个各自独立、叠加后才致命的机制细节：subPath 挂载不联动更新，应用不重读文件。单看哪一个都有人知道，但组合起来形成的失效模式没有人在事前推演过。K8s 的配置体系有三条完全不同的生效路径(目录挂载热更新、subPath 静态快照、环境变量仅创建时注入)，团队对&quot;哪条路通、哪条路不通&quot;的模糊认知，最终都会在&quot;最不能重启的那个夜晚&quot;连本带利地讨回去。把这三条路径写成一页对照表放进部署手册，并对热点 ConfigMap 增加 checksum 注解触发滚动重启——当「哪条路通」必须靠记忆而不是文档时，就说明资产化欠账了；这份对照表应随集群版本一起维护，每次大版本升级前复核一遍。</p>
 <h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
 </h2><ul>
 <li><a class="link" href="/posts/425c7ac4/" >CoreDNS 配置漂移致服务发现间歇性失败</a></li>
@@ -432,7 +432,19 @@
     </section>
 
 
-    </footer>
+    <section class="article-lastmod inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026年11月14日星期六
+        </span>
+    </section></footer>
 
 
     
