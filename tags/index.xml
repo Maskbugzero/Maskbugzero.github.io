@@ -5,7 +5,37 @@
         <description>Recent content in 标签 on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Tue, 17 Nov 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Wed, 18 Nov 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>内网穿透</title>
+            <link>https://blog.5772447.xyz/tags/%E5%86%85%E7%BD%91%E7%A9%BF%E9%80%8F/</link>
+            <pubDate>Wed, 18 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%86%85%E7%BD%91%E7%A9%BF%E9%80%8F/</guid>
+            <description></description>
+        </item><item>
+            <title>公网 IP</title>
+            <link>https://blog.5772447.xyz/tags/%E5%85%AC%E7%BD%91-ip/</link>
+            <pubDate>Wed, 18 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%85%AC%E7%BD%91-ip/</guid>
+            <description></description>
+        </item><item>
+            <title>端口映射</title>
+            <link>https://blog.5772447.xyz/tags/%E7%AB%AF%E5%8F%A3%E6%98%A0%E5%B0%84/</link>
+            <pubDate>Wed, 18 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E7%AB%AF%E5%8F%A3%E6%98%A0%E5%B0%84/</guid>
+            <description></description>
+        </item><item>
+            <title>CGNAT</title>
+            <link>https://blog.5772447.xyz/tags/cgnat/</link>
+            <pubDate>Wed, 18 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/cgnat/</guid>
+            <description></description>
+        </item><item>
+            <title>100.64.0.0/10</title>
+            <link>https://blog.5772447.xyz/tags/100.64.0.0/10/</link>
+            <pubDate>Wed, 18 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/100.64.0.0/10/</guid>
+            <description></description>
+        </item><item>
             <title>源 IP 保留</title>
             <link>https://blog.5772447.xyz/tags/%E6%BA%90-ip-%E4%BF%9D%E7%95%99/</link>
             <pubDate>Tue, 17 Nov 2026 09:00:00 +0800</pubDate>
@@ -502,12 +532,6 @@
             <link>https://blog.5772447.xyz/tags/mfa-%E7%BB%95%E8%BF%87/</link>
             <pubDate>Sat, 14 Nov 2026 09:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/mfa-%E7%BB%95%E8%BF%87/</guid>
-            <description></description>
-        </item><item>
-            <title>端口映射</title>
-            <link>https://blog.5772447.xyz/tags/%E7%AB%AF%E5%8F%A3%E6%98%A0%E5%B0%84/</link>
-            <pubDate>Fri, 13 Nov 2026 09:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/%E7%AB%AF%E5%8F%A3%E6%98%A0%E5%B0%84/</guid>
             <description></description>
         </item><item>
             <title>单向语音</title>
