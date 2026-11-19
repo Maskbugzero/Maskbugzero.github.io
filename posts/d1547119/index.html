@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Zabbix 的 housekeeper 被关闭后历史表无限增长，库涨到 1.6TB、前端与告警变慢、备份窗口拉长；改用按天分区并调整保留策略后回落到 240GB。">
+<title>历史表无人清理：Zabbix 库涨到 1.6TB</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/d1547119/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="历史表无人清理：Zabbix 库涨到 1.6TB">
+<meta property='og:description' content="Zabbix 的 housekeeper 被关闭后历史表无限增长，库涨到 1.6TB、前端与告警变慢、备份窗口拉长；改用按天分区并调整保留策略后回落到 240GB。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/d1547119/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Zabbix' /><meta property='article:tag' content='housekeeper' /><meta property='article:tag' content='分区表' /><meta property='article:tag' content='历史数据膨胀' /><meta property='article:tag' content='MySQL' /><meta property='article:published_time' content='2026-11-19T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-19T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="历史表无人清理：Zabbix 库涨到 1.6TB">
+<meta name="twitter:description" content="Zabbix 的 housekeeper 被关闭后历史表无限增长，库涨到 1.6TB、前端与告警变慢、备份窗口拉长；改用按天分区并调整保留策略后回落到 240GB。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E6%9C%8D%E5%8A%A1%E8%BF%90%E7%BB%B4/" style="background-color: hsl(191, 60%, 84%); color: hsl(191, 60%, 15%);">
+                服务运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/d1547119/">历史表无人清理：Zabbix 库涨到 1.6TB</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            Zabbix 的 housekeeper 被关闭后历史表无限增长，库涨到 1.6TB、前端与告警变慢、备份窗口拉长；改用按天分区并调整保留策略后回落到 240GB。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-11-19T09:00:00&#43;08:00'>2026年11月19日星期四</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>公司自建 Zabbix 监控，MySQL 单机存储，规模大约 800 台主机、2 万个监控项，绝大多数是 1 分钟采集一次。按这个量算，每天新增的历史数据接近三千万行，一年就是百亿级。</p>
+<p>这套系统跑了两年多，中间换过两任负责人。交接时只传了「账号密码、模板在哪、告警怎么加」，没有人提过历史数据的清理策略。数据库磁盘从最初的 500GB 一路扩到 2TB，大家默认「监控数据本来就占地方」。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>先是前端变慢：查看最新数据要转圈十几秒，趋势图偶尔直接超时；接着告警开始延迟，明明故障已经恢复，恢复通知却晚十几分钟才发出来；最后连日常备份都出问题，MySQL 全量备份从两小时拉长到十小时，备份窗口直接压到业务高峰。</p>
+<p>数据库磁盘使用率到了 95%，监控平台自己先告警了。值班同事上去看，<code>/var/lib/mysql</code> 目录 1.6TB，磁盘 IO 长期跑满。那段时间几乎每天都有「监控页面打不开」的工单，重启前端容器只能缓解几分钟，治标不治本。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步看磁盘占用分布：<code>du -sh</code> 逐层下钻，<code>zabbix</code> 库的 <code>history_uint</code> 单个文件就超过 800GB，<code>history</code>、<code>history_str</code>、<code>trends_uint</code> 加起来又是几百 GB。历史系列表合计超过两百亿行。顺带发现 binlog 目录也涨到了上百 GB，清理和备份都被它一起拖累。</p>
+<p>第二步核对清理机制。<code>zabbix_server.conf</code> 里 <code>HousekeepingFrequency=0</code>——这个值表示关闭 housekeeper，历史数据只进不出。继续翻配置备份和变更记录，发现两年前数据库压力大时，有人把它改成了 0「先缓解一下」，之后再也没有打开。</p>
+<p>第三步算账：就算现在把 housekeeper 打开，默认 <code>MaxHousekeeperDelete=5000</code>、每小时执行一次，一天最多删 12 万行；而每天新写入近 3000 万行，清理能力只有写入量的千分之四，永远追不上。何况对一张几百 GB 的表做行级 DELETE，本身就会产生大量 undo 和 binlog，删除速度还会越删越慢。</p>
+<p>第四步确认影响面：前端最新数据查询、趋势图区间查询都落在这些超大表上；Zabbix Server 写历史变慢，告警计算跟着排队；备份时间长也是因为表太大。三个症状指向同一个根因。</p>
+<p>最后核对保留策略：监控项模板里 history 保留 90 天、trends 保留 365 天，配置本身没写错，错在没人执行。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><p>行级 DELETE 清理两百亿行不现实，最终采用分区表方案：</p>
+<ol>
+<li><strong>按时间分区</strong>：把历史系列表改为按天分区（trends 按月），建新表并导入最近 90 天数据，切换表名；旧表确认无误后删除，磁盘空间随之释放。</li>
+<li><strong>用 DROP PARTITION 代替 DELETE</strong>：每天由 MySQL 事件调度器删除过期分区，秒级完成，不产生大量 undo/binlog，也不再需要 housekeeper（分区表场景下 <code>HousekeepingFrequency=0</code> 是官方推荐配置）。</li>
+<li><strong>调整保留策略</strong>：原始 history 保留 30 天，trends 保留 365 天；对不需要秒级精度的监控项，采集间隔从 1 分钟放宽到 5 分钟，写入量直接降到原来的五分之一。</li>
+<li><strong>重建与回收</strong>：<code>ibd</code> 文件在 DELETE 后不会自动缩小，删表重建后才真正释放空间；整个切换在维护窗口内完成，前端和 Server 停机约 40 分钟。</li>
+<li><strong>验证</strong>：库大小从 1.6TB 降到 240GB；前端最新数据 P95 回到 1 秒以内；备份时间从 10 小时降到 1.5 小时；磁盘使用率 12%。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>Zabbix 的 housekeeper 是后台清理进程，负责按保留期删除历史数据。<code>HousekeepingFrequency=0</code> 会把它整个关掉，历史数据从此只增不减。当初为了「减轻数据库压力」关掉它，短期确实少了一些删除开销，长期却把数据库推到了容量悬崖。</p>
+<p>第二个问题是清理能力与写入量不匹配。默认每小时最多删 5000 行，是面向小规模部署的保守值；在每天三千万行的写入面前，这个速率毫无意义。即使 housekeeper 一直开着，也追不上增长。</p>
+<p>第三个问题是监控系统自身缺少容量监控。磁盘使用率、最大表行数、清理进度这些指标一直没人看，直到平台自己告警才被发现。更隐蔽的是，housekeeper 被关闭这件事本身没有任何告警，配置项安安静静躺在 <code>zabbix_server.conf</code> 里，只有专门去翻才会发现。监控工具也需要被监控，这句话说起来像段子，出事时一点都不好笑。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li><strong>交接清单</strong>：把 <code>HousekeepingFrequency</code>、保留期、最大表大小写进监控平台交接文档，交接时逐项核对，不允许「口头传承」。</li>
+<li><strong>容量规划</strong>：按「监控项数 × 采集频率」估算日增量，提前设计分区方案；新建 Zabbix 一律直接上分区表，不依赖 housekeeper 行删。</li>
+<li><strong>自身监控</strong>：把数据库大小、历史表行数、分区创建/删除是否成功、备份耗时纳入监控和告警。</li>
+<li><strong>保留策略评审</strong>：按业务需要定 history/trends 保留期，定期清理无用监控项和过密采集间隔，减少源头写入。</li>
+<li><strong>变更留痕</strong>：任何「先关掉缓解一下」的临时配置，必须登记恢复时间和负责人，禁止无声消失。</li>
+<li><strong>备份演练</strong>：定期验证备份恢复时长，避免备份窗口悄悄膨胀到影响业务。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>监控平台是最容易被「装完即忘」的系统：它盯着全公司，却没人盯着它。housekeeper 被关掉不是一瞬间的事故，而是两年里每天三千万行的复利。</p>
+<p>这类问题的解法不在故障现场，而在容量规划：要么让清理能力跟得上写入，要么用分区把「删除」变成「丢文件」。前者靠参数，后者靠设计，后者更可靠。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/5a4d227b/" >WSUS 数据库从未清理：客户端更新检查超时</a></li>
+<li><a class="link" href="/posts/54701524/" >Prometheus 指标基数爆炸：TSDB 内存与磁盘双满</a></li>
+<li><a class="link" href="/posts/231f5157/" >rsyslog 模板配错：日志重复写与磁盘暴涨</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/zabbix/">Zabbix</a>
+        
+            <a href="/tags/housekeeper/">Housekeeper</a>
+        
+            <a href="/tags/%E5%88%86%E5%8C%BA%E8%A1%A8/">分区表</a>
+        
+            <a href="/tags/%E5%8E%86%E5%8F%B2%E6%95%B0%E6%8D%AE%E8%86%A8%E8%83%80/">历史数据膨胀</a>
+        
+            <a href="/tags/mysql/">MySQL</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/42f874e5/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">系统时区一改，凌晨备份为何跑进业务高峰拖垮 MySQL？</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/ecbe2757/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">MySQL 大事务：主从延迟与订单数据不一致</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/7154a8f0/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">MySQL 自动备份静默失败：缺失一周备份</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/ff0ff270/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">MySQL 主从延迟致报表数据差异过大：定位与修复</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
