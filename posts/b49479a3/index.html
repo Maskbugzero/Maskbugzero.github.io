@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="新传感器 SPI 读 ID 全是 0xFF，根因是驱动模板沿用了旧器件的 CPHA 设置，主机与从机采样沿不一致；改回模式 0 并加上电 ID 自检后恢复。">
+<title>读回全是 0xFF：SPI 模式配反了</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/b49479a3/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="读回全是 0xFF：SPI 模式配反了">
+<meta property='og:description' content="新传感器 SPI 读 ID 全是 0xFF，根因是驱动模板沿用了旧器件的 CPHA 设置，主机与从机采样沿不一致；改回模式 0 并加上电 ID 自检后恢复。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/b49479a3/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='SPI' /><meta property='article:tag' content='CPHA' /><meta property='article:tag' content='逻辑分析仪' /><meta property='article:tag' content='STM32' /><meta property='article:tag' content='传感器' /><meta property='article:published_time' content='2026-11-21T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-21T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="读回全是 0xFF：SPI 模式配反了">
+<meta name="twitter:description" content="新传感器 SPI 读 ID 全是 0xFF，根因是驱动模板沿用了旧器件的 CPHA 设置，主机与从机采样沿不一致；改回模式 0 并加上电 ID 自检后恢复。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/" style="background-color: hsl(156, 60%, 84%); color: hsl(156, 60%, 15%);">
+                嵌入式
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/b49479a3/">读回全是 0xFF：SPI 模式配反了</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            新传感器 SPI 读 ID 全是 0xFF，根因是驱动模板沿用了旧器件的 CPHA 设置，主机与从机采样沿不一致；改回模式 0 并加上电 ID 自检后恢复。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-11-21T09:00:00&#43;08:00'>2026年11月21日星期六</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>新项目的主控还是 STM32F4 + FreeRTOS，SPI4 上挂一颗压力传感器。驱动直接从旧项目的 SPI Flash 驱动改过来：时钟、片选、DMA 收发都是现成的，只把命令字节和寄存器地址换成了新器件的定义。</p>
+<p>硬件是打样回来的板子，飞线、上拉电阻、片选都按参考设计做的。按以往经验，SPI 这种总线只要线接对了、时钟给上，读个 ID 寄存器应该是最简单的一步。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>上电读传感器的 WHO_AM_I 寄存器，返回值一直是 <code>0xFF</code>。这个值太有迷惑性了：MISO 空闲被上拉是高电平，读出来全 1，第一反应就是「从机没响应」——没供电、片选没拉低、MISO 断线、上拉电阻缺失，甚至怀疑芯片没焊好。</p>
+<p>把 SPI 时钟从 8MHz 降到 1MHz 后，偶尔能读到正确的 ID，但十次里错七八次；降到 500kHz，成功率更高一些，但仍然不稳定。同样的驱动换到另一块板子上（挂的是另一颗 SPI 从机），读 ID 一切正常，说明 MCU 的 SPI 外设本身没坏。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>先按「从机没响应」的方向查硬件：万用表量供电和地，正常；示波器看片选，拉低时序正常；看 SCK，8MHz 方波干净，没有明显过冲；看 MISO，有跳变，不是一直被拉高。上拉电阻 10k 也在位。硬件层面看不出问题。</p>
+<p>再用逻辑分析仪抓一次完整读事务，同时用两种方式解码。按主机当前配置（CPOL=0、CPHA=1）解码，MISO 上全是 <code>0xFF</code>；把解码器改成 CPOL=0、CPHA=0 重新解一遍，立刻显示出正确的 ID 和状态字节。同一段波形，两种解码方式结果完全不同——这说明从机是按「第一个时钟沿采样」工作的，而主机是在「第二个时钟沿」采样的。</p>
+<p>回头看驱动初始化，<code>CLKPhase</code> 配的是 <code>SPI_PHASE_2EDGE</code>，也就是 CPHA=1，SPI 模式 1。旧项目的 SPI Flash 正好要求模式 1，模板原样抄过来时没改。新传感器的数据手册写得很清楚：CPOL=0、CPHA=0，模式 0。</p>
+<p>到这里「低速偶尔能读对」也解释通了：主机在第二个边沿采样，而从机在第一个边沿更新数据，采样点正好压在数据跳变的边缘。低速时信号有足够时间稳定，采样点歪打正着落在有效窗口里；8MHz 时建立/保持时间不够，采到的就是错位的数据，全 <code>0xFF</code> 只是错位后的表象。</p>
+<p>顺手确认了片选时序：CS 拉低到第一个时钟沿有足够建立时间，最后一个时钟沿到 CS 拉高也满足保持时间；软件 NSS 控制正常。这部分不是主因。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>改回模式 0</strong>：<code>CLKPhase</code> 改为 <code>SPI_PHASE_1EDGE</code>，<code>CLKPolarity</code> 保持 <code>SPI_POLARITY_LOW</code>，重新初始化 SPI4。</li>
+<li><strong>参数化驱动模板</strong>：把 SPI 模式、时钟频率、CS 建立/保持时间做成配置项，新器件接入时按数据手册填写，不再手工改初始化代码。</li>
+<li><strong>加上电自检</strong>：初始化后先读 WHO_AM_I，与数据手册的固定值比对，不匹配就报错并停止后续采集，避免带着错位数据继续跑。</li>
+<li><strong>验证</strong>：8MHz 下连续读 10 万次 ID 与状态寄存器，零错误；再把时钟拉到 12MHz 做余量测试，数据仍稳定；断电重启 50 次，自检全部通过。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>SPI 有四种模式，由 CPOL（时钟空闲电平）和 CPHA（采样边沿）两个参数组合决定。主机和从机必须使用同一种模式，否则采样的边沿对不上，读回的数据就会整体错位。这是 SPI 与 I2C 最大的不同：I2C 有起始条件、地址和 ACK 可以把关，SPI 没有任何协议层的纠错，配错了只会得到「看起来像数据」的错误值。</p>
+<p><code>0xFF</code> 之所以容易误导，是因为它同时是「MISO 浮空/从机无响应」的典型读数。硬件排查全部正常之后，就应该怀疑时序，而不是继续在接线和焊接上打转。这次真正破案的是逻辑分析仪的同波形双模式解码——同一段波形，模式 1 解出全 FF，模式 0 解出正确 ID，主机与从机的差异一目了然。</p>
+<p>「低速偶尔能通、高速全错」是采样边沿错位的典型特征，说明问题在建立/保持裕量，而不是逻辑电平。把它当成「信号质量不好」去换线、加电容，方向就偏了。另外 SPI 没有 I2C 那样的时钟拉伸与应答机制，主机节奏就是总线节奏，模式错位时连重试都救不回来。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li><strong>新器件接入清单</strong>：SPI 模式（CPOL/CPHA）、时钟上限、CS 建立/保持时间、MISO 上拉要求，四项逐条对照数据手册确认后再写代码。</li>
+<li><strong>驱动模板参数化</strong>：模式、频率、片选方式全部走配置，禁止在新项目里直接复制旧初始化代码后手工改参数。</li>
+<li><strong>上电 ID 自检</strong>：所有带 ID 寄存器的器件都在初始化时读一次并比对，失败就停在明确错误上，不带病运行。</li>
+<li><strong>时序图评审</strong>：驱动 review 时对着数据手册的时序图逐项核对，而不是只看代码能不能编译、能不能读到数。</li>
+<li><strong>调试工具常备</strong>：逻辑分析仪解码 SPI 时，同时保存主机配置和从机配置两种解码结果，是定位模式问题最快的方法。</li>
+<li><strong>低速验证不等于通过</strong>：低速能通只能说明电气上连上了，不能说明时序正确；功能验证必须在标称最高频率下做批量读。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>SPI 的四种模式没有「默认值」，只有「从机要求值」。驱动模板是给旧器件写的，换器件不核对手册，模式配反了就会得到一屏 0xFF，而 0xFF 又恰好长得像「线没接好」。</p>
+<p>这次排查真正的转折点，是意识到「全 FF」不一定是没数据，也可能是采样错了位置。先怀疑时序、再看电平，顺序反过来，往往要在硬件上白折腾很久。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/65c53b2c/" >I2C 总线被拉死：传感器读数全部超时</a></li>
+<li><a class="link" href="/posts/10494fcc/" >RS485 总线干扰致采集网关每隔几小时集体掉线</a></li>
+<li><a class="link" href="/posts/f1e2bed0/" >二值信号量当锁：高优先级任务为何被饿死？</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/spi/">SPI</a>
+        
+            <a href="/tags/cpha/">CPHA</a>
+        
+            <a href="/tags/%E9%80%BB%E8%BE%91%E5%88%86%E6%9E%90%E4%BB%AA/">逻辑分析仪</a>
+        
+            <a href="/tags/stm32/">STM32</a>
+        
+            <a href="/tags/%E4%BC%A0%E6%84%9F%E5%99%A8/">传感器</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/3e0783d8/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">任务栈溢出致随机死机：HardFault 现场取证</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/c4f182e1/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">基于STM32的家庭气象站</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/f691db9d/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">基于STM32的空气质量检测仪</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
