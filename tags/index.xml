@@ -5,7 +5,37 @@
         <description>Recent content in 标签 on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Sat, 21 Nov 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Sun, 22 Nov 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>序列化</title>
+            <link>https://blog.5772447.xyz/tags/%E5%BA%8F%E5%88%97%E5%8C%96/</link>
+            <pubDate>Sun, 22 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E5%BA%8F%E5%88%97%E5%8C%96/</guid>
+            <description></description>
+        </item><item>
+            <title>缓存兼容</title>
+            <link>https://blog.5772447.xyz/tags/%E7%BC%93%E5%AD%98%E5%85%BC%E5%AE%B9/</link>
+            <pubDate>Sun, 22 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E7%BC%93%E5%AD%98%E5%85%BC%E5%AE%B9/</guid>
+            <description></description>
+        </item><item>
+            <title>版本升级</title>
+            <link>https://blog.5772447.xyz/tags/%E7%89%88%E6%9C%AC%E5%8D%87%E7%BA%A7/</link>
+            <pubDate>Sun, 22 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E7%89%88%E6%9C%AC%E5%8D%87%E7%BA%A7/</guid>
+            <description></description>
+        </item><item>
+            <title>Python</title>
+            <link>https://blog.5772447.xyz/tags/python/</link>
+            <pubDate>Sun, 22 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/python/</guid>
+            <description></description>
+        </item><item>
+            <title>Pickle</title>
+            <link>https://blog.5772447.xyz/tags/pickle/</link>
+            <pubDate>Sun, 22 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/pickle/</guid>
+            <description></description>
+        </item><item>
             <title>逻辑分析仪</title>
             <link>https://blog.5772447.xyz/tags/%E9%80%BB%E8%BE%91%E5%88%86%E6%9E%90%E4%BB%AA/</link>
             <pubDate>Sat, 21 Nov 2026 09:00:00 +0800</pubDate>
@@ -202,12 +232,6 @@
             <link>https://blog.5772447.xyz/tags/redos/</link>
             <pubDate>Sun, 15 Nov 2026 09:00:00 +0800</pubDate>
             <guid>https://blog.5772447.xyz/tags/redos/</guid>
-            <description></description>
-        </item><item>
-            <title>Python</title>
-            <link>https://blog.5772447.xyz/tags/python/</link>
-            <pubDate>Sun, 15 Nov 2026 09:00:00 +0800</pubDate>
-            <guid>https://blog.5772447.xyz/tags/python/</guid>
             <description></description>
         </item><item>
             <title>CPU 打满</title>
