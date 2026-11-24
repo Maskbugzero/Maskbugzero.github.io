@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="发版策略改成 maxUnavailable 100% + maxSurge 0，上线先删光 Pod 再重建，发版窗口 5xx 一分多钟；改回 maxUnavailable 0 后恢复。">
+<title>maxUnavailable 100%：发版时服务归零</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/e5401fe9/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="maxUnavailable 100%：发版时服务归零">
+<meta property='og:description' content="发版策略改成 maxUnavailable 100% + maxSurge 0，上线先删光 Pod 再重建，发版窗口 5xx 一分多钟；改回 maxUnavailable 0 后恢复。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/e5401fe9/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Deployment' /><meta property='article:tag' content='滚动更新' /><meta property='article:tag' content='maxUnavailable' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='发版' /><meta property='article:published_time' content='2026-11-24T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-24T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="maxUnavailable 100%：发版时服务归零">
+<meta name="twitter:description" content="发版策略改成 maxUnavailable 100% + maxSurge 0，上线先删光 Pod 再重建，发版窗口 5xx 一分多钟；改回 maxUnavailable 0 后恢复。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%B9%E5%99%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(274, 60%, 84%); color: hsl(274, 60%, 15%);">
+                容器运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/e5401fe9/">maxUnavailable 100%：发版时服务归零</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            发版策略改成 maxUnavailable 100% &#43; maxSurge 0，上线先删光 Pod 再重建，发版窗口 5xx 一分多钟；改回 maxUnavailable 0 后恢复。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-11-24T09:00:00&#43;08:00'>2026年11月24日星期二</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>订单服务跑在 Kubernetes 上，Deployment 10 个副本，滚动更新参数一直是默认的 <code>maxSurge: 25%</code>、<code>maxUnavailable: 25%</code>。按这个配置，一次发版大约三分钟，期间最多两个副本不可用，用户基本无感。</p>
+<p>后来有同事嫌发版慢，把参数改成了 <code>maxSurge: 0</code>、<code>maxUnavailable: 100%</code>：先一次性停掉所有旧 Pod，再一次性拉起所有新 Pod，发版时间从三分钟缩到四十秒。这个改动在测试环境跑了几次，没发现问题，就随着一次普通提交进了主干。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>生产发版窗口在下班后，第一次用新策略上线，监控立刻告警：接口 5xx 比例在几十秒内冲到 100%，持续一分多钟才回落。用户侧表现为页面打不开、App 请求报错；但发版本身「成功」——<code>kubectl rollout status</code> 显示完成，Pod 也全部 Running。</p>
+<p>查服务端点的数量曲线，问题一目了然：发版开始后，Endpoints 从 10 个直接掉到 0，过了大约七十秒才开始回升，最后回到 10。也就是说，在那七十秒里，这个服务在集群里是「不存在」的。</p>
+<p>更早的几次发版其实也有苗头：发版时段错误率偶尔冒个小尖，但流量低、没人注意；这次正好赶上另一个业务在做批量调用，把窗口放大成了事故。当时值班同时在处理另一个告警，第一反应是流量突增，直到把发版记录和错误曲线叠在一起，才确认两条线是同一件事。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步对齐时间线：5xx 曲线的起点和 Deployment 的更新时间完全重合，范围只在这一个服务，排除依赖故障和节点问题。</p>
+<p>第二步看滚动过程：<code>kubectl get pods</code> 显示旧 ReplicaSet 被一次性缩到 0，新 ReplicaSet 从 0 扩到 10；Pod 事件里能看到调度、拉镜像、容器创建、就绪探针通过，整个链路大约七十秒。这段时间里旧 Pod 已经全没了，新 Pod 还没就绪，Endpoints 自然是 0。</p>
+<p>第三步查配置：<code>kubectl get deployment order-api -o yaml</code> 里写着 <code>maxSurge: 0</code>、<code>maxUnavailable: 100%</code>。到这一步根因明确——不是探针配错，不是调度失败，也不是 HPA 把副本缩了，而是发版策略本身允许「全部副本同时不可用」。</p>
+<p>第四步做对照实验：在预发环境用同样配置发版，同时压测接口，5xx 比例 100%，持续约 70 秒；把 <code>maxUnavailable</code> 改成 0、<code>maxSurge</code> 改成 1 后重新发版，压测零错误，Endpoints 始终保持在 10 个以上。</p>
+<p>第五步复盘变更来源：git 历史显示参数是在一次「加速发版」的提交里改的，评审时大家只看了流水线耗时，没有人检查可用性影响；测试环境流量低，也没有发版期间的压测用例。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>改回保护性参数</strong>：<code>maxUnavailable: 0</code>、<code>maxSurge: 1</code>（或按副本比例设 25%）。更新期间先建新 Pod，就绪后再删旧 Pod，容量不减。</li>
+<li><strong>就绪探针兜底</strong>：readiness 探针要能真实反映「可以接流量」，包括依赖连接、缓存预热；新 Pod 未就绪前不进 Endpoints。</li>
+<li><strong>加策略校验</strong>：在 CI 里对 Deployment 清单做断言，禁止 <code>maxUnavailable: 100%</code>、禁止 <code>maxSurge: 0</code> 与 <code>maxUnavailable</code> 大于 0 同时出现；也可以用 Kyverno/OPA 在集群侧拦截。</li>
+<li><strong>发布期压测</strong>：流水线里加一条「发版期间持续打流量」的冒烟任务，错误率超过阈值就自动暂停 rollout（<code>kubectl rollout pause</code>）。</li>
+<li><strong>灰度发布</strong>：重要服务改用金丝雀或 Argo Rollouts，先放 10% 流量观察，再全量。</li>
+<li><strong>验证</strong>：连续三次发版，压测零 5xx，Endpoints 数量最低保持 90% 以上，发版耗时回到两分半左右——比四十秒慢，但这是可用性的价格。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p><code>maxUnavailable</code> 的语义是「更新期间允许不可用的副本数上限」，<code>maxSurge</code> 是「允许临时超出期望副本数的上限」。两者共同决定滚动更新的节奏：控制器只会遵守你给的约束，不会替你保证可用性。</p>
+<p>把 <code>maxUnavailable</code> 设成 100%，等于告诉控制器「全部副本都可以先停掉」；再配合 <code>maxSurge: 0</code>，控制器没有创建新 Pod 的空间，只能先缩容再扩容。于是「滚动更新」退化成「停机重建」，只是它的名字还叫滚动更新。</p>
+<p>这个改动之所以能进生产，有三个原因：一是把「发版速度」当成唯一指标，忽略了可用性成本；二是测试环境流量低、没有发版期压测，问题被掩盖；三是评审只看了流水线耗时，没有人对着 Deployment 策略问一句「最坏情况会怎样」。顺带说一句，PDB 保护的是节点排空这类驱逐场景，不覆盖 Deployment 的正常滚动更新，不能拿它当这道防线的替代品。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li><strong>策略基线</strong>：无状态服务统一 <code>maxUnavailable: 0</code>、<code>maxSurge: 1~25%</code>；任何偏离基线的配置必须在变更单里写明理由与回滚方案。</li>
+<li><strong>CI 拦截</strong>：在清单校验阶段拒绝危险组合（100% 不可用、Surge 为 0 且 Unavailable 大于 0），让错误配置根本进不了集群。</li>
+<li><strong>发版期压测</strong>：把「持续流量 + 错误率阈值 + 自动暂停」做进发布流水线，而不是只验证 Pod 起没起来。</li>
+<li><strong>监控补齐</strong>：把 Endpoints 数量、发版期间 5xx、Pod 就绪耗时纳入发版看板；发版事件和监控曲线自动关联，让「副本数、端点数、错误率」三条线在同一张图上，任何人一眼能看出容量是否掉零。</li>
+<li><strong>发布演练</strong>：每季度做一次「发版期故障」演练，验证暂停、回滚、灰度三条路径都可用。</li>
+<li><strong>变更文化</strong>：性能优化不能只看单项耗时，要把可用性、恢复时间一起纳入评审。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>Kubernetes 不会阻止你把服务配成「发版即停机」，它只会忠实地执行你的策略。滚动更新之所以叫滚动，是因为参数约束了「至少留多少可用」；把这个约束拿掉，剩下的就只是更新，没有滚动。</p>
+<p>发版速度是体验，可用性是底线。任何以底线换体验的改动，都值得在评审时多问一句：最坏情况下，用户会看到什么？</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/e9ddc234/" >线程泄漏拖垮节点：Pod 没有 pids 上限</a></li>
+<li><a class="link" href="/posts/742c1c67/" >cgroup CPU 节流：容器延迟周期性抖动</a></li>
+<li><a class="link" href="/posts/bd44d3f1/" >NodePort 配 Local：无 Pod 节点直接丢包</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/deployment/">Deployment</a>
+        
+            <a href="/tags/%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0/">滚动更新</a>
+        
+            <a href="/tags/maxunavailable/">MaxUnavailable</a>
+        
+            <a href="/tags/kubernetes/">Kubernetes</a>
+        
+            <a href="/tags/%E5%8F%91%E7%89%88/">发版</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/bd44d3f1/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">NodePort 配 Local：无 Pod 节点直接丢包</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/8f3aa74b/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">PDB 配成 100%：集群维护卡在节点排空</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/69b1d440/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">K8s 节点时钟漂移：证书校验失败致 NotReady</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/e01939e6/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">kubelet 证书轮换失败致节点批量 NotReady</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/425c7ac4/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">CoreDNS 配置漂移致服务发现间歇性失败</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
