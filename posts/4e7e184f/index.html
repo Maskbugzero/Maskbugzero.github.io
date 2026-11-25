@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="历史遗留的跳板机开着非约束委派，域管登录后 TGT 被缓存并随主机一起失守；移除委派、重置 krbtgt 与域管凭据，并用约束委派替代后收口。">
+<title>非约束委派：域管 TGT 被跳板机截走</title>
+
+
+<link rel="canonical" href="https://blog.5772447.xyz/posts/4e7e184f/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.59c5eb617b2b83358d0baf163162325d5249a2be44239b430beb29a87c1ddbe4.css"><meta property='og:title' content="非约束委派：域管 TGT 被跳板机截走">
+<meta property='og:description' content="历史遗留的跳板机开着非约束委派，域管登录后 TGT 被缓存并随主机一起失守；移除委派、重置 krbtgt 与域管凭据，并用约束委派替代后收口。">
+<meta property='og:url' content='https://blog.5772447.xyz/posts/4e7e184f/'>
+<meta property='og:site_name' content='Zero Day Notes'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='非约束委派' /><meta property='article:tag' content='Kerberos' /><meta property='article:tag' content='TGT' /><meta property='article:tag' content='域控安全' /><meta property='article:tag' content='跳板机' /><meta property='article:published_time' content='2026-11-25T09:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-25T09:00:00&#43;08:00'/>
+<meta name="twitter:title" content="非约束委派：域管 TGT 被跳板机截走">
+<meta name="twitter:description" content="历史遗留的跳板机开着非约束委派，域管登录后 TGT 被缓存并随主机一起失守；移除委派、重置 krbtgt 与域管凭据，并用约束委派替代后收口。">
+    <link rel="shortcut icon" href="/img/favicon.png" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="300"
+                        height="300"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">🛠️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Zero Day Notes</a></h1>
+            <h2 class="site-description">IT 运维实战笔记</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/Maskbugzero'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%89%E5%85%A8%E8%BF%90%E7%BB%B4/" style="background-color: hsl(190, 60%, 84%); color: hsl(190, 60%, 15%);">
+                安全运维
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/posts/4e7e184f/">非约束委派：域管 TGT 被跳板机截走</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            历史遗留的跳板机开着非约束委派，域管登录后 TGT 被缓存并随主机一起失守；移除委派、重置 krbtgt 与域管凭据，并用约束委派替代后收口。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-11-25T09:00:00&#43;08:00'>2026年11月25日星期三</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 5 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#问题背景">问题背景</a></li>
+    <li><a href="#故障现象">故障现象</a></li>
+    <li><a href="#排查过程">排查过程</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#根因分析">根因分析</a></li>
+    <li><a href="#预防措施">预防措施</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#延伸阅读">延伸阅读</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="问题背景"><a href="#%e9%97%ae%e9%a2%98%e8%83%8c%e6%99%af" class="header-anchor"></a>问题背景
+</h2><p>域环境里有一台运维跳板机 <code>vm-jump-01</code>，运维人员先登录它，再跳到内网服务器。这台机器是前任管理员配的，为了让某个老系统支持「双跳」认证，在 AD 里给计算机账户勾选了「信任此计算机委派任何服务」——也就是非约束委派（Unconstrained Delegation）。</p>
+<p>配置做完后老系统确实能用了，但没人记录这件事，交接文档里只写了「跳板机，勿动」。两年过去，机器还在跑，配置一直留着，期间换过两任管理员，没有人再去看过它的 AD 属性。</p>
+<h2 id="故障现象"><a href="#%e6%95%85%e9%9a%9c%e7%8e%b0%e8%b1%a1" class="header-anchor"></a>故障现象
+</h2><p>事情是在一次红队演练中暴露的。攻击队通过跳板机上一个对外服务拿到本地管理员权限，之后没有继续爆破，而是静置等待——等运维人员用域管账号登录跳板机做例行维护。几小时后，攻击队用抓到的域管 TGT 成功访问了文件服务器和一台域控，演练判定「域控失陷」。</p>
+<p>防守方复盘时最不理解的是：攻击队并没有拿到域管密码，也没有破解任何东西，只是「等在跳板机上」。安全设备上能看到 LSASS 被读取的告警、域管账号在跳板机上发起的异常 SMB 连接，但这些告警当时被淹没在日常噪音里。</p>
+<p>另一次更早的巡检其实也有线索：域内 Kerberos 票据请求里，跳板机的机器账户出现过不寻常的服务票据请求，但没人把它和委派配置联系起来。</p>
+<h2 id="排查过程"><a href="#%e6%8e%92%e6%9f%a5%e8%bf%87%e7%a8%8b" class="header-anchor"></a>排查过程
+</h2><p>第一步先枚举域内的委派配置。用 <code>Get-ADComputer -Filter 'TrustedForDelegation -eq $true'</code> 扫描，跳板机赫然在列，且没有任何业务系统依赖它的委派能力。再看 <code>TrustedToAuthForDelegation</code>（协议转换）属性，没有开启，确认是传统的非约束委派。</p>
+<p>第二步还原攻击链。查跳板机的登录日志：事件 4624 记录了域管账号的登录类型 10（远程桌面），时间正好在攻击队「静置等待」的窗口内；跳板机的 LSASS 在之后被读取，EDR 抓到了工具特征；随后域控上出现该域管账号的票据使用记录。链条完整：主机被控 → 等域管登录 → 从 LSASS 抓 TGT → 票据传递访问其他系统。</p>
+<p>第三步解释原理。非约束委派的主机在用户通过 Kerberos 认证时会拿到一张「可转发」的 TGT，并缓存在本机 LSASS 里，以便它代替用户去访问其他服务。换句话说，任何登录过这台机器的域管，都会把「万能通行证」留在这里。机器一旦被攻破，这些 TGT 就是攻击者的战利品。</p>
+<p>第四步扩大排查面：全域扫描 <code>TrustedForDelegation</code> 的计算机和用户账户，又找出两台测试机；检查域管账号近 90 天的登录主机，发现除了域控，还有跳板机、文件服务器和几台应用服务器——高价值凭据长期暴露在低安全等级主机上。</p>
+<p>第五步确认影响与止血范围：跳板机上的域管 TGT 已被使用过，按「域控可能失陷」处理，而不是只改一台机器。</p>
+<h2 id="解决方案"><a href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88" class="header-anchor"></a>解决方案
+</h2><ol>
+<li><strong>移除非约束委派</strong>：<code>Set-ADComputer -Identity vm-jump-01 -TrustedForDelegation $false</code>，测试机和其余扫描出的主机一并处理。</li>
+<li><strong>按失陷处置凭据</strong>：跳板机重装系统；重置跳板机机器账户密码；重置域管账号密码并强制重新登录；<code>krbtgt</code> 账户连续重置两次（间隔超过域复制周期），让旧 TGT 全部失效。</li>
+<li><strong>业务改造</strong>：确需委派的场景改用约束委派（只允许访问指定服务）或基于资源的约束委派（RBCD，在目标资源上授权），不再使用「委派任何服务」。</li>
+<li><strong>收口域管登录面</strong>：域管只允许登录域控和受控管理工作站；跳板机按普通服务器管理，运维使用普通账号加临时提权，避免高价值凭据落在低等级主机。</li>
+<li><strong>验证</strong>：全域委派扫描清零；域管登录主机清单收敛到 Tier-0 范围；连续 30 天无异常票据告警；红队复测同一路径失败。</li>
+</ol>
+<h2 id="根因分析"><a href="#%e6%a0%b9%e5%9b%a0%e5%88%86%e6%9e%90" class="header-anchor"></a>根因分析
+</h2><p>非约束委派的安全模型是「主机可以代表任何用户访问任何服务」。用户登录时，KDC 把可转发的 TGT 交给主机，主机缓存它以便后续代理访问。设计初衷是早期多跳场景的便利，代价是把高价值凭据分散到了每一台被委派的主机上。</p>
+<p>这次事件的根因不是某个漏洞，而是配置治理失守：临时配置没有登记、没有到期时间、没有巡检；交接只写「勿动」，等于把风险冻结在原地。加上域管账号长期登录跳板机这类非 Tier-0 主机，等于主动把 TGT 送到风险最高的地方。</p>
+<p>监控也有盲区：委派属性变更没有审计告警，LSASS 访问告警没有分级，异常票据请求没有关联分析。演练时这些线索都在，只是没有人把它们串起来。</p>
+<h2 id="预防措施"><a href="#%e9%a2%84%e9%98%b2%e6%8e%aa%e6%96%bd" class="header-anchor"></a>预防措施
+</h2><ul>
+<li><strong>委派清单化</strong>：季度扫描 <code>TrustedForDelegation</code> 与 <code>TrustedToAuthForDelegation</code>，每一项都要有业务归属、审批记录和到期时间；无主配置一律移除。</li>
+<li><strong>优先约束委派</strong>：新需求默认用约束委派或 RBCD，禁止再新增非约束委派；确有例外走安全评审。</li>
+<li><strong>Tier 模型落地</strong>：域管、域控、PAW 构成 Tier-0；域管不得登录普通服务器和终端；敏感账户加入 Protected Users，并勾选「账户敏感且不能委派」。</li>
+<li><strong>变更审计</strong>：开启 AD 属性变更审计（事件 5136），委派、组成员、ACL 变更实时告警；LSASS 访问告警按主机等级分级。</li>
+<li><strong>检测规则</strong>：监控 4624 类型 3/10 的域管登录、4768/4769 异常票据、非域控主机的票据使用；把「域管登录了非 Tier-0 主机」做成高危告警。</li>
+<li><strong>定期演练</strong>：红队每年至少验证一次委派路径，蓝队同步验证检测与处置流程。</li>
+</ul>
+<h2 id="总结"><a href="#%e6%80%bb%e7%bb%93" class="header-anchor"></a>总结
+</h2><p>非约束委派不是「一个勾选项」，而是一份长期有效的授权：任何登录过这台主机的特权用户，都把可转发的 TGT 留在了这里。主机被攻破，等于这些用户的身份一起被攻破。</p>
+<p>治理这类风险，靠的不是事后抓工具，而是事前把「谁能委派、委派到哪、什么时候到期」管起来。配置有主、有期限、有审计，攻击者就没有「静置等待」的机会。</p>
+<h2 id="延伸阅读"><a href="#%e5%bb%b6%e4%bc%b8%e9%98%85%e8%af%bb" class="header-anchor"></a>延伸阅读
+</h2><ul>
+<li><a class="link" href="/posts/6ed2cf28/" >模板允许自填 SAN：域用户可冒充管理员</a></li>
+<li><a class="link" href="/posts/878c4ce3/" >设备码流程未禁用：攻击者绕过 MFA 读邮箱</a></li>
+<li><a class="link" href="/posts/b0ab9ad7/" >SNMP 仍是 public：内网为何能读走配置？</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E9%9D%9E%E7%BA%A6%E6%9D%9F%E5%A7%94%E6%B4%BE/">非约束委派</a>
+        
+            <a href="/tags/kerberos/">Kerberos</a>
+        
+            <a href="/tags/tgt/">TGT</a>
+        
+            <a href="/tags/%E5%9F%9F%E6%8E%A7%E5%AE%89%E5%85%A8/">域控安全</a>
+        
+            <a href="/tags/%E8%B7%B3%E6%9D%BF%E6%9C%BA/">跳板机</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+
+
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/posts/f78d7f76/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">域控 NTP 失效：全公司 Kerberos 认证失败</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/8ca2b9a4/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">NTP 异常：Kerberos 认证全失效</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/dc39561c/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">SSL VPN 认证超时致大量用户无法远程办公的定位</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/75336643/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">黄金票据攻击：域控权限持久化检测与清除</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/posts/fb201d40/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">堡垒机上线收口：清剿运维账号直连与免密跳板</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+
+     
+    
+        
+
+        <div class="disqus-container">
+    
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (typeof DISQUS == 'object') {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2026 Zero Day Notes
+    </section>
+    
+    <section class="powerby">
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+
+    </body>
+</html>
