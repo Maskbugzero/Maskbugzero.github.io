@@ -5,7 +5,37 @@
         <description>Recent content in 标签 on Zero Day Notes</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Thu, 26 Nov 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Fri, 27 Nov 2026 09:00:00 +0800</lastBuildDate><atom:link href="https://blog.5772447.xyz/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>本地缓存</title>
+            <link>https://blog.5772447.xyz/tags/%E6%9C%AC%E5%9C%B0%E7%BC%93%E5%AD%98/</link>
+            <pubDate>Fri, 27 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/%E6%9C%AC%E5%9C%B0%E7%BC%93%E5%AD%98/</guid>
+            <description></description>
+        </item><item>
+            <title>P99</title>
+            <link>https://blog.5772447.xyz/tags/p99/</link>
+            <pubDate>Fri, 27 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/p99/</guid>
+            <description></description>
+        </item><item>
+            <title>JVM</title>
+            <link>https://blog.5772447.xyz/tags/jvm/</link>
+            <pubDate>Fri, 27 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/jvm/</guid>
+            <description></description>
+        </item><item>
+            <title>G1</title>
+            <link>https://blog.5772447.xyz/tags/g1/</link>
+            <pubDate>Fri, 27 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/g1/</guid>
+            <description></description>
+        </item><item>
+            <title>Full GC</title>
+            <link>https://blog.5772447.xyz/tags/full-gc/</link>
+            <pubDate>Fri, 27 Nov 2026 09:00:00 +0800</pubDate>
+            <guid>https://blog.5772447.xyz/tags/full-gc/</guid>
+            <description></description>
+        </item><item>
             <title>双WAN</title>
             <link>https://blog.5772447.xyz/tags/%E5%8F%8Cwan/</link>
             <pubDate>Thu, 26 Nov 2026 09:00:00 +0800</pubDate>
@@ -3864,12 +3894,6 @@
             <guid>https://blog.5772447.xyz/tags/ahk/</guid>
             <description></description>
         </item><item>
-            <title>JVM</title>
-            <link>https://blog.5772447.xyz/tags/jvm/</link>
-            <pubDate>Fri, 19 Jul 2024 23:47:34 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/jvm/</guid>
-            <description></description>
-        </item><item>
             <title>限流</title>
             <link>https://blog.5772447.xyz/tags/%E9%99%90%E6%B5%81/</link>
             <pubDate>Sun, 23 Nov 2025 22:51:12 +0000</pubDate>
@@ -4162,12 +4186,6 @@
             <link>https://blog.5772447.xyz/tags/%E6%9C%BA%E6%88%BF/</link>
             <pubDate>Wed, 13 Dec 2023 10:35:00 +0000</pubDate>
             <guid>https://blog.5772447.xyz/tags/%E6%9C%BA%E6%88%BF/</guid>
-            <description></description>
-        </item><item>
-            <title>Full GC</title>
-            <link>https://blog.5772447.xyz/tags/full-gc/</link>
-            <pubDate>Wed, 22 Nov 2023 20:10:00 +0000</pubDate>
-            <guid>https://blog.5772447.xyz/tags/full-gc/</guid>
             <description></description>
         </item><item>
             <title>脑裂</title>
